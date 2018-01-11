@@ -1,0 +1,29 @@
+# This is a .gitignore file for C projects
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+*
+!*/
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# We use a BLACK-LIST for folders
+[Bb]in/
+[Oo]bj/
+[Cc]ov_*/
+[Ii]so/
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# We use a WHITE-LIST for files
+
+# Repository files
+!.git*
+!*.md
+
+# Building files
+!Makefile
+!*.mk
+
+# Source files
+!include/**/*.h
+!src/**/*.c
+!hooks/**/*.sh
+
+# Exceptions
+!hooks/license.h

@@ -124,11 +124,11 @@ endef
 
 define kimg
 DEPS += $(call obj,$2,$1,d)
-$1: $(gendir)/$1
-$(gendir)/$1: $(call obj,$2,$1,o) $(outdir)/_$(target_arch)/crtk.o
+$1: $(bindir)/$1
+$(bindir)/$1: $(call obj,$2,$1,o) # $(outdir)/_$(target_arch)/crtk.o
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  "$$@
-	$(V) $(LD) -T $(srcdir)/_$(target_arch)/kernel.ld $($(1)_LFLAGS) -o $$@ $(call obj,$2,$1,o)
+	$(V) $(LD) -T $(srcdir)/arch/$(target_arch)/kernel.ld $($(1)_LFLAGS) -o $$@ $(call obj,$2,$1,o)
 	$(Q) ls -lh $$@
 	$(Q) size $$@
 endef
@@ -198,11 +198,14 @@ SED_LCOV += -e '/SF:.*\/src\/tests\/.*/,/end_of_record/d'
 %.lcov: $(bindir)/%
 	@ find -name *.gcda | xargs -r rm
 	$(V) CK_FORK=no $<
-	$(V) lcov -c --directory . -b . -o $@
+	$(V) lcov --rc lcov_branch_coverage=1 -c --directory . -b . -o $@ >/dev/null
 	@ sed $(SED_LCOV) -i $@
 
 cov_%: %.lcov
-	$(V) genhtml -o $@ $<
+	$(V) genhtml --rc lcov_branch_coverage=1 -o $@ $< >/dev/null
+
+val_%: $(bindir)/%
+	$(V) CK_FORK=no valgrind --leak-check=full --show-leak-kinds=all $< 2>&1 | tee $@
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 deps:
