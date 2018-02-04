@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOs project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -37,72 +37,81 @@
 
 #define LOWER 0x20
 
-const char *_utoa_digits = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+=";
-const char *_utoa_digitsX = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+=";
+const char *_utoa_digits =
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+=";
+const char *_utoa_digitsX =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+=";
 
 
 __ulong _strtox(const char *str, char **endptr, int base, char *sign)
 {
-  int v;
-  char *pst;
-  __ulong value = 0;
-  __ulong bkp = 0;
+    int v;
+    char *pst;
+    __ulong value = 0;
+    __ulong bkp = 0;
 
-  if (endptr) (*endptr) = (char *)str;
-
-  while (isspace(*str)) str++;
-
-  (*sign) = *str == '-' ?  '-' : '+';
-
-  if (*str == '-' || *str == '+') {
-    str++;
-  }
-
-  if (base == 0) {
-    if (str[0] != '0') {
-      base = 10;
-
-    } else if ((str[1] | LOWER) == 'x') {
-      base = 16;
-      str += 2;
-
-    } else {
-      base = 8;
-      str++;
+    if (endptr) {
+        (*endptr) = (char *)str;
     }
-  }
 
-  pst = strchr(_utoa_digits, *str);
-  v = (pst == NULL) ? 65 : pst - _utoa_digits;
-  if (v >= base) {
-    errno = EINVAL;
-    return 0;
-  }
+    while (isspace(*str)) {
+        str++;
+    }
 
-  for (;; str++) {
+    (*sign) = *str == '-' ?  '-' : '+';
+
+    if (*str == '-' || *str == '+') {
+        str++;
+    }
+
+    if (base == 0) {
+        if (str[0] != '0') {
+            base = 10;
+
+        } else if ((str[1] | LOWER) == 'x') {
+            base = 16;
+            str += 2;
+
+        } else {
+            base = 8;
+            str++;
+        }
+    }
 
     pst = strchr(_utoa_digits, *str);
     v = (pst == NULL) ? 65 : pst - _utoa_digits;
     if (v >= base) {
-      pst = strchr(_utoa_digits, *str | LOWER);
-      v = (pst == NULL) ? 65 : pst - _utoa_digits;
+        errno = EINVAL;
+        return 0;
     }
 
-    if (v >= base)
-      break;
+    for (;; str++) {
 
-    bkp = value * base;
-    if (value != 0 && bkp / base != value) {
-      (*sign) = 'o';
-      return 0;
+        pst = strchr(_utoa_digits, *str);
+        v = (pst == NULL) ? 65 : pst - _utoa_digits;
+        if (v >= base) {
+            pst = strchr(_utoa_digits, *str | LOWER);
+            v = (pst == NULL) ? 65 : pst - _utoa_digits;
+        }
+
+        if (v >= base) {
+            break;
+        }
+
+        bkp = value * base;
+        if (value != 0 && bkp / base != value) {
+            (*sign) = 'o';
+            return 0;
+        }
+        value *= base;
+        value += v;
     }
-    value *= base;
-    value += v;
-  }
 
-  if (endptr) (*endptr) = (char *)str;
+    if (endptr) {
+        (*endptr) = (char *)str;
+    }
 
-  return value;
+    return value;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -111,81 +120,95 @@ __ulong _strtox(const char *str, char **endptr, int base, char *sign)
 double strtod(const char *nptr, char **endptr);
 
 /* Convert ASCII string to long integer */
-long strtol (const char *nptr, char **endptr, int base)
+long strtol(const char *nptr, char **endptr, int base)
 {
-  char sign;
-  __ulong value;
+    char sign;
+    __ulong value;
 
-  errno = 0;
-  if (base != 0 && (base < 2 || base > 36)) {
-    errno = EINVAL;
-    return 0;
-  }
-
-  value = _strtox(nptr, endptr, base, &sign);
-
-  if (sign == 'o') {
-    errno = EOVERFLOW;
-    if (endptr) (*endptr) = (char *)nptr;
-    return 0;
-  }
-
-  if (sign == '+') {
-    if (value > LONG_MAX) {
-      errno = EOVERFLOW;
-      if (endptr) (*endptr) = (char *)nptr;
-      return 0;
+    errno = 0;
+    if (base != 0 && (base < 2 || base > 36)) {
+        errno = EINVAL;
+        return 0;
     }
 
-    return (long) value;
+    value = _strtox(nptr, endptr, base, &sign);
 
-  } else {
-
-    if (value > (-(__ulong)LONG_MIN)) {
-      errno = EOVERFLOW;
-      if (endptr) (*endptr) = (char *)nptr;
-      return 0;
+    if (sign == 'o') {
+        errno = EOVERFLOW;
+        if (endptr) {
+            (*endptr) = (char *)nptr;
+        }
+        return 0;
     }
 
-    return (long) - value;
-  }
+    if (sign == '+') {
+        if (value > LONG_MAX) {
+            errno = EOVERFLOW;
+            if (endptr) {
+                (*endptr) = (char *)nptr;
+            }
+            return 0;
+        }
+
+        return (long) value;
+
+    } else {
+
+        if (value > (-(__ulong)LONG_MIN)) {
+            errno = EOVERFLOW;
+            if (endptr) {
+                (*endptr) = (char *)nptr;
+            }
+            return 0;
+        }
+
+        return (long) - value;
+    }
 }
 
 /* Convert ASCII string to unsigned long integer */
 unsigned long strtoul(const char *nptr, char **endptr, int base)
 {
-  char sign;
-  __ulong value;
+    char sign;
+    __ulong value;
 
-  errno = 0;
-  if (base != 0 && (base < 2 || base > 36)) {
-    errno = EINVAL;
-    return 0;
-  }
+    errno = 0;
+    if (base != 0 && (base < 2 || base > 36)) {
+        errno = EINVAL;
+        return 0;
+    }
 
-  // Handle '-' sign
-  if (endptr) (*endptr) = (char *)nptr;
-  while (isspace(*nptr)) nptr++;
-  if (*nptr == '-') {
-    errno = EINVAL;
-    return 0;
-  }
+    // Handle '-' sign
+    if (endptr) {
+        (*endptr) = (char *)nptr;
+    }
+    while (isspace(*nptr)) {
+        nptr++;
+    }
+    if (*nptr == '-') {
+        errno = EINVAL;
+        return 0;
+    }
 
-  value = _strtox(nptr, endptr, base, &sign);
+    value = _strtox(nptr, endptr, base, &sign);
 
-  if (sign == 'o') {
-    errno = EOVERFLOW;
-    if (endptr) (*endptr) = (char *)nptr;
-    return 0;
-  }
+    if (sign == 'o') {
+        errno = EOVERFLOW;
+        if (endptr) {
+            (*endptr) = (char *)nptr;
+        }
+        return 0;
+    }
 
-  if (value > ULONG_MAX) {
-    errno = EOVERFLOW;
-    if (endptr) (*endptr) = (char *)nptr;
-    return 0;
-  }
+    if (value > ULONG_MAX) {
+        errno = EOVERFLOW;
+        if (endptr) {
+            (*endptr) = (char *)nptr;
+        }
+        return 0;
+    }
 
-  return (unsigned long)value;
+    return (unsigned long)value;
 }
 
 
@@ -195,112 +218,122 @@ double atof(const char *nptr);
 /* Convert a string to an integer */
 int atoi(const char *nptr)
 {
-  char sign;
-  __ulong value = _strtox(nptr, NULL, 10, &sign);
-  return (int) (sign == '+') ? value : -value;
+    char sign;
+    __ulong value = _strtox(nptr, NULL, 10, &sign);
+    return (int) (sign == '+') ? value : -value;
 }
 
 /* Convert a string to an integer */
 long atol(const char *nptr)
 {
-  char sign;
-  __ulong value = _strtox(nptr, NULL, 10, &sign);
-  return (long) (sign == '+') ? value : -value;
+    char sign;
+    __ulong value = _strtox(nptr, NULL, 10, &sign);
+    return (long) (sign == '+') ? value : -value;
 }
 
 #ifdef __USE_C99
 /* Convert a string to an integer */
 long long atoll(const char *nptr)
 {
-  char sign;
-  __ulong value = _strtox(nptr, NULL, 10, &sign);
-  return (long long) (sign == '+') ? value : -value;
+    char sign;
+    __ulong value = _strtox(nptr, NULL, 10, &sign);
+    return (long long) (sign == '+') ? value : -value;
 }
 
 /* Convert a string to an integer */
 long long atoq(const char *nptr)
 {
-  char sign;
-  __ulong value = _strtox(nptr, NULL, 10, &sign);
-  return (long long) (sign == '+') ? value : -value;
+    char sign;
+    __ulong value = _strtox(nptr, NULL, 10, &sign);
+    return (long long) (sign == '+') ? value : -value;
 }
 
-long long strtoll (const char *nptr, char **endptr, int base)
+long long strtoll(const char *nptr, char **endptr, int base)
 {
-  char sign;
-  __ulong value;
+    char sign;
+    __ulong value;
 
-  errno = 0;
-  if (base != 0 && (base < 2 || base > 36)) {
-    errno = EINVAL;
-    return 0;
-  }
-
-  value = _strtox(nptr, endptr, base, &sign);
-
-  if (sign == 'o') {
-    errno = EOVERFLOW;
-
-    if (endptr) (*endptr) = (char *)nptr;
-
-    return 0;
-  }
-
-  if (sign == '+') {
-    if (value > LLONG_MAX) {
-      errno = EOVERFLOW;
-
-      if (endptr) (*endptr) = (char *)nptr;
-
-      return 0;
+    errno = 0;
+    if (base != 0 && (base < 2 || base > 36)) {
+        errno = EINVAL;
+        return 0;
     }
 
-    return (long long) value;
+    value = _strtox(nptr, endptr, base, &sign);
 
-  } else {
+    if (sign == 'o') {
+        errno = EOVERFLOW;
 
-    if (value > (-(__ulong)LLONG_MIN)) {
-      errno = EOVERFLOW;
+        if (endptr) {
+            (*endptr) = (char *)nptr;
+        }
 
-      if (endptr) (*endptr) = (char *)nptr;
-
-      return 0;
+        return 0;
     }
 
-    return (long long) - value;
-  }
+    if (sign == '+') {
+        if (value > LLONG_MAX) {
+            errno = EOVERFLOW;
+
+            if (endptr) {
+                (*endptr) = (char *)nptr;
+            }
+
+            return 0;
+        }
+
+        return (long long) value;
+
+    } else {
+
+        if (value > (-(__ulong)LLONG_MIN)) {
+            errno = EOVERFLOW;
+
+            if (endptr) {
+                (*endptr) = (char *)nptr;
+            }
+
+            return 0;
+        }
+
+        return (long long) - value;
+    }
 }
 
-unsigned long long strtoull (const char *nptr, char **endptr, int base)
+unsigned long long strtoull(const char *nptr, char **endptr, int base)
 {
-  char sign;
-  __ulong value;
+    char sign;
+    __ulong value;
 
-  errno = 0;
-  if (base != 0 && (base < 2 || base > 36)) {
-    errno = EINVAL;
-    return 0;
-  }
+    errno = 0;
+    if (base != 0 && (base < 2 || base > 36)) {
+        errno = EINVAL;
+        return 0;
+    }
 
-  value = _strtox(nptr, endptr, base, &sign);
+    value = _strtox(nptr, endptr, base, &sign);
 
-  if (sign == 'o') {
-    errno = EOVERFLOW;
+    if (sign == 'o') {
+        errno = EOVERFLOW;
 
-    if (endptr) (*endptr) = (char *)nptr;
+        if (endptr) {
+            (*endptr) = (char *)nptr;
+        }
 
-    return 0;
-  }
+        return 0;
+    }
 
-  if (value > ULLONG_MAX) {
-    errno = EOVERFLOW;
+    if (value > ULLONG_MAX) {
+        errno = EOVERFLOW;
 
-    if (endptr) (*endptr) = (char *)nptr;
+        if (endptr) {
+            (*endptr) = (char *)nptr;
+        }
 
-    return 0;
-  }
+        return 0;
+    }
 
-  return (unsigned long long) (sign == '+' ? value : -value);
+    return (unsigned long long) (sign == '+' ? value : -value);
 }
 
 #endif
@@ -308,50 +341,50 @@ unsigned long long strtoull (const char *nptr, char **endptr, int base)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
-char *_utoa (__ulong value, char *str, int base, const char *digits)
+char *_utoa(__ulong value, char *str, int base, const char *digits)
 {
-  __ulong quot, rem;
-  int sp = 0, j = 0;
-  char stack[sizeof(__ulong) * 8] = { 0 };
+    __ulong quot, rem;
+    int sp = 0, j = 0;
+    char stack[sizeof(__ulong) * 8] = { 0 };
 
-  if (value == 0) {
-    str[0] = '0';
-    str[1] = '\0';
-    return 0;
-  }
+    if (value == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return 0;
+    }
 
-  while (value) {
-    quot = value / base;
-    rem = value % base;
-    stack[sp++] = digits[rem];
-    value = quot;
-  }
+    while (value) {
+        quot = value / base;
+        rem = value % base;
+        stack[sp++] = digits[rem];
+        value = quot;
+    }
 
-  str [sp] = '\0';
+    str [sp] = '\0';
 
-  while (sp > 0) {
-    --sp;
-    str [j++] = stack[sp];
-  }
+    while (sp > 0) {
+        --sp;
+        str [j++] = stack[sp];
+    }
 
-  return str;
+    return str;
 }
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
-char *itoa (int value, char *str, int base)
+char *itoa(int value, char *str, int base)
 {
-  char *ptr = str;
-  if (base < 2 || base > 36) {
-    return NULL;
-  }
+    char *ptr = str;
+    if (base < 2 || base > 36) {
+        return NULL;
+    }
 
-  if (base == 10 && value < 0) {
-    *(str++) = '-';
-    value = -value;
-  }
+    if (base == 10 && value < 0) {
+        *(str++) = '-';
+        value = -value;
+    }
 
-  _utoa (value, str, base, _utoa_digits);
-  return ptr;
+    _utoa (value, str, base, _utoa_digits);
+    return ptr;
 }

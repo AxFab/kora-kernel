@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -21,25 +21,29 @@
 #define _KERNEL_MEMORY_H 1
 
 #include <kernel/types.h>
-#include <kernel/asm/mmu.h>
-#include <skc/mcrs.h>
 
 typedef struct mspace mspace_t;
+typedef struct vma vma_t;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Map a memory area inside the provided address space. */
-void *memory_map(mspace_t *mspace, size_t address, size_t length, inode_t* ino, off_t offset, int flags);
+void *mspace_map(mspace_t *mspace, size_t address, size_t length,
+                 inode_t *ino, off_t offset, off_t limit, int flags);
+/* Change the protection flags of a memory area. */
+int mspace_protect(mspace_t *mspace, size_t address, size_t length, int flags);
 /* Change the flags of a memory area. */
-int memory_flag(mspace_t *mspace, size_t address, size_t length, int flags);
-/* Remove disabled memory area */
-int memory_scavenge(mspace_t *mspace);
-/* Display the state of the current address space */
-void memory_display();
+int mspace_unmap(mspace_t *mspace, size_t address, size_t length);
+/* Release all VMA marked as DEAD. */
+int mspace_scavenge(mspace_t *mspace);
+/* Print the information of memory space -- used for /proc/{x}/mmap  */
+void mspace_display();
 /* Create a memory space for a user application */
-mspace_t *memory_userspace();
-/* - */
-void memory_sweep(mspace_t *mspace);
+mspace_t *mspace_create();
+/* Release all VMA and free all mspace data structure. */
+void mspace_sweep(mspace_t *mspace);
+/* Search a VMA structure at a specific address */
+vma_t *mspace_search_vma(mspace_t *mspace, size_t address);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -56,6 +60,8 @@ void page_sweep(size_t address, size_t length, bool clean);
 /* Resolve a page fault */
 int page_fault(mspace_t *mspace, size_t address, int reason);
 
+int page_resolve(mspace_t *mspace, size_t address, size_t length);
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* - */
@@ -63,7 +69,7 @@ void mmu_detect_ram();
 /* - */
 int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean);
 /* - */
-page_t mmu_drop(size_t vaddress, bool clean);
+page_t mmu_read(size_t vaddress, bool drop, bool clean);
 /* - */
 page_t mmu_directory();
 /* - */
@@ -72,26 +78,16 @@ void mmu_release_dir(page_t dir);
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 struct kMmu {
-  /* Maximum amount of memory */
-  size_t upper_physical_page;
-  /* Maximum pages amount */
-  size_t pages_amount;
-  /* Number of unsued free pages */
-  size_t free_pages;
-  /* Page size */
-  size_t page_size;
-  /* Userspace lower bound */
-  size_t uspace_lower_bound;
-  /* Userspace upper bound */
-  size_t uspace_upper_bound;
-  /* Kernel heap lower bound */
-  size_t kheap_lower_bound;
-  /* Kernel heap upper bound */
-  size_t kheap_upper_bound;
-  /* Maximum size of a VMA */
-  size_t max_vma_length;
-  /* Kernel address space */
-  mspace_t *kspace;
+    size_t upper_physical_page;  /* Maximum amount of memory */
+    size_t pages_amount;  /* Maximum pages amount */
+    size_t free_pages;  /* Number of unsued free pages */
+    size_t page_size;  /* Page size */
+    size_t uspace_lower_bound;  /* Userspace lower bound */
+    size_t uspace_upper_bound;  /* Userspace upper bound */
+    size_t kheap_lower_bound;  /* Kernel heap lower bound */
+    size_t kheap_upper_bound;  /* Kernel heap upper bound */
+    size_t max_vma_length;  /* Maximum size of a VMA */
+    mspace_t *kspace;  /* Kernel address space */
 };
 
 /* - */

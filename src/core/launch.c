@@ -2,48 +2,105 @@
 #include <kernel/core.h>
 #include <kernel/vfs.h>
 #include <kernel/memory.h>
+#include <kernel/task.h>
 #include <kernel/cpu.h>
+#include <kernel/sys/inode.h>
+#include <kernel/sys/device.h>
 
-int IMG_setup();
+int TMPFS_setup();
+int DEVFS_setup();
 int ATA_setup();
 int PCI_setup();
 int E1000_setup();
+int PS2_setup();
+int VBE_setup();
+int IMG_setup();
+int ISO9660_setup();
+
+
+
+extern uint32_t splash_width;
+extern uint32_t splash_height;
+extern uint8_t splash_pixels[];
+extern uint32_t splash_colors[];
+
+void seat_fb_clear(int no, uint32_t color);
+void seat_fb_splash(int no, int width, int height, uint32_t *colors,
+                    uint8_t *pixels);
+
+
+#include <kernel/sys/device.h>
+void ARP_who_is(const unsigned char *ip);
+inode_t *ISO9660_mount(inode_t *dev);
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+struct kSys kSYS;
+struct kCpu kCPU0;
 
 void kernel_start()
 {
-  kprintf(-1, "Kora OS "/* _VTAG_*/ ", build at " __DATE__ ".\n");
-  page_initialize();
+    kprintf(-1, "Kora OS - x86 - v1.0-4b825dc+"/* _VTAG_*/"\nBuild the " __DATE__
+            ".\n");
+    kprintf (-1, "\n\e[94m  Greetings...\e[0m\n\n");
 
-  time_t now = cpu_time();
-  kprintf(-1, "Date: %s\n", asctime(gmtime(&now)));
+    page_initialize();
 
-  kprintf (-1, "Memory available ");
-  kprintf (-1, "%s on ", sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
-  kprintf (-1, "%s\n", sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
+    kSYS.cpus[0] = &kCPU0;
+    irq_reset(false);
+    cpu_awake();
+    irq_reset(false);
 
-  cpu_awake();
-  // kprintf(-1, "Cpus count: %d\n", kSYS.cpuCount_);
-  // for (i=0; i<kSYS.cpuCount_; ++i)
-    // kprintf("  - CPU %d :: %s\n", i, kSYS._cpu[0].vendor_);
-  // kprintf("%s\n", kSYS._cpu[0].spec_);
+    time_t now = cpu_time();
+    kprintf(-1, "[TIME] Date is %s", asctime(gmtime(&now)));
 
-  kprintf (-1, "\n\e[94m  Greetings...\e[0m\n\n");
+    seat_fb_clear(0, 0xd8d8d8);
+    seat_fb_splash(0, splash_width, splash_height, splash_colors, splash_pixels);
 
-  mmu_dump_x86();
+    /* Drivers startup */
+    TMPFS_setup();
+    DEVFS_setup();
+    if (true) {
+        ATA_setup();
+        PCI_setup();
+        // E1000_setup();
+        PS2_setup();
+        // VBE_setup();
+    } else {
+        // IMG_setup();
+    }
+    ISO9660_setup();
 
-  vfs_initialize();
-    /*
-  IMG_setup();
-    */
-  ATA_setup();
-  PCI_setup();
-  E1000_setup();
-  // for (;;);
+
+    inode_t *root = vfs_mount_as_root("sdC", "iso9660");
+    if (root == NULL) {
+        kprintf(-1, "Expected mount point named 'ISOIMAGE' over 'sdC' !\n");
+        return;
+    }
+
+    vfs_mount(root, "dev", NULL, "devfs");
+    vfs_mount(root, "tmp", NULL, "tmpfs");
+
+    inode_t *ino = vfs_search(root, root, "BIN/INIT");
+    if (ino == NULL) {
+        kprintf(-1, "Expected file 'INIT'.\n");
+        return;
+    }
+
+    task_t *task0 = task_create(NULL, root, TSK_USER_SPACE);
+    if (elf_open(task0, ino) != 0) {
+        kprintf(-1, "Unable to execute file\n");
+    }
+
+    vfs_close(root);
+    vfs_close(ino);
+
+    irq_register(0, (irq_handler_t)scheduler_ticks, 0);
 }
 
 
 void kernel_ready()
 {
-  for (;;);
+    for (;;);
 }
 

@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -24,8 +24,8 @@
 
 void cpu_enable_mmu()
 {
-  kMMU.kheap_lower_bound = (size_t)valloc(16 * _Mib_);
-  kMMU.kheap_upper_bound = kMMU.kheap_lower_bound + 16 * _Mib_;
+    kMMU.kheap_lower_bound = (size_t)valloc(16 * _Mib_);
+    kMMU.kheap_upper_bound = kMMU.kheap_lower_bound + 16 * _Mib_;
 }
 
 time_t cpu_time()

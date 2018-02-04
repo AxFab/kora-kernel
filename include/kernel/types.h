@@ -1,7 +1,8 @@
 #ifndef _KERNEL_TYPES
 #define _KERNEL_TYPES 1
 
-#include <skc/stddef.h>
+#include <kora/stddef.h>
+#include <kernel/asm/mmu.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -12,7 +13,7 @@
 typedef struct inode inode_t;
 
 #if _ADD_STDC_MISS
-struct timespec{
+struct timespec {
     long tv_sec;
     long tv_nsec;
 };

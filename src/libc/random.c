@@ -1,5 +1,5 @@
 /*
- *      This file is part of the KoraOS project.
+ *      This file is part of the KoraOs project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -24,28 +24,30 @@ static unsigned int __seed;
 /* Sets the seed for a new sequence of pseudo-random integers. */
 void srand(unsigned int seed)
 {
-  __seed = seed;
+    __seed = seed;
 }
 
 /* Pseudo-random generator based on Minimal Standard by
    Lewis, Goodman, and Miller in 1969: I[j+1] = a*I[j] (mod m) */
 int rand_r(unsigned int *seed)
 {
-  long k;
-  long s = (long)(*seed);
-  if (s == 0)
-    s = 0x12345987;
-  k = s / 127773;
-  s = 16807 * (s - k * 127773) - 2836 * k;
-  if (s < 0)
-    s += 2147483647;
-  (*seed) = (unsigned int)s;
-  return (int)(s & RAND_MAX);
+    long k;
+    long s = (long)(*seed);
+    if (s == 0) {
+        s = 0x12345987;
+    }
+    k = s / 127773;
+    s = 16807 * (s - k * 127773) - 2836 * k;
+    if (s < 0) {
+        s += 2147483647;
+    }
+    (*seed) = (unsigned int)s;
+    return (int)(s & RAND_MAX);
 }
 
 /* Pseudo-random generator */
 int rand(void)
 {
-  return rand_r(&__seed);
+    return rand_r(&__seed);
 }
 

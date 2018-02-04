@@ -21,10 +21,11 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
-#include <kernel/sys/vma.h>
+#include <kernel/asm/vma.h>
 #include <kernel/asm/mmu.h>
-#include <skc/atomic.h>
+#include <kora/atomic.h>
 #include <string.h>
+#include <assert.h>
 #include <time.h>
 
 
@@ -39,8 +40,8 @@ void smp_error();
 #define AE_VECTOR (((size_t)smp_error) >> 12)
 
 struct x86_CPU {
-  char vendor[16];
-  int features[4];
+    char vendor[16];
+    int features[4];
 };
 
 // EAX, EBX, EDX, ECX
@@ -119,7 +120,7 @@ struct x86_CPU {
 #define APIC_LVT3  (0x370 / 4) // LVT Error register
 
 
-void x86_cpuid(int, int, int*);
+void x86_cpuid(int, int, int *);
 void x86_enable_MMU();
 void x86_enable_SSE();
 void x86_active_FPU();
@@ -129,14 +130,14 @@ void x86_active_cache();
 // Read 64bits data from MSR registers
 static void x86_rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
 {
-  asm volatile("rdmsr" : "=a"(*lo), "=d"(*hi) : "c"(msr));
+    asm volatile("rdmsr" : "=a"(*lo), "=d"(*hi) : "c"(msr));
 }
 
 // Write 64bits data on MSR registers
-static void x86_wrmsr(uint32_t msr, uint32_t lo, uint32_t hi)
-{
-  asm volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
-}
+// static void x86_wrmsr(uint32_t msr, uint32_t lo, uint32_t hi)
+// {
+//   asm volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
+// }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -144,36 +145,38 @@ atomic_t x86_delayTimer;
 
 void x86_delayIRQ()
 {
-  // Timer is in microseconds
-  atomic_xadd(&x86_delayTimer, 1000000 / CLOCK_HZ);
+    // Timer is in microseconds
+    atomic_xadd(&x86_delayTimer, 1000000 / CLOCK_HZ);
 }
 
 void x86_delayX(unsigned int microsecond)
 {
-  x86_delayTimer = 0;
-  irq_register(0, (irq_handler_t)x86_delayIRQ, NULL);
+    x86_delayTimer = 0;
+    irq_register(0, (irq_handler_t)x86_delayIRQ, NULL);
 
-  while (x86_delayTimer < microsecond) asm("pause");
+    while (x86_delayTimer < microsecond) {
+        asm("pause");
+    }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void x86_cpu_features(struct x86_CPU *cpu)
 {
-  // Get CPU Vendor name
-  int cpu_name[5];
-  x86_cpuid(0, 0, cpu_name);
-  cpu_name[4] = 0;
-  strcpy(cpu->vendor, (char*)&cpu_name[1]);
+    // Get CPU Vendor name
+    int cpu_name[5];
+    x86_cpuid(0, 0, cpu_name);
+    cpu_name[4] = 0;
+    strcpy(cpu->vendor, (char *)&cpu_name[1]);
 
-  x86_cpuid(0, 0, cpu->features);
+    x86_cpuid(0, 0, cpu->features);
 
-  if (x86_FEATURES_FPU(*cpu)) {
-    x86_active_FPU();
-  }
-  if (x86_FEATURES_SSE(*cpu)) {
-    x86_enable_SSE();
-  }
+    if (x86_FEATURES_FPU(*cpu)) {
+        x86_active_FPU();
+    }
+    if (x86_FEATURES_SSE(*cpu)) {
+        x86_enable_SSE();
+    }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -183,15 +186,26 @@ int datetime_set = 0;
 
 struct tm RTC_GetTime();
 void PIT_set_interval(unsigned frequency);
+uint64_t cpu_ticks();
 
 time_t cpu_time()
 {
-  if (datetime_set == 0) {
-    datetime = RTC_GetTime();
-    // kprintf(-1, "RTC Date: %s\n", asctime(&datetime));
-    datetime_set = 1;
-  }
-  return mktime(&datetime);
+    if (datetime_set == 0) {
+        datetime = RTC_GetTime();
+        datetime_set = 1;
+    }
+    return mktime(&datetime);
+}
+
+uint64_t cpu_elapsed(uint64_t *last)
+{
+    uint64_t ticks = cpu_ticks();
+    if (last == NULL) {
+        return ticks;
+    }
+    uint64_t elapsed = ticks - *last;
+    *last = ticks;
+    return elapsed;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -201,84 +215,87 @@ uint32_t *apic;
 
 int cpu_no()
 {
-  if (!APIC_ON) {
-    return 0;
-  }
+    if (!APIC_ON) {
+        return 0;
+    }
 
-  return (apic[APIC_ID] >> 24) & 0xf;
+    return (apic[APIC_ID] >> 24) & 0xf;
 }
 
 void cpu_enable_mmu()
 {
-  int i;
-  page_t* dir = (page_t*)KRN_PG_DIR;
-  page_t* tbl = (page_t*)KRN_PG_TBL;
-  memset(dir, 0, PAGE_SIZE);
-  memset(tbl, 0, PAGE_SIZE);
-  dir[1022] = KRN_PG_DIR | MMU_K_RW;
-  dir[1023] = KRN_PG_DIR | MMU_K_RW;
-  dir[0] = KRN_PG_TBL | MMU_K_RW;
-  for (i = 0; i < 512; ++i) {
-    tbl[i] = (i * PAGE_SIZE) | MMU_K_RW;
-  }
+    int i;
+    page_t *dir = (page_t *)KRN_PG_DIR;
+    page_t *tbl = (page_t *)KRN_PG_TBL;
+    memset(dir, 0, PAGE_SIZE);
+    memset(tbl, 0, PAGE_SIZE);
+    dir[1022] = KRN_PG_DIR | MMU_K_RW;
+    dir[1023] = KRN_PG_DIR | MMU_K_RW;
+    dir[0] = KRN_PG_TBL | MMU_K_RW;
+    for (i = 0; i < 512; ++i) {
+        tbl[i] = (i * PAGE_SIZE) | MMU_K_RW;
+    }
 
-  x86_enable_MMU();
+    x86_enable_MMU();
 }
 
 
 /* Request to start other CPUs */
 void cpu_awake()
 {
-  struct x86_CPU cpu;
-  // Check cpu features first
-  x86_cpu_features(&cpu);
+    struct x86_CPU cpu;
+    // Check cpu features first
+    x86_cpu_features(&cpu);
 
-  if (!x86_FEATURES_MSR(cpu)) {
-    kprintf(0, "CPU vendor: %s, No MSR capability\n", cpu.vendor);
-    return;
-  } else if (!x86_FEATURES_APIC(cpu)) {
-    kprintf(0, "CPU vendor: %s, No APIC capability\n", cpu.vendor);
-    return;
-  }
+    if (!x86_FEATURES_MSR(cpu)) {
+        kprintf(0, "CPU vendor: %s, No MSR capability\n", cpu.vendor);
+        return;
+    } else if (!x86_FEATURES_APIC(cpu)) {
+        kprintf(0, "CPU vendor: %s, No APIC capability\n", cpu.vendor);
+        return;
+    }
 
-  uint32_t regA, regB;
-  x86_rdmsr(IA32_APIC_BASE_MSR, &regA, &regB);
-  if ((regA & (1 << 11)) == 0) {
-    kprintf(0, "CPU vendor: %s, APIC disabled\n", cpu.vendor);
-    return;
-  } else if ((regA & (1 << 8)) == 0) {
-    kprintf(0, "CPU vendor: %s, unfound BSP\n", cpu.vendor);
-    return;
-  }
+    uint32_t regA, regB;
+    x86_rdmsr(IA32_APIC_BASE_MSR, &regA, &regB);
+    if ((regA & (1 << 11)) == 0) {
+        kprintf(0, "CPU vendor: %s, APIC disabled\n", cpu.vendor);
+        return;
+    } else if ((regA & (1 << 8)) == 0) {
+        kprintf(0, "CPU vendor: %s, unfound BSP\n", cpu.vendor);
+        return;
+    }
 
-  // Map APIC
-  kprintf(0, "CPU vendor: %s, all good...\n", cpu.vendor);
-  void * p = kalloc(2);
-  apic = (uint32_t*)kmap(PAGE_SIZE, NULL, regA & 0xfffff000, VMA_FG_PHYS);
-  kprintf(0, "Map APIC \n");
+    // Map APIC
+    kprintf(0, "CPU vendor: %s, all good...\n", cpu.vendor);
+    void *p = kalloc(2);  // TODO -- Use recursive spinlock unstead.
+    (void)p;
+    apic = (uint32_t *)kmap(PAGE_SIZE, NULL, regA & 0xfffff000, VMA_FG_PHYS);
+    kprintf(0, "Map APIC \n");
 
-  APIC_ON = true;
-  PIT_set_interval(CLOCK_HZ);
-  asm("sti");
-  // Set the Spourious Interrupt Vector Register bit 8 to start receiving interrupts
-  apic[APIC_SVR] |= 0x800; // Enable the APIC
-  apic[APIC_LVT3] = (apic[APIC_LVT3] & ~0xff) | (AE_VECTOR & 0xff);
+    PIT_set_interval(CLOCK_HZ);
+    bool irq = irq_enable();
+    assert(irq);
 
-  // Broadcast INIT IPI to all APs
-  apic[APIC_ICR_LOW] = 0x0C4500;
-  x86_delayX(10000); // 10-millisecond delay loop.
+    // Set the Spourious Interrupt Vector Register bit 8 to start receiving interrupts
+    apic[APIC_SVR] |= 0x800; // Enable the APIC
+    APIC_ON = true;
+    apic[APIC_LVT3] = (apic[APIC_LVT3] & ~0xff) | (AE_VECTOR & 0xff);
 
-  // Load ICR encoding for broadcast SIPI IP (x2)
-  apic[APIC_ICR_LOW] = 0x000C4600 | AP_VECTOR;
-  x86_delayX(200); // 200-microsecond delay loop.
-  apic[APIC_ICR_LOW] = 0x000C4600 | AP_VECTOR;
-  x86_delayX(200); // 200-microsecond delay loop.
+    // Broadcast INIT IPI to all APs
+    apic[APIC_ICR_LOW] = 0x0C4500;
+    x86_delayX(10000); // 10-millisecond delay loop.
 
-  // Wait timer interrupt - We should have init all CPUs
-  asm("cli");
-  // kSYS.cpuCount_ = cpu_count + 1;
-  kprintf(0, "BSP found a count of %d CPUs\n", cpu_count + 1);
-  kprintf(0, "BSP is CPU [%d]\n", cpu_no());
+    // Load ICR encoding for broadcast SIPI IP (x2)
+    apic[APIC_ICR_LOW] = 0x000C4600 | AP_VECTOR;
+    x86_delayX(200); // 200-microsecond delay loop.
+    apic[APIC_ICR_LOW] = 0x000C4600 | AP_VECTOR;
+    x86_delayX(200); // 200-microsecond delay loop.
+
+    // Wait timer interrupt - We should have init all CPUs
+    irq_disable();
+    // kSYS.cpuCount_ = cpu_count + 1;
+    kprintf(0, "BSP found a count of %d CPUs\n", cpu_count + 1);
+    kprintf(0, "BSP is CPU [%d]\n", cpu_no());
 }
 
 

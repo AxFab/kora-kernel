@@ -1,4 +1,4 @@
-#      This file is part of the SmokeOS project.
+#      This file is part of the KoraOS project.
 #  Copyright (C) 2015  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-NAME=SmokeOS
+NAME=kora-kernel
 VERSION=1.0-$(GIT)
 
 CFLAGS += -Wall -Wextra -Wno-unused-parameter -fno-builtin
@@ -22,17 +22,17 @@ CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
 CFLAGS += -Wno-multichar
 ifneq ($(target_os),smkos)
-COV_FLAGS += -ggdb3 --coverage -fprofile-arcs -ftest-coverage
+COV_FLAGS += --coverage -fprofile-arcs -ftest-coverage
 # CFLAGS += -DNDEBUG
 LFLAGS += --coverage -fprofile-arcs -ftest-coverage
 endif
 
-CFLAGS += -I$(topdir)/include
+CFLAGS += -ggdb3 -I$(topdir)/include
 
 # We define one mode of compiling `std`
-std_CFLAGS := $(CFLAGS) $(COV_FLAGS) -I$(topdir)/arch/um
-krn_CFLAGS := $(CFLAGS) -I$(topdir)/arch/x86 -DSKC_ALLOCATOR
-mod_CFLAGS := $(CFLAGS) -I$(topdir)/arch/x86 -DSKC_ALLOCATOR -DK_MODULE
+std_CFLAGS := $(CFLAGS) $(COV_FLAGS) -I$(topdir)/include/arch/um
+krn_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/x86 -DKORA_ALLOCATOR
+mod_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/x86 -DKORA_ALLOCATOR -DK_MODULE
 $(eval $(call ccpl,std))
 $(eval $(call ccpl,krn))
 $(eval $(call ccpl,mod))
@@ -45,7 +45,11 @@ tests_src-y += $(wildcard $(srcdir)/tests/*.c)
 tests_src-y += $(wildcard $(srcdir)/arch/um/*.c)
 tests_src-y += $(wildcard $(srcdir)/arch/um/*.asm)
 tests_src-y += $(wildcard $(srcdir)/fs/tmpfs/*.c)
+tests_src-y += $(wildcard $(srcdir)/fs/iso9660/*.c)
+tests_src-y += $(wildcard $(srcdir)/drv/img/*.c)
+tests_src-y += $(wildcard $(srcdir)/drv/mbr/*.c)
 tests_omit-y += $(srcdir)/libc/string.c $(srcdir)/core/common.c $(srcdir)/core/launch.c
+tests_omit-y += $(srcdir)/core/vfs.c $(srcdir)/tests/vfs.c $(srcdir)/core/net.c
 tests_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c $(srcdir)/tests/format.c
 tests_LFLAGS := $(LFLAGS)
 tests_LIBS := $(shell pkg-config --libs check)
@@ -55,14 +59,20 @@ DV_UTILS += $(bindir)/tests
 
 # We create the `kernel` delivery
 kImg_src-y += $(wildcard $(srcdir)/arch/x86/*.asm)
+kImg_src-y += $(wildcard $(srcdir)/arch/x86/*.c)
 kImg_src-y += $(wildcard $(srcdir)/skc/*.c)
 kImg_src-y += $(wildcard $(srcdir)/libc/*.c)
 kImg_src-y += $(wildcard $(srcdir)/core/*.c)
+kImg_src-y += $(wildcard $(srcdir)/scall/*.c)
 kImg_src-y += $(wildcard $(srcdir)/drv/pci/*.c)
 kImg_src-y += $(wildcard $(srcdir)/drv/ata/*.c)
-kImg_src-y += $(wildcard $(srcdir)/drv/e1000/*.c)
-kImg_src-y += $(wildcard $(srcdir)/arch/x86/*.c)
+kImg_src-y += $(wildcard $(srcdir)/drv/ps2/*.c)
+# kImg_src-y += $(wildcard $(srcdir)/drv/vga/*.c)
+# kImg_src-y += $(wildcard $(srcdir)/drv/e1000/*.c)
+# kImg_src-y += $(wildcard $(srcdir)/drv/am79C973/*.c)
 kImg_src-y += $(wildcard $(srcdir)/fs/tmpfs/*.c)
+kImg_src-y += $(wildcard $(srcdir)/fs/devfs/*.c)
+kImg_src-y += $(wildcard $(srcdir)/fs/iso9660/*.c)
 # kImg_LFLAGS := $(LFLAGS)
 $(eval $(call kimg,kImg,krn))
 DV_UTILS += $(bindir)/kImg

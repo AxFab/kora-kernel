@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -17,33 +17,34 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <skc/splock.h>
+#include <kora/splock.h>
 #include <stdlib.h>
 #include <check.h>
 
 START_TEST(test_memop_001)
 {
-  const char *msg = "ABCDEFGHIJKLMNOP";
-  char msg0[6];
-  memset(msg0, 0x55, 6);
-  ck_assert(msg0[0] == 0x55);
-  ck_assert(msg0[5] == 0x55);
+    const char *msg = "ABCDEFGHIJKLMNOP";
+    char msg0[6];
+    memset(msg0, 0x55, 6);
+    ck_assert(msg0[0] == 0x55);
+    ck_assert(msg0[5] == 0x55);
 
-  memcpy(msg0, msg, 6);
-  ck_assert(msg0[0] == 'A');
-  ck_assert(msg0[5] == 'F');
-  ck_assert(memcmp(msg0, msg, 6) == 0);
+    memcpy(msg0, msg, 6);
+    ck_assert(msg0[0] == 'A');
+    ck_assert(msg0[5] == 'F');
+    ck_assert(memcmp(msg0, msg, 6) == 0);
 
-  memset(&msg0[3], 0xAA, 3);
-  ck_assert(memcmp(msg0, msg, 6) != 0);
+    memset(&msg0[3], 0xAA, 3);
+    ck_assert(memcmp(msg0, msg, 6) != 0);
 
-} END_TEST
+}
+END_TEST
 
 void fixture_string(Suite *s)
 {
-  TCase *tc;
+    TCase *tc;
 
-  tc = tcase_create("Memory operations");
-  tcase_add_test(tc, test_memop_001);
-  suite_add_tcase(s, tc);
+    tc = tcase_create("Memory operations");
+    tcase_add_test(tc, test_memop_001);
+    suite_add_tcase(s, tc);
 }

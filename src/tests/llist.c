@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -17,89 +17,90 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <skc/llist.h>
+#include <kora/llist.h>
 #include <stdlib.h>
 #include <check.h>
 
-struct data
-{
-  int value;
-  llnode_t node;
+struct data {
+    int value;
+    llnode_t node;
 };
 #define INIT_DATA(n) {n,{NULL,NULL}}
 
 START_TEST(test_llist_001)
 {
-  struct data l1 = INIT_DATA(1);
-  struct data l2 = INIT_DATA(2);
-  struct data l3 = INIT_DATA(3);
-  struct data l4 = INIT_DATA(4);
-  struct data *r;
-  llhead_t head = INIT_LLHEAD;
+    struct data l1 = INIT_DATA(1);
+    struct data l2 = INIT_DATA(2);
+    struct data l3 = INIT_DATA(3);
+    struct data l4 = INIT_DATA(4);
+    struct data *r;
+    llhead_t head = INIT_LLHEAD;
 
-  ll_push_back(&head, &l1.node);
-  ll_push_back(&head, &l2.node);
-  ll_push_back(&head, &l3.node);
-  ll_push_back(&head, &l4.node);
+    ll_push_back(&head, &l1.node);
+    ll_push_back(&head, &l2.node);
+    ll_push_back(&head, &l3.node);
+    ll_push_back(&head, &l4.node);
 
-  r = itemof(ll_pop_front(&head), struct data, node);
-  ck_assert(r && r->value == 1);
-  r = itemof(ll_pop_front(&head), struct data, node);
-  ck_assert(r && r->value == 2);
-  ll_push_front(&head, &l1.node);
-  r = itemof(ll_pop_back(&head), struct data, node);
-  ck_assert(r && r->value == 4);
-  ll_push_front(&head, &l4.node);
-  ll_remove(&head, &l3.node);
-  r = itemof(ll_pop_front(&head), struct data, node);
-  ck_assert(r && r->value == 4);
-  ll_remove(&head, &l1.node);
-  r = itemof(ll_pop_front(&head), struct data, node);
-  ck_assert(r == NULL);
-  ll_push_back(&head, &l3.node);
-  r = itemof(ll_pop_front(&head), struct data, node);
-  ck_assert(r && r->value == 3);
+    r = itemof(ll_pop_front(&head), struct data, node);
+    ck_assert(r && r->value == 1);
+    r = itemof(ll_pop_front(&head), struct data, node);
+    ck_assert(r && r->value == 2);
+    ll_push_front(&head, &l1.node);
+    r = itemof(ll_pop_back(&head), struct data, node);
+    ck_assert(r && r->value == 4);
+    ll_push_front(&head, &l4.node);
+    ll_remove(&head, &l3.node);
+    r = itemof(ll_pop_front(&head), struct data, node);
+    ck_assert(r && r->value == 4);
+    ll_remove(&head, &l1.node);
+    r = itemof(ll_pop_front(&head), struct data, node);
+    ck_assert(r == NULL);
+    ll_push_back(&head, &l3.node);
+    r = itemof(ll_pop_front(&head), struct data, node);
+    ck_assert(r && r->value == 3);
 
-} END_TEST
+}
+END_TEST
 
 START_TEST(test_llist_002)
 {
-  struct data l1 = INIT_DATA(1);
-  struct data l2 = INIT_DATA(2);
-  struct data l3 = INIT_DATA(3);
-  struct data l4 = INIT_DATA(4);
-  struct data *r;
-  llhead_t head = INIT_LLHEAD;
+    struct data l1 = INIT_DATA(1);
+    struct data l2 = INIT_DATA(2);
+    struct data l3 = INIT_DATA(3);
+    struct data l4 = INIT_DATA(4);
+    struct data *r;
+    llhead_t head = INIT_LLHEAD;
 
-  ll_push_front(&head, &l1.node);
-  ll_push_front(&head, &l2.node);
-  ll_push_front(&head, &l3.node);
-  ll_push_front(&head, &l4.node);
+    ll_push_front(&head, &l1.node);
+    ll_push_front(&head, &l2.node);
+    ll_push_front(&head, &l3.node);
+    ll_push_front(&head, &l4.node);
 
-  r = itemof(ll_pop_back(&head), struct data, node);
-  ck_assert(r && r->value == 1);
-  r = itemof(ll_pop_back(&head), struct data, node);
-  ck_assert(r && r->value == 2);
-  ll_push_back(&head, &l1.node);
-  r = itemof(ll_pop_front(&head), struct data, node);
-  ck_assert(r && r->value == 4);
-  ll_push_back(&head, &l4.node);
-  ll_remove(&head, &l3.node);
-  r = itemof(ll_pop_back(&head), struct data, node);
-  ck_assert(r && r->value == 4);
-  ll_remove(&head, &l1.node);
-  r = itemof(ll_pop_back(&head), struct data, node);
-  ck_assert(r == NULL);
-  ll_push_front(&head, &l3.node);
-  r = itemof(ll_pop_back(&head), struct data, node);
-  ck_assert(r && r->value == 3);
+    r = itemof(ll_pop_back(&head), struct data, node);
+    ck_assert(r && r->value == 1);
+    r = itemof(ll_pop_back(&head), struct data, node);
+    ck_assert(r && r->value == 2);
+    ll_push_back(&head, &l1.node);
+    r = itemof(ll_pop_front(&head), struct data, node);
+    ck_assert(r && r->value == 4);
+    ll_push_back(&head, &l4.node);
+    ll_remove(&head, &l3.node);
+    r = itemof(ll_pop_back(&head), struct data, node);
+    ck_assert(r && r->value == 4);
+    ll_remove(&head, &l1.node);
+    r = itemof(ll_pop_back(&head), struct data, node);
+    ck_assert(r == NULL);
+    ll_push_front(&head, &l3.node);
+    r = itemof(ll_pop_back(&head), struct data, node);
+    ck_assert(r && r->value == 3);
 
-} END_TEST
+}
+END_TEST
 
 void fixture_llist(Suite *s)
 {
-  TCase *tc = tcase_create("Doulby-linked List");
-  tcase_add_test(tc, test_llist_001);
-  tcase_add_test(tc, test_llist_002);
-  suite_add_tcase(s, tc);
+    TCase *tc = tcase_create("Doulby-linked List");
+    tcase_add_test(tc, test_llist_001);
+    tcase_add_test(tc, test_llist_002);
+    suite_add_tcase(s, tc);
 }

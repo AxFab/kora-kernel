@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -23,11 +23,13 @@
 #include <kernel/vfs.h>
 #include <kernel/cpu.h>
 #include <kernel/sys/inode.h>
-#include <skc/mcrs.h>
-#include <skc/splock.h>
+#include <kora/mcrs.h>
+#include <kora/splock.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #ifdef K_MODULE
 #  define ATA_setup setup
@@ -35,9 +37,10 @@
 #endif
 
 struct IMG_Drive {
-  FILE *fp;
-  bool ro;
-  splock_t lock;
+    FILE *fp;
+    int fd;
+    bool ro;
+    splock_t lock;
 };
 
 struct IMG_Drive sdx[4];
@@ -46,118 +49,121 @@ struct IMG_Drive sdx[4];
 const char *sdNames[] = { "sdA", "sdB", "sdC", "sdD" };
 
 const char *exts[] = {
-  "img", "iso",
+    "img", "iso",
 };
 const int sdSize[] = {
-  512, 2048,
+    512, 2048,
 };
 
 void IMG_mkdev_img(const char *name, size_t size)
 {
-  FILE *fp = fopen(name, "w+");
-  fseek(fp, size -1, SEEK_SET);
-  fwrite(fp, 1, 1, fp);
-  fclose(fp);
+    FILE *fp = fopen(name, "w+");
+    fseek(fp, size - 1, SEEK_SET);
+    fwrite(fp, 1, 1, fp);
+    fclose(fp);
 }
 
 extern vfs_io_ops_t IMG_device_operations;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int IMG_read(inode_t *ino, void* data, size_t size, off_t offset)
+int IMG_read(inode_t *ino, void *data, size_t size, off_t offset)
 {
-  FILE *fp = sdx[ino->lba].fp;
-  if (fp == NULL) {
-    errno = ENODEV;
-    return -1;
-  }
-  splock_lock(&sdx[ino->lba].lock);
-  fseek(fp, offset, SEEK_SET);
-  fread(data, size, 1, fp);
-  splock_unlock(&sdx[ino->lba].lock);
-  return 0;
+    int fd = sdx[ino->lba].fd;
+    if (fd == 0) {
+        errno = ENODEV;
+        return -1;
+    }
+    errno = 0;
+    splock_lock(&sdx[ino->lba].lock);
+    lseek(fd, offset, SEEK_SET);
+    int r = read(fd, data, size);
+    if (errno != 0) {
+        kprintf(-1, "[IMG ] Read err: %s\n", strerror(errno));
+    }
+    splock_unlock(&sdx[ino->lba].lock);
+    return 0;
 }
 
-int IMG_write(inode_t *ino, const void* data, size_t size, off_t offset)
+int IMG_write(inode_t *ino, const void *data, size_t size, off_t offset)
 {
-  FILE *fp = sdx[ino->lba].fp;
-  if (fp == NULL) {
-    errno = ENODEV;
-    return -1;
-  } else if (sdx[ino->lba].ro) {
-    errno = EROFS;
-    return -1;
-  }
-  splock_lock(&sdx[ino->lba].lock);
-  fseek(fp, offset, SEEK_SET);
-  fwrite(data, size, 1, fp);
-  splock_unlock(&sdx[ino->lba].lock);
-  return 0;
+    int fd = sdx[ino->lba].fd;
+    if (fd == 0) {
+        errno = ENODEV;
+        return -1;
+    } else if (sdx[ino->lba].ro) {
+        errno = EROFS;
+        return -1;
+    }
+    errno = 0;
+    splock_lock(&sdx[ino->lba].lock);
+    lseek(fd, offset, SEEK_SET);
+    int r = write(fd, data, size);
+    if (errno != 0) {
+        kprintf(-1, "[IMG ] Write err: %s\n", strerror(errno));
+    }
+    splock_unlock(&sdx[ino->lba].lock);
+    return 0;
 }
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int IMG_setup()
+void IMG_setup()
 {
+    // create_empty("sdA.img", 4 * _Mib_);
+    // create_empty("sdC.iso", 2800* _Kib_);
+    int i, e;
+    for (i = 0; i < 4; ++i) {
+        char fname[16];
+        for (e = 0; e < 2; ++e) {
+            sprintf(fname, "sd%c.%s", 'A' + i, exts[e]);
+            int fd = open(fname, O_RDWR);
+            if (fd == -1) {
+                continue;
+            }
 
-  // create_empty("sdA.img", 4 * _Mib_);
-  // create_empty("sdC.iso", 2800* _Kib_);
+            size_t sz = lseek(fd, 0, SEEK_END);
+            kprintf(0, "[IMG ] %s - %s <%s>\n", sdNames[i], exts[e], sztoa(sz));
 
-  int i, e;
-  for (i = 0; i < 4; ++i) {
-    char fname[16];
-    for (e = 0; e < 2; ++e) {
-      sprintf(fname, "sd%c.%s", 'A' + i, exts[e]);
-      FILE *fp = fopen(fname, "r");
-      if (fp == NULL) {
-        continue;
-      }
+            // fclose(fp);
 
-      fseek(fp, 0, SEEK_END);
-      size_t sz = ftell(fp);
-      kprintf(0, "%s] %s <%s> %s\n", sdNames[i], exts[e], sztoa(sz), "--");
+            sdx[i].fd = fd;
+            // fp = fopen("sdA.img", "w+");
 
-      fclose(fp);
-      // fp = fopen("sdA.img", "w+");
+            inode_t *blk = vfs_inode(i, S_IFBLK, 0);
+            blk->length = sz;
+            blk->lba = i;
+            blk->block = sdSize[e];
+            blk->io_ops = &IMG_device_operations;
 
-      inode_t *blk = vfs_inode(S_IFBLK | 0640, NULL);
-      blk->length = sz;
-      blk->lba = i;
-      blk->block = sdSize[e];
-      blk->io_ops = &IMG_device_operations;
+            vfs_mkdev(sdNames[i], blk, NULL, exts[e], NULL, NULL);
+            vfs_close(blk);
 
-      vfs_mkdev(sdNames[i], blk, NULL, exts[e], NULL, NULL);
-      vfs_close(blk);
+            // vfs_automount(blk); -- Try all or follow mount table
 
-      // vfs_automount(blk); -- Try all or follow mount table
-
-      // sdA  -> GPT
-      // sdA1 -> Fat32 (/usr)
-      // sdA2 -> Fat32 (/home)
-      // sdA3 -> Ext4 (/var)
-      // sdC  -> Iso9660
-      break;
+            // sdA  -> GPT
+            // sdA1 -> Fat32 (/usr)
+            // sdA2 -> Fat32 (/home)
+            // sdA3 -> Ext4 (/var)
+            // sdC  -> Iso9660
+            break;
+        }
     }
-  }
-
-  return 0;
 }
 
-
-int IMG_teardown()
+void IMG_teardown()
 {
-  int i;
-  for (i = 0; i < 4; ++i) {
-    // if (sdx[i].type_ == IDE_ATA || sdx[i].type_ == IDE_ATAPI) {
-      // TODO
-    // }
-  }
-  return 0;
+    int i;
+    for (i = 0; i < 4; ++i) {
+        // if (sdx[i].type_ == IDE_ATA || sdx[i].type_ == IDE_ATAPI) {
+        // TODO
+        // }
+    }
 }
 
 
 vfs_io_ops_t IMG_device_operations = {
-  .read = IMG_read,
-  .write = IMG_write,
+    .read = IMG_read,
+    .write = IMG_write,
 };

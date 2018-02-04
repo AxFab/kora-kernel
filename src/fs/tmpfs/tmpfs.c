@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -20,168 +20,131 @@
 #include <kernel/core.h>
 #include <kernel/vfs.h>
 #include <kernel/sys/inode.h>
-#include <skc/bbtree.h>
+#include <kernel/sys/device.h>
+#include <kora/bbtree.h>
 #include <string.h>
 #include <errno.h>
 
+extern vfs_fs_ops_t TMPFS_fs_ops;
 extern vfs_dir_ops_t TMPFS_dir_ops;
 extern vfs_io_ops_t TMPFS_io_ops;
 
 size_t LBA_NB = 0;
 
+
+typedef struct tmpfs_inode tmpfs_inode_t;
+
+struct tmpfs_inode {
+    inode_t ino;
+    bbnode_t node;
+    size_t parent;
+    char name[256];
+    // uid_t uid;
+};
+
 bbtree_t TMPFS_filetree;
+tmpfs_inode_t *TMPFS_root = NULL;
 
-typedef struct tmpfs_entry {
-  size_t parent;
-  size_t no;
-  off_t length;
-  int mode;
-  // uid_t uid;
-  bbnode_t node;
-  char name[256];
-} tmpfs_entry_t;
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-
-
-int TMPFS_mount(inode_t* ino)
+inode_t *TMPFS_mount(inode_t *dev)
 {
-  bbtree_init(&TMPFS_filetree);
+    if (dev != NULL) {
+        errno = EBADF;
+        return NULL;
+    }
 
-  ino->lba = ++LBA_NB;
-  tmpfs_entry_t *entry = (tmpfs_entry_t*)kalloc(sizeof(tmpfs_entry_t));
-  entry->parent = -1;
-  entry->no = ino->lba;
-  entry->node.value_ = entry->no;
-  entry->length = 0;
-  entry->mode = S_IFDIR | 0705;
-  // entry->uid = 0;
-  bbtree_insert(&TMPFS_filetree, &entry->node);
+    if (!TMPFS_root) {
+        bbtree_init(&TMPFS_filetree);
+        int no = ++LBA_NB;
+        tmpfs_inode_t *ino = (tmpfs_inode_t *)vfs_mountpt(no, "tmp", "tmpfs",
+                             sizeof(tmpfs_inode_t));
+        ino->parent = -1;
+        ino->node.value_ = no;
+        ino->ino.length = 0;
+        // ino->ino.uid = 0;
+        bbtree_insert(&TMPFS_filetree, &ino->node);
+        ino->ino.dir_ops = &TMPFS_dir_ops;
+        ino->ino.fs_ops = &TMPFS_fs_ops;
 
-  ino->lba = entry->no;
-  ino->dir_ops = &TMPFS_dir_ops;
-  // ino->fs_ops = &TMPFS_fs_ops;
-  kprintf(0, "TMPFS] Mount Root %d\n", ino->lba);
-  errno = 0;
-  return 0;
+        TMPFS_root = ino;
+    }
+
+    kprintf(0, "TMPFS] Mount Root %d\n", TMPFS_root->node.value_);
+    errno = 0;
+    return &TMPFS_root->ino;
 }
 
-int TMPFS_unmount(inode_t* ino)
+int TMPFS_unmount(inode_t *ino)
 {
-  kprintf(0, "TMPFS] Unmount Root %d\n", ino->lba);
-  tmpfs_entry_t *entry = bbtree_search_eq(&TMPFS_filetree, ino->lba, tmpfs_entry_t, node);
-  if (entry == NULL) {
-    return -1;
-  }
-  bbtree_remove(&TMPFS_filetree, entry->node.value_);
-  kfree(entry);
+    errno = 0;
+    return 0;
+}
 
-  // if (TMPFS_filetree)
-  // TODO Remove all on TMPFS_filetree
-  errno = 0;
-  return 0;
+int TMPFS_close(tmpfs_inode_t *ino)
+{
+    if (ino/* ->present */) {
+        kfree(ino);
+        kprintf(0, "TMPFS] Free inode %d\n", ino->node.value_);
+    }
+
+    errno = 0;
+    return 0;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static tmpfs_entry_t *TMPFS_search(inode_t* dir, const char *name)
+static tmpfs_inode_t *TMPFS_search(tmpfs_inode_t *dir, const char *name)
 {
-  tmpfs_entry_t *entry = bbtree_first(&TMPFS_filetree, tmpfs_entry_t, node);
-  for (; entry; entry = bbtree_next(&entry->node, tmpfs_entry_t, node)) {
-    if (entry->parent == dir->lba && strcmp(entry->name, name) == 0) {
-      return entry;
+    tmpfs_inode_t *ino = bbtree_first(&TMPFS_filetree, tmpfs_inode_t, node);
+    for (; ino; ino = bbtree_next(&ino->node, tmpfs_inode_t, node)) {
+        if (ino->parent == dir->node.value_ && strcmp(ino->name, name) == 0) {
+            return ino;
+        }
     }
-  }
-  return NULL;
+    return NULL;
 }
 
-int TMPFS_lookup(inode_t* dir, inode_t* ino, const char *name)
+inode_t *TMPFS_lookup(tmpfs_inode_t *dir, const char *name)
 {
-  tmpfs_entry_t *entry = TMPFS_search(dir, name);
-  if (entry == NULL) {
-    errno = ENOENT;
-    return -1;
-  }
+    tmpfs_inode_t *ino = TMPFS_search(dir, name);
+    if (ino == NULL) {
+        errno = ENOENT;
+        return NULL;
+    }
 
-  if (ino != NULL) {
-    ino->lba = entry->no;
-    ino->mode = entry->mode;
-    ino->length = entry->length;
-    if (S_ISDIR(ino->mode)) {
-      ino->dir_ops = &TMPFS_dir_ops;
+    errno = 0;
+    return &ino->ino;
+}
+
+inode_t *TMPFS_create(tmpfs_inode_t *dir, const char *name, int mode)
+{
+    tmpfs_inode_t *ino = TMPFS_search(dir, name);
+    if (ino) {
+        errno = EEXIST;
+        return NULL;
+    }
+
+    int no = ++LBA_NB;
+    ino = (tmpfs_inode_t *)vfs_inode(no, mode, sizeof(tmpfs_inode_t));
+    ino->parent = dir->node.value_;
+    ino->node.value_ = no;
+    ino->ino.length = 0;
+    ino->ino.mode = mode;
+    // ino->ino.uid = 0;
+    bbtree_insert(&TMPFS_filetree, &ino->node);
+    if (S_ISDIR(mode)) {
+        ino->ino.dir_ops = &TMPFS_dir_ops;
     } else {
-      ino->io_ops = &TMPFS_io_ops;
+        ino->ino.io_ops = &TMPFS_io_ops;
     }
-    // ino->uid = entry->uid;
-  }
-  errno = 0;
-  return 0;
-}
+    ino->ino.fs_ops = &TMPFS_fs_ops;
+    strncpy(ino->name, name, 256);
 
-int TMPFS_create(inode_t* dir, inode_t* ino, const char *name)
-{
-  if (TMPFS_lookup(dir, NULL, name) == 0) {
-    errno = EEXIST;
-    return -1;
-  }
-  tmpfs_entry_t *entry = (tmpfs_entry_t*)kalloc(sizeof(tmpfs_entry_t));
-  entry->parent = dir->lba;
-  entry->no = ++LBA_NB;
-  entry->node.value_ = entry->no;
-  entry->length = ino->length;
-  entry->mode = S_IFREG | (ino->mode & 07777);
-  strncpy(entry->name, name, 256);
-  // entry->uid = ino->uid;
-  bbtree_insert(&TMPFS_filetree, &entry->node);
-
-  ino->lba = entry->no;
-  ino->io_ops = &TMPFS_io_ops;
-  kprintf(0, "TMPFS] File %d:%s under %d\n", ino->lba, name, dir->lba);
-  errno = 0;
-  return 0;
-}
-
-int TMPFS_mkdir(inode_t* dir, inode_t* ino, const char *name)
-{
-  if (TMPFS_lookup(dir, NULL, name) == 0) {
-    errno = EEXIST;
-    return -1;
-  }
-  tmpfs_entry_t *entry = (tmpfs_entry_t*)kalloc(sizeof(tmpfs_entry_t));
-  entry->parent = dir->lba;
-  entry->no = ++LBA_NB;
-  entry->node.value_ = entry->no;
-  entry->length = ino->length;
-  entry->mode = S_IFDIR | (ino->mode & 07777);
-  strncpy(entry->name, name, 256);
-  // entry->uid = ino->uid;
-  bbtree_insert(&TMPFS_filetree, &entry->node);
-
-  ino->lba = entry->no;
-  ino->dir_ops = &TMPFS_dir_ops;
-  kprintf(0, "TMPFS] Directory %d:%s under %d\n", ino->lba, name, dir->lba);
-  errno = 0;
-  return 0;
-}
-
-int TMPFS_mknod(inode_t* dir, inode_t* ino, const char *name)
-{
-  if (TMPFS_lookup(dir, NULL, name) == 0) {
-    errno = EEXIST;
-    return -1;
-  }
-  tmpfs_entry_t *entry = (tmpfs_entry_t*)kalloc(sizeof(tmpfs_entry_t));
-  entry->parent = dir->lba;
-  entry->no = ++LBA_NB;
-  entry->node.value_ = entry->no;
-  entry->length = ino->length;
-  entry->mode = 0; // ino->mode;
-  strncpy(entry->name, name, 256);
-  // entry->uid = ino->uid;
-  bbtree_insert(&TMPFS_filetree, &entry->node);
-
-  kprintf(0, "TMPFS] Accept node %d:%s under %d\n", entry->no, name, dir->lba);
-  errno = 0;
-  return 0;
+    kprintf(0, "TMPFS] File %d:%s under %d\n", ino->node.value_, name,
+            dir->node.value_);
+    errno = 0;
+    return &ino->ino;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -196,10 +159,11 @@ int TMPFS_mknod(inode_t* dir, inode_t* ino, const char *name)
 //   return -1;
 // }
 
-// int TMPFS_truncate(inode_t* ino, off_t offset)
-// {
-//   return -1;
-// }
+int TMPFS_truncate(tmpfs_inode_t *ino, off_t offset)
+{
+    ino->ino.length = offset;
+    return 0;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -208,76 +172,67 @@ int TMPFS_mknod(inode_t* dir, inode_t* ino, const char *name)
 //   return -1;
 // }
 
-int TMPFS_unlink(inode_t* dir, const char *name)
+int TMPFS_unlink(tmpfs_inode_t *dir, const char *name)
 {
-  tmpfs_entry_t *entry = TMPFS_search(dir, name);
-  if (entry == NULL) {
-    errno = ENOENT;
-    return -1;
-  } else if (S_ISDIR(entry->mode)) {
-    errno = EPERM;
-    return -1;
-  }
-
-  bbtree_remove(&TMPFS_filetree, entry->node.value_);
-  kfree(entry);
-  kprintf(0, "TMPFS] Unlink entry %s under %d\n", name, dir->lba);
-  errno = 0;
-  return 0;
-}
-
-
-int TMPFS_rmdir(inode_t* dir, const char *name)
-{
-  tmpfs_entry_t *entry = TMPFS_search(dir, name);
-  if (entry == NULL) {
-    errno = ENOENT;
-    return -1;
-  } else if (!S_ISDIR(entry->mode)) {
-    errno = ENOTDIR;
-    return -1;
-  }
-
-  tmpfs_entry_t *sub = bbtree_first(&TMPFS_filetree, tmpfs_entry_t, node);
-  for (; sub; sub = bbtree_next(&sub->node, tmpfs_entry_t, node)) {
-    if (sub->parent == entry->no) {
-      errno = ENOTEMPTY;
-      return -1;
+    tmpfs_inode_t *ino = TMPFS_search(dir, name);
+    if (ino == NULL) {
+        errno = ENOENT;
+        return -1;
     }
-  }
 
-  bbtree_remove(&TMPFS_filetree, entry->node.value_);
-  kfree(entry);
-  kprintf(0, "TMPFS] Rmdir entry %s under %d\n", name, dir->lba);
-  errno = 0;
-  return 0;
+    if (S_ISDIR(dir->ino.mode)) {
+        // TODO Unsure directory is empty!
+    }
+
+    bbtree_remove(&TMPFS_filetree, ino->node.value_);
+    kprintf(0, "TMPFS] Unlink entry %s under %d\n", name, dir->node.value_);
+    errno = 0;
+    return 0;
 }
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+
+int TMPFS_setup()
+{
+    vfs_register("tmpfs", &TMPFS_fs_ops);
+    errno = 0;
+    return 0;
+}
+
+int TMPFS_teardown()
+{
+    vfs_unregister("tmpfs");
+    errno = 0;
+    return 0;
+}
+
+
 vfs_fs_ops_t TMPFS_fs_ops = {
-  .mount = TMPFS_mount,
-  .unmount = TMPFS_unmount,
+    .mount = (fs_mount)TMPFS_mount,
+    .unmount = TMPFS_unmount,
+
+    // .close = (fs_close)TMPFS_close,
 };
 
 vfs_dir_ops_t TMPFS_dir_ops = {
 
-  .create = TMPFS_create,
-  .lookup = TMPFS_lookup,
-  .mkdir = TMPFS_mkdir,
-  .mknod = TMPFS_mknod,
+    .lookup = (fs_lookup)TMPFS_lookup,
 
-  // .read = TMPFS_read,
-  // .write = TMPFS_write,
-  // .truncate = TMPFS_truncate,
+    .create = (fs_create)TMPFS_create,
+    .mkdir = (fs_create)TMPFS_create,
 
-  // .link = TMPFS_link,
-  .unlink = TMPFS_unlink,
-  .rmdir = TMPFS_rmdir,
+    // .link = TMPFS_link,
+    .unlink = (fs_unlink)TMPFS_unlink,
+    .rmdir = (fs_unlink)TMPFS_unlink,
 };
 
 
 vfs_io_ops_t TMPFS_io_ops = {
-  .read = NULL,
+    .read = NULL,
+    // .read = TMPFS_read,
+    // .write = TMPFS_write,
+    // .truncate = TMPFS_truncate,
 };
 

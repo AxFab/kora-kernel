@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -17,38 +17,40 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <skc/splock.h>
+#include <kora/splock.h>
 #include <stdlib.h>
 #include <check.h>
 
 START_TEST(test_splock_001)
 {
-  splock_t lock;
-  splock_init(&lock);
-  splock_lock(&lock);
-  ck_assert(splock_locked(&lock));
-  splock_unlock(&lock);
-  ck_assert(!splock_locked(&lock));
+    splock_t lock;
+    splock_init(&lock);
+    splock_lock(&lock);
+    ck_assert(splock_locked(&lock));
+    splock_unlock(&lock);
+    ck_assert(!splock_locked(&lock));
 
-} END_TEST
+}
+END_TEST
 
 START_TEST(test_splock_002)
 {
-  splock_t lock;
-  splock_init(&lock);
-  ck_assert(splock_trylock(&lock) == 0);
-  ck_assert(splock_locked(&lock));
-  ck_assert(splock_trylock(&lock) == BUSY);
-  splock_unlock(&lock);
-  ck_assert(!splock_locked(&lock));
-  cpu_relax();
+    splock_t lock;
+    splock_init(&lock);
+    ck_assert(splock_trylock(&lock) == 0);
+    ck_assert(splock_locked(&lock));
+    ck_assert(splock_trylock(&lock) == BUSY);
+    splock_unlock(&lock);
+    ck_assert(!splock_locked(&lock));
+    cpu_relax();
 
-} END_TEST
+}
+END_TEST
 
 void fixture_splock(Suite *s)
 {
-  TCase *tc = tcase_create("Spinlocks");
-  tcase_add_test(tc, test_splock_001);
-  tcase_add_test(tc, test_splock_002);
-  suite_add_tcase(s, tc);
+    TCase *tc = tcase_create("Spinlocks");
+    tcase_add_test(tc, test_splock_001);
+    tcase_add_test(tc, test_splock_002);
+    suite_add_tcase(s, tc);
 }

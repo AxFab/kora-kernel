@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 #include <kernel/memory.h>
 #include <kernel/core.h>
 #include <kernel/sys/vma.h>
-#include <skc/mcrs.h>
+#include <kora/mcrs.h>
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
@@ -38,55 +38,59 @@ uint32_t *usertable;
 /* - */
 void mmu_detect_ram()
 {
-  page_range(0, 64 * _Kib_);
-  page_range(2000 * _Kib_, 48 * _Kib_);
+    page_range(0, 64 * _Kib_);
+    page_range(2000 * _Kib_, 48 * _Kib_);
 }
 
 /* - */
 int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
 {
-  uint32_t *dir;
-  int page_no;
-  if (vaddress >= kMMU.kspace->lower_bound && vaddress < kMMU.kspace->upper_bound) {
-    dir = ktable;
-    page_no = (vaddress - kMMU.kspace->lower_bound) / PAGE_SIZE;
-  } else if (vaddress >= kMMU.uspace_lower_bound && vaddress < kMMU.uspace_upper_bound) {
-    usertable = ktable;
-    page_no = (vaddress - kMMU.uspace_lower_bound) / PAGE_SIZE;
-  }
+    uint32_t *dir;
+    int page_no;
+    if (vaddress >= kMMU.kspace->lower_bound &&
+            vaddress < kMMU.kspace->upper_bound) {
+        dir = ktable;
+        page_no = (vaddress - kMMU.kspace->lower_bound) / PAGE_SIZE;
+    } else if (vaddress >= kMMU.uspace_lower_bound &&
+               vaddress < kMMU.uspace_upper_bound) {
+        usertable = ktable;
+        page_no = (vaddress - kMMU.uspace_lower_bound) / PAGE_SIZE;
+    }
 
-  assert(dir[page_no] == 0);
-  dir[page_no] = paddress | (access & 7);
-  return 0;
+    assert(dir[page_no] == 0);
+    dir[page_no] = paddress | (access & 7);
+    return 0;
 }
 
 /* - */
 page_t mmu_drop(size_t vaddress, bool clean)
 {
-  uint32_t *dir;
-  int page_no;
-  if (vaddress >= kMMU.kspace->lower_bound && vaddress < kMMU.kspace->upper_bound) {
-    dir = ktable;
-    page_no = (vaddress - kMMU.kspace->lower_bound) / PAGE_SIZE;
-  } else if (vaddress >= kMMU.uspace_lower_bound && vaddress < kMMU.uspace_upper_bound) {
-    dir = usertable;
-    page_no = (vaddress - kMMU.uspace_lower_bound) / PAGE_SIZE;
-  }
+    uint32_t *dir;
+    int page_no;
+    if (vaddress >= kMMU.kspace->lower_bound &&
+            vaddress < kMMU.kspace->upper_bound) {
+        dir = ktable;
+        page_no = (vaddress - kMMU.kspace->lower_bound) / PAGE_SIZE;
+    } else if (vaddress >= kMMU.uspace_lower_bound &&
+               vaddress < kMMU.uspace_upper_bound) {
+        dir = usertable;
+        page_no = (vaddress - kMMU.uspace_lower_bound) / PAGE_SIZE;
+    }
 
-  page_t pg = dir[page_no] & ~(PAGE_SIZE - 1);
-  dir[page_no] = 0;
-  return pg;
+    page_t pg = dir[page_no] & ~(PAGE_SIZE - 1);
+    dir[page_no] = 0;
+    return pg;
 }
 
 page_t mmu_directory()
 {
-  usertable = kalloc(512 * _Kib_);
-  page_t dir_page = (page_t)usertable;
-  return dir_page;
+    usertable = kalloc(512 * _Kib_);
+    page_t dir_page = (page_t)usertable;
+    return dir_page;
 }
 
 void mmu_release_dir(page_t dir)
 {
-  uint32_t *table = (uint32_t*)dir;
-  kfree(table);
+    uint32_t *table = (uint32_t *)dir;
+    kfree(table);
 }

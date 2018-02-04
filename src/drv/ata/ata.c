@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 #include <kernel/core.h>
 #include <kernel/vfs.h>
 #include <kernel/sys/inode.h>
+#include <kernel/sys/device.h>
 #include <kernel/cpu.h>
 #include <string.h>
 #include <errno.h>
@@ -128,15 +129,15 @@
 
 
 struct ATA_Drive {
-  uint8_t   type_; // ATA
-  uint16_t  pbase_; // 0x1f0 - 0x170
-  uint16_t  pctrl_; // 0x3f6 - 0x376
-  uint8_t   disc_;  // 0xa0 - 0xb0
-  uint16_t signature_;
-  uint16_t capabilities_;
-  uint32_t commandsets_;
-  uint32_t size_;
-  char     model_[44];
+    uint8_t   type_; // ATA
+    uint16_t  pbase_; // 0x1f0 - 0x170
+    uint16_t  pctrl_; // 0x3f6 - 0x376
+    uint8_t   disc_;  // 0xa0 - 0xb0
+    uint16_t signature_;
+    uint16_t capabilities_;
+    uint32_t commandsets_;
+    uint32_t size_;
+    char     model_[44];
 };
 
 struct ATA_Drive sdx[4];
@@ -147,335 +148,361 @@ const char *sdNames[] = { "sdA", "sdB", "sdC", "sdD" };
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 static void ATAPI_Detect (struct ATA_Drive *dr)
 {
-  uint8_t cl = inb(dr->pbase_ + ATA_REG_LBA1);
-  uint8_t ch = inb(dr->pbase_ + ATA_REG_LBA2);
+    uint8_t cl = inb(dr->pbase_ + ATA_REG_LBA1);
+    uint8_t ch = inb(dr->pbase_ + ATA_REG_LBA2);
 
-  if (!((cl == 0x14 && ch == 0xEB) || (cl == 0x69 && ch == 0x96)))
-    return;
+    if (!((cl == 0x14 && ch == 0xEB) || (cl == 0x69 && ch == 0x96))) {
+        return;
+    }
 
-  // kprintf ("ATAPI ");
-  dr->type_ = IDE_ATAPI;
-  outb(dr->pbase_ + ATA_REG_COMMAND, (uint8_t)ATA_CMD_IDENTIFY_PACKET);
-  ATA_DELAY;
+    // kprintf ("ATAPI ");
+    dr->type_ = IDE_ATAPI;
+    outb(dr->pbase_ + ATA_REG_COMMAND, (uint8_t)ATA_CMD_IDENTIFY_PACKET);
+    ATA_DELAY;
 }
 
 
 static int ATA_Detect (struct ATA_Drive *dr)
 {
-  int res, k;
-  uint8_t ptr[2048];
-  // Select Drive:
-  outb(dr->pbase_ + ATA_REG_HDDEVSEL, (uint8_t)dr->disc_);
-  ATA_DELAY;
-  // Send ATA Identify Command:
-  outb(dr->pbase_ + ATA_REG_COMMAND, (uint8_t)ATA_CMD_IDENTIFY);
-  ATA_DELAY;
-  // Polling:
-  res = inb(dr->pbase_ + ATA_REG_STATUS);
-
-  if (res == 0) {
-    // kprintf ("no disc \n");
-    dr->type_ = IDE_NODISC;
-    return 0;
-  }
-
-  for (;;) {
+    int res, k;
+    uint8_t ptr[2048];
+    // Select Drive:
+    outb(dr->pbase_ + ATA_REG_HDDEVSEL, (uint8_t)dr->disc_);
+    ATA_DELAY;
+    // Send ATA Identify Command:
+    outb(dr->pbase_ + ATA_REG_COMMAND, (uint8_t)ATA_CMD_IDENTIFY);
+    ATA_DELAY;
+    // Polling:
     res = inb(dr->pbase_ + ATA_REG_STATUS);
 
-    if ((res & ATA_SR_ERR)) {
-      // Probe for ATAPI Devices:
-      dr->type_ = IDE_NODISC;
-      ATAPI_Detect(dr);
-
-      if (dr->type_ == IDE_NODISC) {
-        // kprintf ("unrecognized disc \n");
+    if (res == 0) {
+        // kprintf ("no disc \n");
+        dr->type_ = IDE_NODISC;
         return 0;
-      }
+    }
 
-      break;
+    for (;;) {
+        res = inb(dr->pbase_ + ATA_REG_STATUS);
 
-    } // else if (!(res & ATA_SR_BSY) && (res & ATA_SR_DRQ)) {
+        if ((res & ATA_SR_ERR)) {
+            // Probe for ATAPI Devices:
+            dr->type_ = IDE_NODISC;
+            ATAPI_Detect(dr);
 
-    // kprintf ("ATA ");
-    dr->type_ = IDE_ATA;
+            if (dr->type_ == IDE_NODISC) {
+                // kprintf ("unrecognized disc \n");
+                return 0;
+            }
 
-    break;
-  }
+            break;
 
-  // (V) Read Identification Space of the Device:
-  insl(dr->pbase_ + ATA_REG_DATA, (uint32_t*)ptr, 128);
-  // Read Device Parameters:
-  dr->signature_ = *((uint16_t *)(ptr + ATA_IDENT_DEVICETYPE));
-  dr->capabilities_ = *((uint16_t *)(ptr + ATA_IDENT_CAPABILITIES));
-  dr->commandsets_  = *((uint32_t *)(ptr + ATA_IDENT_COMMANDSETS));
-  dr->size_ = (dr->commandsets_ & (1 << 26)) ?
-              *((uint32_t *)(ptr + ATA_IDENT_MAX_LBA_EXT)) :
-              *((uint32_t *)(ptr + ATA_IDENT_MAX_LBA));
+        } // else if (!(res & ATA_SR_BSY) && (res & ATA_SR_DRQ)) {
 
-  // String indicates model of device (like Western Digital HDD and SONY DVD-RW...):
-  for (k = 0; k < 40; k += 2) {
-    dr->model_[k] = ptr[ATA_IDENT_MODEL + k + 1];
-    dr->model_[k + 1] = ptr[ATA_IDENT_MODEL + k];
-  }
+        // kprintf ("ATA ");
+        dr->type_ = IDE_ATA;
 
-  k = 39;
-  while (dr->model_[k] == ' ') {
-    dr->model_[k--] = '\0';
-  }
-  dr->model_[40] = '\0';// Terminate String.
-  // kprintf (" Size: %d Kb, %s \n", dr->size_ / 2, dr->model_);
-  return 1;
+        break;
+    }
+
+    // (V) Read Identification Space of the Device:
+    insl(dr->pbase_ + ATA_REG_DATA, (uint32_t *)ptr, 128);
+    // Read Device Parameters:
+    dr->signature_ = *((uint16_t *)(ptr + ATA_IDENT_DEVICETYPE));
+    dr->capabilities_ = *((uint16_t *)(ptr + ATA_IDENT_CAPABILITIES));
+    dr->commandsets_  = *((uint32_t *)(ptr + ATA_IDENT_COMMANDSETS));
+    dr->size_ = (dr->commandsets_ & (1 << 26)) ?
+                *((uint32_t *)(ptr + ATA_IDENT_MAX_LBA_EXT)) :
+                *((uint32_t *)(ptr + ATA_IDENT_MAX_LBA));
+
+    // String indicates model of device (like Western Digital HDD and SONY DVD-RW...):
+    for (k = 0; k < 40; k += 2) {
+        dr->model_[k] = ptr[ATA_IDENT_MODEL + k + 1];
+        dr->model_[k + 1] = ptr[ATA_IDENT_MODEL + k];
+    }
+
+    k = 39;
+    while (dr->model_[k] == ' ') {
+        dr->model_[k--] = '\0';
+    }
+    dr->model_[40] = '\0';// Terminate String.
+    // kprintf (" Size: %d Kb, %s \n", dr->size_ / 2, dr->model_);
+    return 1;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 static int ATA_Polling (struct ATA_Drive *dr)
 {
-  // (I) Delay 400 nanosecond for BSY to be set:
-  ATA_DELAY;
+    // (I) Delay 400 nanosecond for BSY to be set:
+    ATA_DELAY;
 
-  // (II) Wait for BSY to be cleared:
-  while (inb(dr->pbase_ + ATA_REG_STATUS) & ATA_SR_BSY); // Wait for BSY to be zero.
+    // (II) Wait for BSY to be cleared:
+    while (inb(dr->pbase_ + ATA_REG_STATUS) &
+            ATA_SR_BSY); // Wait for BSY to be zero.
 
-  uint8_t state = inb(dr->pbase_ + ATA_REG_STATUS); // Read Status Register.
+    uint8_t state = inb(dr->pbase_ + ATA_REG_STATUS); // Read Status Register.
 
-  // (III) Check For Errors:
-  if (state & ATA_SR_ERR) {
-    kprintf(0, "ATA] device on error\n");
-    return 2; // Error.
-  }
+    // (III) Check For Errors:
+    if (state & ATA_SR_ERR) {
+        kprintf(0, "ATA] device on error\n");
+        return 2; // Error.
+    }
 
-  // (IV) Check If Device fault:
-  if (state & ATA_SR_DF) {
-    kprintf(0, "ATA] device fault\n");
-    return 1; // Device Fault.
-  }
+    // (IV) Check If Device fault:
+    if (state & ATA_SR_DF) {
+        kprintf(0, "ATA] device fault\n");
+        return 1; // Device Fault.
+    }
 
-  // (V) Check DRQ:
-  // -------------------------------------------------
-  // BSY = 0; DF = 0; ERR = 0 so we should check for DRQ now.
-  if ((state & ATA_SR_DRQ) == 0) {
-    kprintf(0, "ATA] DRQ should be set\n");
-    return 3; // DRQ should be set
-  }
+    // (V) Check DRQ:
+    // -------------------------------------------------
+    // BSY = 0; DF = 0; ERR = 0 so we should check for DRQ now.
+    if ((state & ATA_SR_DRQ) == 0) {
+        kprintf(0, "ATA] DRQ should be set\n");
+        return 3; // DRQ should be set
+    }
 
-  return 0;
+    return 0;
 }
 
 
-static int ATA_Data(int dir, struct ATA_Drive *dr, uint32_t lba,  uint8_t sects, uint8_t *buf)
+static int ATA_Data(int dir, struct ATA_Drive *dr, uint32_t lba,
+                    uint8_t sects, uint8_t *buf)
 {
-  uint8_t lbaIO[6] = { 0 };
-  int mode, cmd, i;
-  int head, cyl, sect;
+    uint8_t lbaIO[6] = { 0 };
+    int mode, cmd, i;
+    int head, cyl, sect;
 
-  // Select one from LBA28, LBA48 or CHS;
-  if (lba >= 0x10000000) {
-    if (!(dr->capabilities_ & 0x200)) {
-      // kprintf ("Wrong LBA, LBA not supported here");
-      return ENOSYS;
+    // Select one from LBA28, LBA48 or CHS;
+    if (lba >= 0x10000000) {
+        if (!(dr->capabilities_ & 0x200)) {
+            // kprintf ("Wrong LBA, LBA not supported here");
+            return ENOSYS;
+        }
+
+        mode  = 2;
+        lbaIO[0] = (lba & 0x000000FF) >> 0;
+        lbaIO[1] = (lba & 0x0000FF00) >> 8;
+        lbaIO[2] = (lba & 0x00FF0000) >> 16;
+        lbaIO[3] = (lba & 0xFF000000) >> 24;
+
+    } else if (dr->capabilities_ & 0x200)  {
+        mode = 1;
+        lbaIO[0] = (lba & 0x00000FF) >> 0;
+        lbaIO[1] = (lba & 0x000FF00) >> 8;
+        lbaIO[2] = (lba & 0x0FF0000) >> 16;
+        head = (lba & 0xF000000) >> 24;
+
+    } else {
+        mode = 0;
+        sect      = (lba % 63) + 1;
+        cyl       = (lba + 1  - sect) / (16 * 63);
+        head      = (lba + 1  - sect) % (16 * 63) /
+                    (63); // Head number is written to HDDEVSEL lower 4-bits.
+        lbaIO[0] = sect;
+        lbaIO[1] = (cyl >> 0) & 0xFF;
+        lbaIO[2] = (cyl >> 8) & 0xFF;
     }
 
-    mode  = 2;
-    lbaIO[0] = (lba & 0x000000FF) >> 0;
-    lbaIO[1] = (lba & 0x0000FF00) >> 8;
-    lbaIO[2] = (lba & 0x00FF0000) >> 16;
-    lbaIO[3] = (lba & 0xFF000000) >> 24;
+    // Wait the device
+    while (inb(dr->pbase_ + ATA_REG_STATUS) & ATA_SR_BSY);
 
-  } else if (dr->capabilities_ & 0x200)  {
-    mode = 1;
-    lbaIO[0] = (lba & 0x00000FF) >> 0;
-    lbaIO[1] = (lba & 0x000FF00) >> 8;
-    lbaIO[2] = (lba & 0x0FF0000) >> 16;
-    head = (lba & 0xF000000) >> 24;
+    // Select Drive from the controller;
+    if (mode == 0) {
+        outb(dr->pbase_ + ATA_REG_HDDEVSEL, dr->disc_ | head);    // Drive & CHS.
+    } else {
+        outb(dr->pbase_ + ATA_REG_HDDEVSEL,
+             0xE0 | dr->disc_ | head);    // Drive & LBA
+    }
 
-  } else {
-    mode = 0;
-    sect      = (lba % 63) + 1;
-    cyl       = (lba + 1  - sect) / (16 * 63);
-    head      = (lba + 1  - sect) % (16 * 63) / (63); // Head number is written to HDDEVSEL lower 4-bits.
-    lbaIO[0] = sect;
-    lbaIO[1] = (cyl >> 0) & 0xFF;
-    lbaIO[2] = (cyl >> 8) & 0xFF;
-  }
+    // Write Parameters;
+    if (mode == 2) {
+        /*
+        outb(channel, ATA_REG_SECCOUNT1,   0);
+        outb(channel, ATA_REG_LBA3,   lba_io[3]);
+        outb(channel, ATA_REG_LBA4,   lba_io[4]);
+        outb(channel, ATA_REG_LBA5,   lba_io[5]);
+        */
+    }
 
-  // Wait the device
-  while (inb(dr->pbase_ + ATA_REG_STATUS) & ATA_SR_BSY);
+    outb(dr->pbase_ + ATA_REG_SECCOUNT0, sects);
+    outb(dr->pbase_ + ATA_REG_LBA0, lbaIO[0]);
+    outb(dr->pbase_ + ATA_REG_LBA1, lbaIO[1]);
+    outb(dr->pbase_ + ATA_REG_LBA2, lbaIO[2]);
 
-  // Select Drive from the controller;
-  if (mode == 0)
-    outb(dr->pbase_ + ATA_REG_HDDEVSEL, dr->disc_ | head); // Drive & CHS.
-  else
-    outb(dr->pbase_ + ATA_REG_HDDEVSEL, 0xE0 | dr->disc_ | head); // Drive & LBA
+    // DMA dir |= 0x02
+    if (mode < 2) {
+        if (dir == 0) {
+            cmd = ATA_CMD_READ_PIO;
+        }
+        if (dir == 1) {
+            cmd = ATA_CMD_WRITE_PIO;
+        }
+        if (dir == 2) {
+            cmd = ATA_CMD_READ_DMA;
+        }
+        if (dir == 3) {
+            cmd = ATA_CMD_WRITE_DMA;
+        }
 
-  // Write Parameters;
-  if (mode == 2) {
-    /*
-    outb(channel, ATA_REG_SECCOUNT1,   0);
-    outb(channel, ATA_REG_LBA3,   lba_io[3]);
-    outb(channel, ATA_REG_LBA4,   lba_io[4]);
-    outb(channel, ATA_REG_LBA5,   lba_io[5]);
-    */
-  }
+    } else {
+        if (dir == 0) {
+            cmd = ATA_CMD_READ_PIO_EXT;
+        }
+        if (dir == 1) {
+            cmd = ATA_CMD_WRITE_PIO_EXT;
+        }
+        if (dir == 2) {
+            cmd = ATA_CMD_READ_DMA_EXT;
+        }
+        if (dir == 3) {
+            cmd = ATA_CMD_WRITE_DMA_EXT;
+        }
+    }
 
-  outb(dr->pbase_ + ATA_REG_SECCOUNT0, sects);
-  outb(dr->pbase_ + ATA_REG_LBA0, lbaIO[0]);
-  outb(dr->pbase_ + ATA_REG_LBA1, lbaIO[1]);
-  outb(dr->pbase_ + ATA_REG_LBA2, lbaIO[2]);
+    outb(dr->pbase_ + ATA_REG_COMMAND, cmd);      // Send the Command.
 
-  // DMA dir |= 0x02
-  if (mode < 2) {
-    if (dir == 0) cmd = ATA_CMD_READ_PIO;
-    if (dir == 1) cmd = ATA_CMD_WRITE_PIO;
-    if (dir == 2) cmd = ATA_CMD_READ_DMA;
-    if (dir == 3) cmd = ATA_CMD_WRITE_DMA;
+    // Read/Write
+    if (dir == 0) {
+        for (i = 0; i < sects; i++) {
+            if (ATA_Polling(dr)) {
+                // Polling, set error and exit if there is.
+                return EIO;
+            }
 
-  } else {
-    if (dir == 0) cmd = ATA_CMD_READ_PIO_EXT;
-    if (dir == 1) cmd = ATA_CMD_WRITE_PIO_EXT;
-    if (dir == 2) cmd = ATA_CMD_READ_DMA_EXT;
-    if (dir == 3) cmd = ATA_CMD_WRITE_DMA_EXT;
-  }
+            insw(dr->pbase_, (uint16_t *)buf, 256);
+            buf += 512;
+        }
 
-  outb(dr->pbase_ + ATA_REG_COMMAND, cmd);      // Send the Command.
+    } else if (dir == 1) {
+        for (i = 0; i < sects; i++) {
+            if (ATA_Polling(dr)) {
+                // Polling, set error and exit if there is.
+                return EIO;
+            }
 
-  // Read/Write
-  if (dir == 0) {
-    for (i = 0; i < sects; i++) {
-      if (ATA_Polling(dr)) {
-        // Polling, set error and exit if there is.
+            outsw(dr->pbase_, (uint16_t *)buf, 256);
+            buf += 512;
+        }
+
+        outb(dr->pbase_ + ATA_REG_COMMAND, (mode == 2) ?
+             ATA_CMD_CACHE_FLUSH_EXT :
+             ATA_CMD_CACHE_FLUSH );
+        ATA_Polling(dr);
+
+    } else {
         return EIO;
-      }
-
-      insw(dr->pbase_ , (uint16_t*)buf, 256);
-      buf += 512;
     }
 
-  } else if (dir == 1) {
-    for (i = 0; i < sects; i++) {
-      if (ATA_Polling(dr)) {
-        // Polling, set error and exit if there is.
-        return EIO;
-      }
-
-      outsw(dr->pbase_ , (uint16_t*)buf, 256);
-      buf += 512;
-    }
-
-    outb(dr->pbase_ + ATA_REG_COMMAND, (mode == 2) ?
-         ATA_CMD_CACHE_FLUSH_EXT :
-         ATA_CMD_CACHE_FLUSH );
-    ATA_Polling(dr);
-
-  } else {
-    return EIO;
-  }
-
-  return 0;
+    return 0;
 }
 
-static int ATAPI_Read (struct ATA_Drive *dr, uint32_t lba,  uint8_t sects, uint8_t *buf)
+static int ATAPI_Read (struct ATA_Drive *dr, uint32_t lba,  uint8_t sects,
+                       uint8_t *buf)
 {
-  int words = 1024; // Sector Size. ATAPI drives have a sector size of 2048 bytes.
-  int i;
-  uint8_t packet[12];
+    int words =
+        1024; // Sector Size. ATAPI drives have a sector size of 2048 bytes.
+    int i;
+    uint8_t packet[12];
 
-  // kprintf (" - ATAPI] read %d sector at LBA: %d on %x\n", sects, lba, buf);
+    // kprintf (" - ATAPI] read %d sector at LBA: %d on %x\n", sects, lba, buf);
 
-  irq_disable();
-  outb(dr->pbase_ + ATA_REG_CONTROL, 0x0);
+    irq_disable();
+    outb(dr->pbase_ + ATA_REG_CONTROL, 0x0);
 
-  // Setup SCSI Packet:
-  packet[ 0] = ATAPI_CMD_READ;
-  packet[ 1] = 0x0;
-  packet[ 2] = (lba >> 24) & 0xFF;
-  packet[ 3] = (lba >> 16) & 0xFF;
-  packet[ 4] = (lba >> 8) & 0xFF;
-  packet[ 5] = (lba >> 0) & 0xFF;
-  packet[ 6] = 0x0;
-  packet[ 7] = 0x0;
-  packet[ 8] = 0x0;
-  packet[ 9] = sects;
-  packet[10] = 0x0;
-  packet[11] = 0x0;
-  // Select the drive:
-  outb(dr->pbase_ + ATA_REG_HDDEVSEL, dr->disc_ & 0x10);
+    // Setup SCSI Packet:
+    packet[ 0] = ATAPI_CMD_READ;
+    packet[ 1] = 0x0;
+    packet[ 2] = (lba >> 24) & 0xFF;
+    packet[ 3] = (lba >> 16) & 0xFF;
+    packet[ 4] = (lba >> 8) & 0xFF;
+    packet[ 5] = (lba >> 0) & 0xFF;
+    packet[ 6] = 0x0;
+    packet[ 7] = 0x0;
+    packet[ 8] = 0x0;
+    packet[ 9] = sects;
+    packet[10] = 0x0;
+    packet[11] = 0x0;
+    // Select the drive:
+    outb(dr->pbase_ + ATA_REG_HDDEVSEL, dr->disc_ & 0x10);
 
-  // Delay 400 nanosecond for BSY to be set:
-  ATA_DELAY;
+    // Delay 400 nanosecond for BSY to be set:
+    ATA_DELAY;
 
-  // Inform the Controller:
-  outb(dr->pbase_ + ATA_REG_FEATURES, 0);               // Use PIO mode
-  outb(dr->pbase_ + ATA_REG_LBA1, (words * 2) & 0xFF);  // Lower Byte of Sector Size.
-  outb(dr->pbase_ + ATA_REG_LBA2, (words * 2) >> 8);    // Upper Byte of Sector Size.
-  outb(dr->pbase_ + ATA_REG_COMMAND, ATA_CMD_PACKET);   // Send the Command.
+    // Inform the Controller:
+    outb(dr->pbase_ + ATA_REG_FEATURES, 0);               // Use PIO mode
+    outb(dr->pbase_ + ATA_REG_LBA1,
+         (words * 2) & 0xFF);  // Lower Byte of Sector Size.
+    outb(dr->pbase_ + ATA_REG_LBA2,
+         (words * 2) >> 8);    // Upper Byte of Sector Size.
+    outb(dr->pbase_ + ATA_REG_COMMAND, ATA_CMD_PACKET);   // Send the Command.
 
-  // Waiting for the driver to finish or return an error code
-  if (ATA_Polling(dr)) {
-    irq_enable();
-    return EIO;
-  }
-
-  // Sending the packet data
-  outsw(dr->pbase_, (uint16_t*)packet, 6);
-
-  // Receiving Data
-  for (i = 0; i < sects; i++) {
-    // ATA_WaitIRQ (dr, 14); // Wait for an IRQ.
+    // Waiting for the driver to finish or return an error code
     if (ATA_Polling(dr)) {
-      irq_enable();
-      return EIO;
+        irq_enable();
+        return EIO;
     }
 
-    // kprintf (" - ATAPI] Just get data\n");
+    // Sending the packet data
+    outsw(dr->pbase_, (uint16_t *)packet, 6);
 
-    insw(dr->pbase_, (uint16_t*)buf, words);
-    buf += (words * 2);
-  }
+    // Receiving Data
+    for (i = 0; i < sects; i++) {
+        // ATA_WaitIRQ (dr, 14); // Wait for an IRQ.
+        if (ATA_Polling(dr)) {
+            irq_enable();
+            return EIO;
+        }
 
-  // Waiting for an IRQ
-  // ATA_WaitIRQ (14);
-  // kIrq_Wait(0);
+        // kprintf (" - ATAPI] Just get data\n");
 
-  // Waiting for BSY & DRQ to clear
-  while (inb(dr->pbase_ + ATA_REG_STATUS) & (ATA_SR_BSY | ATA_SR_DRQ));
+        insw(dr->pbase_, (uint16_t *)buf, words);
+        buf += (words * 2);
+    }
 
-  irq_enable();
-  return 0;
+    // Waiting for an IRQ
+    // ATA_WaitIRQ (14);
+    // kIrq_Wait(0);
+
+    // Waiting for BSY & DRQ to clear
+    while (inb(dr->pbase_ + ATA_REG_STATUS) & (ATA_SR_BSY | ATA_SR_DRQ));
+
+    irq_enable();
+    return 0;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int ATA_read(inode_t *ino, void* data, size_t size, off_t offset)
+int ATA_read(inode_t *ino, void *data, size_t size, off_t offset)
 {
-  struct ATA_Drive *dr = &sdx[ino->lba];
-  uint32_t lba = offset / ino->block;
-  uint8_t sects = size / ino->block;
+    struct ATA_Drive *dr = &sdx[ino->lba];
+    uint32_t lba = offset / ino->block;
+    uint8_t sects = size / ino->block;
 
-  if (dr->type_ == IDE_ATA) {
-    errno = ATA_Data(ATA_READ, dr, lba, sects, (uint8_t*)data);
-  } else if (dr->type_ == IDE_ATAPI) {
-    errno = ATAPI_Read(dr, lba, sects, (uint8_t*)data);
-  } else {
-    errno = EIO;
-  }
-  return errno == 0 ? 0 : -1;
+    if (dr->type_ == IDE_ATA) {
+        errno = ATA_Data(ATA_READ, dr, lba, sects, (uint8_t *)data);
+    } else if (dr->type_ == IDE_ATAPI) {
+        errno = ATAPI_Read(dr, lba, sects, (uint8_t *)data);
+    } else {
+        errno = EIO;
+    }
+    return errno == 0 ? 0 : -1;
 }
 
-int ATA_write(inode_t *ino, const void* data, size_t size, off_t offset)
+int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
 {
-  struct ATA_Drive *dr = &sdx[ino->lba];
-  uint32_t lba = offset / ino->block;
-  uint8_t sects = size / ino->block;
+    struct ATA_Drive *dr = &sdx[ino->lba];
+    uint32_t lba = offset / ino->block;
+    uint8_t sects = size / ino->block;
 
-  if (dr->type_ == IDE_ATA) {
-    errno = ATA_Data(ATA_WRITE, dr, lba, sects, (uint8_t*)data);
-  } else if (dr->type_ == IDE_ATAPI) {
-    errno = EROFS;
-  } else {
-    errno = EIO;
-  }
-  return errno == 0 ? 0 : -1;
+    if (dr->type_ == IDE_ATA) {
+        errno = ATA_Data(ATA_WRITE, dr, lba, sects, (uint8_t *)data);
+    } else if (dr->type_ == IDE_ATAPI) {
+        errno = EROFS;
+    } else {
+        errno = EIO;
+    }
+    return errno == 0 ? 0 : -1;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -484,72 +511,61 @@ extern vfs_io_ops_t ATA_io_ops;
 
 int ATA_setup()
 {
-  int i;
-  memset (sdx, 0, 4 * sizeof(struct ATA_Drive));
-  sdx[0].pbase_ = 0x1f0;
-  sdx[0].pctrl_ = 0x3f6;
-  sdx[0].disc_ = 0xa0;
-  sdx[1].pbase_ = 0x1f0;
-  sdx[1].pctrl_ = 0x3f6;
-  sdx[1].disc_ = 0xb0;
-  sdx[2].pbase_ = 0x170;
-  sdx[2].pctrl_ = 0x376;
-  sdx[2].disc_ = 0xa0;
-  sdx[3].pbase_ = 0x170;
-  sdx[3].pctrl_ = 0x376;
-  sdx[3].disc_ = 0xb0;
+    int i;
+    memset (sdx, 0, 4 * sizeof(struct ATA_Drive));
+    sdx[0].pbase_ = 0x1f0;
+    sdx[0].pctrl_ = 0x3f6;
+    sdx[0].disc_ = 0xa0;
+    sdx[1].pbase_ = 0x1f0;
+    sdx[1].pctrl_ = 0x3f6;
+    sdx[1].disc_ = 0xb0;
+    sdx[2].pbase_ = 0x170;
+    sdx[2].pctrl_ = 0x376;
+    sdx[2].disc_ = 0xa0;
+    sdx[3].pbase_ = 0x170;
+    sdx[3].pctrl_ = 0x376;
+    sdx[3].disc_ = 0xb0;
 
-  outb(0x3f6 + ATA_REG_CONTROL - 0x0A, 2);
-  outb(0x376 + ATA_REG_CONTROL - 0x0A, 2);
+    outb(0x3f6 + ATA_REG_CONTROL - 0x0A, 2);
+    outb(0x376 + ATA_REG_CONTROL - 0x0A, 2);
 
-  for (i = 0; i < 4; ++i) {
-    if (ATA_Detect(&sdx[i])) {
-      kprintf(0, "%s] %s <%s> %s\n", sdNames[i], sdx[i].type_ == IDE_ATA ? "ATA  " : "ATAPI", sztoa(sdx[i].size_), sdx[i].model_);
+    for (i = 0; i < 4; ++i) {
+        if (ATA_Detect(&sdx[i])) {
+            kprintf(0, "%s] %s <%s> %s\n", sdNames[i],
+                    sdx[i].type_ == IDE_ATA ? "ATA  " : "ATAPI", sztoa(sdx[i].size_),
+                    sdx[i].model_);
 
 
-      inode_t *blk = vfs_inode(S_IFBLK | 0640, NULL);
-      blk->length = sdx[i].size_;
-      blk->lba = i;
-      blk->block = sdx[i].type_ == IDE_ATA ? 512 : 2048;
-      blk->io_ops = &ATA_io_ops;
+            inode_t *blk = vfs_inode(i, S_IFBLK, 0);
+            blk->length = sdx[i].size_;
+            blk->lba = i;
+            blk->block = sdx[i].type_ == IDE_ATA ? 512 : 2048;
+            blk->io_ops = &ATA_io_ops;
 
-      const char *class = sdx[i].type_ == IDE_ATA ? "ATA Controller" : "ATAPI Controller";
-      vfs_mkdev(sdNames[i], blk, NULL, class, sdx[i].model_, NULL);
-      vfs_close(blk);
-
-      // inode_t *blk = vfs_inode(S_IFBLK | 0640, NULL);
-      // blk->length = sdx[i].size_;
-      // blk->lba = i;
-      // blk->block = sdx[i].type_ == IDE_ATA ? 512 : 2048;
-      // vfs_mkdev(sdNames[i], blk, null, sdx[i].type_ == IDE_ATA ? "ATA Controller" : "ATAPI Controller", sdx[i].model_);
-      // vfs_close(blk);
-      // vfs_automount(blk); -- Try all or follow mount table
-
-      // sdA  -> GPT
-      // sdA1 -> Fat32 (/usr)
-      // sdA2 -> Fat32 (/home)
-      // sdA3 -> Ext4 (/var)
-      // sdC  -> Iso9660
+            const char *class = sdx[i].type_ == IDE_ATA ? "IDE ATA Controller" :
+                                    "IDE ATAPI Controller";
+            vfs_mkdev(sdNames[i], blk, NULL, class, sdx[i].model_, NULL);
+            vfs_close(blk);
+        }
     }
-  }
 
-  return 0;
+    return 0;
 }
 
 
 int ATA_teardown()
 {
-  int i;
-  for (i = 0; i < 4; ++i) {
-    if (sdx[i].type_ == IDE_ATA || sdx[i].type_ == IDE_ATAPI) {
-      // TODO
+    int i;
+    for (i = 0; i < 4; ++i) {
+        if (sdx[i].type_ == IDE_ATA || sdx[i].type_ == IDE_ATAPI) {
+            // TODO
+        }
     }
-  }
-  return 0;
+    return 0;
 }
 
 
 vfs_io_ops_t ATA_io_ops = {
-  .read = ATA_read,
-  .write = ATA_write,
+    .read = ATA_read,
+    .write = ATA_write,
 };

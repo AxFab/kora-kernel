@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -21,22 +21,25 @@
 #define _KERNEL_CPU_H 1
 
 #include <kernel/types.h>
-#include <skc/mcrs.h>
+#include <kora/mcrs.h>
 
-typedef int(*irq_handler_t)(void*);
+typedef struct task task_t;
 
+typedef int(*irq_handler_t)(void *);
+
+void irq_reset(bool enable);
 /* - */
-void irq_enable();
+bool irq_enable();
 /* - */
 void irq_disable();
 /* - */
-void irq_register(int no, irq_handler_t func, void* data);
+void irq_register(int no, irq_handler_t func, void *data);
 /* - */
 void irq_unregister(int no, irq_handler_t func, void *data);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int cpu_no();
+int cpu_no(); // TODO optimization by writing this one as `pure'.
 /* - */
 time_t cpu_time();
 /* - */
@@ -44,7 +47,32 @@ void cpu_enable_mmu();
 /* - */
 void cpu_awake();
 
+uint64_t cpu_elapsed(uint64_t *last);
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+struct kCpu {
+    task_t *running;
+
+    /* Time statistics */
+    uint64_t last;  /* Register to compute elpased time. Unit is platform dependant. */
+    uint64_t user_elapsed;  /* Time spend into user space code */
+    uint64_t sys_elapsed;  /* Time spend into kernel space code */
+    uint64_t irq_elapsed;  /* Time spend into IRQ handling */
+    uint64_t io_elapsed;  /* Time spend into IO handling part */
+    uint64_t idle_elapsed;  /* Time spend into idle state */
+    uint64_t wait_elapsed;
+
+    int errno;
+};
+
+struct kSys {
+    struct kCpu *cpus[32];
+};
+
+extern struct kSys kSYS;
+
+#define kCPU (*kSYS.cpus[cpu_no()])
 
 #define CLOCK_HZ  100 // 10ms
 
