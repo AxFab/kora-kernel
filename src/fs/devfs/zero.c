@@ -70,14 +70,14 @@ int DEVFS_setup()
     dev_mkchr(4, "random", dev_random_read, NULL);
     // dev_mkchr("urandom", dev_urandom_read, NULL);
 
-    // vfs_register("devfs", &dev_fs_ops);
+    // register_filesystem("devfs", &dev_fs_ops);
     errno = 0;
     return 0;
 }
 
 int DEVFS_teardown()
 {
-    // vfs_unregister("devfs");
+    // unregister_filesystem("devfs");
     // TODO -- remove device!
     errno = 0;
     return 0;

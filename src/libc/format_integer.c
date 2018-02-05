@@ -18,10 +18,11 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+
+#undef isspace
 
 /* TODO define somewhere else */
 #define __long long

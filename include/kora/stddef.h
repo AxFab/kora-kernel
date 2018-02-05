@@ -45,5 +45,12 @@ static inline void *itemof_(void *ptr, int off)
 }
 
 
+/* Add protection to not mess with standard symbols */
+#ifdef KORA_STDC
+# define _PRT(n) n
+#else
+# define _PRT(n) n##_p
+#endif
+
 
 #endif  /* _KORA_STDDEF_H */

@@ -264,7 +264,7 @@ static void PCI_check_device(uint8_t bus, uint8_t slot)
         device_stack[dev_sp].bar[i].base = bar;
         device_stack[dev_sp].bar[i].size = bar_sz;
 
-        if ((bar & 0xFFFFFFFC) != 0) {
+        if ((bar & 3) != 0) {
             kprintf(0, "          IO region #%d: %x..%x \n", i, bar & 0xFFFFFFFC,
                     (bar & 0xFFFFFFFC) + bar_sz + 1);
         } else if (bar & 8) {

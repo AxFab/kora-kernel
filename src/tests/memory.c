@@ -17,111 +17,129 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <kernel/core.h>
 #include <kernel/memory.h>
-#include <kernel/sys/vma.h>
 #include <errno.h>
 #include <check.h>
 
+extern int mmu_uspace_size;
+void mmu_disable();
+
+/* Basic get and release address intervals */
 START_TEST(test_memory_001)
 {
-    int ret;
+    page_initialize(); // We can do anything without this!
 
-    page_initialize();
-
-    inode_t *ino1 = (void *)0xbeaf0001;
-    inode_t *ino2 = (void *)0xbeaf0002;
+    mmu_uspace_size = 24; // Set size of mspace
     mspace_t *mspace = mspace_create();
 
-    // Simple program simulation
-    void *m1 = mspace_map(mspace, 0, 12 * _Kib_, ino1, 4 * _Kib_, VMA_FG_CODE);
-    ck_assert(m1 != NULL && errno == 0);
+    // We have 24 pages available
+    void* a1 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a1 != NULL && errno == 0);
+    void* a2 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a2 != NULL && errno == 0);
+    void* a3 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a3 != NULL && errno == 0);
+    void* a4 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a4 != NULL && errno == 0);
+    void* a5 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a5 != NULL && errno == 0);
+    void* a6 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a6 != NULL && errno == 0);
+    void* a7 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a7 == NULL && errno == ENOMEM);
 
-    void *m2 = mspace_map(mspace, 0, 8 * _Kib_, ino1, 4 * _Kib_, VMA_FG_DATAI);
-    ck_assert(m2 != NULL && errno == 0);
+    ck_assert(mspace_protect(mspace, (size_t)a2, 4 * PAGE_SIZE, VMA_READ) == 0 && errno == 0); // Full VMA
+    ck_assert(mspace_protect(mspace, (size_t)a3, 2 * PAGE_SIZE, VMA_READ) == 0 && errno == 0); // Low Half VMA
+    ck_assert(mspace_protect(mspace, (size_t)a4 + 2 * PAGE_SIZE, 2 * PAGE_SIZE, VMA_READ) == 0 && errno == 0); // High Half VMA
 
-    void *m3 = mspace_map(mspace, 0, 4 * _Kib_, NULL, 0, VMA_FG_STACK);
-    ck_assert(m3 != NULL && errno == 0);
+    ck_assert(mspace_protect(mspace, (size_t)a2 + 3 * PAGE_SIZE, 2 * PAGE_SIZE, VMA_WRITE) == 0 && errno == 0); // 2 Part VMA
 
-    void *m4 = mspace_map(mspace, 0, 64 * _Kib_, NULL, 0, VMA_FG_HEAP);
-    ck_assert(m4 != NULL && errno == 0);
+    // Unmap
+    ck_assert(mspace_unmap(mspace, (size_t)a1, 4 * PAGE_SIZE) == 0 && errno == 0);
 
-    void *m5 = mspace_map(mspace, 120 * _Mib_, 8 * _Mib_, ino2, 0,
-                          VMA_FG_RW_FILE);
-    ck_assert(m5 != NULL && errno == 0);
-
-    // Test EINVAL
-    void *m6 = mspace_map(mspace, 100 * _Mib_, 0, ino2, 0, VMA_FG_RW_FILE);
-    ck_assert(m6 == NULL && errno == EINVAL);
-
-    void *m7 = mspace_map(mspace, 100 * _Mib_, VMA_CFG_MAXSIZE + PAGE_SIZE, ino2,
-                          0, VMA_FG_RW_FILE);
-    ck_assert(m7 == NULL && errno == EINVAL);
-
-    ret = mspace_protect(mspace, 120 * _Mib_, 2 * _Mib_, VMA_DEAD);
-    ck_assert(ret == 0 && errno == 0);
-
-    ret = mspace_protect(mspace, 123 * _Mib_, 2 * _Mib_, VMA_DEAD);
-    ck_assert(ret == 0 && errno == 0);
-
-    ret = mspace_protect(mspace, 126 * _Mib_, 2 * _Mib_, VMA_DEAD);
-    ck_assert(ret == 0 && errno == 0);
-
+    ck_assert(mspace_protect(mspace, (size_t)a2, 12 * PAGE_SIZE, VMA_DEAD) == 0 && errno == 0);
     mspace_scavenge(mspace);
 
-    // mspace_display(0, mspace);
-    mspace_sweep(mspace);
+    mspace_display(0, mspace);  /* Should write on a file... */
 
+    mspace_sweep(mspace);
+    mmu_disable();
 }
 END_TEST
 
+/* Special get address intervals */
 START_TEST(test_memory_002)
 {
-    // User space is from 1Mb to 512Mb
-    page_initialize();
-    kMMU.uspace_lower_bound = 1 * _Mib_;
-    kMMU.uspace_upper_bound = 512 * _Mib_;
+    page_initialize(); // We can do anything without this!
+
+    mmu_uspace_size = 16; // Set size of mspace
     mspace_t *mspace = mspace_create();
 
-    void *m;
-    // We take [500-512]
-    m = mspace_map(mspace, 500 * _Mib_, 12 * _Mib_, NULL, 0, VMA_FG_HEAP);
-    ck_assert((size_t)m == 500 * _Mib_ && errno == 0);
-    // We try to take [480-504], it should fails
-    m = mspace_map(mspace, 480 * _Mib_, 24 * _Mib_, NULL, 0,
-                   VMA_FG_HEAP | VMA_MAP_FIXED);
-    ck_assert(m == NULL && errno == ERANGE);
-    // We try to take 64Mb, should end up at [1-65]
-    m = mspace_map(mspace, 0, 64 * _Mib_, NULL, 0, VMA_FG_HEAP);
-    ck_assert((size_t)m == 1 * _Mib_ && errno == 0);
-    // We grab [264-364]
-    m = mspace_map(mspace, 264 * _Mib_, 100 * _Mib_, NULL, 0, VMA_FG_HEAP);
-    ck_assert(m != NULL && errno == 0);
-    // We grab [364-464]
-    m = mspace_map(mspace, 364 * _Mib_, 100 * _Mib_, NULL, 0, VMA_FG_HEAP);
-    ck_assert(m != NULL && errno == 0);
-    // We grab [164-264]  -- We have taken here [1-65 | 164-464 | 500-512]
-    m = mspace_map(mspace, 164 * _Mib_, 100 * _Mib_, NULL, 0, VMA_FG_HEAP);
-    ck_assert(m != NULL && errno == 0);
-    // We try to grab the full space between first and second [65-164]
-    m = mspace_map(mspace, 65 * _Mib_, 99 * _Mib_, NULL, 0, VMA_FG_HEAP);
-    ck_assert(m != NULL && errno == 0);
-    // Only [464 - 500] sould be free !
-    m = mspace_map(mspace, 0, 100 * _Mib_, NULL, 0, VMA_FG_HEAP);
-    ck_assert(m == NULL && errno == ENOMEM);
+    void* a1 = mspace_map(mspace, 0, 2 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a1 != NULL && errno == 0);
 
-    m = mspace_map(mspace, 500 * _Mib_, 24 * _Mib_, NULL, 0,
-                   VMA_FG_HEAP | VMA_MAP_FIXED);
-    ck_assert(m == NULL && errno == ERANGE);
+    void* a2 = mspace_map(mspace, (size_t)a1 + 4 * PAGE_SIZE, 2 * PAGE_SIZE, NULL, 0, 0, VMA_RO | VMA_HEAP | VMA_MAP_FIXED);
+    ck_assert(a2 != NULL && errno == 0);
 
-    m = mspace_map(mspace, 280 * _Mib_, 2 * _Mib_, NULL, 0,
-                   VMA_FG_HEAP | VMA_MAP_FIXED);
-    ck_assert(m == NULL && errno == ERANGE);
+    void* a0 = mspace_map(mspace, (size_t)a1 + 4 * PAGE_SIZE, 1 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP | VMA_MAP_FIXED);
+    ck_assert(a0 == NULL && errno == ERANGE);
 
-    // mspace_display(0, mspace); // Only [464 - 500] is free !
+    void* a3 = mspace_map(mspace, (size_t)a1 + 4 * PAGE_SIZE, 6 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a3 != NULL && errno == 0);
 
+    mspace_display(0, mspace);  /* Should write on a file... */
+
+    mspace_sweep(mspace);
+    mmu_disable();
+}
+END_TEST
+
+/* Special case for protect */
+START_TEST(test_memory_003)
+{
+    page_initialize(); // We can do anything without this!
+
+    mmu_uspace_size = 16; // Set size of mspace
+    mspace_t *mspace = mspace_create();
+
+
+
+    mspace_display(0, mspace);  /* Should write on a file... */
+
+    mspace_sweep(mspace);
+    mmu_disable();
+}
+END_TEST
+
+/* Test release of pages */
+START_TEST(test_memory_004)
+{
+    page_initialize(); // We can do anything without this!
+
+    mmu_uspace_size = 20; // Set size of mspace
+    mspace_t *mspace = mspace_create();
+
+    void* a1 = mspace_map(mspace, 0, 6 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    ck_assert(a1 != NULL && errno == 0);
+
+    void* a2 = mspace_map(mspace, 0, 6 * PAGE_SIZE, NULL, 0, 0, VMA_RO | VMA_HEAP);
+    ck_assert(a2 != NULL && errno == 0);
+
+    void* a3 = mspace_map(mspace, 0, 6 * PAGE_SIZE, NULL, 0, 0xCAFE0000, VMA_RW | VMA_PHYS);
+    ck_assert(a3 != NULL && errno == 0);
+
+    int pages0 = kMMU.free_pages;
+    page_fault(mspace, (size_t)a1 + 0x134, PGFLT_MISSING);
+    ck_assert(kMMU.free_pages != pages0);
+
+    mspace_display(0, mspace);  /* Should write on a file... */
 
     mspace_sweep(mspace);
 
+    ck_assert(kMMU.free_pages == pages0);
+
+    mmu_disable();
 }
 END_TEST
 
@@ -130,5 +148,7 @@ void fixture_memory(Suite *s)
     TCase *tc = tcase_create("Memory");
     tcase_add_test(tc, test_memory_001);
     tcase_add_test(tc, test_memory_002);
+    tcase_add_test(tc, test_memory_003);
+    tcase_add_test(tc, test_memory_004);
     suite_add_tcase(s, tc);
 }

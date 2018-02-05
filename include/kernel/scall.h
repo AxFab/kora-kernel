@@ -50,6 +50,11 @@ struct iovec {
     size_t length;
 };
 
+struct image
+{
+    int width, height, pitch, format;
+};
+
 
 #define PW_SHUTDOWN  1
 #define PW_REBOOT  2
@@ -70,14 +75,21 @@ int sys_sigaction(int signum, void *handler);
 int sys_sigreturn();
 
 int sys_open(const char *name, int flags, int mode);
-int sys_close(unsigned fd);
-int sys_read(unsigned fd, const struct iovec *vec, unsigned vlen);
-int sys_write(unsigned fd, const struct iovec *vec, unsigned vlen);
-int sys_seek(unsigned fd, off_t offset, int whence);
+int sys_close(int fd);
+int sys_read(int fd, const struct iovec *vec, unsigned vlen);
+int sys_write(int fd, const struct iovec *vec, unsigned vlen);
+int sys_seek(int fd, off_t offset, int whence);
 
-int sys_pipe(unsigned *fd, size_t size);
+int sys_pipe(int *fd, size_t size);
 
 int sys_power(int cmd, unsigned int delay);
+
+void *sys_mmap(size_t address, size_t length, int fd, off_t offset, int flags);
+int sys_mprotect(size_t address, size_t length, int flags);
+int sys_munmap(size_t address, size_t length);
+
+int sys_window(struct image *img, int features, int events);
+
 
 
 

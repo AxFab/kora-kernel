@@ -95,7 +95,7 @@ typedef struct fs_mod {
     llnode_t node;
 } fs_mod_t;
 
-void vfs_register(const char *name, vfs_fs_ops_t *ops)
+void register_filesystem(const char *name, vfs_fs_ops_t *ops)
 {
     fs_mod_t *fs = (fs_mod_t *)kalloc(sizeof(fs_mod_t));
     fs->ops = ops;
@@ -103,7 +103,7 @@ void vfs_register(const char *name, vfs_fs_ops_t *ops)
     ll_append(&fs_list, &fs->node);
 }
 
-void vfs_unregister(const char *name)
+void unregister_filesystem(const char *name)
 {
     fs_mod_t *fs;
     for ll_each(&fs_list, fs, fs_mod_t, node) {

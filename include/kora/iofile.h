@@ -17,10 +17,10 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _SKC_IOFILE_H
-#define _SKC_IOFILE_H 1
+#ifndef _KORA_IOFILE_H
+#define _KORA_IOFILE_H 1
 
-#include <stddef.h>
+#include <kora/stddef.h>
 
 #define EOF -1
 
@@ -70,4 +70,4 @@ int oflags(const char *mode);
 /* Allocate a new FILE structure form an open file descriptor. */
 FILE *fvopen(int fd, int oflags);
 
-#endif  /* _SKC_IOFILE_H */
+#endif  /* _KORA_IOFILE_H */

@@ -222,23 +222,6 @@ int cpu_no()
     return (apic[APIC_ID] >> 24) & 0xf;
 }
 
-void cpu_enable_mmu()
-{
-    int i;
-    page_t *dir = (page_t *)KRN_PG_DIR;
-    page_t *tbl = (page_t *)KRN_PG_TBL;
-    memset(dir, 0, PAGE_SIZE);
-    memset(tbl, 0, PAGE_SIZE);
-    dir[1022] = KRN_PG_DIR | MMU_K_RW;
-    dir[1023] = KRN_PG_DIR | MMU_K_RW;
-    dir[0] = KRN_PG_TBL | MMU_K_RW;
-    for (i = 0; i < 512; ++i) {
-        tbl[i] = (i * PAGE_SIZE) | MMU_K_RW;
-    }
-
-    x86_enable_MMU();
-}
-
 
 /* Request to start other CPUs */
 void cpu_awake()

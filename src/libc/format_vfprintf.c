@@ -18,10 +18,11 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <ctype.h>
-#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <kora/iofile.h>
+
+#undef isdigit
 
 #define __long long
 unsigned __long _strtox(const char *, char **, int, char *);
@@ -89,99 +90,8 @@ enum {
     MAXSTATE
 };
 
-
-static inline void pop_arg(format_arg_t *arg, int type, va_list *ap)
-{
-    /* Give the compiler a hint for optimizing the switch. */
-    if ((unsigned)type > MAXSTATE) {
-        return;
-    }
-
-    switch (type) {
-    case PTR:
-        arg->p = va_arg(*ap, void *);
-        break;
-
-    case INT:
-        arg->s = va_arg(*ap, int);
-        break;
-
-    case UINT:
-        arg->i = va_arg(*ap, unsigned int);
-        break;
-#ifndef LONG_IS_INT
-
-    case LONG:
-        arg->s = va_arg(*ap, long);
-        break;
-
-    case ULONG:
-        arg->i = va_arg(*ap, unsigned long);
-        break;
-#endif
-
-#ifdef __USE_C99
-    case ULLONG:
-        arg->i = va_arg(*ap, unsigned long long);
-        break;
-#endif
-
-    case SHORT:
-        arg->s = (short)va_arg(*ap, int);
-        break;
-
-    case USHORT:
-        arg->i = (unsigned short)va_arg(*ap, int);
-        break;
-
-    case CHAR:
-        arg->s = (signed char)va_arg(*ap, int);
-        break;
-
-    case UCHAR:
-        arg->i = (unsigned char)va_arg(*ap, int);
-        break;
-#ifdef ODD_TYPES
-
-#ifdef __USE_C99
-    case LLONG:
-        arg->s = va_arg(*ap, long long);
-        break;
-#endif
-
-    case SIZET:
-        arg->i = va_arg(*ap, size_t);
-        break;
-
-    case IMAX:
-        arg->s = va_arg(*ap, intmax_t);
-        break;
-
-    case UMAX:
-        arg->i = va_arg(*ap, uintmax_t);
-        break;
-
-    case PDIFF:
-        arg->i = va_arg(*ap, ptrdiff_t);
-        break;
-
-    case UIPTR:
-        arg->i = (uintptr_t)va_arg(*ap, void *);
-        break;
-#endif
-
-    case DBL:
-        arg->f = va_arg(*ap, double);
-        break;
-
-    case LDBL:
-        arg->f = va_arg(*ap, long double);
-        break;
-    }
-}
-
 #define _I(x) [(x)-'A']
-
+/* Define parsing state table */
 static const char state[]_I('z' + 1) = {
     {
         /* BARE */
@@ -239,6 +149,77 @@ static const char state[]_I('z' + 1) = {
         _I('n') = PTR,
     },
 };
+
+static inline void pop_arg(format_arg_t *arg, int type, va_list *ap)
+{
+    /* Give the compiler a hint for optimizing the switch. */
+    if ((unsigned)type > MAXSTATE) {
+        return;
+    }
+
+    switch (type) {
+    case PTR:
+        arg->p = va_arg(*ap, void *);
+        break;
+    case INT:
+        arg->s = va_arg(*ap, int);
+        break;
+    case UINT:
+        arg->i = va_arg(*ap, unsigned int);
+        break;
+    case SHORT:
+        arg->s = (short)va_arg(*ap, int);
+        break;
+    case USHORT:
+        arg->i = (unsigned short)va_arg(*ap, int);
+        break;
+    case CHAR:
+        arg->s = (signed char)va_arg(*ap, int);
+        break;
+    case UCHAR:
+        arg->i = (unsigned char)va_arg(*ap, int);
+        break;
+    case DBL:
+        arg->f = va_arg(*ap, double);
+        break;
+    case LDBL:
+        arg->f = va_arg(*ap, long double);
+        break;
+#ifndef LONG_IS_INT
+    case LONG:
+        arg->s = va_arg(*ap, long);
+        break;
+    case ULONG:
+        arg->i = va_arg(*ap, unsigned long);
+        break;
+#endif
+#ifdef __USE_C99
+    case ULLONG:
+        arg->i = va_arg(*ap, unsigned long long);
+        break;
+    case LLONG:
+        arg->s = va_arg(*ap, long long);
+        break;
+#endif
+#ifdef ODD_TYPES
+    case SIZET:
+        arg->i = va_arg(*ap, size_t);
+        break;
+    case IMAX:
+        arg->s = va_arg(*ap, intmax_t);
+        break;
+    case UMAX:
+        arg->i = va_arg(*ap, uintmax_t);
+        break;
+    case PDIFF:
+        arg->i = va_arg(*ap, ptrdiff_t);
+        break;
+    case UIPTR:
+        arg->i = (uintptr_t)va_arg(*ap, void *);
+        break;
+#endif
+    }
+}
 
 static inline int read_format_specifier (format_spec_t *sb, const char **ptr,
         va_list *ap)
@@ -301,7 +282,16 @@ static inline int read_format_specifier (format_spec_t *sb, const char **ptr,
     return 0;
 }
 
-int vfprintf(FILE *fp, const char *str, va_list ap)
+/** Format and print a string into a FILE interface.
+ *
+ * @fp  A pointer to a FILE structure that will serve as writing interface.
+ * @str  The string to format and print.
+ * @ap  A var arg interface to fetch paramater to format the string.
+ *
+ * This method is the more generic of all print methods, for this reason all
+ * other print formating methods are build using this implementation.
+ */
+int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
 {
     int lg;
     char ch;
@@ -443,7 +433,7 @@ int vfprintf(FILE *fp, const char *str, va_list ap)
                 }
             }
 
-            if (sb.flag_ & ALT_FORM && (str[-1] & 32) == 'x') {
+            if ((sb.flag_ & ALT_FORM) && (str[-1] | 32) == 'x') {
                 if (fp->write(fp, "0x", 2) < 0) {
                     return -1;
                 }

@@ -12,6 +12,12 @@ scall_t scalls[] = {
     { (scall_handler)sys_wait, "wait", { SC_UNSIGNED, SC_UNSIGNED, SC_NOARG, SC_NOARG, SC_NOARG } },
     { (scall_handler)sys_write, "write_dbg", { SC_FD, SC_STRING, SC_SIGNED, SC_NOARG, SC_NOARG } },
     { (scall_handler)sys_sigaction, "sigaction", { SC_SIGNED, SC_POINTER, SC_NOARG, SC_NOARG, SC_NOARG } },
+
+    { (scall_handler)sys_mmap, "mmap", { SC_HEX, SC_HEX, SC_FD, SC_OFFSET, SC_OCTAL } },
+    { (scall_handler)sys_mprotect, "mprotect", { SC_HEX, SC_HEX, SC_OCTAL, SC_NOARG, SC_NOARG } },
+    { (scall_handler)sys_munmap, "munmap", { SC_HEX, SC_HEX, SC_NOARG, SC_NOARG, SC_NOARG } },
+
+    { (scall_handler)sys_window, "window", { SC_POINTER, SC_HEX, SC_HEX, SC_NOARG, SC_NOARG } },
     // EXEC
     // EXIT GROUP
     // GET PROCESS STAT (PID / MEM / )

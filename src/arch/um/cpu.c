@@ -18,15 +18,12 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
+#include <kernel/cpu.h>
 #include <kernel/memory.h>
+#include <kora/mcrs.h>
 #include <stdlib.h>
 #include <time.h>
 
-void cpu_enable_mmu()
-{
-    kMMU.kheap_lower_bound = (size_t)valloc(16 * _Mib_);
-    kMMU.kheap_upper_bound = kMMU.kheap_lower_bound + 16 * _Mib_;
-}
 
 time_t cpu_time()
 {
@@ -38,3 +35,41 @@ void cpu_awake()
 {
 }
 
+int cpu_no()
+{
+    return 0;
+}
+
+uint64_t cpu_elapsed(uint64_t *last)
+{
+    return 1;
+}
+
+
+_Noreturn void cpu_run()
+{
+    abort();
+}
+
+_Noreturn void cpu_halt()
+{
+    abort();
+}
+
+void cpu_setup_task()
+{
+    abort();
+}
+void cpu_setup_signal()
+{
+    abort();
+}
+
+bool cpu_task_return_uspace()
+{
+    abort();
+    return false;
+}
+
+struct kSys kSYS;
+struct kCpu kCPU0;

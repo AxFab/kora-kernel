@@ -19,7 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/memory.h>
-#include <kernel/sys/vma.h>
+#include <kora/mcrs.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -27,17 +27,17 @@
 
 START_TEST(test_pages_001)
 {
-    page_initialize();
-    mspace_t *mspace = mspace_create();
+    // page_initialize();
+    // mspace_t *mspace = mspace_create();
 
-    void *vaddress = kmap(1 * _Mib_, NULL, 0xFE000, VMA_PHYS);
-    ck_assert(vaddress != NULL && errno == 0);
+    // void *vaddress = kmap(1 * _Mib_, NULL, 0xFE000, VMA_PHYS);
+    // ck_assert(vaddress != NULL && errno == 0);
 
-    page_fault(mspace, (size_t)vaddress, VMA_PF_NO_PAGE);
-    page_t paddress = mmu_drop((size_t)vaddress, false);
-    ck_assert(paddress == 0xFE000);
+    // page_fault(mspace, (size_t)vaddress, PGFLT_MISSING);
+    // page_t paddress = mmu_read((size_t)vaddress, false, false);
+    // ck_assert(paddress == 0xFE000);
 
-    mspace_sweep(mspace);
+    // mspace_sweep(mspace);
 
 }
 END_TEST
@@ -47,6 +47,6 @@ void fixture_pages(Suite *s)
     TCase *tc;
 
     tc = tcase_create("Pagination");
-    // tcase_add_test(tc, test_pages_001);
+    tcase_add_test(tc, test_pages_001);
     suite_add_tcase(s, tc);
 }

@@ -1,6 +1,5 @@
 #include <kernel/core.h>
 #include <kernel/sys/inode.h>
-#include <kernel/sys/vma.h>
 #include <kernel/vfs.h>
 #include <stdio.h>
 #include <errno.h>

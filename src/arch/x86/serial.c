@@ -111,7 +111,7 @@ void SRL_write(const char *msg, size_t lg)
             msg += TXT_ansi_escape(msg);
         } else if (*msg < 0x20) {
             // Ignore
-        } else if (*msg < 0x79) {
+        } else {
             serial_write(PORT_COM1, *msg);
         }
     }

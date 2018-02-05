@@ -2,6 +2,7 @@
 #include <kernel/core.h>
 #include <kernel/vfs.h>
 #include <kernel/memory.h>
+#include <kernel/input.h>
 #include <kernel/task.h>
 #include <kernel/cpu.h>
 #include <kernel/sys/inode.h>
@@ -15,7 +16,7 @@ int E1000_setup();
 int PS2_setup();
 int VBE_setup();
 int IMG_setup();
-int ISO9660_setup();
+int ISOFS_setup();
 
 
 
@@ -24,14 +25,7 @@ extern uint32_t splash_height;
 extern uint8_t splash_pixels[];
 extern uint32_t splash_colors[];
 
-void seat_fb_clear(int no, uint32_t color);
-void seat_fb_splash(int no, int width, int height, uint32_t *colors,
-                    uint8_t *pixels);
-
-
-#include <kernel/sys/device.h>
-void ARP_who_is(const unsigned char *ip);
-inode_t *ISO9660_mount(inode_t *dev);
+// void ARP_who_is(const unsigned char *ip);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -54,25 +48,28 @@ void kernel_start()
     time_t now = cpu_time();
     kprintf(-1, "[TIME] Date is %s", asctime(gmtime(&now)));
 
-    seat_fb_clear(0, 0xd8d8d8);
-    seat_fb_splash(0, splash_width, splash_height, splash_colors, splash_pixels);
+    seat_initscreen(); // Return an inode to close !
+    surface_fill_rect(seat_screen(0), 0, 0, 65000, 65000, 0xd8d8d8);
+    surface_draw(seat_screen(0), splash_width, splash_height, splash_colors, splash_pixels);
+
+    seat_surface(120, 120, 4, 0, 0);
 
     /* Drivers startup */
     TMPFS_setup();
     DEVFS_setup();
-    if (true) {
-        ATA_setup();
-        PCI_setup();
-        // E1000_setup();
-        PS2_setup();
-        // VBE_setup();
-    } else {
-        // IMG_setup();
-    }
-    ISO9660_setup();
+#if 1
+    ATA_setup();
+    PCI_setup();
+    // E1000_setup();
+    PS2_setup();
+    // VBE_setup();
+#else
+    IMG_setup();
+#endif
+    ISOFS_setup();
 
 
-    inode_t *root = vfs_mount_as_root("sdC", "iso9660");
+    inode_t *root = vfs_mount_as_root("sdC", "isofs");
     if (root == NULL) {
         kprintf(-1, "Expected mount point named 'ISOIMAGE' over 'sdC' !\n");
         return;
@@ -95,6 +92,7 @@ void kernel_start()
     vfs_close(root);
     vfs_close(ino);
 
+    irq_register(0, (irq_handler_t)seat_ticks, 0);
     irq_register(0, (irq_handler_t)scheduler_ticks, 0);
 }
 

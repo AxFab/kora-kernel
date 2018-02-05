@@ -43,7 +43,7 @@ mspace_t *mspace_create();
 /* Release all VMA and free all mspace data structure. */
 void mspace_sweep(mspace_t *mspace);
 /* Search a VMA structure at a specific address */
-vma_t *mspace_search_vma(mspace_t *mspace, size_t address);
+vma_t *mspace_search_vma(mspace_t *kspace, mspace_t *mspace, size_t address);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -65,28 +65,31 @@ int page_resolve(mspace_t *mspace, size_t address, size_t length);
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* - */
-void mmu_detect_ram();
+void mmu_enable();
 /* - */
 int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean);
 /* - */
 page_t mmu_read(size_t vaddress, bool drop, bool clean);
 /* - */
-page_t mmu_directory();
-/* - */
-void mmu_release_dir(page_t dir);
+// page_t mmu_directory();
+// /* - */
+// void mmu_release_dir(page_t dir);
+
+void mmu_create_uspace(mspace_t *mspace);
+void mmu_destroy_uspace(mspace_t *mspace);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 struct kMmu {
     size_t upper_physical_page;  /* Maximum amount of memory */
     size_t pages_amount;  /* Maximum pages amount */
-    size_t free_pages;  /* Number of unsued free pages */
+    size_t free_pages;  /* Number of unused free pages */
     size_t page_size;  /* Page size */
-    size_t uspace_lower_bound;  /* Userspace lower bound */
-    size_t uspace_upper_bound;  /* Userspace upper bound */
-    size_t kheap_lower_bound;  /* Kernel heap lower bound */
-    size_t kheap_upper_bound;  /* Kernel heap upper bound */
-    size_t max_vma_length;  /* Maximum size of a VMA */
+    // size_t uspace_lower_bound;  /* Userspace lower bound */
+    // size_t uspace_upper_bound;  /* Userspace upper bound */
+    // size_t kheap_lower_bound;  /* Kernel heap lower bound */
+    // size_t kheap_upper_bound;  /* Kernel heap upper bound */
+    // size_t max_vma_length;  /* Maximum size of a VMA */
     mspace_t *kspace;  /* Kernel address space */
 };
 

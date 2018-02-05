@@ -25,18 +25,18 @@ START_TEST(test_rwlock_001)
 {
     rwlock_t lock;
     rwlock_init(&lock);
-    ck_assert(rwlock_rdtrylock(&lock) == 0);//should ok
-    ck_assert(rwlock_wrtrylock(&lock) == BUSY);//should fail
+    ck_assert(rwlock_rdtrylock(&lock) == true);//should ok
+    ck_assert(rwlock_wrtrylock(&lock) == false);//should fail
     ck_assert(!rwlock_wrlocked(&lock));
     rwlock_rdunlock(&lock);
-    ck_assert(rwlock_wrtrylock(&lock) == 0);//should ok
+    ck_assert(rwlock_wrtrylock(&lock) == true);//should ok
     ck_assert(rwlock_wrlocked(&lock));
-    ck_assert(rwlock_rdtrylock(&lock) == BUSY);//should fail
-    ck_assert(rwlock_wrtrylock(&lock) == BUSY);//should fail
+    ck_assert(rwlock_rdtrylock(&lock) == false);//should fail
+    ck_assert(rwlock_wrtrylock(&lock) == false);//should fail
     rwlock_wrunlock(&lock);
-    ck_assert(rwlock_wrtrylock(&lock) == 0);//should ok
+    ck_assert(rwlock_wrtrylock(&lock) == true);//should ok
     ck_assert(rwlock_wrlocked(&lock));
-    // ck_assert(rwlock_wrlock(&lock) == BUSY);//should wait
+    // ck_assert(rwlock_wrlock(&lock) == false);//should wait
     rwlock_wrunlock(&lock);
 
 }
@@ -48,18 +48,18 @@ START_TEST(test_rwlock_002)
     rwlock_init(&lock);
     rwlock_wrlock(&lock);
     ck_assert(rwlock_wrlocked(&lock));
-    ck_assert(rwlock_rdtrylock(&lock) == BUSY);
+    ck_assert(rwlock_rdtrylock(&lock) == false);
     rwlock_wrunlock(&lock);
     ck_assert(!rwlock_wrlocked(&lock));
     rwlock_rdlock(&lock);
     rwlock_rdlock(&lock);
-    ck_assert(rwlock_wrtrylock(&lock) == BUSY);//should fail
+    ck_assert(rwlock_wrtrylock(&lock) == false);//should fail
     ck_assert(!rwlock_wrlocked(&lock));
     rwlock_rdunlock(&lock);
-    ck_assert(rwlock_wrtrylock(&lock) == BUSY);//should fail
+    ck_assert(rwlock_wrtrylock(&lock) == false);//should fail
     ck_assert(!rwlock_wrlocked(&lock));
     rwlock_rdunlock(&lock);
-    ck_assert(rwlock_wrtrylock(&lock) == 0);//should ok
+    ck_assert(rwlock_wrtrylock(&lock) == true);//should ok
     ck_assert(rwlock_wrlocked(&lock));
     rwlock_wrunlock(&lock);
 
@@ -72,14 +72,14 @@ START_TEST(test_rwlock_003)
     rwlock_init(&lock);
     rwlock_rdlock(&lock);
     ck_assert(!rwlock_wrlocked(&lock));
-    ck_assert(rwlock_wrtrylock(&lock) == BUSY);//should fail
+    ck_assert(rwlock_wrtrylock(&lock) == false);//should fail
     ck_assert(!rwlock_wrlocked(&lock));
-    ck_assert(rwlock_upgrade(&lock) == 0);
+    ck_assert(rwlock_upgrade(&lock) == true);
     ck_assert(rwlock_wrlocked(&lock));
-    ck_assert(rwlock_wrtrylock(&lock) == BUSY);//should fail
+    ck_assert(rwlock_wrtrylock(&lock) == false);//should fail
     rwlock_wrunlock(&lock);
-    ck_assert(rwlock_wrtrylock(&lock) == 0);
-    ck_assert(rwlock_upgrade(&lock) == BUSY);
+    ck_assert(rwlock_wrtrylock(&lock) == true);
+    ck_assert(rwlock_upgrade(&lock) == false);
     rwlock_wrunlock(&lock);
 
 }

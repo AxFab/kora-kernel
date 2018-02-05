@@ -33,7 +33,7 @@ void fixture_hmap(Suite *s);
 void fixture_allocator(Suite *s);
 void fixture_string(Suite *s);
 void fixture_integer(Suite *s);
-// void fixture_format(Suite *s);
+void fixture_format(Suite *s);
 void fixture_time(Suite *s);
 
 void fixture_memory(Suite *s);
@@ -60,7 +60,7 @@ Suite *suite_standard(void)
     fixture_allocator(s);
     fixture_string(s);
     fixture_integer(s);
-    // fixture_format(s);
+    fixture_format(s);
     fixture_time(s);
     return s;
 }
@@ -69,9 +69,9 @@ Suite *suite_core(void)
 {
     Suite *s;
     s = suite_create("Kernel core");
-    // fixture_memory(s);
+    fixture_memory(s);
     // fixture_pages(s);
-    fixture_device(s);
+    // fixture_device(s);
     // fixture_vfs(s);
     return s;
 }
@@ -84,8 +84,8 @@ int main (int argc, char **argv)
     int errors;
     SRunner *sr = srunner_create(NULL);
     srunner_add_suite (sr, suite_core());
-    // srunner_add_suite (sr, suite_basics());
-    // srunner_add_suite (sr, suite_standard());
+    srunner_add_suite (sr, suite_basics());
+    srunner_add_suite (sr, suite_standard());
 
     // Run test-suites
     srunner_run_all(sr, CK_NORMAL);

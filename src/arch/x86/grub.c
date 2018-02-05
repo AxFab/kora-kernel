@@ -15,7 +15,7 @@ extern FILE *klogs;
 int SRL_setup();
 void SRL_write(const char *msg, size_t lg);
 void TXT_write(const char *msg, size_t lg);
-void seat_init_framebuffer(int no, int width, int height, void *pixels, uint8_t depth);
+void seat_fb0(int width, int height, int format, int pitch, void* mmio);
 
 int grub_write(FILE *f, const char *s, size_t l)
 {
@@ -39,7 +39,7 @@ int grub_start(uint32_t *table)
 
     if (grub_table[0] & GRUB_BOOT_LOADER) {
         kprintf(0, (char *)grub_table[16]);
-        // kprintf(0, "\nBoot Loader: %s\n", (char *)grub_table[16]);
+        // kprintf(0, "Boot Loader: %s\n", (char *)grub_table[16]);
     }
 
     if (grub_table[0] & GRUB_BOOT_DEVICE) {
@@ -53,9 +53,27 @@ int grub_start(uint32_t *table)
     }
 
     if (grub_table[0] & GRUB_VGA && grub_table[22] != 0x000B8000) {
+        if (((grub_table[27] >> 8) & 0xFF) != 1) {
+            // Unsupported color schemas
+        }
+
         // We are in pixel mode
-        seat_init_framebuffer(0, grub_table[25], grub_table[26],
-                              (void *)grub_table[22], grub_table[27] & 0xFF);
+        // seat_init_framebuffer(0, grub_table[25], grub_table[26],
+        //                       (void *)grub_table[22], grub_table[27] & 0xFF);
+        seat_fb0(grub_table[25], grub_table[26], grub_table[27] & 0xFF,
+                 grub_table[24], (void *)grub_table[22]);
+
+        /*
+        If ‘framebuffer_type’ is set to ‘1’ it means direct RGB color will be used. Then color_type is defined as follows:
+                     +----------------------------------+
+             110     | framebuffer_red_field_position   | 27 + 2
+             111     | framebuffer_red_mask_size        | 27 + 3
+             112     | framebuffer_green_field_position | 28 + 0
+             113     | framebuffer_green_mask_size      | 28 + 1
+             114     | framebuffer_blue_field_position  | 28 + 2
+             115     | framebuffer_blue_mask_size       | 28 + 3
+                     +----------------------------------+
+        */
     } else {
         // We are in text mode
     }

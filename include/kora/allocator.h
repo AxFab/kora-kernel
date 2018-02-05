@@ -24,13 +24,6 @@
 #include <kora/splock.h>
 #include <kora/llist.h>
 
-/* Add protection to not mess with standard symbol or valgrind */
-#ifdef KORA_ALLOCATOR
-# define _PRT(n) n
-#else
-# define _PRT(n) n##_p
-#endif
-
 #define HEAP_PARANO  (1 << 0)
 #define HEAP_CHECK  (1 << 1)
 #define HEAP_CORRUPTED  (1 << 2)

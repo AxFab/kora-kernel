@@ -17,23 +17,20 @@
  *
  *   - - - - - - - - - - - - - - -
  *
- *      Memory managment unit configuration.
+ *      Self-Balanced Bianry tree implementation.
  */
-#ifndef _KERNEL_ASM_MMU_H
-#define _KERNEL_ASM_MMU_H 1
+#ifndef _KORA_FORMAT_H
+#define _KORA_FORMAT_H 1
 
-#define PAGE_SIZE 4096
-typedef unsigned long page_t;
-/* Larger page in order to support 36bits physical address.
-typedef unsigned long long page_t; */
+#include <kora/stddef.h>
+#include <kora/iofile.h>
+#include <stdarg.h>
 
-#define MMU_USPACE_LOWER  (1 * _Mib_)
-#define MMU_USPACE_UPPER  (512U * _Mib_)
-#define MMU_KSPACE_LOWER  (1024U * _Mib_)
-#define MMU_KSPACE_UPPER  ((1024U + 16) * _Mib_)
+/* Write formated string from a string */
+int _PRT(vfprintf) (FILE *fp, const char *str, va_list ap);
+int _PRT(sprintf)(char *str, const char *format, ...);
+int _PRT(snprintf)(char *str, size_t lg, const char *format, ...);
+int _PRT(vsprintf)(char *str, const char *format, va_list ap);
+int _PRT(vsnprintf)(char *str, size_t lg, const char *format, va_list ap);
 
-
-#define MMU_BMP  (mmu_bmp)
-#define MMU_LG  (128 / 8)   // 512 * PAGE_SIZE => 2 Mb
-extern unsigned char mmu_bmp[];
-#endif /* _KERNEL_ASM_MMU_H */
+#endif  /* _KORA_FORMAT_H */

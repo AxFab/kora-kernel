@@ -16,24 +16,31 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
- *
- *      Memory managment unit configuration.
  */
-#ifndef _KERNEL_ASM_MMU_H
-#define _KERNEL_ASM_MMU_H 1
+#ifndef _KERNEL_SYS_WINDOW_H
+#define _KERNEL_SYS_WINDOW_H 1
 
-#define PAGE_SIZE 4096
-typedef unsigned long page_t;
-/* Larger page in order to support 36bits physical address.
-typedef unsigned long long page_t; */
+#include <kernel/sys/inode.h>
+#include <kora/llist.h>
 
-#define MMU_USPACE_LOWER  (1 * _Mib_)
-#define MMU_USPACE_UPPER  (512U * _Mib_)
-#define MMU_KSPACE_LOWER  (1024U * _Mib_)
-#define MMU_KSPACE_UPPER  ((1024U + 16) * _Mib_)
+struct surface {
+    int width;
+    int height;
+    int pitch;
+    // int full_height;
+    int format;
+    uint8_t *pixels;
+    int features;
+    int events;
+    int x, y;
+    int depth;
+    size_t size;
+    llnode_t node;
+    inode_t *ino;
+    // Screen... inputs...user...state...desktop...
+};
 
 
-#define MMU_BMP  (mmu_bmp)
-#define MMU_LG  (128 / 8)   // 512 * PAGE_SIZE => 2 Mb
-extern unsigned char mmu_bmp[];
-#endif /* _KERNEL_ASM_MMU_H */
+
+
+#endif  /* _KERNEL_SYS_WINDOW_H */

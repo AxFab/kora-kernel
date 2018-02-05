@@ -23,13 +23,13 @@
 #include <kora/iofile.h>
 #include <kora/mcrs.h>
 #ifdef __SYS_CALL
-# include <skc/fd.h>
+# include <kora/fd.h>
 #endif
 
 /* All of those methods are bind over vfprintf
  * which is implemented in another file.
  */
-int vfprintf (FILE *fp, const char *str, va_list ap);
+int _PRT(vfprintf) (FILE *fp, const char *str, va_list ap);
 
 /* TODO Take from limits.h or something */
 #undef INT_MAX
@@ -78,7 +78,7 @@ static inline int _vsnprintf(char *str, size_t lg, const char *format,
         fp.wbf_.end_ = (char *)SIZE_MAX;
     }
 
-    res = vfprintf(&fp, format, ap);
+    res = _PRT(vfprintf)(&fp, format, ap);
     fp.wbf_.pos_[-(fp.wbf_.pos_ == fp.wbf_.end_)] = '\0';
     return res;
 }
@@ -163,7 +163,7 @@ int vdprintf(int fd, const char *format, va_list ap)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 /* Write formated string from a string */
-int sprintf(char *str, const char *format, ...)
+int _PRT(sprintf)(char *str, const char *format, ...)
 {
     int res;
     va_list ap;
@@ -174,7 +174,7 @@ int sprintf(char *str, const char *format, ...)
 }
 
 /* Write formated string from a string */
-int snprintf(char *str, size_t lg, const char *format, ...)
+int _PRT(snprintf)(char *str, size_t lg, const char *format, ...)
 {
     int ret;
     va_list ap;
@@ -185,13 +185,13 @@ int snprintf(char *str, size_t lg, const char *format, ...)
 }
 
 /* Write formated string from a string */
-int vsprintf(char *str, const char *format, va_list ap)
+int _PRT(vsprintf)(char *str, const char *format, va_list ap)
 {
     return _vsnprintf(str, INT_MAX, format, ap);
 }
 
 /* Write formated string from a string */
-int vsnprintf(char *str, size_t lg, const char *format, va_list ap)
+int _PRT(vsnprintf)(char *str, size_t lg, const char *format, va_list ap)
 {
     return _vsnprintf(str, lg, format, ap);
 }

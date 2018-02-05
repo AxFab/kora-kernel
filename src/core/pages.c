@@ -35,10 +35,10 @@ struct kMmu kMMU = {
     .pages_amount = 0,
     .free_pages = 0,
     .page_size = PAGE_SIZE,
-    .uspace_lower_bound = MMU_USPACE_LOWER,
-    .uspace_upper_bound = MMU_USPACE_UPPER,
-    .kheap_lower_bound = MMU_KSPACE_LOWER,
-    .kheap_upper_bound = MMU_KSPACE_UPPER,
+    // .uspace_lower_bound = MMU_USPACE_LOWER,
+    // .uspace_upper_bound = MMU_USPACE_UPPER,
+    // .kheap_lower_bound = MMU_KSPACE_LOWER,
+    // .kheap_upper_bound = MMU_KSPACE_UPPER,
 };
 
 void page_initialize()
@@ -48,15 +48,13 @@ void page_initialize()
     kMMU.pages_amount = 0;
     kMMU.free_pages = 0;
 
-    mmu_detect_ram();
-    cpu_enable_mmu();
-
     // Init Kernel memory space structure
-    kernel_space.lower_bound = kMMU.kheap_lower_bound;
-    kernel_space.upper_bound = kMMU.kheap_upper_bound;
     bbtree_init(&kernel_space.tree);
     splock_init(&kernel_space.lock);
     kMMU.kspace = &kernel_space;
+
+    // Enable MMU
+    mmu_enable();
 
     kprintf (-1, "[MEM ] %s available over ",
              sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
@@ -85,9 +83,9 @@ void page_range(long long base, long long length)
         j = (j + 1) % 8;
         count--;
     }
-    start++;
+    start = ALIGN_UP(start + 1, 8);
     memset(&MMU_BMP[start / 8], 0, count / 8);
-    start += count / 8;
+    start += count & (~8);
     count = count % 8;
     i = start / 8;
     j = 0;
@@ -99,7 +97,7 @@ void page_range(long long base, long long length)
 }
 
 /* Allocat a single page for the system and return it's physical address */
-page_t page_new ()
+page_t page_new()
 {
     int i = 0, j = 0;
     while (i < MMU_LG && MMU_BMP[i] == 0xff) {
@@ -144,11 +142,10 @@ void page_sweep(size_t address, size_t length, bool clean)
 }
 
 
-
-
 static int page_copy_vma(vma_t *vma)
 {
     // TODO - lock VMA or something!?
+    splock_lock(&vma->mspace->lock);
     vma->flags &= ~VMA_COPY_ON_WRITE;
     vma->flags |= VMA_WRITE;
     size_t length = vma->length;
@@ -165,6 +162,7 @@ static int page_copy_vma(vma_t *vma)
         length -= PAGE_SIZE;
     }
     kunmap(buf, vma->length);
+    splock_unlock(&vma->mspace->lock);
     return 0;
 }
 
@@ -172,7 +170,7 @@ static int page_copy_vma(vma_t *vma)
 int page_fault(mspace_t *mspace, size_t address, int reason)
 {
     address = ALIGN_DW(address, PAGE_SIZE);
-    vma_t *vma = mspace_search_vma(mspace, address);
+    vma_t *vma = mspace_search_vma(kMMU.kspace, mspace, address);
     if (vma == NULL) {
         return -1;
     }
@@ -206,22 +204,20 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
 
     } else if (reason == PGFLT_WRITE_DENY && type == VMA_FILE) {
         if (!(vma->flags & VMA_CAN_WRITE) || !(vma->flags & VMA_COPY_ON_WRITE)) {
+            kprintf(-1, "[MEM ] Page fault on read only file at 0x%08x (%d) [%x].\n", address,
+            reason, vma->flags);
             return -1;
         }
         return page_copy_vma(vma);
-
-    } else {
-        kprintf(-1, "[MEM ] Unresolvable page fault 0x%08x (%d) [%x].\n", address,
-                reason, vma->flags);
-        return -1;
     }
-
+    kprintf(-1, "[MEM ] Unresolvable page fault 0x%08x (%d) [%x].\n", address,
+            reason, vma->flags);
     return -1;
 }
 
 int page_resolve(mspace_t *mspace, size_t address, size_t length)
 {
-    vma_t *vma = mspace_search_vma(mspace, address);
+    vma_t *vma = mspace_search_vma(kMMU.kspace, mspace, address);
     if (vma == NULL) {
         return -1;
     } else if (vma->node.value_ != address || vma->length != length) {

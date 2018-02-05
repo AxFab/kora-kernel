@@ -61,8 +61,8 @@ inode_t *vfs_lookup_device(const char *name);
 // inode_t *vfs_lookup_mountpt(const char *name);
 
 
-void vfs_register(const char *name, vfs_fs_ops_t *ops);
-void vfs_unregister(const char *name);
+void register_filesystem(const char *name, vfs_fs_ops_t *ops);
+void unregister_filesystem(const char *name);
 vfs_fs_ops_t *vfs_fs(const char *name);
 
 #endif  /* _KERNEL_SYS_DEVICE_H */

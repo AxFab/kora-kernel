@@ -1,5 +1,6 @@
 #include <kernel/core.h>
 #include <kernel/sys/inode.h>
+#include <kernel/sys/window.h>
 #include <kora/mcrs.h>
 #include <assert.h>
 #include <errno.h>
@@ -38,6 +39,10 @@ inode_t *vfs_inode(int no, int mode, size_t size)
         inode->mode |= 0600;
         inode->socket = NULL; // Socket structure
         break;
+    case S_IFWIN:
+        inode->mode |= 0600;
+        inode->win = kalloc(sizeof(surface_t));
+        break;
     default:
         kfree(inode);
         return NULL;
@@ -67,6 +72,9 @@ void vfs_close(inode_t *ino)
     if (cnt == 0) {
         // if (ino->fs_ops && ino->fs_ops->close) {
         //   ino->fs_ops->close(ino);
+        // }
+        // if (ino->object != NULL) {
+        //     kfree(ino->object);
         // }
         kfree(ino);
     }

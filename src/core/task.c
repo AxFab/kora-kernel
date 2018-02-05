@@ -159,12 +159,14 @@ void task_signals()
         sig_handler_t *sig = &task->shandler[sn];
 
         if (sn == SIGKILL) {
+            kprintf(0, "[TSK ] Task %d recived SIGKILL\n", task->pid);
             task_stop(task, -2);
             scheduler_next();
         } else if (sig->type == SIG_IGN) {
             continue;
         } else if (sig->type == SIG_DFL) {
             if (sn == SIGHUP || sn == SIGINT || sn == SIGQUIT || sn == SIGSEGV) {
+                kprintf(0, "[TSK ] Task %d recived killed %d\n", task->pid, sn);
                 task_stop(task, -2);
                 scheduler_next();
                 break;
@@ -313,7 +315,7 @@ void task_destroy(task_t *task)
         }
     }
 
-    bbtree_remove(&pid_tree, &task->bnode);
+    bbtree_remove(&pid_tree, task->pid);
     irq_disable();
     splock_unlock(&task->lock);
     kfree(task);

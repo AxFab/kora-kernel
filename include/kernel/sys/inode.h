@@ -27,6 +27,7 @@
 
 
 typedef struct fifo fifo_t;
+typedef struct surface surface_t;
 typedef struct mountpt mountpt_t;
 // #define O_SYNC 1
 
@@ -111,6 +112,7 @@ struct vfs_dir_ops {
 
 struct inode {
     long no;
+    long parent;
     int mode;
     size_t lba;
     off_t length;
@@ -128,6 +130,7 @@ struct inode {
         fifo_t *fifo;
         void *slink;
         void *socket;
+        surface_t *win;
     };
 
     vfs_fs_ops_t *fs_ops;
@@ -141,15 +144,16 @@ struct inode {
 };
 
 
-#define S_IFREG  (010 << 12)
-#define S_IFBLK  (006 << 12)
-#define S_IFDIR  (004 << 12)
-#define S_IFCHR  (002 << 12)
-#define S_IFIFO  (001 << 12)
-#define S_IFLNK  (012 << 12)
-#define S_IFSOCK (014 << 12)
+#define S_IFREG  (0100000)
+#define S_IFBLK  (0060000)
+#define S_IFDIR  (0040000)
+#define S_IFCHR  (0020000)
+#define S_IFIFO  (0010000)
+#define S_IFLNK  (0120000)
+#define S_IFSOCK (0140000)
+#define S_IFWIN  (0150000)
 
-#define S_IFMT  (15 << 12)
+#define S_IFMT   (0170000)
 
 #define S_ISREG(m)  (((m) & S_IFMT) == S_IFREG)
 #define S_ISBLK(m)  (((m) & S_IFMT) == S_IFBLK)
@@ -158,6 +162,7 @@ struct inode {
 #define S_ISIFO(m)  (((m) & S_IFMT) == S_IFIFO)
 #define S_ISLNK(m)  (((m) & S_IFMT) == S_IFLNK)
 #define S_ISSOCK(m)  (((m) & S_IFMT) == S_IFSOCK)
+#define S_ISWIN(m)  (((m) & S_IFMT) == S_IFWIN)
 
 #define S_ISGID  01000
 #define S_IXGRP  02000

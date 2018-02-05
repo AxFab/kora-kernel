@@ -43,8 +43,6 @@ int cpu_no(); // TODO optimization by writing this one as `pure'.
 /* - */
 time_t cpu_time();
 /* - */
-void cpu_enable_mmu();
-/* - */
 void cpu_awake();
 
 uint64_t cpu_elapsed(uint64_t *last);

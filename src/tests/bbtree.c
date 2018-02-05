@@ -45,7 +45,8 @@ void test_bbtree_free(bbnode_t **array)
 
 START_TEST(test_bbtree_001)
 {
-    bbtree_t tree = { &_NIL, 0 };
+    bbtree_t tree;
+    bbtree_init(&tree);
     bbnode_t n1 = INIT_BBNODE(1);
     bbnode_t n2 = INIT_BBNODE(2);
     bbnode_t n3 = INIT_BBNODE(3);
@@ -88,7 +89,8 @@ END_TEST
 
 START_TEST(test_bbtree_002)
 {
-    bbtree_t tree = { &_NIL, 0 };
+    bbtree_t tree;
+    bbtree_init(&tree);
     bbnode_t n1 = INIT_BBNODE(1);
     bbnode_t n2 = INIT_BBNODE(2);
     bbnode_t n3 = INIT_BBNODE(3);
@@ -139,7 +141,8 @@ END_TEST
 void test_bbtree_003_sub(int v, int f, int s)
 {
     int i;
-    bbtree_t tree = { &_NIL, 0 };
+    bbtree_t tree;
+    bbtree_init(&tree);
     bbnode_t **nodes = test_bbtree_alloc(s);
     for (i = 0; i < s; ++i) {
         bbtree_insert(&tree, nodes[i]);
@@ -165,7 +168,8 @@ END_TEST
 
 START_TEST(test_bbtree_004)
 {
-    bbtree_t tree = { &_NIL, 0 };
+    bbtree_t tree;
+    bbtree_init(&tree);
     bbnode_t n1 = INIT_BBNODE(1);
     bbtree_insert(&tree, &n1);
     ck_assert(tree.count_ == bbtree_check(tree.root_) && tree.count_ == 1);
@@ -177,7 +181,8 @@ END_TEST
 START_TEST(test_bbtree_005)
 {
     int ret;
-    bbtree_t tree = { &_NIL, 0 };
+    bbtree_t tree;
+    bbtree_init(&tree);
     bbnode_t n1 = INIT_BBNODE(1);
     bbnode_t n2 = INIT_BBNODE(1);
     ret = bbtree_insert(&tree, &n1);
@@ -196,7 +201,8 @@ END_TEST
 
 START_TEST(test_bbtree_006)
 {
-    bbtree_t tree = { &_NIL, 0 };
+    bbtree_t tree;
+    bbtree_init(&tree);
     bbnode_t n1 = INIT_BBNODE(1);
     bbnode_t n2 = INIT_BBNODE(2);
     bbnode_t n3 = INIT_BBNODE(3);
@@ -263,7 +269,8 @@ END_TEST
 START_TEST(test_bbtree_007)
 {
     bbnode_t *r;
-    bbtree_t tree = { &_NIL, 0 };
+    bbtree_t tree;
+    bbtree_init(&tree);
 
     r = bbtree_search_(tree.root_, 1, 0);
     ck_assert(r == NULL);
@@ -282,7 +289,7 @@ void fixture_bbtree(Suite *s)
     TCase *tc = tcase_create("Self-Balanced Binary Tree");
     tcase_add_test(tc, test_bbtree_001);
     tcase_add_test(tc, test_bbtree_002);
-    // tcase_add_test(tc, test_bbtree_003);
+    (void)test_bbtree_003; // tcase_add_test(tc, test_bbtree_003);
     tcase_add_test(tc, test_bbtree_004);
     tcase_add_test(tc, test_bbtree_005);
     tcase_add_test(tc, test_bbtree_006);

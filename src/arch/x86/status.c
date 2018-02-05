@@ -169,6 +169,7 @@ void page_error_x86(int code, regs_t *regs)
 
 void page_fault_x86(size_t address, int code, regs_t *regs)
 {
+    irq_disable();
     task_enter_sys(NULL, regs->cs == SGM_CODE_KERNEL);
     mspace_t *mem = kCPU.running ? mem = kCPU.running->usmem : NULL;
     int reason = 0;
@@ -190,6 +191,7 @@ void page_fault_x86(size_t address, int code, regs_t *regs)
         }
     }
     task_leave_sys();
+    irq_enable();
 }
 
 void sys_irq_x86(int no, regs_t *regs)

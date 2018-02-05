@@ -19,8 +19,8 @@
  *
  *      Read-Write Lock implementation.
  */
-#ifndef _SKC_RWLOCK_H
-#define _SKC_RWLOCK_H 1
+#ifndef _KORA_RWLOCK_H
+#define _KORA_RWLOCK_H 1
 
 #include <kora/atomic.h>
 #include <kora/splock.h>
@@ -111,7 +111,7 @@ __stinline bool rwlock_wrtrylock(rwlock_t *lock)
 {
     if (lock->readers) {
         return false;
-    } else if (splock_trylock(&lock->lock)) {
+    } else if (!splock_trylock(&lock->lock)) {
         return false;
     } else if (lock->readers) {
         splock_unlock(&lock->lock);
@@ -124,7 +124,7 @@ __stinline bool rwlock_wrtrylock(rwlock_t *lock)
 /* Transform a previously hold reading lock into a writing one. Might block. */
 __stinline bool rwlock_upgrade(rwlock_t *lock)
 {
-    if (splock_trylock(&lock->lock)) {
+    if (!splock_trylock(&lock->lock)) {
         return false;
     }
 
@@ -144,4 +144,4 @@ __stinline bool rwlock_wrlocked(rwlock_t *lock)
 
 #endif /* RWLOCK_ */
 
-#endif /* _SKC_RWLOCK_H */
+#endif /* _KORA_RWLOCK_H */

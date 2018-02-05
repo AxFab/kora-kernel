@@ -31,8 +31,8 @@ CFLAGS += -ggdb3 -I$(topdir)/include
 
 # We define one mode of compiling `std`
 std_CFLAGS := $(CFLAGS) $(COV_FLAGS) -I$(topdir)/include/arch/um
-krn_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/x86 -DKORA_ALLOCATOR
-mod_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/x86 -DKORA_ALLOCATOR -DK_MODULE
+krn_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/x86 -DKORA_STDC
+mod_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/x86 -DKORA_STDC -DK_MODULE
 $(eval $(call ccpl,std))
 $(eval $(call ccpl,krn))
 $(eval $(call ccpl,mod))
@@ -45,12 +45,12 @@ tests_src-y += $(wildcard $(srcdir)/tests/*.c)
 tests_src-y += $(wildcard $(srcdir)/arch/um/*.c)
 tests_src-y += $(wildcard $(srcdir)/arch/um/*.asm)
 tests_src-y += $(wildcard $(srcdir)/fs/tmpfs/*.c)
-tests_src-y += $(wildcard $(srcdir)/fs/iso9660/*.c)
+tests_src-y += $(wildcard $(srcdir)/fs/isofs/*.c)
 tests_src-y += $(wildcard $(srcdir)/drv/img/*.c)
 tests_src-y += $(wildcard $(srcdir)/drv/mbr/*.c)
-tests_omit-y += $(srcdir)/libc/string.c $(srcdir)/core/common.c $(srcdir)/core/launch.c
+tests_omit-y += $(srcdir)/libc/string.c $(srcdir)/core/common.c $(srcdir)/core/launch.c $(srcdir)/core/scall.c
 tests_omit-y += $(srcdir)/core/vfs.c $(srcdir)/tests/vfs.c $(srcdir)/core/net.c
-tests_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c $(srcdir)/tests/format.c
+# tests_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c $(srcdir)/tests/format.c
 tests_LFLAGS := $(LFLAGS)
 tests_LIBS := $(shell pkg-config --libs check)
 $(eval $(call link,tests,std))
@@ -72,7 +72,7 @@ kImg_src-y += $(wildcard $(srcdir)/drv/ps2/*.c)
 # kImg_src-y += $(wildcard $(srcdir)/drv/am79C973/*.c)
 kImg_src-y += $(wildcard $(srcdir)/fs/tmpfs/*.c)
 kImg_src-y += $(wildcard $(srcdir)/fs/devfs/*.c)
-kImg_src-y += $(wildcard $(srcdir)/fs/iso9660/*.c)
+kImg_src-y += $(wildcard $(srcdir)/fs/isofs/*.c)
 # kImg_LFLAGS := $(LFLAGS)
 $(eval $(call kimg,kImg,krn))
 DV_UTILS += $(bindir)/kImg

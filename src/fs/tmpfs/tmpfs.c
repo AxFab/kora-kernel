@@ -196,14 +196,14 @@ int TMPFS_unlink(tmpfs_inode_t *dir, const char *name)
 
 int TMPFS_setup()
 {
-    vfs_register("tmpfs", &TMPFS_fs_ops);
+    register_filesystem("tmpfs", &TMPFS_fs_ops);
     errno = 0;
     return 0;
 }
 
 int TMPFS_teardown()
 {
-    vfs_unregister("tmpfs");
+    unregister_filesystem("tmpfs");
     errno = 0;
     return 0;
 }

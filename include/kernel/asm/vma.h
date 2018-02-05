@@ -94,16 +94,6 @@
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-
-struct vma {
-    bbnode_t node;  /* Binary tree node of VMAs contains the base address */
-    size_t length;  /* The length of this VMA */
-    inode_t *ino;  /* If the VMA is linked to a file, a pointer to the inode */
-    off_t offset;  /* An offset to a file or an physical address, depending of type */
-    off_t limit;  /* If non zero, use to specify a limit after which one the rest of pages are blank. */
-    int flags;  /* VMA flags */
-};
-
 struct mspace {
     atomic_t users;  /* Usage counter */
     bbtree_t tree;  /* Binary tree of VMAs sorted by addresses */
@@ -115,6 +105,17 @@ struct mspace {
     size_t s_size;  /* Shared allocated page counter */
     size_t phys_pg_count;  /* Physical page used on this address space */
     splock_t lock;  /* Memory space protection lock */
+};
+
+
+struct vma {
+    bbnode_t node;  /* Binary tree node of VMAs contains the base address */
+    size_t length;  /* The length of this VMA */
+    inode_t *ino;  /* If the VMA is linked to a file, a pointer to the inode */
+    off_t offset;  /* An offset to a file or an physical address, depending of type */
+    off_t limit;  /* If non zero, use to specify a limit after which one the rest of pages are blank. */
+    int flags;  /* VMA flags */
+    struct mspace *mspace;
 };
 
 

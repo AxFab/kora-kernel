@@ -28,21 +28,21 @@
 #define FILENAME_MAX 255
 
 /* Identificators for volume descriptors */
-#define ISO9660_STD_ID1    0x30444300
-#define ISO9660_STD_ID2    0x00003130
-#define ISO9660_VOLDESC_BOOT 0
-#define ISO9660_VOLDESC_PRIM 1
-#define ISO9660_VOLDESC_SUP  2
-#define ISO9660_VOLDESC_VOL  3
-#define ISO9660_VOLDESC_TERM 255
+#define ISOFS_STD_ID1    0x30444300
+#define ISOFS_STD_ID2    0x00003130
+#define ISOFS_VOLDESC_BOOT 0
+#define ISOFS_VOLDESC_PRIM 1
+#define ISOFS_VOLDESC_SUP  2
+#define ISOFS_VOLDESC_VOL  3
+#define ISOFS_VOLDESC_TERM 255
 
-typedef struct ISO9660_entry ISO9660_entry_t;
-typedef struct ISO9660_descriptor ISO9660_descriptor_t;
+typedef struct ISOFS_entry ISOFS_entry_t;
+typedef struct ISOFS_descriptor ISOFS_descriptor_t;
 
-#define ISO9660_nextEntry(e)  ((ISO9660_entry_t*)&(((char*)(e))[(e)->lengthRecord]));
+#define ISOFS_nextEntry(e)  ((ISOFS_entry_t*)&(((char*)(e))[(e)->lengthRecord]));
 
-/* Structure of a Directory entry in Iso9660 FS */
-PACK(struct ISO9660_entry {
+/* Structure of a Directory entry in isofs FS */
+PACK(struct ISOFS_entry {
     uint8_t lengthRecord;
     char extLengthRecord;
     int locExtendLE;
@@ -66,8 +66,8 @@ PACK(struct ISO9660_entry {
 });
 
 
-/* Structure of the Primary volume descriptor in Iso9660 FS */
-PACK(struct ISO9660_descriptor {
+/* Structure of the Primary volume descriptor in isofs FS */
+PACK(struct ISOFS_descriptor {
     union {
         struct {
             unsigned char type;
@@ -93,7 +93,7 @@ PACK(struct ISO9660_descriptor {
     int locOccOptLpathTable;
     int locOccMpathTable;
     int locOccOptMpathTable;
-    ISO9660_entry_t rootDir;
+    ISOFS_entry_t rootDir;
     char volsetname[128];
     char publishId[128];
     char dataPrepId[128];
@@ -131,24 +131,24 @@ struct ISO_inode {
 
 
 
-extern vfs_fs_ops_t ISO9660_fs_ops;
-extern vfs_dir_ops_t ISO9660_dir_ops;
-extern vfs_io_ops_t ISO9660_io_ops;
+extern vfs_fs_ops_t ISOFS_fs_ops;
+extern vfs_dir_ops_t ISOFS_dir_ops;
+extern vfs_io_ops_t ISOFS_io_ops;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t *ISO9660_lookup(ISO_inode_t *dir, const char *name)
+inode_t *ISOFS_lookup(ISO_inode_t *dir, const char *name)
 {
     int lba = dir->ino.lba;
     uint8_t *address = kmap(8192, dir->vol->dev, lba * 2048, VMA_FG_RO_FILE);
 
-    // kprintf ("iso9660] Search %s on dir at lba[%x]\n", name, sec);
-    // kprintf ("iso9660] Read sector %d on %s \n", sec, dir->name_);
+    // kprintf ("isofs] Search %s on dir at lba[%x]\n", name, sec);
+    // kprintf ("isofs] Read sector %d on %s \n", sec, dir->name_);
 
     /* Skip the first two entries */
-    ISO9660_entry_t *entry = (ISO9660_entry_t *)address;
-    entry = ISO9660_nextEntry(entry); /* Directory '.' */
-    entry = ISO9660_nextEntry(entry); /* Directory '..' */
+    ISOFS_entry_t *entry = (ISOFS_entry_t *)address;
+    entry = ISOFS_nextEntry(entry); /* Directory '.' */
+    entry = ISOFS_nextEntry(entry); /* Directory '..' */
 
     char *filename = (char *)kalloc(FILENAME_MAX);
     while (entry->lengthRecord) {
@@ -171,11 +171,12 @@ inode_t *ISO9660_lookup(ISO_inode_t *dir, const char *name)
             ISO_inode_t *ino = (ISO_inode_t *)vfs_inode(entry->locExtendLE, mode,
                                sizeof(ISO_inode_t));
             ino->ino.length = entry->dataLengthLE;
+            ino->ino.parent = dir->ino.no;
             ino->ino.lba = entry->locExtendLE;
             ino->ino.block = 2048;
-            ino->ino.fs_ops = &ISO9660_fs_ops;
-            ino->ino.dir_ops = &ISO9660_dir_ops;
-            ino->ino.io_ops = &ISO9660_io_ops;
+            ino->ino.fs_ops = &ISOFS_fs_ops;
+            ino->ino.dir_ops = &ISOFS_dir_ops;
+            ino->ino.io_ops = &ISOFS_io_ops;
             ino->vol = dir->vol;
 
             // ino->atime =
@@ -187,7 +188,7 @@ inode_t *ISO9660_lookup(ISO_inode_t *dir, const char *name)
         }
 
         /* Move pointer to next entry, eventualy continue directory mapping. */
-        entry = ISO9660_nextEntry(entry);
+        entry = ISOFS_nextEntry(entry);
         bool remap = (size_t)entry >= (size_t)address + 8192;
         if (!remap) {
             remap = (size_t)entry + entry->lengthRecord > (size_t)address + 8192;
@@ -198,7 +199,7 @@ inode_t *ISO9660_lookup(ISO_inode_t *dir, const char *name)
             lba += 2;
             kunmap(address, 8192);
             address = kmap(8192, dir->vol->dev, lba * 2048, VMA_FG_RO_FILE);
-            entry = (ISO9660_entry_t *)((size_t)address + off);
+            entry = (ISOFS_entry_t *)((size_t)address + off);
         }
     }
 
@@ -208,7 +209,7 @@ inode_t *ISO9660_lookup(ISO_inode_t *dir, const char *name)
     return NULL;
 }
 
-// int ISO9660_opendir(inode_t *dir, dir_context_t *ctx)
+// int ISOFS_opendir(inode_t *dir, dir_context_t *ctx)
 // {
 //   ctx->offset = 0;
 //   ctx->batch = 4096 / 32; // Max entry per page
@@ -216,21 +217,21 @@ inode_t *ISO9660_lookup(ISO_inode_t *dir, const char *name)
 //   return -1;
 // }
 
-// int ISO9660_readdir(inode_t *dir, dir_context_t *ctx)
+// int ISOFS_readdir(inode_t *dir, dir_context_t *ctx)
 // {
 //   size_t sec = dir->lba;
 //   // struct ISO_info* volume = (struct ISO_info*)dir->dev_->data_;
 //   void *address = kmap(4096, device->inode, dir->lba * 2048, VMA_FILE);
 
-//   // kprintf ("iso9660] Search %s on dir at lba[%x]\n", name, sec);
-//   // kprintf ("iso9660] Read sector %d on %s \n", sec, dir->name_);
+//   // kprintf ("isofs] Search %s on dir at lba[%x]\n", name, sec);
+//   // kprintf ("isofs] Read sector %d on %s \n", sec, dir->name_);
 
 //   //
-//   ISO9660_entry_t *entry = (ISO9660_entry_t*)address;
+//   ISOFS_entry_t *entry = (ISOFS_entry_t*)address;
 
 //   // Seek (Skip the first two entries '.' and '..')
 //   for (int i=0; i < ctx->offset + 2; ++i) {
-//     entry = (ISO9660_entry_t*) & (((char*)entry)[entry->lengthRecord]);
+//     entry = (ISOFS_entry_t*) & (((char*)entry)[entry->lengthRecord]);
 //   }
 
 //   // Loop over records
@@ -256,7 +257,7 @@ inode_t *ISO9660_lookup(ISO_inode_t *dir, const char *name)
 //     // ino->atime =
 
 //     count++;
-//     entry = (ISO9660_entry_t*) & (((char*)entry)[entry->lengthRecord]);
+//     entry = (ISOFS_entry_t*) & (((char*)entry)[entry->lengthRecord]);
 //   }
 
 //   ctx->count = count;
@@ -268,7 +269,7 @@ inode_t *ISO9660_lookup(ISO_inode_t *dir, const char *name)
 //   return -1;
 // }
 
-// int ISO9660_releasedir(inode_t *dir, dir_context_t *ctx)
+// int ISOFS_releasedir(inode_t *dir, dir_context_t *ctx)
 // {
 //   errno = 0;
 //   return 0;
@@ -277,7 +278,7 @@ inode_t *ISO9660_lookup(ISO_inode_t *dir, const char *name)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t *ISO9660_mount(inode_t *dev)
+inode_t *ISOFS_mount(inode_t *dev)
 {
     int i;
     int lba = 16;
@@ -299,22 +300,22 @@ inode_t *ISO9660_mount(inode_t *dev)
                                       VMA_FG_RO_FILE);
         }
 
-        ISO9660_descriptor_t *descriptor = (ISO9660_descriptor_t *)&address[(lba -
+        ISOFS_descriptor_t *descriptor = (ISOFS_descriptor_t *)&address[(lba -
                                            addressLba) * 2048];
-        if ((descriptor->magicInt[0] & 0xFFFFFF00) != ISO9660_STD_ID1 ||
-                (descriptor->magicInt[1] & 0x0000FFFF) != ISO9660_STD_ID2 ||
-                (descriptor->type != ISO9660_VOLDESC_PRIM && !volume)) {
+        if ((descriptor->magicInt[0] & 0xFFFFFF00) != ISOFS_STD_ID1 ||
+                (descriptor->magicInt[1] & 0x0000FFFF) != ISOFS_STD_ID2 ||
+                (descriptor->type != ISOFS_VOLDESC_PRIM && !volume)) {
             if (volume) {
                 kfree (volume);
             }
 
-            kprintf(-1, " iso9660 -- Not a volume descriptor at lba %d\n", lba);
+            kprintf(-1, " isofs -- Not a volume descriptor at lba %d\n", lba);
             kunmap(address, addressCnt * 2048);
             errno = EBADF;
             return NULL;
         }
 
-        if (descriptor->type == ISO9660_VOLDESC_PRIM) {
+        if (descriptor->type == ISOFS_VOLDESC_PRIM) {
             volume = (struct ISO_info *)kalloc(sizeof(struct ISO_info));
             volume->bootable = 0;
             volume->created = 0;
@@ -333,15 +334,15 @@ inode_t *ISO9660_mount(inode_t *dev)
 
             strcpy (volume->name, descriptor->volname);
 
-        } else if (descriptor->type == ISO9660_VOLDESC_BOOT) {
+        } else if (descriptor->type == ISOFS_VOLDESC_BOOT) {
             volume->bootable = !0;
-        } else if (descriptor->type == ISO9660_VOLDESC_TERM) {
+        } else if (descriptor->type == ISOFS_VOLDESC_TERM) {
             break;
         } else {
             if (volume) {
                 kfree (volume);
             }
-            kprintf(-1, " iso9660 -- Bad volume descriptor id %d\n", descriptor->type);
+            kprintf(-1, " isofs -- Bad volume descriptor id %d\n", descriptor->type);
             kunmap(address, addressCnt * 2048);
             errno = EBADF;
             return NULL;
@@ -351,22 +352,22 @@ inode_t *ISO9660_mount(inode_t *dev)
 
 
     ISO_inode_t *ino = (ISO_inode_t *)vfs_mountpt(volume->lbaroot, volume->name,
-                       "iso9660", sizeof(ISO_inode_t));
+                       "isofs", sizeof(ISO_inode_t));
     ino->ino.length = volume->lgthroot;
     ino->ino.lba = volume->lbaroot;
     ino->ino.block = 2048;
-    ino->ino.fs_ops = &ISO9660_fs_ops;
-    ino->ino.dir_ops = &ISO9660_dir_ops;
-    ino->ino.io_ops = &ISO9660_io_ops;
+    ino->ino.fs_ops = &ISOFS_fs_ops;
+    ino->ino.dir_ops = &ISOFS_dir_ops;
+    ino->ino.io_ops = &ISOFS_io_ops;
     ino->vol = volume;
     ino->vol->dev = vfs_open(dev);
 
-    // kprintf ("ISO9660] Mount device %s at %s.\n", device->name_, name);
+    // kprintf ("isofs] Mount device %s at %s.\n", device->name_, name);
     // TODO create_device(name, dev, &stat, volume);
     return &ino->ino;
 }
 
-int ISO9660_unmount(ISO_inode_t *ino)
+int ISOFS_unmount(ISO_inode_t *ino)
 {
     kfree(ino->vol);
     return 0;
@@ -374,51 +375,51 @@ int ISO9660_unmount(ISO_inode_t *ino)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int ISO9660_read(ISO_inode_t *ino, void *buffer, size_t length, off_t offset)
+int ISOFS_read(ISO_inode_t *ino, void *buffer, size_t length, off_t offset)
 {
     int lba = ino->ino.lba;
     return vfs_read(ino->vol->dev, buffer, length, lba * 2048 + offset);
 }
 
-int ISO9660_not_allowed()
+int ISOFS_not_allowed()
 {
     errno = EROFS;
     return -1;
 }
 
-int ISO9660_setup()
+int ISOFS_setup()
 {
-    vfs_register("iso9660", &ISO9660_fs_ops);
+    register_filesystem("isofs", &ISOFS_fs_ops);
     errno = 0;
     return 0;
 }
 
-int ISO9660_teardown()
+int ISOFS_teardown()
 {
-    vfs_unregister("iso9660");
+    unregister_filesystem("isofs");
     errno = 0;
     return 0;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-vfs_fs_ops_t ISO9660_fs_ops = {
-    .mount = (fs_mount)ISO9660_mount,
-    .unmount = (fs_unmount)ISO9660_unmount,
+vfs_fs_ops_t ISOFS_fs_ops = {
+    .mount = (fs_mount)ISOFS_mount,
+    .unmount = (fs_unmount)ISOFS_unmount,
 };
 
-vfs_dir_ops_t ISO9660_dir_ops = {
+vfs_dir_ops_t ISOFS_dir_ops = {
 
-    .lookup = (fs_lookup)ISO9660_lookup,
+    .lookup = (fs_lookup)ISOFS_lookup,
 
 
-    // .link = ISO9660_link,
-    // .unlink = ISO9660_unlink,
-    // .rmdir = ISO9660_rmdir,
+    // .link = ISOFS_link,
+    // .unlink = ISOFS_unlink,
+    // .rmdir = ISOFS_rmdir,
 };
 
-vfs_io_ops_t ISO9660_io_ops = {
-    .read = (fs_read)ISO9660_read,
-    // .write = ISO9660_write,
-    // .truncate = ISO9660_truncate,
+vfs_io_ops_t ISOFS_io_ops = {
+    .read = (fs_read)ISOFS_read,
+    // .write = ISOFS_write,
+    // .truncate = ISOFS_truncate,
 };

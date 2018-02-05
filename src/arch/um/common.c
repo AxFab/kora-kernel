@@ -143,7 +143,7 @@ void kunmap(void *address, size_t length)
     mspace_protect(kMMU.kspace, (size_t)address, length, VMA_DEAD);
 }
 
-void kpanic(const char *msg)
+void kpanic(const char *msg, ...)
 {
     kprintf(0, "\033[31m;Kernel panic: %s \033[0m;\n", msg);
     abort();

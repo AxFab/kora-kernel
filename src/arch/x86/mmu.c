@@ -30,9 +30,10 @@
 
 
 extern uint32_t *grub_table;
+void x86_enable_MMU();
 
 /* - */
-void mmu_detect_ram()
+void mmu_enable()
 {
     // List available memory
     uint32_t *ram_table = (uint32_t *)grub_table[12];
@@ -52,6 +53,26 @@ void mmu_detect_ram()
 
     // Use 1.5 Mb to 2 Mb as initial heap arena
     setup_allocator((void *)(1536 * _Kib_), 512 * _Kib_);
+
+
+    int i;
+    // Prepare Kernel pages
+    page_t *dir = (page_t *)KRN_PG_DIR;
+    page_t *tbl = (page_t *)KRN_PG_TBL;
+    memset(dir, 0, PAGE_SIZE);
+    memset(tbl, 0, PAGE_SIZE);
+    dir[1022] = KRN_PG_DIR | MMU_K_RW;
+    dir[1023] = KRN_PG_DIR | MMU_K_RW;
+    dir[0] = KRN_PG_TBL | MMU_K_RW;
+    for (i = 0; i < 512; ++i) {
+        tbl[i] = (i * PAGE_SIZE) | MMU_K_RW;
+    }
+
+    kMMU.kspace->lower_bound = MMU_KSPACE_LOWER;
+    kMMU.kspace->upper_bound = MMU_KSPACE_UPPER;
+
+    // Active change
+    x86_enable_MMU();
 }
 
 /* - */
@@ -64,11 +85,11 @@ int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
     int flags = 0;
 
     page_t *table = NULL;
-    if (vaddress >= kMMU.kheap_lower_bound && vaddress < kMMU.kheap_upper_bound) {
+    if (vaddress >= MMU_KSPACE_LOWER && vaddress < MMU_KSPACE_UPPER) {
         table = MMU_K_DIR;
         flags = access & VMA_WRITE ? MMU_K_RW : MMU_K_RO;
-    } else if (vaddress >= kMMU.uspace_lower_bound &&
-               vaddress < kMMU.uspace_upper_bound) {
+    } else if (vaddress >= MMU_USPACE_LOWER &&
+               vaddress < MMU_USPACE_UPPER) {
         table = MMU_U_DIR;
         flags = access & VMA_WRITE ? MMU_U_RW : MMU_U_RO;
     } else {
@@ -97,17 +118,6 @@ int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
     return 0;
 }
 
-// page_t mmu_read(size_t vaddress)
-// {
-//   vaddress = ALIGN_DW(vaddress, PAGE_SIZE);
-//   page_t *dir = (page_t*)(0xFFFFF000 | ((vaddress >> 20) & ~3));
-//   page_t *tbl = (page_t*)(0xFFC00000 | ((vaddress >> 10) & ~3));
-
-//   if (*dir == 0 || *tbl == 0) {
-//     return 0;
-//   }
-//   return *tbl & (~(PAGE_SIZE - 1));
-// }
 
 /* - */
 page_t mmu_read(size_t vaddress, bool drop, bool clean)
@@ -128,7 +138,7 @@ page_t mmu_read(size_t vaddress, bool drop, bool clean)
 }
 
 /* - */
-page_t mmu_directory()
+static page_t mmu_directory()
 {
     int i;
     page_t dir_page = page_new();
@@ -146,9 +156,28 @@ page_t mmu_directory()
     return dir_page;
 }
 
-void mmu_release_dir(page_t dir)
+
+void mmu_create_uspace(mspace_t *mspace)
 {
-    page_release(dir);
+    mspace->lower_bound = MMU_USPACE_LOWER;
+    mspace->upper_bound = MMU_USPACE_UPPER;
+    mspace->directory = mmu_directory();
+}
+
+void mmu_destroy_uspace(mspace_t *mspace)
+{
+    const size_t T = 4 * _Mib_;
+    unsigned i;
+    /* Free all pages used as table */
+    page_t *dir = kmap(PAGE_SIZE, NULL, mspace->directory, VMA_PHYS);
+    for (i = mspace->lower_bound / T; i < mspace->upper_bound / T; ++i) {
+        page_t tbl = dir[i] & ~(PAGE_SIZE - 1);
+        if (tbl != 0)
+            page_release(tbl);
+    }
+    kunmap(dir, PAGE_SIZE);
+    /* Free the directory page */
+    page_release(mspace->directory);
 }
 
 

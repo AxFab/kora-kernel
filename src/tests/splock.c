@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <check.h>
 
+
 START_TEST(test_splock_001)
 {
     splock_t lock;
@@ -37,9 +38,9 @@ START_TEST(test_splock_002)
 {
     splock_t lock;
     splock_init(&lock);
-    ck_assert(splock_trylock(&lock) == 0);
+    ck_assert(splock_trylock(&lock) == true);
     ck_assert(splock_locked(&lock));
-    ck_assert(splock_trylock(&lock) == BUSY);
+    ck_assert(splock_trylock(&lock) == false);
     splock_unlock(&lock);
     ck_assert(!splock_locked(&lock));
     cpu_relax();

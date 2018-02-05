@@ -45,7 +45,8 @@ void __perror_fail(int err, const char *file, int line, const char *msg)
  */
 _Noreturn void __assert_fail(const char *expr, const char *file, int line)
 {
-    kpanic("Assertion failed (%s) at %s:%d -- %s\n", expr, file, line);
+    kprintf(0, "Assertion failed (%s) at %s:%d -- %s\n", expr, file, line);
+    kpanic("Assertion\n");
 }
 
 int *__errno_location()
@@ -55,10 +56,20 @@ int *__errno_location()
     return &kCPU.errno;
 }
 
-int *__ctype_b_loc()
+int isspace(char a)
 {
-    return NULL;
+    return a > 0 && a <= 0x20;
 }
+
+int isdigit(char a)
+{
+    return a >= '0' && a <= '9';
+}
+
+// int *__ctype_b_loc()
+// {
+//     return NULL;
+// }
 
 void *heap_map(size_t length)
 {

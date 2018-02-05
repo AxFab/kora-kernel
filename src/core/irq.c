@@ -89,9 +89,7 @@ void sys_irq(int no)
         return;
     }
     for ll_each(&irqv[no].list, record, irq_record_t, node) {
-        if (record->func(record->data) == 0) {
-            return;
-        }
+        record->func(record->data);
     }
 }
 
