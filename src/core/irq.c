@@ -54,7 +54,7 @@ void irq_disable()
 
 void irq_register(int no, irq_handler_t func, void *data)
 {
-    if (no < 0 || no >= 16) {
+    if (no <= 0 || no >= 16) {
         return;
     }
     irq_record_t *record = (irq_record_t *)kalloc(sizeof(irq_record_t));
@@ -65,7 +65,7 @@ void irq_register(int no, irq_handler_t func, void *data)
 
 void irq_unregister(int no, irq_handler_t func, void *data)
 {
-    if (no < 0 || no >= 16) {
+    if (no <= 0 || no >= 16) {
         return;
     }
     irq_record_t *record;
@@ -82,7 +82,7 @@ void irq_unregister(int no, irq_handler_t func, void *data)
 
 void sys_irq(int no)
 {
-    assert(no >= 0 && no < 16);
+    assert(no > 0 && no < 16);
     irq_record_t *record;
     if (irqv[no].list.count_ == 0) {
         kprintf(-1, "[IRQ ] Received IRQ%d, no handlers.\n", no);
@@ -91,5 +91,36 @@ void sys_irq(int no)
     for ll_each(&irqv[no].list, record, irq_record_t, node) {
         record->func(record->data);
     }
+}
+
+#define HZ 100
+#define TICKS_PER_SEC 10000 /* 100 µs */
+int timer_cpu = 0;
+splock_t xtime_lock;
+uint64_t jiffies = 0;
+uint64_t ticks = 0;
+uint64_t ticks_last = 0;
+uint64_t ticks_elapsed = 0;
+
+void ticks_init()
+{
+    splock_init(&xtime_lock);
+    cpu_elapsed(&task_last);
+}
+
+void sys_ticks()
+{
+    if (timer_cpu == cpu_no()) {
+        splock_lock(&xtime_lock);
+        ticks += TICKS_PER_SEC / HZ;
+        ticks_elapsed += cpu_elapsed(&task_last);
+        jiffies++;
+        // Update Wall time
+        // Compute global load
+        splock_unlock(&xtime_lock);
+    }
+
+    seat_ticks();
+    scheduler_ticks();
 }
 

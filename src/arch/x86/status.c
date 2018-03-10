@@ -182,6 +182,7 @@ void page_fault_x86(size_t address, int code, regs_t *regs)
     }
     kprintf(0, "[CPU ] #PF %08x (%o)\n", address, code);
     int ret = page_fault(mem, address, reason);
+    kprintf(0, "[CPU ] #PFend %08x\n", address);
     if (ret < 0) {
         if (kCPU.running) {
             task_kill(kCPU.running, SIGSEGV);
@@ -208,6 +209,14 @@ void sys_irq_x86(int no, regs_t *regs)
     // task_signals();
     task_leave_sys();
 }
+
+void sys_ticks_x86(regs_t *regs)
+{
+    task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
+    sys_ticks();
+    task_leave_sys();
+}
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

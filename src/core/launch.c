@@ -92,8 +92,6 @@ void kernel_start()
     vfs_close(root);
     vfs_close(ino);
 
-    irq_register(0, (irq_handler_t)seat_ticks, 0);
-    irq_register(0, (irq_handler_t)scheduler_ticks, 0);
 }
 
 

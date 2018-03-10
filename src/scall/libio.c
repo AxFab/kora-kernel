@@ -5,38 +5,45 @@
 #include <errno.h>
 
 
-int sys_open(const char *name, int flags, int mode)
+int sys_open(int fd, const char *name, int flags, int mode)
 {
-    return -1;
+    task_t *task = kCPU.running;
+    inode_t *dir = task->pwd;
+    if (fd >= 0)
+        dir = file_get(task->flist, fd);
+    inode_t *ino = vfs_search(task->root, dir, name);
+    if (ino == NULL)
+        return -1;
+    errno = 0;
+    return file_set(task->flist, ino);
 }
+
 int sys_close(int fd)
 {
     return -1;
 }
+
 int sys_read(int fd, const struct iovec *vec, unsigned vlen)
 {
     return -1;
 }
+
 int sys_write(int fd, const struct iovec *vec, unsigned vlen)
 {
     return -1;
 }
+
 int sys_seek(int fd, off_t offset, int whence)
 {
     return -1;
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 int sys_pipe(int *fd, size_t size)
 {
     return -1;
 }
-
-
-
-
-
-
-
 
 int sys_window(struct image *img, int features, int events)
 {
