@@ -34,7 +34,7 @@ scall_t scalls[] = {
     // NANOSLEEP
     // ITIMER
 
-    { (scall_handler)sys_open, "open", { SC_STRING, SC_HEX, SC_OCTAL, SC_NOARG, SC_NOARG } },
+    { (scall_handler)sys_open, "open", { SC_FD, SC_STRING, SC_HEX, SC_OCTAL, SC_NOARG } },
     { (scall_handler)sys_close, "close", { SC_FD, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG } },
     { (scall_handler)sys_read, "read", { SC_FD, SC_STRUCT, SC_UNSIGNED, SC_NOARG, SC_NOARG } },
     { (scall_handler)sys_write, "write", { SC_FD, SC_STRUCT, SC_UNSIGNED, SC_NOARG, SC_NOARG } },
@@ -115,6 +115,6 @@ long kernel_scall(long no, long a1, long a2, long a3, long a4, long a5)
     lg += sprintf(&buf[lg], ") = %d [%d]\n", ret, errno);
     kprintf(0, buf);
     kfree(buf);
-    return 0;
+    return ret;
 }
 

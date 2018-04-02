@@ -173,6 +173,7 @@ static int mspace_protect_vma(mspace_t *mspace, vma_t* vma, int flags)
 static int mspace_interval(mspace_t *mspace, size_t address, size_t length, int(*action)(mspace_t *, vma_t*, int), int arg)
 {
     vma_t *vma;
+    assert(address >= mspace->lower_bound && address + length <= mspace->upper_bound);
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
     if (address < mspace->lower_bound || address >= mspace->upper_bound ||

@@ -46,6 +46,9 @@ void __perror_fail(int err, const char *file, int line, const char *msg)
 _Noreturn void __assert_fail(const char *expr, const char *file, int line)
 {
     kprintf(0, "Assertion failed (%s) at %s:%d -- %s\n", expr, file, line);
+    task_t *task = kCPU.running;
+    if (task)
+        task_core(task);
     kpanic("Assertion\n");
 }
 

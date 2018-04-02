@@ -8,25 +8,45 @@
 
 int sys_open(int fd, const char *name, int flags, int mode)
 {
-    // task_t *task = kCPU.running;
-    // inode_t *dir = task->pwd;
-    // if (fd >= 0)
-    //     dir = file_get(task->flist, fd);
-    // inode_t *ino = vfs_search(task->root, dir, name);
-    // if (ino == NULL)
-    //     return -1;
-    // errno = 0;
-    // return file_set(task->flist, ino);
+    task_t *task = kCPU.running;
+    inode_t *dir = task->pwd;
+    if (fd >= 0)
+        dir = resx_get(task->resx, fd);
+    inode_t *ino = vfs_search(task->root, dir, name);
+    if (ino == NULL)
+        return -1;
+    errno = 0;
+    return resx_set(task->resx, ino);
 }
 
 int sys_close(int fd)
 {
-    return -1;
+    task_t *task = kCPU.running;
+    return resx_close(task->resx, fd);
 }
 
 int sys_read(int fd, const struct iovec *vec, unsigned vlen)
 {
-    return -1;
+    task_t *task = kCPU.running;
+    inode_t *ino = resx_get(task->resx, fd);
+    if (ino == NULL)
+        return -1;
+    int bytes = 0, ret;
+    for (int i=0; i<vlen; ++i) {
+        switch (ino->mode & S_IFMT) {
+        case S_IFREG:
+        case S_IFBLK:
+            ret = blk_read(ino, vec[i].buffer, vec[i].length, 0);
+            if (ret < 0)
+                return -1;
+            bytes += ret;
+            break;
+        default:
+            errno = ENOSYS;
+            return -1;
+        }
+    }
+    return bytes;
 }
 
 int sys_write(int fd, const struct iovec *vec, unsigned vlen)

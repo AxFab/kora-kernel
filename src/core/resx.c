@@ -8,7 +8,7 @@ struct stream
 {
     inode_t *ino;
     bbnode_t node; // TODO -- Is BBTree the best data structure !?
-    rwlock_t lock;
+    rwlock_t lock; // TODO -- Usage
 };
 
 struct resx
@@ -16,6 +16,11 @@ struct resx
     bbtree_t tree; // TODO -- Is BBTree the best data structure !?
     rwlock_t lock;
 };
+
+resx_t *resx_create();
+inode_t *resx_get(resx_t *resx, int fd);
+int resx_set(resx_t *resx, inode_t *ino);
+int resx_close(resx_t *resx, int fd);
 
 
 resx_t *resx_create()
@@ -27,12 +32,17 @@ resx_t *resx_create()
 }
 
 
-stream_t *resx_get(resx_t *resx, int fd)
+inode_t *resx_get(resx_t *resx, int fd)
 {
     rwlock_rdlock(&resx->lock);
     stream_t *stm = bbtree_search_eq(&resx->tree, (size_t)fd, stream_t, node);
     rwlock_rdunlock(&resx->lock);
-    return stm;
+    if (stm == NULL) {
+        errno = EBADF;
+        return NULL;
+    }
+    errno = 0;
+    return stm->ino;
 }
 
 int resx_set(resx_t *resx, inode_t *ino)
@@ -52,6 +62,7 @@ int resx_set(resx_t *resx, inode_t *ino)
             return -1;
         }
     }
+    bbtree_insert(&resx->tree, &stm->node);
     rwlock_wrunlock(&resx->lock);
     return stm->node.value_;
 }

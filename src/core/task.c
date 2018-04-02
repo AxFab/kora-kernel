@@ -1,10 +1,20 @@
 #include <kernel/core.h>
 #include <kernel/task.h>
+#include <kernel/memory.h>
 #include <kernel/sys/inode.h>
 #include <kora/atomic.h>
 #include <bits/signum.h>
 #include <errno.h>
 #include <assert.h>
+
+
+void task_core(task_t *task)
+{
+    kprintf(0, "Task Core %d =========================\n", task->pid);
+    mspace_display(0, task->usmem);
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /**
  * Indicate that current task is enter into Kernel code.
@@ -167,6 +177,7 @@ void task_signals()
         } else if (sig->type == SIG_DFL) {
             if (sn == SIGHUP || sn == SIGINT || sn == SIGQUIT || sn == SIGSEGV) {
                 kprintf(0, "[TSK ] Task %d recived killed %d\n", task->pid, sn);
+                task_core(task);
                 task_stop(task, -2);
                 scheduler_next();
                 break;
@@ -225,7 +236,7 @@ task_t *task_create(user_t *user, inode_t *root, int flags)
     task->user = user;
     task->root = vfs_open(root);
     task->pwd = vfs_open(root);
-
+    task->resx = resx_create();
     task->pid = task_new_pid();
 
     if (flags & TSK_USER_SPACE) {
