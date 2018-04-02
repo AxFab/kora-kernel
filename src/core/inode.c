@@ -16,6 +16,8 @@ inode_t *vfs_inode(int no, int mode, size_t size)
     switch (mode & S_IFMT) {
     case S_IFREG:
         inode->mode |= 0644;
+        inode->pcache = NULL; // Page cache
+        break;
     case S_IFBLK:
         inode->mode |= 0640;
         inode->pcache = NULL; // Page cache

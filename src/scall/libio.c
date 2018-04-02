@@ -2,20 +2,21 @@
 #include <kernel/scall.h>
 #include <kernel/sys/inode.h>
 #include <kernel/sys/device.h>
+#include <kernel/task.h>
 #include <errno.h>
 
 
 int sys_open(int fd, const char *name, int flags, int mode)
 {
-    task_t *task = kCPU.running;
-    inode_t *dir = task->pwd;
-    if (fd >= 0)
-        dir = file_get(task->flist, fd);
-    inode_t *ino = vfs_search(task->root, dir, name);
-    if (ino == NULL)
-        return -1;
-    errno = 0;
-    return file_set(task->flist, ino);
+    // task_t *task = kCPU.running;
+    // inode_t *dir = task->pwd;
+    // if (fd >= 0)
+    //     dir = file_get(task->flist, fd);
+    // inode_t *ino = vfs_search(task->root, dir, name);
+    // if (ino == NULL)
+    //     return -1;
+    // errno = 0;
+    // return file_set(task->flist, ino);
 }
 
 int sys_close(int fd)
@@ -60,3 +61,8 @@ int sys_window(struct image *img, int features, int events)
     return 0;
 }
 
+int sys_syslog(const char *msg)
+{
+    kprintf(0, "%s\n", msg);
+    return 1;
+}

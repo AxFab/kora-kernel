@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <stddef.h>
-#include <stdlib.h>
+#include <kora/stddef.h>
+// #include <stdlib.h>
 
 /* Scans s1 for the first token not contained in s2. */
 char *strtok_r (register char *s, const char *delim, char **lasts )

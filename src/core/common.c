@@ -23,7 +23,7 @@
 #include <kora/mcrs.h>
 #include <kora/iofile.h>
 #include <kora/splock.h>
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 

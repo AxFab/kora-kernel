@@ -23,7 +23,6 @@
 #define _KORA_SPLOCK_H 1
 
 #include <kora/atomic.h>
-#include <stdbool.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

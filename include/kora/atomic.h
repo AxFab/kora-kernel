@@ -22,9 +22,7 @@
 #ifndef _KORA_ATOMIC_H
 #define _KORA_ATOMIC_H 1
 
-#include <kora/stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include <bits/types.h>
 
 __stinline void cpu_relax()
 {

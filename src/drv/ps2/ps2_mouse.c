@@ -6,7 +6,7 @@ int mouse_x = 0;
 int mouse_y = 0;
 uint8_t mouse_btn = 0;
 
-inline void PS2_mouse_wait_data()
+__stinline void PS2_mouse_wait_data()
 {
     int timeout = 100000;
     while (timeout--) {
@@ -16,7 +16,7 @@ inline void PS2_mouse_wait_data()
     }
 }
 
-inline void PS2_mouse_wait_signal()
+__stinline void PS2_mouse_wait_signal()
 {
     int timeout = 100000;
     while (timeout--) {
@@ -26,7 +26,7 @@ inline void PS2_mouse_wait_signal()
     }
 }
 
-inline void PS2_mouse_write(uint8_t a)
+__stinline void PS2_mouse_write(uint8_t a)
 {
     //Wait to be able to send a command
     PS2_mouse_wait_signal();
@@ -38,12 +38,14 @@ inline void PS2_mouse_write(uint8_t a)
     outb(0x60, a);
 }
 
-inline uint8_t PS2_mouse_read()
+__stinline uint8_t PS2_mouse_read()
 {
     //Get's response from mouse
     PS2_mouse_wait_data();
     return inb(0x60);
 }
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 //Mouse functions
 void PS2_mouse_handler()

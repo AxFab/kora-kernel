@@ -5,7 +5,7 @@
 #include <kora/llist.h>
 #include <errno.h>
 #include <string.h>
-#include <stdlib.h>
+// #include <stdlib.h>
 
 
 llhead_t dev_list = INIT_LLHEAD;

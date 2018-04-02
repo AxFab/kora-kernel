@@ -16,31 +16,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
- *
- *      String Hash-map implementation.
  */
-#ifndef _KORA_HMAP_H
-#define _KORA_HMAP_H 1
+#ifndef _ERRNO_H
+#define _ERRNO_H 1
 
-#include <bits/types.h>
+#include <bits/errno.h>
 
-typedef struct HMP_map HMP_map;
-typedef struct HMP_entry HMP_entry;
+int *__errno_location();
+#define errno  (*__errno_location())
 
-struct HMP_map {
-    HMP_entry **hashes_;
-    uint32_t mask_;
-    uint32_t seed_;
-    uint32_t count_;
-};
-
-int murmur3_32(const void *key, int bytes, uint32_t seed);
-
-void hmp_init(HMP_map *map, int lg);
-void hmp_destroy(HMP_map *map, int all);
-
-void hmp_put(HMP_map *map, const char *key, int lg, void *value);
-void *hmp_get(HMP_map *map, const char *key, int lg);
-void hmp_remove(HMP_map *map, const char *key, int lg);
-
-#endif  /* _KORA_HMAP_H */
+#endif /* _ERRNO_H */

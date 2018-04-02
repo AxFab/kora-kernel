@@ -1,5 +1,8 @@
 #!/bin/bash
 
+export PATH="$HOME/opt/bin":$PATH
+export CROSS=i686-elf-
+
 require () {
     apt-get install -y binutils nasm xorriso
 }
@@ -8,30 +11,42 @@ dbg () {
     kvm # Use serial, gdb localhost:1234, no screen
 }
 
+make_util () {
+    if [ -f $SRC_UTL/src/$1.c ]; then
+        ${CROSS}gcc -c -o $SRC_UTL/obj/$1.o $SRC_UTL/src/$1.c -nostdlib
+        ${CROSS}ld  $SRC_UTL/obj/crt0.o $SRC_UTL/obj/$1.o -o $SRC_UTL/bin/$1
+        cp $SRC_UTL/bin/$1 iso/bin/$1
+    fi
+}
+
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 x86 () {
-    export SRC=.
+    export SRC_KRN=.
+    export SRC_UTL=../utilities
     export iso_name=KoraOs.iso
     # export target=x86-pc-smkos
     # export VERBOSE=1
     export NODEPS=1
 
-
     # make -f ../skc/Makefile
     # make -f ../skc/Makefile crt0
     # make -f ../Makefile
-    make -f $SRC/Makefile kImg
+    make -f $SRC_KRN/Makefile kImg
 
     rm -rf iso
 
     # Import kernel and shell commands
     mkdir -p iso/{bin,boot,lib}
-    cp $SRC/bin/kImg iso/boot/kImg
+    cp $SRC_KRN/bin/kImg iso/boot/kImg
     # cp iso/kImg.map iso/boot/kImg.map
     # cp ../lib/* iso/lib/*
-    cp ../system/hello iso/bin/init
-    cp ../system/t2 iso/bin/t2
-    cp ../system/t3 iso/bin/t3
+
+    if [ -f $SRC_UTL/arch/x86/crt0.asm ]; then
+        mkdir -p $SRC_UTL/{obj,bin,lib}
+        nasm -f elf32 -o $SRC_UTL/obj/crt0.o $SRC_UTL/arch/x86/crt0.asm
+        make_util init
+    fi
+    size iso/bin/*
 
     # Import apps
     mkdir -p iso/usr/{bin,include,lib,man}

@@ -24,7 +24,7 @@
 #include <kernel/task.h>
 #include <string.h>
 #include <assert.h>
-#include <signal.h>
+#include <bits/signum.h>
 #include <errno.h>
 
 // #define kTSK  (*kCPU.task)

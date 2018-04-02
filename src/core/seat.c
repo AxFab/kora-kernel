@@ -516,14 +516,14 @@ void surface_draw(surface_t *scr, int width, int height, uint32_t *color, uint8_
 
 llhead_t win_list = INIT_LLHEAD;
 
-long ticks = 0;
+static long s_ticks = 0;
 
 surface_t *__fbs[MAX_SCREEN] = { NULL };
 
 
 void seat_ticks()
 {
-    if (((ticks++) % 20) != 0) { // TODO -- Or no update required
+    if (((s_ticks++) % 20) != 0) { // TODO -- Or no update required
         return;
     }
 

@@ -17,7 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <ctype.h>
+// #include <ctype.h>
 #include <string.h>
 #include <stdarg.h>
 #include <kora/iofile.h>

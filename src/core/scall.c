@@ -1,7 +1,7 @@
 #include <kernel/core.h>
 #include <kernel/scall.h>
 #include <kernel/task.h>
-#include <stdio.h>
+// #include <stdio.h>
 #include <errno.h>
 
 scall_t scalls[] = {
@@ -10,7 +10,7 @@ scall_t scalls[] = {
     { (scall_handler)sys_exec, "exec", { SC_STRING, SC_STRING, SC_NOARG, SC_NOARG, SC_NOARG } },
     { (scall_handler)sys_kill, "kill", { SC_UNSIGNED, SC_SIGNED, SC_NOARG, SC_NOARG, SC_NOARG } },
     { (scall_handler)sys_wait, "wait", { SC_UNSIGNED, SC_UNSIGNED, SC_NOARG, SC_NOARG, SC_NOARG } },
-    { (scall_handler)sys_write, "write_dbg", { SC_FD, SC_STRING, SC_SIGNED, SC_NOARG, SC_NOARG } },
+    { (scall_handler)sys_syslog, "syslog", { SC_STRING, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG } },
     { (scall_handler)sys_sigaction, "sigaction", { SC_SIGNED, SC_POINTER, SC_NOARG, SC_NOARG, SC_NOARG } },
 
     { (scall_handler)sys_mmap, "mmap", { SC_HEX, SC_HEX, SC_FD, SC_OFFSET, SC_OCTAL } },

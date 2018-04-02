@@ -2,7 +2,7 @@
 #include <kernel/task.h>
 #include <kernel/sys/inode.h>
 #include <kora/atomic.h>
-#include <signal.h>
+#include <bits/signum.h>
 #include <errno.h>
 #include <assert.h>
 

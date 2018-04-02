@@ -26,6 +26,7 @@ extern uint8_t splash_pixels[];
 extern uint32_t splash_colors[];
 
 // void ARP_who_is(const unsigned char *ip);
+void sys_ticks();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -34,7 +35,7 @@ struct kCpu kCPU0;
 
 void kernel_start()
 {
-    kprintf(-1, "Kora OS - x86 - v1.0-4b825dc+"/* _VTAG_*/"\nBuild the " __DATE__
+    kprintf(-1, "Kora OS - x86 - v1.0-" _VTAG_ "\nBuild the " __DATE__
             ".\n");
     kprintf (-1, "\n\e[94m  Greetings...\e[0m\n\n");
 
@@ -78,9 +79,9 @@ void kernel_start()
     vfs_mount(root, "dev", NULL, "devfs");
     vfs_mount(root, "tmp", NULL, "tmpfs");
 
-    inode_t *ino = vfs_search(root, root, "BIN/INIT");
+    inode_t *ino = vfs_search(root, root, "bin/init");
     if (ino == NULL) {
-        kprintf(-1, "Expected file 'INIT'.\n");
+        kprintf(-1, "Expected file 'bin/init'.\n");
         return;
     }
 
@@ -91,7 +92,7 @@ void kernel_start()
 
     vfs_close(root);
     vfs_close(ino);
-
+    irq_register(0, (irq_handler_t)sys_ticks, NULL);
 }
 
 

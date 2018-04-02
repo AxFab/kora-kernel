@@ -1,6 +1,6 @@
 #include <kernel/core.h>
 #include <string.h>
-#include <stdlib.h>
+// #include <stdlib.h>
 
 short *TXT_screen = (short *)0x000B8000;
 int TXT_width = 80;
@@ -149,6 +149,7 @@ int TXT_ansi_escape(const char *msg)
         } else if (varv[0] == 3) {
             memset(TXT_screen, 0, TXT_width * TXT_height * 2);
         }
+        break;
     default:
         return 0;
     }

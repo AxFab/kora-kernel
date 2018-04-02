@@ -19,7 +19,7 @@
  */
 #include <stddef.h>
 #include <string.h>
-#include <ctype.h>
+// #include <ctype.h>
 #include <errno.h>
 
 #undef isspace

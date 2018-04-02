@@ -1,5 +1,5 @@
-#include <stdint.h>
-#include <stddef.h>
+#include <bits/types.h>
+#include <kora/stddef.h>
 
 
 // ---------------------------------------------------------------------------

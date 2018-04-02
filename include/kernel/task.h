@@ -12,7 +12,7 @@ typedef struct user user_t;
 typedef struct sig_handler sig_handler_t;
 
 typedef struct stream stream_t;
-typedef struct filelist filelist_t;
+typedef struct resx resx_t;
 
 
 struct user {
@@ -80,7 +80,7 @@ struct task {
     user_t *user;
 
     /* Open files */
-    filelist_t *flist;
+    resx_t *resx;
 
     /* File system information */
     inode_t *root;  /* Inode used as a root for this task */

@@ -23,7 +23,11 @@
 # Source files
 !include/**/*.h
 !src/**/*.c
+!src/**/*.h
 !hooks/**/*.sh
+!src/arch/**/*.ld
+!src/arch/**/*.asm
+!src/arch/**/*.s
 
 # Exceptions
 !hooks/license.h

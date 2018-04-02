@@ -74,7 +74,9 @@ int sys_wait(int flags, uint32_t timeout);
 int sys_sigaction(int signum, void *handler);
 int sys_sigreturn();
 
-int sys_open(const char *name, int flags, int mode);
+int sys_syslog(const char* msg);
+
+int sys_open(int fd, const char *name, int flags, int mode);
 int sys_close(int fd);
 int sys_read(int fd, const struct iovec *vec, unsigned vlen);
 int sys_write(int fd, const struct iovec *vec, unsigned vlen);

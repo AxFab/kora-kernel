@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <string.h>
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <errno.h>
 #include <kora/allocator.h>
 #include <kora/mcrs.h>
@@ -38,7 +38,7 @@ static heap_arena_t *new_arena(size_t length)
     void *map = heap_map(length);
     if (map == NULL) {
         __FAIL(ENOMEM, ""); /* TODO */
-        abort();
+        return NULL;
     }
     setup_arena(arena, (size_t)map, length, __arena_chunk_size_limit,
                 __arena_option);
@@ -110,11 +110,17 @@ void *_PRT(malloc)(size_t size)
 
     if (ptr == NULL) {
         arena = new_arena(__arena_size);
+        if (arena == NULL) {
+            __FAIL(ENOMEM, "");
+            return NULL;
+        }
         ptr = malloc_r(arena, size);
     }
 
     if (__empty_arena == 0) {
-        new_arena(__arena_size);
+        arena = new_arena(__arena_size);
+        if (arena == NULL)
+            __FAIL(ENOMEM, "");
         __empty_arena++;
     }
 

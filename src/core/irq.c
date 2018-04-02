@@ -54,7 +54,7 @@ void irq_disable()
 
 void irq_register(int no, irq_handler_t func, void *data)
 {
-    if (no <= 0 || no >= 16) {
+    if (no < 0 || no >= 16) {
         return;
     }
     irq_record_t *record = (irq_record_t *)kalloc(sizeof(irq_record_t));
@@ -65,7 +65,7 @@ void irq_register(int no, irq_handler_t func, void *data)
 
 void irq_unregister(int no, irq_handler_t func, void *data)
 {
-    if (no <= 0 || no >= 16) {
+    if (no < 0 || no >= 16) {
         return;
     }
     irq_record_t *record;
@@ -82,7 +82,7 @@ void irq_unregister(int no, irq_handler_t func, void *data)
 
 void sys_irq(int no)
 {
-    assert(no > 0 && no < 16);
+    assert(no >= 0 && no < 16);
     irq_record_t *record;
     if (irqv[no].list.count_ == 0) {
         kprintf(-1, "[IRQ ] Received IRQ%d, no handlers.\n", no);
@@ -105,7 +105,7 @@ uint64_t ticks_elapsed = 0;
 void ticks_init()
 {
     splock_init(&xtime_lock);
-    cpu_elapsed(&task_last);
+    cpu_elapsed(&ticks_last);
 }
 
 void sys_ticks()
@@ -113,7 +113,7 @@ void sys_ticks()
     if (timer_cpu == cpu_no()) {
         splock_lock(&xtime_lock);
         ticks += TICKS_PER_SEC / HZ;
-        ticks_elapsed += cpu_elapsed(&task_last);
+        ticks_elapsed += cpu_elapsed(&ticks_last);
         jiffies++;
         // Update Wall time
         // Compute global load

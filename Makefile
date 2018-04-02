@@ -52,9 +52,9 @@ libdir := $(gendir)/lib
 CROSS_COMPILE ?= $(CROSS)
 AS := $(CROSS_COMPILE)as
 AR := $(CROSS_COMPILE)ar
-CC := $(CROSS_COMPILE)gcc -m32
+CC := $(CROSS_COMPILE)gcc 
 CXX := $(CROSS_COMPILE)g++
-LD := $(CROSS_COMPILE)ld -melf_i386
+LD := $(CROSS_COMPILE)ld 
 NM := $(CROSS_COMPILE)nm
 
 LINUX := $(shell uname -sr)

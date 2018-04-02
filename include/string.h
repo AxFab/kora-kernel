@@ -1,5 +1,5 @@
 /*
- *      This file is part of the KoraOS project.
+ *      This file is part of the SmokeOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -16,31 +16,26 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
- *
- *      String Hash-map implementation.
  */
-#ifndef _KORA_HMAP_H
-#define _KORA_HMAP_H 1
+#ifndef _STRING_H
+#define _STRING_H 1
 
-#include <bits/types.h>
+#include <stddef.h>
 
-typedef struct HMP_map HMP_map;
-typedef struct HMP_entry HMP_entry;
 
-struct HMP_map {
-    HMP_entry **hashes_;
-    uint32_t mask_;
-    uint32_t seed_;
-    uint32_t count_;
-};
+#define _TVOID void
+#define _TCHAR char
+#define _SFM(n)  mem ## n
+#define _SFX(n)  str ## n
+#include <kora/string.h>
+#undef _TVOID
+#undef _TCHAR
+#undef _SFM
+#undef _SFX
 
-int murmur3_32(const void *key, int bytes, uint32_t seed);
 
-void hmp_init(HMP_map *map, int lg);
-void hmp_destroy(HMP_map *map, int all);
+/* Gives an error message string. */
+char *strerror(int errnum);
 
-void hmp_put(HMP_map *map, const char *key, int lg, void *value);
-void *hmp_get(HMP_map *map, const char *key, int lg);
-void hmp_remove(HMP_map *map, const char *key, int lg);
 
-#endif  /* _KORA_HMAP_H */
+#endif  /* _STRING_H */
