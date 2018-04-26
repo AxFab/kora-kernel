@@ -53,12 +53,15 @@ int dev_random_read(inode_t *ino, void *data, size_t size, off_t offset)
 
 static void dev_mkchr(int no, const char *name, void *read, void *write)
 {
+    static char vendor[20];
     inode_t *ino = vfs_inode(no, S_IFCHR, 0);
     ino->io_ops = (vfs_io_ops_t *)kalloc(sizeof(vfs_io_ops_t));
     ino->io_ops->read = read;
     ino->io_ops->write = write;
     // ino->io_ops.flags = NO_BUF;
-    vfs_mkdev(name, ino, "KoraOS", "Special device", name, NULL);
+    strcpy(vendor, "/dev/");
+    strcat(vendor, name);
+    vfs_mkdev(name, ino, vendor, "Special device", name, NULL);
     vfs_close(ino);
 }
 

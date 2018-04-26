@@ -23,9 +23,9 @@
 #define _KERNEL_ASM_VMA_H 1
 
 #include <kernel/types.h>
-#include <kora/atomic.h>
 #include <kora/bbtree.h>
 #include <kora/splock.h>
+#include <stdatomic.h>
 
 #define VMA_EXEC 0x001  /* Give execute right to this VMA */
 #define VMA_WRITE 0x002  /* Give write access to this VMA */
@@ -70,18 +70,24 @@
 #define VMA_WO  (VMA_WRITE | VMA_CAN_WRITE)
 #define VMA_WR  (VMA_WRITE | VMA_CAN_READ | VMA_CAN_WRITE)
 #define VMA_RW  (VMA_READ | VMA_CAN_READ | VMA_WRITE | VMA_CAN_WRITE)
-#define VMA_RE  (VMA_READ | VMA_CAN_READ | VMA_EXEC | VMA_CAN_EXEC)
+#define VMA_RX  (VMA_READ | VMA_CAN_READ | VMA_EXEC | VMA_CAN_EXEC)
 
 // Flag preset
-#define VMA_FG_CODE  (VMA_RE | VMA_FILE)
+#define VMA_FG_CODE  (VMA_RX | VMA_FILE)
 #define VMA_FG_DATA  (VMA_RD | VMA_COPY_ON_WRITE | VMA_FILE)
 #define VMA_FG_STACK  (VMA_RW | VMA_STACK)
 #define VMA_FG_HEAP  (VMA_RW | VMA_HEAP)
 #define VMA_FG_ANON  (VMA_RW | VMA_ANON)
 #define VMA_FG_PHYS  (VMA_RW | VMA_PHYS)
+#define VMA_FG_FIFO  (VMA_RW | VMA_ANON)
 
 #define VMA_FG_RW_FILE  (VMA_RW | VMA_FILE)
 #define VMA_FG_RO_FILE  (VMA_RO | VMA_FILE)
+
+#define VMA_FILE_RO  (VMA_RO | VMA_FILE)
+#define VMA_FILE_RW  (VMA_RW | VMA_FILE)
+
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -95,7 +101,7 @@
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 struct mspace {
-    atomic_t users;  /* Usage counter */
+    atomic_uint users;  /* Usage counter */
     bbtree_t tree;  /* Binary tree of VMAs sorted by addresses */
     page_t directory;  /* Page global directory */
     size_t lower_bound;  /* Lower bound of the address space */

@@ -1,3 +1,22 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #ifndef _KERNEL_TASK_H
 #define _KERNEL_TASK_H 1
 
@@ -135,6 +154,13 @@ void cpu_setup_signal(task_t *task, size_t entry, long args);
 void cpu_return_signal(task_t *task, regs_t *regs);
 
 bool cpu_task_return_uspace(task_t *task);
+
+
+resx_t *resx_create();
+resx_t *resx_rcu(resx_t *resx, int usage);
+inode_t *resx_get(resx_t *resx, int fd);
+int resx_set(resx_t *resx, inode_t *ino);
+int resx_close(resx_t *resx, int fd);
 
 
 #endif  /* _KERNEL_TASK_H */

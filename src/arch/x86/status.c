@@ -180,7 +180,7 @@ void page_fault_x86(size_t address, int code, regs_t *regs)
     } else {
         reason = PGFLT_ERROR;
     }
-    kprintf(0, "[CPU ] #PF %08x (%o)\n", address, code);
+    // kprintf(0, "[CPU ] #PF %08x (%o)\n", address, code);
     int ret = page_fault(mem, address, reason);
     kprintf(0, "[CPU ] #PFend %08x\n", address);
     if (ret < 0) {

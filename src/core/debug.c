@@ -43,6 +43,42 @@ void bufdump(const void *buf, int len)
     }
 }
 
+
+
+/* Store in a temporary buffer a size in bytes in a human-friendly format. */
+char *sztoa(size_t number)
+{
+    static char sz_format[20];
+    static const char *prefix[] = { "bs", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb" };
+    int k = 0;
+    int rest = 0;
+
+    while (number > 1024) {
+        k++;
+        rest = number & (1024 - 1);
+        number /= 1024;
+    };
+
+    if (k == 0) {
+        snprintf (sz_format, 20, "%d bytes", (int)number);
+
+    } else if (number < 10) {
+        float value = (rest / 1024.0f) * 100;
+        snprintf (sz_format, 20, "%1d.%02d %s", (int)number, (int)value, prefix[k]);
+
+    } else if (number < 100) {
+        float value = (rest / 1024.0f) * 10;
+        snprintf (sz_format, 20, "%2d.%01d %s", (int)number, (int)value, prefix[k]);
+
+    } else {
+        // float value = (rest / 1024.0f) + number;
+        //snprintf (sz_format, 20, "%.3f %s", (float)value, prefix[k]);
+        snprintf (sz_format, 20, "%4d %s", (int)number, prefix[k]);
+    }
+
+    return sz_format;
+}
+
 static uint32_t CRC32_T[] = { /* CRC polynomial 0xedb88320 */
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
     0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,

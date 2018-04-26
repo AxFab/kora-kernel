@@ -17,17 +17,12 @@
 #  This makefile is more or less generic.
 #  The configuration is on `sources.mk`.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-build ?= x86-pc-linux-gnu
-build_arch := $(word 1,$(subst -, ,$(build)))
-build_vendor := $(word 2,$(subst -, ,$(build)))
-build_os := $(patsubst $(build_arch)-$(build_vendor)-%,%,$(build))
-
 host ?= x86-pc-linux-gnu
 host_arch := $(word 1,$(subst -, ,$(host)))
 host_vendor := $(word 2,$(subst -, ,$(host)))
 host_os := $(patsubst $(host_arch)-$(host_vendor)-%,%,$(host))
 
-target ?= x86-pc-linux-gnu
+target ?= $(host)
 target_arch := $(word 1,$(subst -, ,$(target)))
 target_vendor := $(word 2,$(subst -, ,$(target)))
 target_os := $(patsubst $(target_arch)-$(target_vendor)-%,%,$(target))
@@ -52,9 +47,9 @@ libdir := $(gendir)/lib
 CROSS_COMPILE ?= $(CROSS)
 AS := $(CROSS_COMPILE)as
 AR := $(CROSS_COMPILE)ar
-CC := $(CROSS_COMPILE)gcc 
+CC := $(CROSS_COMPILE)gcc
 CXX := $(CROSS_COMPILE)g++
-LD := $(CROSS_COMPILE)ld 
+LD := $(CROSS_COMPILE)ld
 NM := $(CROSS_COMPILE)nm
 
 LINUX := $(shell uname -sr)
@@ -142,6 +137,7 @@ $(outdir)/$(1)/%.d: $(srcdir)/%.c
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    CM  "$$@
 	$(V) $(CC) -M $($(1)_CFLAGS) -o $$@ $$<
+	@ sed "s%.*\.o%$$(@:.d=.o)%" -i $$@
 endef
 
 define crt

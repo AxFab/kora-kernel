@@ -20,7 +20,7 @@
 #include <kernel/core.h>
 #include <kernel/scall.h>
 #include <kernel/task.h>
-#include <kernel/sys/inode.h>
+#include <kernel/vfs.h>
 #include <errno.h>
 
 int sys_scall(const char *sc_vec)
@@ -38,7 +38,7 @@ void sys_exit(int code)
 int sys_exec(const char *exec, const char *cmdline)
 {
     task_t *parent = kCPU.running;
-    inode_t *ino = vfs_search(parent->root, parent->pwd, exec);
+    inode_t *ino = vfs_search(parent->root, parent->pwd, exec, NULL);
     if (ino == NULL) {
         return -1;
     }
@@ -52,9 +52,14 @@ int sys_exec(const char *exec, const char *cmdline)
     return 0;
 }
 
+int sys_fork(int flags)
+{
+    return -1;
+}
+
 int sys_kill(pid_t pid, int code)
 {
-    task_t *task = task_search(pid);
+    task_t *task = pid == 0 ? kCPU.running : task_search(pid);
     if (task == NULL) {
         return ENOENT;
         return -1;

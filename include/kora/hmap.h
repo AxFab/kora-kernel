@@ -22,7 +22,7 @@
 #ifndef _KORA_HMAP_H
 #define _KORA_HMAP_H 1
 
-#include <bits/types.h>
+#include <stdint.h>
 
 typedef struct HMP_map HMP_map;
 typedef struct HMP_entry HMP_entry;

@@ -1,6 +1,5 @@
-#include <bits/types.h>
-#include <kora/stddef.h>
-
+#include <stdint.h>
+#include <stddef.h>
 
 // ---------------------------------------------------------------------------
 uint64_t __udivmoddi4(uint64_t num, uint64_t den, uint64_t *rem_p)

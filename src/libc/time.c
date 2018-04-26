@@ -1,5 +1,5 @@
 /*
- *      This file is part of the KoraOs project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -38,9 +38,9 @@ int snprintf(char *, size_t, const char *, ...);
 #define INT_MIN ((int)-INT_MAX - 1)
 
 
-static const char *const weekDayStrings[] = {
-    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-};
+// static const char *const weekDayStrings[] = {
+//     "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+// };
 
 
 static const char *const shWeekDayStrings[] = {

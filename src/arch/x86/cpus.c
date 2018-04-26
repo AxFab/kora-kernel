@@ -141,12 +141,12 @@ static void x86_rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-atomic_t x86_delayTimer;
+atomic_uint x86_delayTimer;
 
 void x86_delayIRQ()
 {
     // Timer is in microseconds
-    atomic_xadd(&x86_delayTimer, 1000000 / CLOCK_HZ);
+    atomic_fetch_add(&x86_delayTimer, 1000000 / CLOCK_HZ);
 }
 
 void x86_delayX(unsigned int microsecond)
@@ -277,8 +277,10 @@ void cpu_awake()
     // Wait timer interrupt - We should have init all CPUs
     irq_disable();
     // kSYS.cpuCount_ = cpu_count + 1;
-    kprintf(0, "BSP found a count of %d CPUs\n", cpu_count + 1);
-    kprintf(0, "BSP is CPU [%d]\n", cpu_no());
+    if (cpu_count == 0)
+        kprintf(0, "CPU%d: %s, single CPU\n", cpu_no(), cpu.vendor);
+    else
+        kprintf(0, "BSP is CPU%d: %s, found a count of %d CPUs\n", cpu_no(), cpu.vendor, cpu_count + 1);
 }
 
 

@@ -22,7 +22,7 @@
 #ifndef _KORA_RWLOCK_H
 #define _KORA_RWLOCK_H 1
 
-#include <kora/atomic.h>
+#include <stdatomic.h>
 #include <kora/splock.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -47,18 +47,18 @@ typedef struct rwlock rwlock_t;
 
 struct rwlock {
     splock_t lock;
-    atomic_t readers;
+    atomic_uint readers;
 };
 
 /* Initialize or reset a read/write lock structure */
-__stinline void rwlock_init(rwlock_t *lock)
+static inline void rwlock_init(rwlock_t *lock)
 {
     splock_init(&lock->lock);
     lock->readers = 0;
 }
 
 /* Block until the lock allow reading */
-__stinline void rwlock_rdlock(rwlock_t *lock)
+static inline void rwlock_rdlock(rwlock_t *lock)
 {
     for (;;) {
         atomic_inc(&lock->readers);
@@ -74,7 +74,7 @@ __stinline void rwlock_rdlock(rwlock_t *lock)
 }
 
 /* Block until the lock can be hold for write operation */
-__stinline void rwlock_wrlock(rwlock_t *lock)
+static inline void rwlock_wrlock(rwlock_t *lock)
 {
     splock_lock(&lock->lock);
     while (lock->readers) {
@@ -83,19 +83,19 @@ __stinline void rwlock_wrlock(rwlock_t *lock)
 }
 
 /* Release a lock previously taken for reading */
-__stinline void rwlock_rdunlock(rwlock_t *lock)
+static inline void rwlock_rdunlock(rwlock_t *lock)
 {
     atomic_dec(&lock->readers);
 }
 
 /* Release a lock previously taken for writing */
-__stinline void rwlock_wrunlock(rwlock_t *lock)
+static inline void rwlock_wrunlock(rwlock_t *lock)
 {
     splock_unlock(&lock->lock);
 }
 
 /* Try to grab a lock for reading but without blocking. */
-__stinline bool rwlock_rdtrylock(rwlock_t *lock)
+static inline bool rwlock_rdtrylock(rwlock_t *lock)
 {
     atomic_inc(&lock->readers);
     if (!lock->lock) {
@@ -107,7 +107,7 @@ __stinline bool rwlock_rdtrylock(rwlock_t *lock)
 }
 
 /* Try to grab a lock for writing but without blocking. */
-__stinline bool rwlock_wrtrylock(rwlock_t *lock)
+static inline bool rwlock_wrtrylock(rwlock_t *lock)
 {
     if (lock->readers) {
         return false;
@@ -122,7 +122,7 @@ __stinline bool rwlock_wrtrylock(rwlock_t *lock)
 }
 
 /* Transform a previously hold reading lock into a writing one. Might block. */
-__stinline bool rwlock_upgrade(rwlock_t *lock)
+static inline bool rwlock_upgrade(rwlock_t *lock)
 {
     if (!splock_trylock(&lock->lock)) {
         return false;
@@ -137,7 +137,7 @@ __stinline bool rwlock_upgrade(rwlock_t *lock)
 }
 
 /* Return a boolean that check the lock is hold by someone for writing. */
-__stinline bool rwlock_wrlocked(rwlock_t *lock)
+static inline bool rwlock_wrlocked(rwlock_t *lock)
 {
     return splock_locked(&lock->lock);
 }

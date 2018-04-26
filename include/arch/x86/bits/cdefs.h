@@ -20,12 +20,12 @@
 #ifndef _BITS_CDEFS_H
 #define _BITS_CDEFS_H 1
 
-#undef __stinline
-
-#define __stinline static inline
 #define _Noreturn __attribute__((noreturn))
 #define PACK(decl) decl __attribute__((__packed__))
 #define unlikely(c) c
 #define likely(c) c
+
+#define __ARCH "x86"
+#define __ILP32
 
 #endif /* _BITS_CDEFS_H */

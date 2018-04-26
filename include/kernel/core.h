@@ -20,10 +20,15 @@
 #ifndef _KERNEL_CORE_H
 #define _KERNEL_CORE_H 1
 
+#include <stdarg.h>
 #include <kora/stddef.h>
 #include <kernel/asm/mmu.h>
 #include <kernel/types.h>
 #include <kernel/asm/vma.h>
+#include <time.h>
+
+#define FPTR "%016p"
+typedef const char* CSTR;
 
 void outb(int port, uint8_t val);
 void outw(int port, uint16_t val);
@@ -49,5 +54,15 @@ void kclock(struct timespec *ts);
 
 void kernel_start();
 void kernel_ready();
+void kernel_sweep();
+
+int rand(void);
+unsigned long strtoul(const char *nptr, char **endptr, int base);
+int sprintf(char *str, const char *format, ...);
+int snprintf(char *, int, const char *, ...);
+int vprintf(const char *format, va_list ap);
+
+void *malloc(size_t size);
+void free(void *ptr);
 
 #endif  /* _KERNEL_CORE_H */

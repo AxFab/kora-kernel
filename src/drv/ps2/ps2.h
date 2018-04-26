@@ -3,8 +3,7 @@
 
 #include <kernel/core.h>
 #include <kernel/input.h>
-#include <kernel/sys/inode.h>
-#include <kernel/sys/device.h>
+#include <kernel/mods/fs.h>
 #include <kernel/cpu.h>
 
 extern inode_t *mouse_ino;

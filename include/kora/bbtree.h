@@ -49,7 +49,7 @@ struct bbnode {
 #define INIT_BBNODE(n)  {NULL,NULL,NULL,n,0}
 
 
-__stinline void bbtree_init(bbtree_t *tree)
+static inline void bbtree_init(bbtree_t *tree)
 {
     tree->root_ = __NIL;
     tree->count_ = 0;

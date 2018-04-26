@@ -32,10 +32,10 @@ typedef struct mountpt mountpt_t;
 struct device {
 
     char id[16];
-    const char *vendor;
-    const char *class;
-    const char *device;
-    const char *name;
+    char *vendor;
+    char *class;
+    char *device;
+    char *name;
     inode_t *ino;
     llnode_t node;
 
@@ -43,8 +43,8 @@ struct device {
 };
 
 struct mountpt {
-    const char *name;
-    const char *fs;
+    char *name;
+    char *fs;
     inode_t *ino;
     llnode_t node;
     splock_t lock;
@@ -60,6 +60,8 @@ inode_t *vfs_mountpt(int no, const char *name, const char *fs, size_t size);
 inode_t *vfs_lookup_device(const char *name);
 // inode_t *vfs_lookup_mountpt(const char *name);
 
+void vfs_rmdev(const char *name);
+void vfs_umount(inode_t *ino);
 
 void register_filesystem(const char *name, vfs_fs_ops_t *ops);
 void unregister_filesystem(const char *name);

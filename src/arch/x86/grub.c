@@ -60,8 +60,8 @@ int grub_start(uint32_t *table)
         // We are in pixel mode
         // seat_init_framebuffer(0, grub_table[25], grub_table[26],
         //                       (void *)grub_table[22], grub_table[27] & 0xFF);
-        seat_fb0(grub_table[25], grub_table[26], grub_table[27] & 0xFF,
-                 grub_table[24], (void *)grub_table[22]);
+        // seat_fb0(grub_table[25], grub_table[26], grub_table[27] & 0xFF,
+        //          grub_table[24], (void *)grub_table[22]);
 
         /*
         If ‘framebuffer_type’ is set to ‘1’ it means direct RGB color will be used. Then color_type is defined as follows:

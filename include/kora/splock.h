@@ -22,7 +22,14 @@
 #ifndef _KORA_SPLOCK_H
 #define _KORA_SPLOCK_H 1
 
-#include <kora/atomic.h>
+#include <stdatomic.h>
+#include <stdbool.h>
+extern bool irq_enable();
+extern void irq_disable();
+
+#define cpu_relax() asm("pause")
+#define cpu_barrier() asm("")
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -31,21 +38,21 @@
 typedef union splock splock_t;
 
 union splock {
-    atomic32_t val;
+    atomic_char32_t val;
     struct {
-        atomic16_t ticket;
-        atomic16_t users;
+        atomic_char16_t ticket;
+        atomic_char16_t users;
     };
 };
 
 /* Initialize and reset a spin-lock structure */
-__stinline void splock_init(splock_t *lock)
+static inline void splock_init(splock_t *lock)
 {
     lock->val = 0;
 }
 
 /* Block the cpu until the lock might be taken */
-__stinline void splock_lock(splock_t *lock)
+static inline void splock_lock(splock_t *lock)
 {
     irq_disable();
     unsigned short ticket = atomic16_xadd(&lock->users, 1);
@@ -55,7 +62,7 @@ __stinline void splock_lock(splock_t *lock)
 }
 
 /* Release a lock */
-__stinline void splock_unlock(splock_t *lock)
+static inline void splock_unlock(splock_t *lock)
 {
     cpu_barrier();
     atomic16_inc(lock->ticket);
@@ -63,7 +70,7 @@ __stinline void splock_unlock(splock_t *lock)
 }
 
 /* Try to grab the lock but without blocking. */
-__stinline bool splock_trylock(splock_t *lock)
+static inline bool splock_trylock(splock_t *lock)
 {
     irq_disable();
     unsigned short ticket = lock->users;
@@ -77,7 +84,7 @@ __stinline bool splock_trylock(splock_t *lock)
 }
 
 /* Return a boolean that check the lock is hold by someone. */
-__stinline bool splock_locked(splock_t *lock)
+static inline bool splock_locked(splock_t *lock)
 {
     splock_t cpy = *lock;
     cpu_barrier();
@@ -88,20 +95,20 @@ __stinline bool splock_locked(splock_t *lock)
 
 #else  /* NAIVE IMPLEMENTATION */
 
-typedef atomic_t splock_t;
+typedef atomic_uint splock_t;
 
 /* Initialize and reset a spin-lock structure */
-__stinline void splock_init(splock_t *lock)
+static inline void splock_init(splock_t *lock)
 {
     *lock = 0;
 }
 
 /* Block the cpu until the lock might be taken */
-__stinline void splock_lock(splock_t *lock)
+static inline void splock_lock(splock_t *lock)
 {
     irq_disable();
     for (;;) {
-        if (atomic_xchg(lock, 1) == 0) {
+        if (atomic_exchange(lock, 1) == 0) {
             return;
         }
         while (*lock != 0) {
@@ -111,7 +118,7 @@ __stinline void splock_lock(splock_t *lock)
 }
 
 /* Release a lock */
-__stinline void splock_unlock(splock_t *lock)
+static inline void splock_unlock(splock_t *lock)
 {
     cpu_barrier();
     *lock = 0;
@@ -119,10 +126,10 @@ __stinline void splock_unlock(splock_t *lock)
 }
 
 /* Try to grab the lock but without blocking. */
-__stinline bool splock_trylock(splock_t *lock)
+static inline bool splock_trylock(splock_t *lock)
 {
     irq_disable();
-    if (atomic_xchg(lock, 1) == 0) {
+    if (atomic_exchange(lock, 1) == 0) {
         return true;
     }
     irq_enable();
@@ -130,7 +137,7 @@ __stinline bool splock_trylock(splock_t *lock)
 }
 
 /* Return a boolean that check the lock is hold by someone. */
-__stinline bool splock_locked(splock_t *lock)
+static inline bool splock_locked(splock_t *lock)
 {
     cpu_barrier();
     return *lock != 0;

@@ -17,41 +17,6 @@ struct irq_record {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-bool irq_active = false;
-unsigned irq_sem = 0;
-
-void irq_reset(bool enable)
-{
-    irq_active = true;
-    irq_sem = 1;
-    asm("cli");
-    if (enable) {
-        irq_enable();
-    }
-}
-
-bool irq_enable()
-{
-    if (irq_active) {
-        assert(irq_sem > 0);
-        if (--irq_sem == 0) {
-            asm("sti");
-            return true;
-        }
-    }
-    return false;
-}
-
-void irq_disable()
-{
-    if (irq_active) {
-        asm("cli");
-        ++irq_sem;
-    }
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
 void irq_register(int no, irq_handler_t func, void *data)
 {
     if (no < 0 || no >= 16) {
@@ -120,7 +85,7 @@ void sys_ticks()
         splock_unlock(&xtime_lock);
     }
 
-    seat_ticks();
+    // seat_ticks();
     scheduler_ticks();
 }
 

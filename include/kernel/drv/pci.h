@@ -41,7 +41,7 @@ struct PCI_device *PCI_search(uint16_t vendor_id, uint32_t class_id,
                               uint16_t device_id);
 
 
-__stinline void PCI_wr32(struct PCI_device *pci, char no, uint16_t address,
+static inline void PCI_wr32(struct PCI_device *pci, char no, uint16_t address,
                          uint32_t value)
 {
     if (pci->bar[0].base & 1) {
@@ -53,7 +53,7 @@ __stinline void PCI_wr32(struct PCI_device *pci, char no, uint16_t address,
     }
 }
 
-__stinline uint32_t PCI_rd32(struct PCI_device *pci, char no,
+static inline uint32_t PCI_rd32(struct PCI_device *pci, char no,
                              uint16_t address)
 {
     if (pci->bar[0].base & 1) {
@@ -65,7 +65,7 @@ __stinline uint32_t PCI_rd32(struct PCI_device *pci, char no,
     }
 }
 
-__stinline void PCI_wr16(struct PCI_device *pci, char no, uint16_t address,
+static inline void PCI_wr16(struct PCI_device *pci, char no, uint16_t address,
                          uint16_t value)
 {
     if (pci->bar[0].base & 1) {
@@ -77,7 +77,7 @@ __stinline void PCI_wr16(struct PCI_device *pci, char no, uint16_t address,
     }
 }
 
-__stinline uint16_t PCI_rd16(struct PCI_device *pci, char no,
+static inline uint16_t PCI_rd16(struct PCI_device *pci, char no,
                              uint16_t address)
 {
     if (pci->bar[0].base & 1) {

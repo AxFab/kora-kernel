@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -27,13 +27,15 @@
 #define _TCHAR char
 #define _SFM(n)  mem ## n
 #define _SFX(n)  str ## n
-#include <kora/string.h>
+#include <cbuild/string.h>
 #undef _TVOID
 #undef _TCHAR
 #undef _SFM
 #undef _SFX
 
 
+/* Gives an error message string. */
+char *strerror_r(int errnum, char *buf, int len);
 /* Gives an error message string. */
 char *strerror(int errnum);
 

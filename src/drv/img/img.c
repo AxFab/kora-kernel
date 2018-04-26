@@ -19,17 +19,25 @@
  *
  *      Driver for ATA API.
  */
-#include <kernel/core.h>
-#include <kernel/vfs.h>
-#include <kernel/cpu.h>
-#include <kernel/sys/inode.h>
+#include <kernel/mods/fs.h>
 #include <kora/mcrs.h>
 #include <kora/splock.h>
 #include <string.h>
-#include <stdio.h>
 #include <errno.h>
-#include <unistd.h>
-#include <fcntl.h>
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#define SEEK_SET 0 /* Seek from beginning of file.  */
+#define SEEK_CUR 1 /* Seek from current position.  */
+#define SEEK_END 2 /* Seek from end of file.  */
+
+#define O_RDWR 2
+
+int open(const char *name, int flags);
+int read(int fd, char *buf, int len);
+int write(int fd, const char *buf, int len);
+int lseek(int fd, off_t off, int whence);
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #ifdef K_MODULE
 #  define ATA_setup setup
@@ -37,33 +45,17 @@
 #endif
 
 struct IMG_Drive {
-    FILE *fp;
+    device_t dev;
     int fd;
-    bool ro;
     splock_t lock;
 };
 
 struct IMG_Drive sdx[4];
 
-
 const char *sdNames[] = { "sdA", "sdB", "sdC", "sdD" };
-
-const char *exts[] = {
-    "img", "iso",
-};
-const int sdSize[] = {
-    512, 2048,
-};
-
-void IMG_mkdev_img(const char *name, size_t size)
-{
-    FILE *fp = fopen(name, "w+");
-    fseek(fp, size - 1, SEEK_SET);
-    fwrite(fp, 1, 1, fp);
-    fclose(fp);
-}
-
-extern vfs_io_ops_t IMG_device_operations;
+const char *exts[] = { "img", "iso", };
+const char *class[] = { "IDE ATA", "IDE ATAPI", };
+const int sdSize[] = { 512, 2048, };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -78,9 +70,8 @@ int IMG_read(inode_t *ino, void *data, size_t size, off_t offset)
     splock_lock(&sdx[ino->lba].lock);
     lseek(fd, offset, SEEK_SET);
     int r = read(fd, data, size);
-    if (errno != 0) {
+    if (errno != 0 || r != (int)size)
         kprintf(-1, "[IMG ] Read err: %s\n", strerror(errno));
-    }
     splock_unlock(&sdx[ino->lba].lock);
     return 0;
 }
@@ -91,7 +82,7 @@ int IMG_write(inode_t *ino, const void *data, size_t size, off_t offset)
     if (fd == 0) {
         errno = ENODEV;
         return -1;
-    } else if (sdx[ino->lba].ro) {
+    } else if (sdx[ino->lba].dev.read_only) {
         errno = EROFS;
         return -1;
     }
@@ -99,54 +90,43 @@ int IMG_write(inode_t *ino, const void *data, size_t size, off_t offset)
     splock_lock(&sdx[ino->lba].lock);
     lseek(fd, offset, SEEK_SET);
     int r = write(fd, data, size);
-    if (errno != 0) {
+    if (errno != 0 || r != (int)size)
         kprintf(-1, "[IMG ] Write err: %s\n", strerror(errno));
-    }
     splock_unlock(&sdx[ino->lba].lock);
     return 0;
 }
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void IMG_setup()
 {
-    // create_empty("sdA.img", 4 * _Mib_);
-    // create_empty("sdC.iso", 2800* _Kib_);
     int i, e;
+    char fname[16];
     for (i = 0; i < 4; ++i) {
-        char fname[16];
         for (e = 0; e < 2; ++e) {
             sprintf(fname, "sd%c.%s", 'A' + i, exts[e]);
             int fd = open(fname, O_RDWR);
             if (fd == -1) {
+                sdx[i].fd = -1;
                 continue;
             }
 
             size_t sz = lseek(fd, 0, SEEK_END);
-            kprintf(0, "[IMG ] %s - %s <%s>\n", sdNames[i], exts[e], sztoa(sz));
-
-            // fclose(fp);
-
             sdx[i].fd = fd;
-            // fp = fopen("sdA.img", "w+");
 
-            inode_t *blk = vfs_inode(i, S_IFBLK, 0);
+            inode_t *blk = vfs_inode(i, S_IFBLK | 0500, NULL, 0);
             blk->length = sz;
             blk->lba = i;
-            blk->block = sdSize[e];
-            blk->io_ops = &IMG_device_operations;
 
-            vfs_mkdev(sdNames[i], blk, NULL, exts[e], NULL, NULL);
+            sdx[i].dev.read_only = e > 0;
+            sdx[i].dev.block = sdSize[e];
+            sdx[i].dev.vendor = "HostSimul";
+            sdx[i].dev.class = class[e];
+            sdx[i].dev.read = IMG_read;
+            sdx[i].dev.write = IMG_write;
+
+            vfs_mkdev(sdNames[i], &sdx[i].dev, blk);
             vfs_close(blk);
-
-            // vfs_automount(blk); -- Try all or follow mount table
-
-            // sdA  -> GPT
-            // sdA1 -> Fat32 (/usr)
-            // sdA2 -> Fat32 (/home)
-            // sdA3 -> Ext4 (/var)
-            // sdC  -> Iso9660
             break;
         }
     }
@@ -156,14 +136,8 @@ void IMG_teardown()
 {
     int i;
     for (i = 0; i < 4; ++i) {
-        // if (sdx[i].type_ == IDE_ATA || sdx[i].type_ == IDE_ATAPI) {
-        // TODO
-        // }
+        if (sdx[i].fd >= 0) {
+            vfs_rmdev(sdNames[i]);
+        }
     }
 }
-
-
-vfs_io_ops_t IMG_device_operations = {
-    .read = IMG_read,
-    .write = IMG_write,
-};

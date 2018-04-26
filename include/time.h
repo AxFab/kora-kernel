@@ -1,5 +1,5 @@
 /*
- *      This file is part of the SmokeOS project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -20,10 +20,19 @@
 #ifndef _TIME_H
 #define _TIME_H 1
 
-#include <bits/types.h>
+#include <stddef.h>
+#include <kernel/types.h>
+
+typedef __time_t time_t;
+typedef __clock_t clock_t;
 
 #define CLOCKS_PER_SEC  1000000L
 
+struct timespec
+{
+  time_t tv_sec;    /* Seconds.  */
+  long int tv_nsec;   /* Nanoseconds.  */
+};
 
 
 /* Used by other time functions.  */

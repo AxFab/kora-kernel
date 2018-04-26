@@ -44,6 +44,10 @@ mspace_t *mspace_create();
 void mspace_sweep(mspace_t *mspace);
 /* Search a VMA structure at a specific address */
 vma_t *mspace_search_vma(mspace_t *kspace, mspace_t *mspace, size_t address);
+/* - */
+mspace_t *mspace_rcu(mspace_t *mspace, int usage);
+/* - */
+mspace_t *mspace_clone(mspace_t *model);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

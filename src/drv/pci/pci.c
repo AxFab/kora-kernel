@@ -299,12 +299,12 @@ void PCI_check_bus(uint8_t bus)
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-atomic_t PCI_detection = 0;
+atomic_uint PCI_detection = 0;
 int PCI_ready = 0;
 
 int PCI_detect()
 {
-    if (atomic_xchg(&PCI_detection, 1) == 1) {
+    if (atomic_exchange(&PCI_detection, 1) == 1) {
         while (PCI_ready == 0) {
             cpu_relax(); // Not efficent but mutex might not be up yet!
         }

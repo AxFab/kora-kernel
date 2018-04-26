@@ -58,7 +58,7 @@ struct llnode {
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Push an element at the front of a linked list */
-__stinline void ll_push_front(llhead_t *list, llnode_t *node)
+static inline void ll_push_front(llhead_t *list, llnode_t *node)
 {
     assert(node->prev_ == NULL);
     assert(node->next_ == NULL);
@@ -76,7 +76,7 @@ __stinline void ll_push_front(llhead_t *list, llnode_t *node)
 }
 
 /* Push an element at the end of a linked list */
-__stinline void ll_push_back(llhead_t *list, llnode_t *node)
+static inline void ll_push_back(llhead_t *list, llnode_t *node)
 {
     assert(node->prev_ == NULL);
     assert(node->next_ == NULL);
@@ -94,7 +94,7 @@ __stinline void ll_push_back(llhead_t *list, llnode_t *node)
 }
 
 /* Retrun and remove an element from the start of a linked list */
-__stinline llnode_t *ll_pop_front(llhead_t *list)
+static inline llnode_t *ll_pop_front(llhead_t *list)
 {
     llnode_t *first = list->first_;
 
@@ -117,7 +117,7 @@ __stinline llnode_t *ll_pop_front(llhead_t *list)
 }
 
 /* Retrun and remove an element from the end of a linked list */
-__stinline llnode_t *ll_pop_back(llhead_t *list)
+static inline llnode_t *ll_pop_back(llhead_t *list)
 {
     llnode_t *last = list->last_;
 
@@ -140,7 +140,7 @@ __stinline llnode_t *ll_pop_back(llhead_t *list)
 }
 
 /* Remove an item from the linked list, whitout checking presence or not */
-__stinline void ll_remove(llhead_t *list, llnode_t *node)
+static inline void ll_remove(llhead_t *list, llnode_t *node)
 {
 #if !defined(NDEBUG)
     struct llnode *w = node;

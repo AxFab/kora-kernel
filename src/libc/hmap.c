@@ -22,6 +22,9 @@
 #include <string.h>
 #include <assert.h>
 
+void *malloc(size_t);
+void free(void*);
+
 #undef POW2
 #define POW2(v)  (((v)&((v)-1))==0)
 

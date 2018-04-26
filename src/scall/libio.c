@@ -1,7 +1,6 @@
 #include <kernel/core.h>
 #include <kernel/scall.h>
-#include <kernel/sys/inode.h>
-#include <kernel/sys/device.h>
+#include <kernel/mods/fs.h>
 #include <kernel/task.h>
 #include <errno.h>
 
@@ -12,7 +11,7 @@ int sys_open(int fd, const char *name, int flags, int mode)
     inode_t *dir = task->pwd;
     if (fd >= 0)
         dir = resx_get(task->resx, fd);
-    inode_t *ino = vfs_search(task->root, dir, name);
+    inode_t *ino = vfs_search(task->root, dir, name, NULL);
     if (ino == NULL)
         return -1;
     errno = 0;
@@ -32,30 +31,57 @@ int sys_read(int fd, const struct iovec *vec, unsigned vlen)
     if (ino == NULL)
         return -1;
     int bytes = 0, ret;
-    for (int i=0; i<vlen; ++i) {
-        switch (ino->mode & S_IFMT) {
-        case S_IFREG:
-        case S_IFBLK:
-            ret = blk_read(ino, vec[i].buffer, vec[i].length, 0);
-            if (ret < 0)
-                return -1;
-            bytes += ret;
-            break;
-        default:
+    // for (unsigned i = 0; i < vlen; ++i) {
+    //     switch (ino->mode & S_IFMT) {
+    //     case S_IFREG:
+    //     case S_IFBLK:
+    //         ret = blk_read(ino, vec[i].buffer, vec[i].length, 0);
+    //         if (ret < 0)
+    //             return -1;
+    //         bytes += ret;
+    //         break;
+    //     case S_IFIFO:
+    //         ret = fifo_out(ino->fifo, vec[i].buffer, vec[i].length, 0);
+    //         break;
+    //     default:
             errno = ENOSYS;
             return -1;
-        }
-    }
+    //     }
+    // }
     return bytes;
 }
 
 int sys_write(int fd, const struct iovec *vec, unsigned vlen)
 {
-    return -1;
+    task_t *task = kCPU.running;
+    inode_t *ino = resx_get(task->resx, fd);
+    if (ino == NULL)
+        return -1;
+    int bytes = 0, ret;
+    // for (unsigned i = 0; i < vlen; ++i) {
+    //     switch (ino->mode & S_IFMT) {
+    //     case S_IFREG:
+    //     case S_IFBLK:
+    //         ret = -1; //blk_write(ino, vec[i].buffer, vec[i].length, 0);
+    //         break;
+    //     case S_IFIFO:
+    //         ret = fifo_in(ino->fifo, vec[i].buffer, vec[i].length, 0);
+    //         break;
+    //     default:
+            errno = ENOSYS;
+            return -1;
+    //     }
+
+    //     if (ret < 0)
+    //         return -1;
+    //     bytes += ret;
+    // }
+    return bytes;
 }
 
 int sys_seek(int fd, off_t offset, int whence)
 {
+    // task_t *task = kCPU.running;
     return -1;
 }
 
@@ -63,7 +89,12 @@ int sys_seek(int fd, off_t offset, int whence)
 
 int sys_pipe(int *fd, size_t size)
 {
-    return -1;
+    task_t *task = kCPU.running;
+    inode_t *ino = vfs_inode(0, S_IFIFO | 0600, NULL, ALIGN_UP(size, PAGE_SIZE));
+    fd[0] = resx_set(task->resx, ino);
+    fd[1] = resx_set(task->resx, ino);
+    errno = 0;
+    return 0;
 }
 
 int sys_window(struct image *img, int features, int events)

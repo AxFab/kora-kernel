@@ -20,11 +20,11 @@
 #ifndef _ASSERT_H
 #define _ASSERT_H 1
 
-#if 1
+#if 0
 #define assert(n) ((void)(n))
 #else
 _Noreturn void __assert_fail(const char *expr, const char *file, int line);
-#define assert(n) do { if (!(n)) __assert_fail(##n,__FILE__,__LINE__); } while(0)
+#define assert(n) do { if (!(n)) __assert_fail(#n,__FILE__,__LINE__); } while(0)
 #endif
 
 #endif /* _ASSERT_H */

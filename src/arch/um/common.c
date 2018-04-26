@@ -63,6 +63,7 @@ void heap_unmap(void *address, size_t length)
     free(address);
 }
 
+
 /* Store in a temporary buffer a size in bytes in a human-friendly format. */
 char *sztoa(size_t number)
 {
