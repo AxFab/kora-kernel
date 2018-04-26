@@ -22,6 +22,7 @@
 
 #include <stdarg.h>
 #include <kora/stddef.h>
+#include <kora/llist.h>
 #include <kernel/asm/mmu.h>
 #include <kernel/types.h>
 #include <kernel/asm/vma.h>
@@ -64,5 +65,39 @@ int vprintf(const char *format, va_list ap);
 
 void *malloc(size_t size);
 void free(void *ptr);
+
+
+typedef struct kmod kmod_t;
+struct kmod {
+    const char *name;
+    int license;
+    void (*setup)();
+    void (*teardown)();
+    llnode_t node;
+};
+
+enum license {
+    MOD_AGPL,
+    MOD_GPL,
+    MOD_LGPL,
+    MOD_ZLIB,
+    MOD_COMMERCIAL,
+    MOD_PRIVATE,
+};
+
+#define MODULE(n,l,s,t) \
+    kmod_t kmod_info_##n = { \
+        .name = #n, \
+        .license = l, \
+        .setup = s, \
+        .teardown = t, \
+    }
+
+#define MOD_REQUIRE(n) \
+    static CSTR _mod_require_##n __attribute__(section("reqr"), used) = #n
+
+#define KMODULE(n) extern kmod_t kmod_info_##n
+#define KSETUP(n) kmod_info_##n.setup();
+#define KTEARDOWN(n) kmod_info_##n.teardown();
 
 #endif  /* _KERNEL_CORE_H */

@@ -19,18 +19,9 @@
  */
 #include <kernel/mods/fs.h>
 
-#define KMODULE(n) int n ## _setup(); int n ## _teardown()
-
-KMODULE(TMPFS);
-KMODULE(DEVFS);
-KMODULE(ATA);
-KMODULE(PCI);
-KMODULE(E1000);
-KMODULE(PS2);
-KMODULE(VBE);
-KMODULE(IMG);
-KMODULE(ISOFS);
-KMODULE(FATFS);
+KMODULE(imgdk);
+KMODULE(isofs);
+KMODULE(fatfs);
 
 void vfs_sweep(mountfs_t *fs, int max);
 
@@ -38,8 +29,8 @@ void test_01()
 {
     kprintf (-1, "\n\e[94m  VFS #1 - Search, unmount and re-search\e[0m\n");
 
-    IMG_setup();
-    ISOFS_setup();
+    KSETUP(imgdk);
+    KSETUP(isofs);
 
     inode_t *root = vfs_mount("sdC", "isofs");
 
@@ -57,8 +48,8 @@ void test_01()
 
     vfs_sweep(fs, 5);
 
-    ISOFS_teardown();
-    IMG_teardown();
+    KTEARDOWN(isofs);
+    KTEARDOWN(imgdk);
 }
 
 
@@ -66,8 +57,8 @@ void test_02()
 {
     kprintf (-1, "\n\e[94m  VFS #2 - Read directory\e[0m\n");
 
-    IMG_setup();
-    ISOFS_setup();
+    KSETUP(imgdk);
+    KSETUP(isofs);
 
     char name[256];
     inode_t *root = vfs_mount("sdC", "isofs");
@@ -89,49 +80,47 @@ void test_02()
     vfs_umount(root);
     // vfs_sweep(fs, 15);
 
-    ISOFS_teardown();
-    IMG_teardown();
+    KTEARDOWN(isofs);
+    KTEARDOWN(imgdk);
 }
 
 void test_03()
 {
     kprintf (-1, "\n\e[94m  VFS #3 - Format, create remove nodes\e[0m\n");
-    IMG_setup();
-    ISOFS_setup();
-    FATFS_setup();
+
+    KSETUP(imgdk);
+    KSETUP(isofs);
+    KSETUP(fatfs);
+
 
     // ~64Mb 131072 sectors
     long parts[] = {
-        256, 2048, 0, 2048, 65536, 0, 65536, -1, 0,
+        256, 4096, 0, 4096, -1, 0
     };
-    vfs_fdisk("sdA", 3, parts);
+    vfs_fdisk("sdA", 2, parts);
 
     vfs_parts("sdA");
 
-    // inode_t *root = vfs_mount("sdA", "isofs");
 
-    // inode_t *ino = vfs_search(root, NULL, "/bin/init", NULL);
-    // vfs_close(ino);
-    // if (root == NULL) {
-    //     kprintf(-1, "Expected mount point named 'ISOIMAGE' over 'sdC' !\n");
-    //     return;
-    // }
-
-    // vfs_mount(root, "dev", NULL, "devfs");
-    // vfs_mount(root, "tmp", NULL, "tmpfs");
-
-    // inode_t *ino = vfs_search(root, root, "bin/init");
-    // if (ino == NULL) {
-    //     kprintf(-1, "Expected file 'bin/init'.\n");
-    //     return;
-    // }
-
-    // vfs_umount(root); // TODO Lazy or not !?
+    inode_t *root = vfs_mount("sdB", "fatfs");
 
 
-    FATFS_teardown();
-    ISOFS_teardown();
-    IMG_teardown();
+    // ....
+
+
+    mountfs_t *fs = root->fs;
+    vfs_close(root);
+
+    vfs_sweep(fs, 15);
+    vfs_umount(root);
+
+    vfs_rmdev("sdA0");
+    vfs_rmdev("sdA1");
+    vfs_rmdev("sdA2");
+
+    KTEARDOWN(fatfs);
+    KTEARDOWN(isofs);
+    KTEARDOWN(imgdk);
 }
 
 int main ()

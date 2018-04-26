@@ -31,11 +31,10 @@ typedef struct device device_t;
 
 typedef inode_t *(*fs_mount)(inode_t *dev);
 typedef int (*fs_umount)(inode_t *ino);
-
+typedef void (*fs_release_dev)(device_t *dev);
 
 typedef inode_t *(*fs_open)(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
 typedef inode_t *(*fs_lookup)(inode_t *dir, CSTR name);
-typedef int (*fs_close)(inode_t *ino);
 
 typedef void *(*fs_opendir)(inode_t *ino);
 typedef inode_t *(*fs_readdir)(inode_t *ino, char *name, void *ctx);
@@ -76,16 +75,14 @@ struct inode {
     atomic_uint links;
     void *object;
     llhead_t dlist; // List of dirent_t;
-    union {
-        mountfs_t *fs;
-        device_t *dev;
-    };
-
+    mountfs_t *fs;
+    device_t *dev;
 };
 
 struct device
 {
     bool read_only;
+    bool is_detached;
     int block;
     splock_t lock;
     char *name;
@@ -93,7 +90,7 @@ struct device
     fs_read read;
     fs_write write;
     fs_ioctl ioctl;
-    fs_close close;
+    fs_release_dev release;
 
     CSTR vendor;
     CSTR class;
@@ -103,16 +100,16 @@ struct device
     llnode_t node;
 };
 
-struct mountfs {
+struct mountfs
+{
     bool read_only;
+    bool is_detached;
     int block;
     splock_t lock;
     char *name;
 
     fs_read read;
     fs_write write;
-    fs_ioctl ioctl;
-    fs_close close;
 
     int atimes; /* Sepcify the behaviour of atimes handling */
     HMP_map hmap;

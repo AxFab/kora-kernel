@@ -19,8 +19,10 @@
  *
  *      File system driver FAT12, FAT16, FAT32 and exFAT.
  */
-#include <smkos/kfs.h>
-
+#include <kernel/mods/fs.h>
+#include <kernel/core.h>
+#include <kora/mcrs.h>
+#include <errno.h>
 
 /* Identificators for volume descriptors */
 #define FAT12 12
@@ -145,6 +147,12 @@ struct FAT_volume {
     int SecPerClus;
 };
 
+typedef struct FAT_inode FAT_inode_t;
+
+struct FAT_inode {
+    inode_t ino;
+    struct FAT_volume *vol;
+};
 
 // /* ----------------------------------------------------------------------- */
 // static char* FAT_build_short_name(struct FAT_ShortEntry *entrySh)
@@ -325,52 +333,52 @@ struct FAT_volume {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t *FAT_lookup(FAT_inode_t *dir, const char *name)
-{
-    int idx;
-    const char *filename = NULL;
+// inode_t *FAT_lookup(FAT_inode_t *dir, const char *name)
+// {
+//     int idx;
+//     const char *filename = NULL;
 
-    for (;;) {
-        uint32_t cluster = CLUSTER_OF(dir->vol, dir->ino.lba);
-        uint32_t offset = SECTOR_OF(dir->vol, cluster) * dir->vol->dev->block;
-        uint8_t *ptr = kmap(dir->vol->clustSz, dir->vol->dev, offset, VMA_FG_RO_FILE);
+//     for (;;) {
+//         uint32_t cluster = CLUSTER_OF(dir->vol, dir->ino.lba);
+//         uint32_t offset = SECTOR_OF(dir->vol, cluster) * dir->vol->dev->block;
+//         uint8_t *ptr = kmap(dir->vol->clustSz, dir->vol->dev, offset, VMA_FG_RO_FILE);
 
-        struct FAT_ShortEntry *entry = (struct FAT_ShortEntry *)ptr;
-        for (idx = 0; idx < 16; ++idx, ++entry) {
+//         struct FAT_ShortEntry *entry = (struct FAT_ShortEntry *)ptr;
+//         for (idx = 0; idx < 16; ++idx, ++entry) {
 
-            if (entry->DIR_Name[0] == 0xE5 || entry->DIR_Name[0] == 0x05 ||
-                    entry->DIR_Attr == ATTR_VOLUME_ID) {
-                continue;
-            } else if (entry->DIR_Name[0] == 0) {
-                kunmap(ptr, dir->vol->clustSz);
-                error = ENOENT;
-                return NULL;
-            } else if ((entry->DIR_Attr & ATTR_LONG_NAME) == ATTR_LONG_NAME) {
-                // Build Long filename
-                continue;
-            }
+//             if (entry->DIR_Name[0] == 0xE5 || entry->DIR_Name[0] == 0x05 ||
+//                     entry->DIR_Attr == ATTR_VOLUME_ID) {
+//                 continue;
+//             } else if (entry->DIR_Name[0] == 0) {
+//                 kunmap(ptr, dir->vol->clustSz);
+//                 error = ENOENT;
+//                 return NULL;
+//             } else if ((entry->DIR_Attr & ATTR_LONG_NAME) == ATTR_LONG_NAME) {
+//                 // Build Long filename
+//                 continue;
+//             }
 
-            if (!filename) {
-                // filename = FAT_filename_short(entry);
-            }
+//             if (!filename) {
+//                 // filename = FAT_filename_short(entry);
+//             }
 
-            if (strcmpi(name, filename) != 0) {
-                kfree(filename);
-                filename = NULL;
-                continue;
-            }
+//             if (strcmpi(name, filename) != 0) {
+//                 kfree(filename);
+//                 filename = NULL;
+//                 continue;
+//             }
 
-            int lba = entry->DIR_FstClusLo | (entry->DIR_FstClusLo << 16);
-            int mode = entry->DIR_Attr & ATTR_DIRECTORY ? S_ISDIR : S_ISREG;
-            FAT_inode_t *ino = vfs_inode(lba, mode, sizeof(FAT_inode_t));
-            ino->length = entry->DIR_FileSize;
-            ino->lba = entry->DIR_FstClusLo | (entry->DIR_FstClusLo << 16);
-            return ino;
-        }
+//             int lba = entry->DIR_FstClusLo | (entry->DIR_FstClusLo << 16);
+//             int mode = entry->DIR_Attr & ATTR_DIRECTORY ? S_ISDIR : S_ISREG;
+//             FAT_inode_t *ino = vfs_inode(lba, mode, sizeof(FAT_inode_t));
+//             ino->length = entry->DIR_FileSize;
+//             ino->lba = entry->DIR_FstClusLo | (entry->DIR_FstClusLo << 16);
+//             return ino;
+//         }
 
-        // TODO -- Go to next cluster! Using FAT table
-    }
-}
+//         // TODO -- Go to next cluster! Using FAT table
+//     }
+// }
 
 
 
@@ -483,74 +491,81 @@ inode_t *FAT_lookup(FAT_inode_t *dir, const char *name)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int FAT_format(inode_t *ino)
+// int FAT_format(inode_t *ino)
+// {
+//     uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, ino, 0, VMA_FG_RW_FILE);
+//     struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
+//     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
+
+//     int FatType;
+//     int clustSz;
+//     int ClustCnt;
+//     if (ino->length < 6 * _Mib_) {
+//         FatType = 12;
+//         clustSz = PW2_UP(ino->length / 4096);
+//     } else if (ino->length < 256 * _Mib_) {
+//         FatType = 16;
+//         clustSz = PW2_UP(ino->length / 65525);
+//     } else {
+//         FatType = 32;
+//         clustSz = PW2_UP(ino->length / 0xFFFFFFFF);
+//     }
+
+//     int FatSz = ClustCnt / (ino->block * 8 / FatType);
+
+//     bpb->BS_jmpBoot[0] == 0xEB;
+//     bpb->BS_jmpBoot[2] == 0x90;
+//     memcpy(bpb->BS_OEMName, "MSWIN4.1", 8);
+//     bpb->BPB_BytsPerSec = ino->block; // Usually 512
+//     bpb->BPB_SecPerClus = clustSz / ino->block;
+//     bpb->BPB_ResvdSecCnt = FATSz == 32 ? 32 : 1;
+//     bpb->BPB_NumFATs = 2;
+//     // unsigned short  BPB_RootEntCnt;
+//     bpb->BPB_TotSec16 = FATSz == 32 ? 0 : ino->length / ino->block;
+//     bpb->BPB_TotSec32 = FATSz == 32 ? ino->length / ino->block : 0;
+//     bpb->BPB_Media = 0xF8;
+//     // bpb->BPB_FATSz16 = ;
+//     // bpb->BPB_SecPerTrk = ; // Geometry dist
+//     // bpb->BPB_NumHeads; // Geometry
+//     // bpb->BPB_HiddSec; // Geometry
+
+//     if (FATSz != 32) {
+//         bpb->BS_DrvNum = 0x80;
+//         bpb->BS_Reserved1 = 0;
+//         bpb->BS_BootSig = 0x29;
+//         // bpb->BS_VolID = time();
+//         memcpy(bpb->BS_VolLab, "NO NAME    ", 11);
+//         memcpy(bpb->BS_FilSysType, FATSz == 12 ? "FAT12   " : "FAT16   ", 8);
+//     } else {
+//         // bpb32->BPB_FATSz32 = ;
+//         // bpb32->BPB_ExtFlags = ;
+//         bpb32->BPB_FSVer = 0;
+//         bpb32->BPB_RootClus = 2;
+//         bpb32->BPB_FSInfo = 1;
+//         bpb32->BPB_BkBootSec = 6;
+//         memset(bpb32->BPB_Reserved, 0, 12);
+
+//         bpb32->BS_DrvNum = 0x80;
+//         bpb32->BS_Reserved1 = 0;
+//         bpb32->BS_BootSig = 0x29;
+//         // bpb32->BS_VolID = time();
+//         memcpy(bpb32->BS_VolLab, "NO NAME    ", 11);
+//         memcpy(bpb32->BS_FilSysType, FATSz == 12 ? "FAT12   " : "FAT16   ", 8);
+//     }
+
+//     // TODO Create FAT
+//     // TODO Create Root Directory ( . / .. )
+//     return -1;
+// }
+
+int fatfs_umount(FAT_inode_t *ino)
 {
-    uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, dev, 0, VMA_FG_RW_FILE);
-    struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
-    struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
-
-    int FatType;
-    int clustSz;
-    int ClustCnt;
-    if (ino->length < 6 * _Mib_) {
-        FatType = 12;
-        clustSz = PW2_UP(ino->length / 4096);
-    } else if (ino->length < 256 * _Mib_) {
-        FatType = 16;
-        clustSz = PW2_UP(ino->length / 65525);
-    } else {
-        FatType = 32;
-        clustSz = PW2_UP(ino->length / 0xFFFFFFFF);
-    }
-
-    int FatSz = ClustCnt / (ino->block * 8 / FatType);
-
-    bpb->BS_jmpBoot[0] == 0xEB;
-    bpb->BS_jmpBoot[2] == 0x90;
-    memcpy(bpb->BS_OEMName, "MSWIN4.1", 8);
-    bpb->BPB_BytsPerSec = ino->block; // Usually 512
-    bpb->BPB_SecPerClus = clustSz / ino->block;
-    bpb->BPB_ResvdSecCnt = FATSz == 32 ? 32 : 1;
-    bpb->BPB_NumFATs = 2;
-    // unsigned short  BPB_RootEntCnt;
-    bpb->BPB_TotSec16 = FATSz == 32 ? 0 : ino->length / ino->block;
-    bpb->BPB_TotSec32 = FATSz == 32 ? ino->length / ino->block : 0;
-    bpb->BPB_Media = 0xF8;
-    // bpb->BPB_FATSz16 = ;
-    // bpb->BPB_SecPerTrk = ; // Geometry dist
-    // bpb->BPB_NumHeads; // Geometry
-    // bpb->BPB_HiddSec; // Geometry
-
-    if (FATSz != 32) {
-        bpb->BS_DrvNum = 0x80;
-        bpb->BS_Reserved1 = 0;
-        bpb->BS_BootSig = 0x29;
-        // bpb->BS_VolID = time();
-        memcpy(bpb->BS_VolLab, "NO NAME    ", 11);
-        memcpy(bpb->BS_FilSysType, FATSz == 12 ? "FAT12   " : "FAT16   ", 8);
-    } else {
-        // bpb32->BPB_FATSz32 = ;
-        // bpb32->BPB_ExtFlags = ;
-        bpb32->BPB_FSVer = 0;
-        bpb32->BPB_RootClus = 2;
-        bpb32->BPB_FSInfo = 1;
-        bpb32->BPB_BkBootSec = 6;
-        memset(bpb32->BPB_Reserved, 0, 12);
-
-        bpb32->BS_DrvNum = 0x80;
-        bpb32->BS_Reserved1 = 0;
-        bpb32->BS_BootSig = 0x29;
-        // bpb32->BS_VolID = time();
-        memcpy(bpb32->BS_VolLab, "NO NAME    ", 11);
-        memcpy(bpb32->BS_FilSysType, FATSz == 12 ? "FAT12   " : "FAT16   ", 8);
-    }
-
-    // TODO Create FAT
-    // TODO Create Root Directory ( . / .. )
-    return -1;
+    // vfs_close(ino->vol->dev);
+    kfree(ino->vol);
+    return 0;
 }
 
-inode_t *FAT_mount(inode_t *dev, const char *devname)
+inode_t *fatfs_mount(inode_t *dev)
 {
     if (dev == NULL) {
         errno = ENODEV;
@@ -605,18 +620,40 @@ inode_t *FAT_mount(inode_t *dev, const char *devname)
     info->usedSpace = 0;
     info->freeSpace = 0;
 
-    const char fs = info->FATType == FAT32 ? "FAT32" : (info->FATType == FAT16 ?
+    const char *fsName = info->FATType == FAT32 ? "FAT32" : (info->FATType == FAT16 ?
                     "FAT16" : "FAT12");
-    FAT_inode_t *ino = vfs_mountpt(info->RootEntry, info->name, fs,
-                                   sizeof(FAT_inode_t));
+    FAT_inode_t *ino = (FAT_inode_t*)vfs_inode(info->RootEntry, S_IFDIR | 0755, NULL, sizeof(FAT_inode_t));
     ino->ino.length = 0;
+    // ino->ino.block = /*mount->SecPerClus */ mount->BytsPerSec;
     ino->ino.lba = info->RootEntry;
-    ino->ino.block = /*mount->SecPerClus */ mount->BytsPerSec;
-    ino->ino.fs_ops = &FAT_fs_ops;
-    ino->ino.dir_ops = &FAT_dir_ops;
-    ino->ino.io_ops = &FAT_io_ops;
     ino->vol = info;
+    // ino->vol->dev = vfs_open(dev);
+
+    mountfs_t *fs = (mountfs_t*)kalloc(sizeof(mountfs_t));
+    // fs->lookup = (fs_lookup)isofs_lookup;
+    // fs->read = (fs_read)isofs_read;
+    fs->umount = (fs_umount)fatfs_umount;
+    // fs->opendir = (fs_opendir)isofs_opendir;
+    // fs->readdir = (fs_readdir)isofs_readdir;
+    // fs->closedir = (fs_closedir)isofs_closedir;
+    // fs->read_only = true;
+
+    vfs_mountpt(info->name, fsName, fs, (inode_t*)ino);
     kunmap(ptr, PAGE_SIZE);
-    return ino;
+    return &ino->ino;
 }
+
+
+
+void fatfs_setup()
+{
+    register_fs("fatfs", (fs_mount)fatfs_mount);
+}
+
+void fatfs_teardown()
+{
+    unregister_fs("fatfs");
+}
+
+MODULE(fatfs, MOD_AGPL, fatfs_setup, fatfs_teardown);
 

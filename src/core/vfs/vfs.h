@@ -40,6 +40,8 @@ struct dirent {
 dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block);
 void vfs_set_dirent_(dirent_t *ent, inode_t *ino);
 void vfs_rm_dirent_(dirent_t *ent);
+void vfs_dev_destroy(inode_t *ino);
+
 
 void vfs_record_(inode_t *dir, inode_t *ino);
 

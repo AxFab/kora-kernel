@@ -142,6 +142,7 @@ ckVfs_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
 ckVfs_src-y += $(wildcard $(srcdir)/libc/*.c)
 ckVfs_src-y += $(wildcard $(srcdir)/drv/img/*.c)
 # ckVfs_src-y += $(wildcard $(srcdir)/fs/devfs/*.c)
+ckVfs_src-y += $(wildcard $(srcdir)/fs/fat/*.c)
 ckVfs_src-y += $(wildcard $(srcdir)/fs/isofs/*.c)
 ckVfs_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckVfs_src-y += $(srcdir)/core/debug.c

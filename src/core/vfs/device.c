@@ -61,111 +61,16 @@ void vfs_rmdev(CSTR name)
     if (dev == NULL)
         return;
     inode_t *ino = dev->ino;
+    dev->is_detached = true;
     vfs_close(ino);
-    // ino->dev = NULL; // !?
+}
+
+void vfs_dev_destroy(inode_t *ino)
+{
+    device_t *dev = ino->dev; // !?
     ll_remove(&dev_list, &dev->node);
     kfree(dev->name);
+    if (ino->dev->release != NULL)
+        ino->dev->release(ino->dev);
 }
 
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-bool fs_init = false;
-HMP_map fs_hmap;
-
-void register_fs(CSTR name, fs_mount mount)
-{
-    if (!fs_init) {
-        hmp_init(&fs_hmap, 16);
-        fs_init = true;
-    }
-    hmp_put(&fs_hmap, name, strlen(name), mount);
-}
-
-void unregister_fs(CSTR name)
-{
-    if (!fs_init)
-        return;
-    hmp_remove(&fs_hmap, name, strlen(name));
-    if (fs_hmap.count_ == 0) {
-        hmp_destroy(&fs_hmap, 0);
-        fs_init = false;
-    }
-}
-
-int vfs_mountpt(CSTR name, CSTR fsname, mountfs_t *fs, inode_t *ino)
-{
-    fs->name = strdup(name);
-    fs->fsname = strdup(fsname);
-    fs->rcu = 2; // ROOT + DRIVER
-    ino->fs = fs;
-    fs->root = vfs_open(ino);
-    hmp_init(&fs->hmap, 16);
-    splock_init(&fs->lock);
-    return 0;
-}
-
-void vfs_mountpt_rcu_(mountfs_t *fs)
-{
-    if (atomic_fetch_add(&fs->rcu, -1) > 1)
-        return;
-    kfree(fs->name);
-    kfree(fs->fsname);
-    hmp_destroy(&fs->hmap, 16);
-    splock_init(&fs->lock);
-    kfree(fs);
-}
-
-inode_t *vfs_mount(CSTR dev, CSTR fs)
-{
-    if (!fs_init) {
-        errno = ENOSYS;
-        return NULL;
-    }
-
-    fs_mount mount = (fs_mount)hmp_get(&fs_hmap, fs, strlen(fs));
-    if (mount == NULL) {
-        errno = ENOSYS;
-        return NULL;
-    }
-
-    device_t *devc = NULL;
-    if (dev) {
-        devc = vfs_lookup_device_(dev);
-        if (devc == NULL) {
-            errno = ENODEV;
-            return NULL;
-        }
-    }
-
-    inode_t *ino = mount(devc ? devc->ino : NULL);
-    if (ino == NULL) {
-        assert(errno != 0);
-        return NULL;
-    }
-
-    kprintf(-1, "Mount %s as %s (%s)\n", dev, ino->fs->name, ino->fs->fsname);
-    errno = 0;
-    return ino;
-}
-
-int vfs_umount(inode_t *ino)
-{
-    mountfs_t *fs = ino->fs;
-    if (fs->root != ino) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    if (fs->umount)
-        fs->umount(ino);
-    vfs_close(fs->root);
-    fs->root = NULL;
-    fs->lookup = NULL;
-    fs->read = NULL;
-    fs->umount = NULL;
-    fs->open = NULL;
-    fs->close = NULL;
-    vfs_mountpt_rcu_(fs);
-    return 0;
-}

@@ -122,9 +122,9 @@ ISO_inode_t *isofs_lookup(ISO_inode_t *dir, const char *name);
 ISO_inode_t *isofs_readdir(ISO_inode_t *dir, char *name, ISO_dirctx_t *ctx);
 
 
-inode_t *ISOFS_mount(inode_t *dev);
-int ISOFS_umount(ISO_inode_t *ino);
-int ISOFS_read(ISO_inode_t *ino, void *buffer, size_t length, off_t offset);
-int ISOFS_not_allowed();
+inode_t *isofs_mount(inode_t *dev);
+int isofs_umount(ISO_inode_t *ino);
+int isofs_read(ISO_inode_t *ino, void *buffer, size_t length, off_t offset);
+int isofs_not_allowed();
 
 #endif  /* _SRC_ISOFS_H */

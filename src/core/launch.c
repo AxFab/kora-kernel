@@ -44,13 +44,6 @@ void sys_ticks();
 struct kSys kSYS;
 struct kCpu kCPU0;
 
-typedef struct kmod kmod_t;
-struct kmod {
-    char *name;
-    int (*setup)();
-    int (*teardown)();
-    llnode_t node;
-};
 
 llhead_t modules = INIT_LLHEAD;
 

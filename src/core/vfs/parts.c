@@ -78,6 +78,11 @@ int vfs_fdisk(CSTR dname, long parts, long *sz)
     return 0;
 }
 
+void vfs_mbr_release(device_t *dev)
+{
+    kfree(dev);
+}
+
 int vfs_parts(CSTR dname)
 {
     int i;
@@ -108,7 +113,9 @@ int vfs_parts(CSTR dname)
             sdev->class = "Logical partition";
             sdev->read = (fs_read)vfs_mbr_read;
             sdev->write = (fs_write)vfs_mbr_write;
+            sdev->release = (fs_release_dev)vfs_mbr_release;
             vfs_mkdev(buf, sdev, &ino->ino);
+            vfs_close((inode_t*)ino);
         }
     }
 

@@ -75,6 +75,7 @@ inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
 {
     inode_t* ino;
     assert(name != NULL && strnlen(name, VFS_MAXNAME) < VFS_MAXNAME);
+    assert(dir->fs != NULL);
     if (dir == NULL || !S_ISDIR(dir->mode)) {
         errno = ENOTDIR;
         return NULL;
@@ -87,7 +88,13 @@ inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
     } else if (dir->fs->read_only) {
         errno = EROFS;
         return NULL;
-    } else if (dir->fs->open == NULL) {
+    }
+
+    /* Can we ask the file-system */
+    fs_open open = dir->fs->open;
+    if (dir->fs->is_detached)
+        open = NULL;
+    if (open == NULL) {
         errno = ENOSYS;
         return NULL;
     }
@@ -124,7 +131,7 @@ inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
     }
 
     /* Request send to the file system */
-    ino = dir->fs->open(dir, name, mode, acl, flags | VFS_CREAT);
+    ino = open(dir, name, mode, acl, flags | VFS_CREAT);
     if (ino == NULL) {
         assert (errno != 0);
         return NULL;
@@ -186,16 +193,26 @@ int vfs_read(inode_t *ino, void *buf, size_t len, off_t off)
     assert(((size_t)buf & (PAGE_SIZE - 1)) == 0);
     assert((len & (PAGE_SIZE - 1)) == 0);
 
-    if (!S_ISREG(ino->mode) && !S_ISBLK(ino->mode)) {
+    fs_read read = NULL;
+    if (S_ISREG(ino->mode)) {
+        read = ino->fs->read;
+        if (ino->fs->is_detached)
+            read = NULL;
+    } else if (S_ISBLK(ino->mode)) {
+        read = ino->dev->read;
+        if (ino->dev->is_detached)
+            read = NULL;
+    } else {
         errno = EINVAL;
-        return -1;
-    } else if (ino->fs->read == NULL) {
-        errno = ENOSYS;
         return -1;
     }
 
+    if (read == NULL) {
+        errno = ENOSYS;
+        return -1;
+    }
     // assert((off & (ino->fs->block - 1)) == 0);
-    return ino->fs->read(ino, buf, len, off);
+    return read(ino, buf, len, off);
 }
 
 /* IO operations - write - only for BLK or REG */
@@ -206,18 +223,32 @@ int vfs_write(inode_t *ino, const void *buf, size_t len, off_t off)
     assert(((size_t)buf & (PAGE_SIZE - 1)) == 0);
     assert((len & (PAGE_SIZE - 1)) == 0);
 
-    if (!S_ISREG(ino->mode) && !S_ISBLK(ino->mode)) {
+    fs_write write = NULL;
+    bool ro = false;
+    if (S_ISREG(ino->mode)) {
+        ro = ino->fs->read_only;
+        write = ino->fs->write;
+        if (ino->fs->is_detached)
+            write = NULL;
+    } else if (S_ISBLK(ino->mode)) {
+        ro = ino->dev->read_only;
+        write = ino->dev->write;
+        if (ino->dev->is_detached)
+            write = NULL;
+    } else {
         errno = EINVAL;
         return -1;
-    } else if (ino->fs->read_only) {
+    }
+
+    if (ro) {
         errno = EROFS;
         return -1;
-    } else if (ino->fs->write == NULL) {
+    } else if (write == NULL) {
         errno = ENOSYS;
         return -1;
     }
 
-    return ino->fs->write(ino, buf, len, off);
+    return write(ino, buf, len, off);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -237,11 +268,12 @@ void vfs_close(inode_t *ino)
 {
     unsigned int cnt = atomic_fetch_add(&ino->rcu, -1);
     if (cnt <= 1) {
-        if (ino->fs->close) {
-            ino->fs->close(ino);
-        }
         // TODO -- Close IO file
-        vfs_mountpt_rcu_(ino->fs);
+        if (ino->dev != NULL) {
+            vfs_dev_destroy(ino);
+        } else if (ino->fs != NULL) {
+            vfs_mountpt_rcu_(ino->fs);
+        }
         kfree(ino);
         return;
     }
