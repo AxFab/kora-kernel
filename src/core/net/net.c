@@ -1,140 +1,130 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include <kernel/net.h>
-#include <kora/mcrs.h>
-#include <string.h>
-#include <errno.h>
 
 
-void ETH_init(net_device_t *ndev);
-void IPv4_init(net_device_t *ndev);
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-net_device_t *eth;
-
-net_device_t *net_register(const char *name, net_ops_t *ops,
-                           const unsigned char *address, int length)
+void net_tasklet(netdev_t *ifnet)
 {
-    if (unlikely(length > NET_ADDR_MAX_LG)) {
-        errno = EADDRNOTAVAIL;
-        return NULL;
+    int ret;
+    for (;;) {
+        skb_t *skb = ifnet.poll();...
+        if (skb != NULL) {
+            ret = eth_receive(skb);
+            if (ret != 0)
+                ifnet->rx_errors++;
+            kfree(skb);
+        }
     }
-    net_device_t *ndev = (net_device_t *)kalloc(sizeof(net_device_t *));
-    strncpy(ndev->name, name, DEV_NAME_SZ);
-    ndev->state = 0;
-    // ndev->index = kNET.;
-    ndev->ops = ops;
-
-    ndev->addr_length = length;
-    memcpy(ndev->hw_address, address, length);
-
-    ETH_init(ndev);
-    IPv4_init(ndev);
-    return ndev;
 }
 
-void net_receive(net_device_t *dev, const unsigned char *buffer, int length)
+int net_device(netdev_t *ifnet)
 {
-
+    ...
 }
 
-
-sk_buffer_t *net_skb(socket_t *socket)
+/* Create a new tx packet */
+skb_t *net_packet(netdev_t *ifnet)
 {
-    sk_buffer_t *skb = (sk_buffer_t *)kalloc(sizeof(sk_buffer_t));
-    skb->address = kmap(PAGE_SIZE, NULL, 0, VMA_FG_ANON | VMA_RESOLVE);
-    skb->page = mmu_read((size_t)skb->address, false, false);
-    skb->socket = socket;
+    skb_t *skb = (skb_t*)kalloc(sizeof(skb_t));
+    skb->ifnet = ifnet;
     return skb;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-PACK(struct ETH_header {
-    unsigned char target[6];
-    unsigned char sender[6];
-    unsigned short protocole;
-});
-
-PACK(struct ARP_header {
-    unsigned short hardware_type;
-    unsigned short protocole_type;
-    unsigned char hardware_address_length;
-    unsigned char protocole_address_length;
-    unsigned short operation;
-});
-
-void ARP_who_has(net_device_t *ndev, const unsigned char *target,
-                 const unsigned char *qry)
+/* Create a new rx packet and push it into received queue */
+void net_recv(netdev_t *ifnet, uint8_t *buf, int len)
 {
-    sk_buffer_t *skb = net_skb(NULL);
-    int lg = sizeof(struct ETH_header) + sizeof(struct ARP_header) + 20;
-    struct ETH_header *eth_header = (struct ETH_header *)skb->address;
-    struct ARP_header *arp_header = (struct ARP_header *)&skb->address[sizeof(
-                                        struct ETH_header)];
+    skb_t *skb = (skb_t*)kalloc(sizeof(skb_t));
+    skb->ifnet = ifnet;
+    memcpy(skb->buf, buf, len);
+    skb->length = len;
+    ifnet->rx_packets++;
+    ifnet->rx_bytes += len;
 
-    // Ethernet
-    if (target == NULL) {
-        memset(eth_header->target, 0xFF, 6);
-    } else {
-        memcpy(eth_header->target, target, 6);
-    }
-    memcpy(eth_header->sender, ndev->protocoles[NET_PROTO_ETHERNET]->address, 6);
-    eth_header->protocole = 0x0608; // ETH_PROTOCOLE_ARP  __be16(0x0806)
-    // __be16(x)    ((uint16_t)(((uint16_t)(X)&0xff)<<8)|(((uint16_t)(X)>>8)&0xff))
-
-    // ARP
-    arp_header->hardware_type = 0x100; // Use eternet
-    arp_header->protocole_type = 0x8; // Use IPv4
-    arp_header->hardware_address_length = 6;
-    arp_header->protocole_address_length = 4;
-    arp_header->operation = 0x100; // ARP Request 1 : ARP Reply 2
-    memcpy(&skb->address[lg - 20], ndev->protocoles[NET_PROTO_ETHERNET]->address,
-           6);
-    memcpy(&skb->address[lg - 14], ndev->protocoles[NET_PROTO_IPv4]->address, 4);
-    memset(&skb->address[lg - 10], 0, 6);
-    memcpy(&skb->address[lg - 4], qry, 4);
-
-    // int pk_lg = ALIGN_UP(lg, 64);
-    // uint32_t crc = crc32(skb->address, pk_lg - 4);
-    // memcpy(&skb->address[pk_lg - 4], &crc, 4);
-    skb->length = lg;
-    ndev->ops->send(ndev, skb);
-};
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-void ETH_init(net_device_t *ndev)
-{
-    if (ndev->addr_length != 6 || ndev->protocoles[NET_PROTO_ETHERNET]) {
-        return;
-    }
-
-    net_layer_info_t *info = (net_layer_info_t *)kalloc(sizeof(net_layer_info_t));
-    info->addr_length = 6;
-    memcpy(info->address, ndev->hw_address, 6);
-    memset(info->broadcast, 0xFF, 6);
-    info->status = NET_ST_READY;
-    ndev->protocoles[NET_PROTO_ETHERNET] = info;
+    /* Push on packets queue */
+    ...
 }
 
-void IPv4_init(net_device_t *ndev)
+/* Send a tx packet to the network card */
+int net_send(skb_t *skb)
 {
-    if (ndev->protocoles[NET_PROTO_ETHERNET] == NULL ||
-            ndev->protocoles[NET_PROTO_IPv4]) {
-        return;
+    if (skb->err)
+        return net_trash(skb);
+    skb->ifnet->tx_packets++;
+    skb->ifnet->tx_bytes += skb->length;
+    int ret = skb->ifnet->send(skb->ifnet, skb->buf, skb->length);
+    if (ret != 0)
+        skb->ifnet->tx_errors++;
+    kfree(skb);
+    return ret;
+}
+
+/* Trash a faulty tx packet */
+int net_trash(skb_t *skb)
+{
+    skb->ifnet->tx_packets++;
+    skb->ifnet->tx_dropped++;
+    kfree(skb);
+    return -1;
+}
+
+/* Read data from a packet */
+int net_read(skb_t *skb, void *buf, int len)
+{
+    if (skb->err)
+        return -1;
+    if (skb->length < skb->pen + len) {
+        skb->err |= NET_ERR_OVERFILL;
+        return -1;
     }
 
-    net_layer_info_t *info = (net_layer_info_t *)kalloc(sizeof(net_layer_info_t));
-    info->addr_length = 4;
-    info->address[0] = 192;
-    info->address[1] = 178;
-    info->address[2] = 0;
-    info->address[3] = 1;
-    memset(info->broadcast, 0xFF, 4);
-    info->status = NET_ST_INIT;
-    ndev->protocoles[NET_PROTO_IPv4] = info;
+    memcpy(buf, &skb->buf[skb->pen], len);
+    skb->pen += len;
+    return 0;
+}
 
-    asm("sti");
-    ARP_who_has(ndev, NULL, info->address);
+/* Write data on a packet */
+int net_write(skb_t *skb, const void *buf, int len)
+{
+    if (skb->err)
+        return -1;
+    if (skb->pen + len > skb->ifnet->max_packet_size) {
+        skb->err |= NET_ERR_OVERFILL;
+        return -1;
+    }
+
+    memcpy(&skb->buf[skb->pen], buf, len);
+    skb->pen += len;
+    if (skb->pen > skb->length)
+        skb->length = skb->pen;
+    return 0;
+}
+
+char *net_ethstr(char *buf, uint8_t *mac)
+{
+    snprintf(buf, 18, "%02X:%02X:%02X:%02X:%02X:%02X",
+        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return buf;
+}
+
+char *net_ip4str(char *buf, uint8_t *ip)
+{
+    snprintf(buf, 16, "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+    return buf;
 }

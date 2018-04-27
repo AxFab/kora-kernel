@@ -1,0 +1,55 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
+#include <kernel/net.h>
+
+const uint8_t eth_broadcast[ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
+int eth_header(skb_t *skb, const uint8_t *target, short type)
+{
+    strncat(skb->log, "ETH|", NET_LOG_SIZE);
+    net_write(skb, target, ETH_ALEN);
+    net_write(skb, skb->ifnet->eth_addr, ETH_ALEN);
+    return net_write(skb, &type, 2);
+}
+
+int eth_receive(skb_t *skb)
+{
+    short type = 0;
+    uint8_t mac[ETH_ALEN];
+
+    strncat(skb->log, "ETH|", NET_LOG_SIZE);
+    net_read(skb, mac, ETH_ALEN);
+    if (memcmp(mac, skb->ifnet->eth_addr, ETH_ALEN) != 0 &&
+            memcmp(mac, eth_broadcast, ETH_ALEN) != 0)
+        return -1;
+    net_read(skb, skb->eth_addr, ETH_ALEN);
+    if (net_read(skb, &type, 2))
+        return -1;
+    switch (type) {
+    case ETH_IP4:
+        return ip4_receive(skb);
+    case ETH_ARP:
+        return arp_receive(skb);
+    case ETH_IP6:
+    default:
+        return -1;
+    }
+}
+
