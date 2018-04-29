@@ -73,7 +73,9 @@ void mmu_enable();
 /* - */
 int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean);
 /* - */
-page_t mmu_read(size_t vaddress, bool drop, bool clean);
+page_t mmu_read(size_t vaddress);
+/* - */
+page_t mmu_drop(size_t vaddress, bool clean);
 /* - */
 // page_t mmu_directory();
 // /* - */

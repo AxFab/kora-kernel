@@ -1,4 +1,5 @@
 #include <kernel/core.h>
+#include <kora/mcrs.h>
 
 const char *ksymbol(void *eip)
 {
@@ -23,6 +24,19 @@ void stackdump(size_t frame)
         args = &ebp[2];
         kprintf(0, "  0x%x - %s ()         [args: %x] \n", eip, ksymbol((void *)eip),
                 (size_t)args);
+    }
+}
+
+void kdump(int no, const void *buf, int len)
+{
+    int i, j;
+    const uint8_t *ptr = (const uint8_t *)buf;
+    for (i = 0; i < len; i += 16) {
+        kprintf(no, "%04x   ", i);
+        int n = MIN(16, len - i);
+        for (j = 0; j < n; ++j)
+            kprintf(no, "%02x ", ptr[i+j]);
+        kprintf(no, "\n");
     }
 }
 

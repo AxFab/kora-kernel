@@ -506,7 +506,7 @@ int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int ATA_setup()
+void ATA_setup()
 {
     int i;
     memset (sdx, 0, 4 * sizeof(struct ATA_Drive));
@@ -523,8 +523,8 @@ int ATA_setup()
     sdx[3].pctrl_ = 0x376;
     sdx[3].disc_ = 0xb0;
 
-    outb(0x3f6 + ATA_REG_CONTROL - 0x0A, 2);
-    outb(0x376 + ATA_REG_CONTROL - 0x0A, 2);
+    // outb(0x3f6 + ATA_REG_CONTROL - 0x0A, 2);
+    // outb(0x376 + ATA_REG_CONTROL - 0x0A, 2);
 
     for (i = 0; i < 4; ++i) {
         if (ATA_Detect(&sdx[i])) {
@@ -542,12 +542,10 @@ int ATA_setup()
             vfs_close(blk);
         }
     }
-
-    return 0;
 }
 
 
-int ATA_teardown()
+void ATA_teardown()
 {
     int i;
     for (i = 0; i < 4; ++i) {
@@ -555,6 +553,7 @@ int ATA_teardown()
             vfs_rmdev(sdNames[i]);
         }
     }
-    return 0;
 }
 
+
+MODULE(ide_ata, MOD_AGPL, ATA_setup, ATA_teardown);

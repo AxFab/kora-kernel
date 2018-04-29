@@ -18,12 +18,13 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/net.h>
+#include <string.h>
 
 const uint8_t eth_broadcast[ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-int eth_header(skb_t *skb, const uint8_t *target, short type)
+int eth_header(skb_t *skb, const uint8_t *target, uint16_t type)
 {
-    strncat(skb->log, "ETH|", NET_LOG_SIZE);
+    strncat(skb->log, "ETH:", NET_LOG_SIZE);
     net_write(skb, target, ETH_ALEN);
     net_write(skb, skb->ifnet->eth_addr, ETH_ALEN);
     return net_write(skb, &type, 2);
@@ -31,10 +32,10 @@ int eth_header(skb_t *skb, const uint8_t *target, short type)
 
 int eth_receive(skb_t *skb)
 {
-    short type = 0;
+    uint16_t type = 0;
     uint8_t mac[ETH_ALEN];
 
-    strncat(skb->log, "ETH|", NET_LOG_SIZE);
+    strncat(skb->log, "ETH:", NET_LOG_SIZE);
     net_read(skb, mac, ETH_ALEN);
     if (memcmp(mac, skb->ifnet->eth_addr, ETH_ALEN) != 0 &&
             memcmp(mac, eth_broadcast, ETH_ALEN) != 0)

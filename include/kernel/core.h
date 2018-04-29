@@ -66,6 +66,13 @@ int vprintf(const char *format, va_list ap);
 void *malloc(size_t size);
 void free(void *ptr);
 
+page_t mmu_read(size_t vaddress);
+void kdump(int no, const void *buf, int len);
+void task_core(task_t *task);
+void task_wait(void *listener, long timeout_ms);
+
+task_t *task_create(user_t *user, inode_t *root, int flags);
+void task_start(task_t *task, size_t entry, long args);
 
 typedef struct kmod kmod_t;
 struct kmod {

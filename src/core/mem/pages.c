@@ -132,7 +132,7 @@ void page_sweep(size_t address, size_t length, bool clean)
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
     while (length) {
-        page_t pg = mmu_read(address, true, clean);
+        page_t pg = mmu_drop(address, clean);
         if (pg != 0) {
             page_release(pg);
         }
@@ -154,8 +154,8 @@ static int page_copy_vma(vma_t *vma)
     memcpy(buf, (void *)base, PAGE_SIZE);
     size_t cpy_map = (size_t)buf;
     while (length > 0) {
-        mmu_read(base, true, false);
-        page_t copy_page = mmu_read(cpy_map, false, false);
+        mmu_drop(base, false);
+        page_t copy_page = mmu_read(cpy_map);
         mmu_resolve(base, copy_page, vma->flags, false);
         base += PAGE_SIZE;
         cpy_map += PAGE_SIZE;

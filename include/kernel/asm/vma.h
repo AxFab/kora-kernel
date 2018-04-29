@@ -87,6 +87,7 @@
 #define VMA_FILE_RO  (VMA_RO | VMA_FILE)
 #define VMA_FILE_RW  (VMA_RW | VMA_FILE)
 
+#define VMA_ANON_RW  (VMA_RW | VMA_ANON)
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

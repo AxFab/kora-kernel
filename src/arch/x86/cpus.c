@@ -142,6 +142,7 @@ static void x86_rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 atomic_uint x86_delayTimer;
+bool delay_reg = false;
 
 void x86_delayIRQ()
 {
@@ -152,8 +153,6 @@ void x86_delayIRQ()
 void x86_delayX(unsigned int microsecond)
 {
     x86_delayTimer = 0;
-    irq_register(0, (irq_handler_t)x86_delayIRQ, NULL);
-
     while (x86_delayTimer < microsecond) {
         asm("pause");
     }
@@ -256,6 +255,8 @@ void cpu_awake()
     kprintf(0, "Map APIC \n");
 
     PIT_set_interval(CLOCK_HZ);
+
+    irq_register(0, (irq_handler_t)x86_delayIRQ, NULL);
     bool irq = irq_enable();
     assert(irq);
 

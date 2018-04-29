@@ -9,25 +9,18 @@
 #include <kora/llist.h>
 #include <string.h>
 
-#define KMODULE(n) int n ## _setup(); int n ## _teardown()
-
-KMODULE(TMPFS);
-KMODULE(DEVFS);
-KMODULE(ATA);
-KMODULE(PCI);
-KMODULE(E1000);
-KMODULE(PS2);
-KMODULE(VBE);
-KMODULE(IMG);
-KMODULE(ISOFS);
-
-
-extern uint32_t splash_width;
-extern uint32_t splash_height;
-extern uint8_t splash_pixels[];
-extern uint32_t splash_colors[];
+KMODULE(ide_ata);
+KMODULE(pci);
+KMODULE(e1000);
+KMODULE(vbox);
+KMODULE(ac97);
+KMODULE(ps2);
+KMODULE(vga);
+KMODULE(imgdk);
+KMODULE(isofs);
 
 // void ARP_who_is(const unsigned char *ip);
+void clock_init();
 void sys_ticks();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -47,12 +40,9 @@ struct kCpu kCPU0;
 
 llhead_t modules = INIT_LLHEAD;
 
-void kernel_module(const char *name, int(*setup)(), int(*teardown)())
+void kernel_module(kmod_t *mod)
 {
-    kmod_t *mod = (kmod_t*)kalloc(sizeof(kmod_t));
-    mod->name = strdup(name);
-    mod->setup = setup;
-    mod->teardown = teardown;
+    ll_append(&modules, &mod->node);
     mod->setup();
 }
 
@@ -71,7 +61,6 @@ void kernel_start()
     time_t now = cpu_time();
     kprintf(-1, "Startup: %s", asctime(gmtime(&now)));
 
-
     // seat_initscreen(); // Return an inode to close !
     // surface_t *src0 = seat_screen(0);
     // if (src0 != NULL)
@@ -88,16 +77,24 @@ void kernel_start()
     /* Drivers startup */
     // kernel_module("tmpfs", TMPFS_setup, TMPFS_teardown);
     // DEVFS_setup();
+
+    bool irq = irq_enable();
+    assert(irq);
+
 #if 1
-    PS2_setup();
-    ATA_setup();
-    PCI_setup();
-    // E1000_setup();
-    // VBE_setup();
+    KSETUP(ps2);
+    KSETUP(ide_ata);
+    KSETUP(pci);
+    KSETUP(e1000);
+    KSETUP(vbox);
+    KSETUP(ac97);
+    KSETUP(vga);
 #else
-    IMG_setup();
+    KSETUP(imgdk);
 #endif
-    ISOFS_setup();
+    KSETUP(isofs);
+
+    irq_disable();
 
     inode_t *root = vfs_mount("sdC", "isofs");
     if (root == NULL) {
@@ -121,6 +118,8 @@ void kernel_start()
 
     vfs_close(root);
     vfs_close(ino);
+
+    clock_init();
     irq_register(0, (irq_handler_t)sys_ticks, NULL);
 }
 
@@ -136,7 +135,6 @@ void kernel_sweep()
         mod->teardown();
         kmod_t *rm = mod;
         mod = ll_next(&mod->node, kmod_t, node);
-        kfree(rm->name);
         kfree(rm);
     }
     memset(&modules, 0, sizeof(modules));

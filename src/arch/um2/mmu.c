@@ -45,7 +45,12 @@ void mmu_destroy_uspace(mspace_t *mspace)
 }
 
 
-page_t mmu_read(size_t address, bool drop, bool clean)
+page_t mmu_read(size_t vaddress)
+{
+    return 0;
+}
+
+page_t mmu_drop(size_t vaddress, bool clean)
 {
     return 0;
 }

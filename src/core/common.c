@@ -92,7 +92,7 @@ _Noreturn void abort()
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 FILE *klogs = NULL;
-// splock_t klog_lock;
+splock_t klog_lock;
 
 
 int vfprintf(FILE *fp, const char *str, va_list ap);
@@ -101,11 +101,11 @@ void kprintf(int log, const char *msg, ...)
 {
     va_list ap;
     va_start(ap, msg);
-    // splock_lock(&klog_lock);
+    splock_lock(&klog_lock);
     if (klogs != NULL) {
         vfprintf(klogs, msg, ap);
     }
-    // splock_unlock(&klog_lock);
+    splock_unlock(&klog_lock);
     va_end(ap);
 }
 
@@ -125,6 +125,7 @@ void kfree(void *ptr)
 
 void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
 {
+    length = ALIGN_UP(length, PAGE_SIZE);
     flags &= ~(VMA_RIGHTS << 4);
     flags |= (flags & VMA_RIGHTS) << 4;
     void *ptr = mspace_map(kMMU.kspace, 0, length, ino, offset, 0, flags);

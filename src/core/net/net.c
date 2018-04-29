@@ -18,13 +18,16 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/net.h>
+#include <string.h>
 
 
 void net_tasklet(netdev_t *ifnet)
 {
     int ret;
     for (;;) {
-        skb_t *skb = ifnet.poll();...
+        splock_lock(&ifnet->lock);
+        skb_t *skb = ll_dequeue(&ifnet->queue, skb_t, node);
+        splock_unlock(&ifnet->lock);
         if (skb != NULL) {
             ret = eth_receive(skb);
             if (ret != 0)
@@ -36,7 +39,8 @@ void net_tasklet(netdev_t *ifnet)
 
 int net_device(netdev_t *ifnet)
 {
-    ...
+    splock_init(&ifnet->lock);
+    return 0;
 }
 
 /* Create a new tx packet */
@@ -58,7 +62,9 @@ void net_recv(netdev_t *ifnet, uint8_t *buf, int len)
     ifnet->rx_bytes += len;
 
     /* Push on packets queue */
-    ...
+    splock_lock(&ifnet->lock);
+    ll_enqueue(&ifnet->queue, &skb->node);
+    splock_unlock(&ifnet->lock);
 }
 
 /* Send a tx packet to the network card */
@@ -68,7 +74,9 @@ int net_send(skb_t *skb)
         return net_trash(skb);
     skb->ifnet->tx_packets++;
     skb->ifnet->tx_bytes += skb->length;
-    int ret = skb->ifnet->send(skb->ifnet, skb->buf, skb->length);
+    splock_lock(&skb->ifnet->lock);
+    int ret = skb->ifnet->send(skb->ifnet, skb);
+    splock_unlock(&skb->ifnet->lock);
     if (ret != 0)
         skb->ifnet->tx_errors++;
     kfree(skb);
@@ -78,6 +86,7 @@ int net_send(skb_t *skb)
 /* Trash a faulty tx packet */
 int net_trash(skb_t *skb)
 {
+    kprintf(0, "Error on packet %s \n", skb->log);
     skb->ifnet->tx_packets++;
     skb->ifnet->tx_dropped++;
     kfree(skb);

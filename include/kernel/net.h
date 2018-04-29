@@ -21,6 +21,8 @@
 #define _KERNEL_NET_H 1
 
 #include <kernel/core.h>
+#include <kora/llist.h>
+#include <kora/splock.h>
 
 typedef struct netdev netdev_t;
 typedef struct skb skb_t;
@@ -31,11 +33,11 @@ typedef struct socket socket_t;
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* Ethernet */
 #define ETH_ALEN 6
-#define ETH_IP4 0x0800
-#define ETH_IP6 0x86DD
-#define ETH_ARP 0x0806
+#define ETH_IP4 htonw(0x0800)
+#define ETH_IP6 htonw(0x86DD)
+#define ETH_ARP htonw(0x0806)
 
-int eth_header(skb_t *skb, const uint8_t *target, short type);
+int eth_header(skb_t *skb, const uint8_t *target, uint16_t type);
 int eth_receive(skb_t *skb);
 
 extern const uint8_t eth_broadcast[ETH_ALEN];
@@ -52,7 +54,7 @@ int arp_receive(skb_t *skb);
 #define IP4_TCP 0x06
 #define IP4_UDP 0x11
 
-int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, int protocol);
+int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, int length, int protocol);
 int ip4_receive(skb_t *skb);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -72,8 +74,10 @@ struct netdev {
     int max_packet_size;
     uint8_t eth_addr[ETH_ALEN];
     uint8_t ip4_addr[IP4_ALEN];
-    int(*send)(netdev_t*,uint_t*,int);
-    // node, locks, queue
+    int(*send)(netdev_t*,skb_t*);
+
+    llhead_t queue;
+    splock_t lock;
 
     long rx_packets;
     long rx_bytes;
@@ -94,6 +98,7 @@ struct skb {
     uint8_t eth_addr[ETH_ALEN];
     uint8_t ip4_addr[IP4_ALEN];
     char log[NET_LOG_SIZE];
+    llnode_t node;
     uint8_t buf[0];
 };
 
@@ -116,5 +121,18 @@ int net_write(skb_t *skb, const void *buf, int len);
 
 char *net_ethstr(char *buf, uint8_t *mac);
 char *net_ip4str(char *buf, uint8_t *ip);
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#define __swap16(w) ((uint16_t)(((w & 0xFF00) >> 8) | ((w & 0xFF) << 8)))
+#define __swap32(l) ((uint32_t)(((l & 0xFF000000) >> 24) | ((l & 0xFF0000) >> 8) | ((l & 0xFF00) << 8) | ((l & 0xFF) << 24))
+
+#define htonw(w) __swap16(w)
+#define ntohw(w) __swap16(w)
+
+#define htonl(l) __swap32(l)
+#define ntohl(w) __swap32(l)
+
 
 #endif  /* _KERNEL_NET_H */

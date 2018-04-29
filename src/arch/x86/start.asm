@@ -81,7 +81,7 @@ extern code, bss, end
 extern kernel_start, kernel_ready
 extern grub_start
 extern cpu_setup_x86, cpu_setup_core_x86, cpu_exception_x86, cpu_no
-extern sys_irq_x86, sys_call_x86, sys_wait_x86, sys_sigret_x86, sys_ticks_x86
+extern sys_irq_x86, sys_call_x86, sys_wait_x86, sys_sigret_x86
 extern page_fault_x86, page_error_x86
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -383,14 +383,6 @@ x86_syssigret:
 
 x86_IRQ0:
     IRQ_HANDLER 0
-    ;SAVE_REGS
-    ;push esp
-    ;call sys_ticks_x86
-    ;add esp, 4
-    ;mov al,0x20
-    ;out 0x20,al
-    ;LOAD_REGS
-    ;iret
 x86_IRQ1:
     IRQ_HANDLER 1
 x86_IRQ2:

@@ -17,6 +17,8 @@
 NAME=kora-kernel
 VERSION=1.0-$(GIT)
 
+include $(srcdir)/drivers/drivers.mk
+
 CFLAGS += -Wall -Wextra -Wno-unused-parameter -fno-builtin -Wno-implicit-fallthrough
 CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
@@ -58,7 +60,6 @@ tests_omit-y += $(srcdir)/core/vfs.c $(srcdir)/tests/vfs.c $(srcdir)/core/net.c
 # tests_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c $(srcdir)/tests/format.c
 tests_LFLAGS := $(LFLAGS)
 tests_LIBS := $(shell pkg-config --libs check)
-# $(eval $(call link,tests,std))
 # DV_UTILS += $(bindir)/tests
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -72,16 +73,9 @@ kSim_src-y += $(wildcard $(srcdir)/core/io/*.c)
 kSim_src-y += $(wildcard $(srcdir)/core/tsk/*.c)
 kSim_src-y += $(wildcard $(srcdir)/core/mem/*.c)
 kSim_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
+kSim_src-y += $(wildcard $(srcdir)/core/net/*.c)
 kSim_src-y += $(wildcard $(srcdir)/scall/*.c)
-# kSim_src-y += $(wildcard $(srcdir)/drv/pci/*.c)
-kSim_src-y += $(wildcard $(srcdir)/drv/img/*.c)
-# kSim_src-y += $(wildcard $(srcdir)/drv/ps2/*.c)
-# kImg_src-y += $(wildcard $(srcdir)/drv/vga/*.c)
-# kImg_src-y += $(wildcard $(srcdir)/drv/e1000/*.c)
-# kImg_src-y += $(wildcard $(srcdir)/drv/am79C973/*.c)
-# kSim_src-y += $(wildcard $(srcdir)/fs/tmpfs/*.c)
-# kSim_src-y += $(wildcard $(srcdir)/fs/devfs/*.c)
-kSim_src-y += $(wildcard $(srcdir)/fs/isofs/*.c)
+kSim_src-y += $(drv_src-y)
 kSim_omit-y += $(srcdir)/core/common.c
 kSim_omit-y += $(srcdir)/core/io/seat.c $(srcdir)/core/io/termio.c
 kSim_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
@@ -103,16 +97,9 @@ kImg_src-y += $(wildcard $(srcdir)/core/io/*.c)
 kImg_src-y += $(wildcard $(srcdir)/core/tsk/*.c)
 kImg_src-y += $(wildcard $(srcdir)/core/mem/*.c)
 kImg_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
+kImg_src-y += $(wildcard $(srcdir)/core/net/*.c)
 kImg_src-y += $(wildcard $(srcdir)/scall/*.c)
-kImg_src-y += $(wildcard $(srcdir)/drv/pci/*.c)
-kImg_src-y += $(wildcard $(srcdir)/drv/ata/*.c)
-kImg_src-y += $(wildcard $(srcdir)/drv/ps2/*.c)
-# kImg_src-y += $(wildcard $(srcdir)/drv/vga/*.c)
-# kImg_src-y += $(wildcard $(srcdir)/drv/e1000/*.c)
-# kImg_src-y += $(wildcard $(srcdir)/drv/am79C973/*.c)
-# kImg_src-y += $(wildcard $(srcdir)/fs/tmpfs/*.c)
-# kImg_src-y += $(wildcard $(srcdir)/fs/devfs/*.c)
-kImg_src-y += $(wildcard $(srcdir)/fs/isofs/*.c)
+kImg_src-y += $(drv_src-y)
 kImg_omit-y += $(srcdir)/core/io/seat.c $(srcdir)/core/io/termio.c
 
 # kImg_LFLAGS := $(LFLAGS)
@@ -120,30 +107,11 @@ $(eval $(call kimg,kImg,krn))
 DV_UTILS += $(bindir)/kImg
 
 
-# Drivers -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-kmod_pci_src-y += $(wildcard $(srcdir)/drv/pci/*.c)
-$(eval $(call llib,kmod_pci,mod))
-DV_LIBS += $(bindir)/kmod_pci
-
-kmod_ata_src-y += $(wildcard $(srcdir)/drv/ata/*.c)
-$(eval $(call llib,kmod_ata,mod))
-DV_LIBS += $(bindir)/kmod_ata
-
-kmod_e1000_src-y += $(wildcard $(srcdir)/drv/e1000/*.c)
-$(eval $(call llib,kmod_e1000,mod))
-DV_LIBS += $(bindir)/kmod_e1000
-
-kmod_iso9660_src-y += $(wildcard $(srcdir)/fs/iso9660/*.c)
-$(eval $(call llib,kmod_iso9660,mod))
-DV_LIBS += $(bindir)/kmod_iso9660
 
 # T E S T I N G   U T I L I T I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ckVfs_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
 ckVfs_src-y += $(wildcard $(srcdir)/libc/*.c)
-ckVfs_src-y += $(wildcard $(srcdir)/drv/img/*.c)
-# ckVfs_src-y += $(wildcard $(srcdir)/fs/devfs/*.c)
-ckVfs_src-y += $(wildcard $(srcdir)/fs/fat/*.c)
-ckVfs_src-y += $(wildcard $(srcdir)/fs/isofs/*.c)
+ckVfs_src-y += $(drv_src-y)
 ckVfs_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckVfs_src-y += $(srcdir)/core/debug.c
 ckVfs_src-y += $(srcdir)/tests/ck_vfs.c
@@ -156,9 +124,6 @@ DV_UTILS += $(bindir)/ckVfs
 
 ckMem_src-y += $(wildcard $(srcdir)/core/mem/*.c)
 ckMem_src-y += $(wildcard $(srcdir)/libc/*.c)
-# ckMem_src-y += $(wildcard $(srcdir)/drv/img/*.c)
-# ckMem_src-y += $(wildcard $(srcdir)/fs/devfs/*.c)
-# ckMem_src-y += $(wildcard $(srcdir)/fs/isofs/*.c)
 ckMem_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckMem_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/mmu.c
 ckMem_src-y += $(srcdir)/tests/ck_mem.c
@@ -170,7 +135,6 @@ DV_UTILS += $(bindir)/ckMem
 
 ckFile_src-y += $(wildcard $(srcdir)/core/file/*.c)
 ckFile_src-y += $(wildcard $(srcdir)/libc/*.c)
-
 ckFile_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckFile_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/mmu.c
 ckFile_src-y += $(srcdir)/tests/ck_file.c

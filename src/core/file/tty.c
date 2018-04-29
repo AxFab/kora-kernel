@@ -1,3 +1,22 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include <kernel/files.h>
 #include <string.h>
 
@@ -29,7 +48,10 @@ struct tty {
     const uint32_t *colors;
 };
 
-void tty_character(tty_t *tty, line_t *line, int col, int ch)
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+/* Paint a glyph into the window attached to the TTY */
+static void tty_glyph(tty_t *tty, line_t *line, int col, int ch)
 {
     int i, j = 0, l = 0, dp = tty->win->bits;
     uint8_t *px_row;
@@ -70,7 +92,8 @@ void tty_character(tty_t *tty, line_t *line, int col, int ch)
     }
 }
 
-void tty_chcolor(tty_t *tty, line_t *line, int val)
+/* Change TTY color at the specified line */
+static void tty_chcolor(tty_t *tty, line_t *line, int val)
 {
     if (val == 0) {
         line->fx_color = tty->fx_color;
@@ -86,7 +109,8 @@ void tty_chcolor(tty_t *tty, line_t *line, int val)
     }
 }
 
-void tty_command(tty_t *tty, line_t *line, const char **str)
+/* Parse an ANSI escape command */
+static void tty_command(tty_t *tty, line_t *line, const char **str)
 {
     int i = 0, val[5];
     if (**str != '[')
@@ -104,7 +128,8 @@ void tty_command(tty_t *tty, line_t *line, const char **str)
     }
 }
 
-void tty_string(tty_t *tty, line_t *line, const char *str)
+/* Parse an ANSI escape command */
+static void tty_paint_line(tty_t *tty, line_t *line, const char *str)
 {
     int x;
     line->fx_color_s = line->fx_color;
@@ -115,7 +140,7 @@ void tty_string(tty_t *tty, line_t *line, const char *str)
             ++str;
             tty_command(tty, line, &str);
         } else if (*str >= 0x20) {
-            tty_character(tty, line, x++, *str);
+            tty_glyph(tty, line, x++, *str);
         }
     }
     if (line->next) {
@@ -123,6 +148,41 @@ void tty_string(tty_t *tty, line_t *line, const char *str)
         line->next->bg_color = line->bg_color;
     }
 }
+
+/* Re-paint the all TTY */
+static void tty_paint(tty_t *tty)
+{
+    if (tty->win == NULL)
+        return;
+    vds_fill(tty->win, tty->top->bg_color);
+
+    line_t *line = tty->top;
+    for (; line; line = line->next) {
+        if (line->row - tty->row >= tty->row_max)
+            break;
+        tty_paint_line(tty, line, line->str);
+    }
+}
+
+static void tty_scroll(tty_t *tty, int count)
+{
+    while (count > 0) {
+        if (tty->top->next == NULL)
+            break;
+        tty->top = tty->top->next;
+        count--;
+        tty->row++;
+    }
+    while (count < 0) {
+        if (tty->top->prev == NULL)
+            break;
+        tty->top = tty->top->prev;
+        count++;
+        tty->row--;
+    }
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void tty_write(tty_t *tty, const char *str, int len)
 {
@@ -165,41 +225,11 @@ void tty_write(tty_t *tty, const char *str, int len)
             tty->last = tty->last->next;
         }
     }
+
     // TODO -- auto-scroll
     tty_paint(tty);
 }
 
-void tty_paint(tty_t *tty)
-{
-    vds_fill(tty->win, tty->top->bg_color);
-
-    line_t *line = tty->top;
-    for (; line; line = line->next) {
-        if (line->row - tty->row >= tty->row_max)
-            break;
-        tty_string(tty, line, line->str);
-    }
-}
-
-void tty_scroll(tty_t *tty, int count)
-{
-    while (count > 0) {
-        if (tty->top->next == NULL)
-            break;
-        tty->top = tty->top->next;
-        count--;
-        tty->row++;
-    }
-    while (count < 0) {
-        if (tty->top->prev == NULL)
-            break;
-        tty->top = tty->top->prev;
-        count++;
-        tty->row--;
-    }
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 // void tty_event(tty_t *tty, event_t *event)
 // {
 //     // TODO Take only KEYBOARD PRESS !
@@ -207,16 +237,21 @@ void tty_scroll(tty_t *tty, int count)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-tty_t *tty_create(surface_t *win, const font_t *font, const uint32_t *colors, int iv)
+void tty_attach(tty_t *tty, surface_t *win, const font_t *font, const uint32_t *colors, int iv)
 {
-    tty_t *tty = (tty_t*)kalloc(sizeof(tty_t));
     tty->win = win;
     tty->font = font;
     tty->colors = colors;
     tty->fx_color = iv ? colors[0] : colors[7];
     tty->bg_color = iv ? colors[7] : colors[0];
-    tty->row_max = win->height / font->dispy;
-    tty->col_max = win->width / font->dispx;
+    tty->row_max = win ? win->height / font->dispy : 80;
+    tty->col_max = win ? win->width / font->dispx : 50;
+}
+
+tty_t *tty_create(surface_t *win, const font_t *font, const uint32_t *colors, int iv)
+{
+    tty_t *tty = (tty_t*)kalloc(sizeof(tty_t));
+    tty_attach(tty, win, font, colors, iv);
     tty->top = kalloc(sizeof(line_t));
     tty->first = tty->top;
     tty->top->fx_color = tty->fx_color;
@@ -224,7 +259,6 @@ tty_t *tty_create(surface_t *win, const font_t *font, const uint32_t *colors, in
     tty->top->row = 0;
     tty->top->str = kalloc(1);
     tty->last = tty->top;
-    // memset(win->pixels, 0, win->height * win->pitch);
     return tty;
 }
 

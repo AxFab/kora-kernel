@@ -236,8 +236,8 @@ task_t *task_create(user_t *user, inode_t *root, int flags)
     task->pid = task_new_pid();
     task->user = user;
 
-    task->root = vfs_open(root);
-    task->pwd = vfs_open(root);
+    task->root = root ? vfs_open(root) : NULL;
+    task->pwd = root ? vfs_open(root) : NULL;
     task->resx = resx_create();
 
     if (flags & TSK_USER_SPACE)

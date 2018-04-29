@@ -35,7 +35,7 @@ int PS2_irq()
 }
 
 
-int PS2_setup()
+void PS2_setup()
 {
     PS2_mouse_setup();
     irq_register(1, (irq_handler_t)PS2_irq, NULL);
@@ -50,13 +50,15 @@ int PS2_setup()
     mouse_ino = vfs_inode(2, S_IFCHR | 700, NULL, 0);
     ps2_mse.block = sizeof(event_t);
     ps2_mse.class = "PS/2 Mouse";
-    vfs_mkdev("mise", &ps2_mse, mouse_ino);
+    vfs_mkdev("mouse", &ps2_mse, mouse_ino);
     vfs_close(mouse_ino);
-    return 0;
 }
 
-int PS2_teardown() {
+void PS2_teardown()
+{
     vfs_rmdev("kdb");
-    vfs_rmdev("mise");
-    return 0;
+    vfs_rmdev("mouse");
 }
+
+
+MODULE(ps2, MOD_AGPL, PS2_setup, PS2_teardown);

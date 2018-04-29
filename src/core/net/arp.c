@@ -18,12 +18,13 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/net.h>
+#include <string.h>
 
-#define ARP_HW_ETH 1
-#define ARP_PC_IP 0x0800
+#define ARP_HW_ETH htonw(1)
+#define ARP_PC_IP htonw(0x0800)
 
-#define ARP_REQUEST 1
-#define ARP_REPLY 2
+#define ARP_REQUEST htonw(1)
+#define ARP_REPLY htonw(2)
 
 #define ARP_TIMEOUT 10
 
@@ -34,25 +35,25 @@ PACK(struct ARP_header {
     uint16_t protocol;
     uint8_t hw_length;
     uint8_t pc_length;
-    uint16_t operation;
+    uint16_t opcode;
 });
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static arp_packet_ip4(netdev_t *ifnet, const uint8_t *mac, uint8_t *ip, int op)
+static int arp_packet_ip4(netdev_t *ifnet, const uint8_t *mac, const uint8_t *ip, int op)
 {
     skb_t *skb = net_packet(ifnet);
     if (skb == NULL)
         return -1;
-    if (eth_header(skb, mac, ETH_ALEN) != 0)
+    if (eth_header(skb, mac, ETH_ARP) != 0)
         return net_trash(skb);
-    strncat(skb->log, "ARP|", NET_LOG_SIZE);
+    strncat(skb->log, "ARP:", NET_LOG_SIZE);
     ARP_header_t header;
     header.hardware = ARP_HW_ETH;
     header.protocol = ARP_PC_IP;
     header.hw_length = ETH_ALEN;
     header.pc_length = IP4_ALEN;
-    header.operation = op;
+    header.opcode = op;
     net_write(skb, &header, sizeof(header));
     net_write(skb, skb->ifnet->eth_addr, ETH_ALEN);
     net_write(skb, skb->ifnet->ip4_addr, IP4_ALEN);
@@ -73,7 +74,7 @@ static int arp_recv_ip4(skb_t *skb, int op)
         return -1; // ETH and ARP contradict them-self!
 
     /* Target */
-    net_read(skb, , mac, ETH_ALEN);
+    net_read(skb, mac, ETH_ALEN);
     if (net_read(skb, ip, IP4_ALEN) != 0)
         return -1;
 
@@ -87,7 +88,7 @@ static int arp_recv_ip4(skb_t *skb, int op)
             return -1; /* that not our role to answer */
         return arp_packet_ip4(skb->ifnet, skb->eth_addr, skb->ip4_addr, ARP_REPLY);
     } else if (op == ARP_REPLY) {
-        time_t qry_expired = time(NULL) + ARP_TIMEOUT;
+        // time_t qry_expired = time(NULL) + ARP_TIMEOUT;
         // net register
         return 0;
     }
@@ -103,26 +104,24 @@ static int arp_recv_ip6(skb_t *skb, int op)
 
 int arp_query(netdev_t *ifnet, const uint8_t *ip)
 {
-    time_t now = time(NULL);
+    // time_t now = time(NULL);
     // Store time of request
     return arp_packet_ip4(ifnet, eth_broadcast, ip, ARP_REQUEST);
 }
 
 int arp_receive(skb_t *skb)
 {
-    int ret;
-    uint8_t mac[ETH_ALEN];
     ARP_header_t header;
-    strncat(skb->log, "ARP|", NET_LOG_SIZE);
+    strncat(skb->log, "ARP:", NET_LOG_SIZE);
     if (net_read(skb, &header, sizeof(header)) != 0)
         return -1;
     if (header.hardware != ARP_HW_ETH || header.protocol != ARP_PC_IP || header.hw_length != ETH_ALEN)
         return -1;
 
     if (header.pc_length == IP4_ALEN)
-        return arp_recv_ip4(skb, header.operation);
-    else if (header.pc_lemgth == IP6_ALEN)
-        return arp_recv_ip6(skb, header.operarion);
+        return arp_recv_ip4(skb, header.opcode);
+    else if (header.pc_length == IP6_ALEN)
+        return arp_recv_ip6(skb, header.opcode);
     return -1;
 }
 

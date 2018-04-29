@@ -118,9 +118,8 @@ int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
     return 0;
 }
 
-
 /* - */
-page_t mmu_read(size_t vaddress, bool drop, bool clean)
+static page_t mmu_read_(size_t vaddress, bool drop, bool clean)
 {
     vaddress = ALIGN_DW(vaddress, PAGE_SIZE);
     page_t *dir = (page_t *)(0xFFFFF000 | ((vaddress >> 20) & ~3));
@@ -136,6 +135,17 @@ page_t mmu_read(size_t vaddress, bool drop, bool clean)
     }
     return *tbl & (~(PAGE_SIZE - 1));
 }
+
+page_t mmu_read(size_t vaddress)
+{
+    return mmu_read_(vaddress, false, false);
+}
+
+page_t mmu_drop(size_t vaddress, bool clean)
+{
+    return mmu_read_(vaddress, true, clean);
+}
+
 
 /* - */
 static page_t mmu_directory()

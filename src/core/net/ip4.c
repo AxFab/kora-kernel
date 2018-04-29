@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/net.h>
+#include <string.h>
 
 
 typedef struct IP4_header IP4_header_t;
@@ -44,16 +45,16 @@ static uint16_t ip4_checksum(IP4_header_t *header)
     int i, sum = 0;
     uint16_t *ptr = (uint16_t *)header;
     for (i = 0; i < 10; ++i)
-        sum += ntohs(ptr[i]);
+        sum += ntohw(ptr[i]);
     if (sum > 0xFFFF)
         sum = (sum >> 16) + (sum & 0xFFFF);
-    return ~(sum & 0xFFFF) & 0xFFFF;
+    return htonw(~(sum & 0xFFFF) & 0xFFFF);
 }
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, int protocol)
+int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int length, int protocol)
 {
     uint8_t mac [ETH_ALEN];
     // todo, findac address using ip
@@ -61,8 +62,8 @@ int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, i
     if (eth_header(skb, mac, ETH_ALEN) != 0)
         return -1;
 
-    strncat(skb->log, "IP4|", NET_LOG_SIZE);
-    IP4_header header;
+    strncat(skb->log, "IP4:", NET_LOG_SIZE);
+    IP4_header_t header;
     header.version = 4;
     header.header_length = 5;
     header.service_type = 0;
@@ -79,10 +80,8 @@ int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, i
     case IP4_TCP:
         return -1;
     case IP4_UDP:
-        header.header_size++;
-        header.length += 4
-        // add options
-        return -1;
+        header.checksum = ip4_checksum(&header);
+        return net_write(skb, &header, sizeof(header));
     case IP4_ICMP:
         if (offset != 0)
             return -1;
@@ -94,21 +93,21 @@ int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, i
 }
 
 
-int ipv4_receive(skb_t *skb)
+int ip4_receive(skb_t *skb)
 {
     IP4_header_t header;
-    strncat(skb->log, "IP4|", NET_LOG_SIZE);
+    strncat(skb->log, "IP4:", NET_LOG_SIZE);
     net_read(skb, &header, sizeof(header));
     memcpy(skb->ip4_addr, header.source, IP4_ALEN);
+    // net_register(skb->ip4_addr,  skb->eth_addr, ANONYMOUS);
     // CHECK CHECKSUM
     // REGROUP SOCKET
-    switch (header.protocole) {
-    case IP_TCP:
-        return tcp_receive(skb);
-    case IP_UDP:
-        // READ OPTIONS
-        return udp_receive(skb);
-    case IP_ICMP:
+    switch (header.protocol) {
+    case IP4_TCP:
+        return -1; // tcp_receive(skb);
+    case IP4_UDP:
+        return -1; // udp_receive(skb);
+    case IP4_ICMP:
         if (header.offset != 0)
             return -1;
         return icmp_receive(skb, header.length - sizeof(header));

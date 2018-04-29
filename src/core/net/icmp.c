@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/net.h>
+#include <string.h>
 
 typedef struct ICMP_header ICMP_header_t;
 
@@ -30,33 +31,33 @@ PACK(struct ICMP_header {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static uint16_t icmp_checksum ()
+static uint16_t icmp_checksum (ICMP_header_t *header)
 {
     return 0;
 }
 
-static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type,uint8_t code, uint32_t data, void*extra, int len)
+static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type, uint8_t code, uint32_t data, void*extra, int len)
 {
     skb_t *skb = net_packet(ifnet);
     if (skb == NULL)
         return -1;
-    if (ip4_header( ip4) != 0)
+    if (ip4_header(skb, ip, rand(), 0, sizeof(ICMP_header_t) + len, IP4_ICMP) != 0)
         return net_trash(skb);
-    strncat(skb->log, "ICMP|", NET_LOG_SIZE);
-    ICMP_header header;
+    strncat(skb->log, "ICMP:", NET_LOG_SIZE);
+    ICMP_header_t header;
     header.type = type;
     header.code = code;
-    header.data = data
+    header.data = data;
     header.checksum = icmp_checksum(&header);
     net_write(skb, &header, sizeof(header));
     if (len > 0)
         net_write(skb, extra, len);
-    return net_send();
+    return net_send(skb);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int icmp_ping(netdev_t *ifnet, const uint8_t)
+int icmp_ping(netdev_t *ifnet, const uint8_t *ip)
 {
     short id = rand();
     short seq = 1;
@@ -67,8 +68,8 @@ int icmp_receive(skb_t *skb, int len)
 {
     int ret;
     uint8_t *payload = NULL;
-    strncat();
-    ICMP_header header;
+    strncat(skb->log, "ICMP:", NET_LOG_SIZE);
+    ICMP_header_t header;
     len -= sizeof(header);
     ret = net_read(skb, &header, sizeof(header));
     if (len > 0) {
@@ -82,9 +83,9 @@ int icmp_receive(skb_t *skb, int len)
         // get last request clock
         break;
     case ICMP_PING:
-        ret = icmp_packet(ip, ICMP_PONG, 0, header.data, payload, len);
+        ret = icmp_packet(skb->ifnet, skb->ip4_addr, ICMP_PONG, 0, header.data, payload, len);
         break;
-    case ICMP_TIMESTAMP:
+    // case ICMP_TIMESTAMP:
     default:
         ret = -1;
     }

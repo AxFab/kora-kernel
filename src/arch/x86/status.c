@@ -210,13 +210,6 @@ void sys_irq_x86(int no, regs_t *regs)
     task_leave_sys();
 }
 
-void sys_ticks_x86(regs_t *regs)
-{
-    task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
-    sys_ticks();
-    task_leave_sys();
-}
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -227,7 +220,8 @@ static void cpu_setup_stack(task_t *task, size_t instr, size_t stack,
     // TODO -- Is arch dependent!
     int sp = task->kstack_len / sizeof(size_t);
 
-    // task->kstack[--sp] = arg; // ARG
+    task->kstack[--sp] = arg; // ARG
+    task->kstack[--sp] = 0; // ARG
     if (task->usmem) {
         task->kstack[--sp] = 0x33; // SS
         task->kstack[--sp] = stack; // ESP

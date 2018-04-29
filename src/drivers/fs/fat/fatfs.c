@@ -23,6 +23,7 @@
 #include <kernel/core.h>
 #include <kora/mcrs.h>
 #include <errno.h>
+#include <string.h>
 
 /* Identificators for volume descriptors */
 #define FAT12 12
@@ -620,8 +621,8 @@ inode_t *fatfs_mount(inode_t *dev)
     info->usedSpace = 0;
     info->freeSpace = 0;
 
-    const char *fsName = info->FATType == FAT32 ? "FAT32" : (info->FATType == FAT16 ?
-                    "FAT16" : "FAT12");
+    const char *fsName = info->FATType == FAT32 ? "fat32" : (info->FATType == FAT16 ?
+                    "fat16" : "fat12");
     FAT_inode_t *ino = (FAT_inode_t*)vfs_inode(info->RootEntry, S_IFDIR | 0755, NULL, sizeof(FAT_inode_t));
     ino->ino.length = 0;
     // ino->ino.block = /*mount->SecPerClus */ mount->BytsPerSec;

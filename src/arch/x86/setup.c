@@ -120,8 +120,12 @@ _Noreturn void cpu_run_x86(regs_t *);
 void cpu_run(task_t *task)
 {
     asm("cli");
-    cpu_cr3_x86(task->usmem->directory);
-    TSS_BASE[cpu_no()].esp0 = (uint32_t)task->kstack + task->kstack_len - 4;
+    if (task->usmem) {
+        cpu_cr3_x86(task->usmem->directory);
+        TSS_BASE[cpu_no()].esp0 = (uint32_t)task->kstack + task->kstack_len - 4;
+    } else {
+        TSS_BASE[cpu_no()].esp0 = (uint32_t)task->kstack + task->kstack_len - 4;
+    }
     cpu_run_x86(task->regs/*[task->rp]*/);
 }
 

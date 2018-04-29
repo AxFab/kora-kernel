@@ -72,7 +72,7 @@ int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
     return 0;
 }
 
-page_t mmu_read(size_t vaddress, bool drop, bool clean)
+page_t mmu_read_(size_t vaddress, bool drop, bool clean)
 {
     uint32_t *dir;
     int page_no;
@@ -91,6 +91,16 @@ page_t mmu_read(size_t vaddress, bool drop, bool clean)
         dir[page_no] = 0;
     }
     return pg;
+}
+
+page_t mmu_read(size_t vaddress)
+{
+    return mmu_read_(vaddress, false, false);
+}
+
+page_t mmu_drop(size_t vaddress, bool clean)
+{
+    return mmu_read_(vaddress, true, clean);
 }
 
 

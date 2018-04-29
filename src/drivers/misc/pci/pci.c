@@ -29,8 +29,26 @@ struct PCI_header {
     uint32_t bar_[0];  // 16
 };
 
+/* Read 8 bits from the PCI configuration */
+uint8_t PCI_config_read8(uint8_t bus, uint8_t slot, uint8_t func,
+                                  uint8_t offset)
+{
+    uint32_t address = 0;
+
+    /* Create configuration address */
+    address |= (uint32_t)bus << 16;
+    address |= (uint32_t)(slot & 0x1f) << 11;
+    address |= (uint32_t)(func & 0x7) << 8;
+    address |= (uint32_t)(offset & 0xfc);
+    address |= 0x80000000;
+    outl(PCI_IO_CFG_ADDRESS, address);
+
+    /* Read the data */
+    return (inl(PCI_IO_CFG_DATA) >> ((offset & 2) << 3)) & 0xff;
+}
+
 /* Read 16 bits from the PCI configuration */
-static uint16_t PCI_config_read16(uint8_t bus, uint8_t slot, uint8_t func,
+uint16_t PCI_config_read16(uint8_t bus, uint8_t slot, uint8_t func,
                                   uint8_t offset)
 {
     uint32_t address = 0;
@@ -48,7 +66,7 @@ static uint16_t PCI_config_read16(uint8_t bus, uint8_t slot, uint8_t func,
 }
 
 /* Read 32 bits from the PCI configuration */
-static uint32_t PCI_config_read32(uint8_t bus, uint8_t slot, uint8_t func,
+uint32_t PCI_config_read32(uint8_t bus, uint8_t slot, uint8_t func,
                                   uint8_t offset)
 {
     uint32_t address = 0;
@@ -66,7 +84,7 @@ static uint32_t PCI_config_read32(uint8_t bus, uint8_t slot, uint8_t func,
 }
 
 /* Write 32 bits from the PCI configuration */
-static void PCI_config_write32(uint8_t bus, uint8_t slot, uint8_t func,
+void PCI_config_write32(uint8_t bus, uint8_t slot, uint8_t func,
                                uint8_t offset, uint32_t value)
 {
     uint32_t address = 0;
@@ -329,6 +347,19 @@ int PCI_detect()
     return 0;
 }
 
+struct PCI_device *PCI_search2(pci_matcher match)
+{
+    int i;
+    for (i = 0; i < dev_sp; ++i) {
+        if (device_stack[i].busy != 0) continue;
+        if (match(device_stack[i].vendor_id, device_stack[i].class_id, device_stack[i].device_id) == 0) {
+            device_stack[i].busy = 1;
+            return &device_stack[i];
+        }
+    }
+    return NULL;
+}
+
 struct PCI_device *PCI_search(uint16_t vendor_id, uint32_t class_id,
                               uint16_t device_id)
 {
@@ -347,14 +378,15 @@ struct PCI_device *PCI_search(uint16_t vendor_id, uint32_t class_id,
     return NULL;
 }
 
-int PCI_setup()
+void PCI_setup()
 {
     // TODO Register method PCI_search for other modules
-
-    return PCI_detect();
+    PCI_detect();
 }
 
-int PCI_teardown()
+void PCI_teardown()
 {
-    return 0;
 }
+
+
+MODULE(pci, MOD_AGPL, PCI_setup, PCI_teardown);
