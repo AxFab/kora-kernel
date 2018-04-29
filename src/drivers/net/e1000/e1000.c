@@ -157,8 +157,6 @@ int e1000_read_mac(struct PCI_device *pci, uint8_t *mac)
     return 0;
 }
 
-void x86_delayX(unsigned int microsecond);
-
 void e1000_init_hw(E1000_inet_t *ifnet)
 {
     int i;
@@ -173,17 +171,13 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     if (e1000_read_mac(pci, ifnet->dev.eth_addr) != 0)
         return;
     char tmp[20];
-    kprintf(-1, "%s Read MAC %s\n", ifnet->name, net_ethstr(tmp, ifnet->dev.eth_addr));
+    kprintf(-1, "%s Read MAC \e[92m%s\e[0m\n", ifnet->name, net_ethstr(tmp, ifnet->dev.eth_addr));
 
     /* initialize */
     PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
 
     /* Wait */
-    kprintf(0, "Ethernet driver will pause\n");
     task_wait(NULL, 1000000); // 1 sec
-    kprintf(0, "Ethernet driver will resume\n");
-
-    // x86_delayX(1000000);
 
     uint32_t status = PCI_rd32(pci, 0, REG_CTRL);
     status |= (1 << 5);   /* set auto speed detection */
@@ -205,10 +199,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     PCI_wr32(pci, 0, REG_CTRL, status);
 
     /* Wait */
-    kprintf(0, "Ethernet driver will pause\n");
     task_wait(NULL, 1000000); // 1 sec
-    kprintf(0, "Ethernet driver will resume\n");
-
 
     // kprintf(0, "Check E1000 IRQ = %d\n", PCI_cfg_rd16(pci, PCI_INTERRUPT_LINE) & 0xFF);
     irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
@@ -260,10 +251,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     PCI_wr32(pci, 0, REG_IMC, 0xFF);
     PCI_wr32(pci, 0, REG_IMS, _B(0) | _B(1) | _B(2) | _B(6) | _B(7));
 
-    kprintf(0, "Ethernet driver will pause\n");
     task_wait(NULL, 1000000); // 1 sec
-    kprintf(0, "Ethernet driver will resume\n");
-
 
     int link_is_up = PCI_rd32(pci, 0, REG_STATUS) & (1 << 1);
     kprintf(0, "%s, DONE %d \n", ifnet->name, link_is_up);
@@ -285,8 +273,8 @@ void e1000_start(E1000_inet_t *ifnet)
 
 
     for (;;) {
-        x86_delayX(10000000);
-        kprintf(0, "E1000's waiting...");
+        task_wait(NULL, 1000000); // 1 sec
+        kprintf(0, "E1000's waiting...\n");
     }
 }
 
@@ -301,7 +289,7 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     ifnet->dev.max_packet_size = 1500;
     splock_init(&ifnet->lock);
 
-    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VMA_FG_PHYS);
+    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VMA_PHYSIQ);
     kprintf(-1, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
 
     ifnet->rx_base = kmap(4096, NULL, 0, VMA_ANON_RW | VMA_RESOLVE);

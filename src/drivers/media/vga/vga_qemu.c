@@ -1,4 +1,6 @@
 #include <kernel/core.h>
+#include <kernel/files.h>
+#include <kernel/vfs.h>
 #include <kernel/drv/pci.h>
 
 #define VGA_PORT_CMD 0x1CE
@@ -99,11 +101,24 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
     uint32_t mem = i > 1 ? (uint32_t)i * 64 * 1024 : inl(VGA_PORT_DATA);
     kprintf(0, "VGA Memory size %s \n", sztoa(mem));
 
-    uint32_t pixels = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VMA_FG_PHYS);
-    kprintf(-1, "%s MMIO mapped at %x\n", info->name, pci->bar[0].mmio);
+    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VMA_PHYSIQ);
+
+    uint32_t pixels0 = pci->bar[0].mmio;
+    kprintf(-1, "%s MMIO mapped at %x\n", info->name, pixels0);
 
     // Load surface device !
     i = 20;
     while (size[i*2] * size[i*2+1] * 8U > mem) --i;
     vga_change_resol(size[i*2], size[i*2+1]);
+
+    surface_t *screen = vds_create_empty(size[i*2], size[i*2+1], 4);
+    uint32_t pixels1 = pixels0 + screen->pitch * screen->height;
+    // screen->pixels = (uint8_t*)pixels1;
+    // vds_fill(screen, 0xa61010);
+    screen->pixels = (uint8_t*)pixels0;
+    // vds_fill(screen, 0xa6a610);
+    // vga_change_offset(screen->height / 2);
+    // inode_t *ino = vfs_inode(0, );
+
+    wmgr_add_display(screen);
 }

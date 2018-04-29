@@ -49,16 +49,23 @@ struct bitmap_font {
 
 
 void tty_write(tty_t *tty, const char *str, int lg);
+void tty_attach(tty_t *tty, surface_t *win, const font_t *font, const uint32_t *colors, int iv);
 tty_t *tty_create(surface_t *win, const font_t *font, const uint32_t *colors, int iv);
 void tty_destroy(tty_t *tty);
-void tty_paint(tty_t *tty);
-void tty_scroll(tty_t *tty, int count);
+// void tty_paint(tty_t *tty);
+// void tty_scroll(tty_t *tty, int count);
 
 
 void vds_fill(surface_t *win, uint32_t color);
 void vds_copy(surface_t *dest, surface_t *src, int x, int y);
+surface_t *vds_create_empty(int width, int height, int depth);
 surface_t *vds_create(int width, int height, int depth);
 void vds_destroy(surface_t *srf);
+
+
+
+void wmgr_add_display(surface_t *screen);
+surface_t *wmgr_window();
 
 
 #endif /* _KERNEL_FILES_H */

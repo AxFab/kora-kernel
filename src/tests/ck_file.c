@@ -175,10 +175,12 @@ void test_VDS()
     TTY("Krish - v1.0 \nKora system interactive shell\n\e[32mfabien\e[0m@\e[32mnuc\e[0m:\e[36m~\e[0m/> ");
 
     tty_destroy(tty);
-    tty = tty_create(w2, &font_6x9, colors_std, 1);
+    tty = tty_create(NULL, &font_6x9, colors_std, 1);
 
     TTY("Kora Test\nVFS #1 - OK\nVFS #2 - OK\n");
 
+    tty_attach(tty, w2, &font_6x9, colors_std, 1);
+    tty_paint(tty);
     tty_destroy(tty);
 
     vds_fill(w3, 0xf2f2f2);

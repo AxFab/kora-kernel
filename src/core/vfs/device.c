@@ -46,9 +46,9 @@ int vfs_mkdev(CSTR name, device_t *dev, inode_t *ino)
     dev->ino = vfs_open(ino);
     ino->dev = dev;
     if (S_ISBLK(ino->mode) && ino->length)
-        kprintf(-1, "%s %s %s <%s>\n", dev->class, dev->vendor ? dev->vendor : "", sztoa(ino->length), name);
+        kprintf(-1, "%s %s %s <\e[33m%s\e[0m>\n", dev->class, dev->vendor ? dev->vendor : "", sztoa(ino->length), name);
     else
-        kprintf(-1, "%s %s <%s>\n", dev->class, dev->vendor ? dev->vendor : "", name);
+        kprintf(-1, "%s %s <\e[33m%s\e[0m>\n", dev->class, dev->vendor ? dev->vendor : "", name);
 
     ll_append(&dev_list, &dev->node);
     // TODO -- Use id to check if we know the device

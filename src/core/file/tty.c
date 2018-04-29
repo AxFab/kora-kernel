@@ -149,8 +149,10 @@ static void tty_paint_line(tty_t *tty, line_t *line, const char *str)
     }
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 /* Re-paint the all TTY */
-static void tty_paint(tty_t *tty)
+void tty_paint(tty_t *tty)
 {
     if (tty->win == NULL)
         return;
@@ -164,7 +166,7 @@ static void tty_paint(tty_t *tty)
     }
 }
 
-static void tty_scroll(tty_t *tty, int count)
+void tty_scroll(tty_t *tty, int count)
 {
     while (count > 0) {
         if (tty->top->next == NULL)
@@ -181,8 +183,6 @@ static void tty_scroll(tty_t *tty, int count)
         tty->row--;
     }
 }
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void tty_write(tty_t *tty, const char *str, int len)
 {
@@ -259,6 +259,7 @@ tty_t *tty_create(surface_t *win, const font_t *font, const uint32_t *colors, in
     tty->top->row = 0;
     tty->top->str = kalloc(1);
     tty->last = tty->top;
+    tty_paint(tty);
     return tty;
 }
 

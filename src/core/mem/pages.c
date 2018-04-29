@@ -55,10 +55,6 @@ void page_initialize()
 
     // Enable MMU
     mmu_enable();
-
-    kprintf (-1, "Memory available %s over ",
-             sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
-    kprintf (-1, "%s\n", sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
 }
 
 void page_range(long long base, long long length)
@@ -228,8 +224,7 @@ int page_resolve(mspace_t *mspace, size_t address, size_t length)
     off_t offset = vma->offset + (address - vma->node.value_);
     if ((vma->flags & VMA_TYPE) == VMA_PHYS) {
         page = offset;
-        kprintf(-1, "[MEM ] Page resolve for physical pages at [%x] (%s).\n", address,
-                sztoa(length));
+        // kprintf(-1, "[MEM ] Page resolve for physical pages at [%x] (%s).\n", address, sztoa(length));
         while (length > 0) {
             mmu_resolve(address, page, vma->flags, false);
             page += PAGE_SIZE;
@@ -239,8 +234,7 @@ int page_resolve(mspace_t *mspace, size_t address, size_t length)
     } else if ((vma->flags & VMA_TYPE) == VMA_HEAP ||
                (vma->flags & VMA_TYPE) == VMA_STACK ||
                (vma->flags & VMA_TYPE) == VMA_ANON) {
-        kprintf(-1, "[MEM ] Page resolve for blank pages at [%x] (%s).\n", address,
-                sztoa(length));
+        // kprintf(-1, "[MEM ] Page resolve for blank pages at [%x] (%s).\n", address, sztoa(length));
         while (length > 0) {
             mmu_resolve(address, page_new(), vma->flags, true);
             address += PAGE_SIZE;

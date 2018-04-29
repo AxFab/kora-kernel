@@ -228,9 +228,3 @@ void cpu_setup_x86 ()
     outb(0xA1, 0x0);
 
 }
-
-void cpu_setup_core_x86()
-{
-    kprintf(-1, "Cpu [%d] ready.\n", cpu_no());
-    // TODO - Prepare structure - Compute TSS
-}

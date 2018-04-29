@@ -78,7 +78,7 @@
 #define VMA_FG_STACK  (VMA_RW | VMA_STACK)
 #define VMA_FG_HEAP  (VMA_RW | VMA_HEAP)
 #define VMA_FG_ANON  (VMA_RW | VMA_ANON)
-#define VMA_FG_PHYS  (VMA_RW | VMA_PHYS)
+// #define VMA_FG_PHYS  (VMA_RW | VMA_PHYS)
 #define VMA_FG_FIFO  (VMA_RW | VMA_ANON)
 
 #define VMA_FG_RW_FILE  (VMA_RW | VMA_FILE)
@@ -88,7 +88,7 @@
 #define VMA_FILE_RW  (VMA_RW | VMA_FILE)
 
 #define VMA_ANON_RW  (VMA_RW | VMA_ANON)
-
+#define VMA_PHYSIQ   (VMA_RW | VMA_PHYS | VMA_RESOLVE)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
