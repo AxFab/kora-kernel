@@ -20,6 +20,7 @@
 #include <kernel/net.h>
 #include <string.h>
 
+static int net_no = 0;
 
 void net_tasklet(netdev_t *ifnet)
 {
@@ -39,7 +40,11 @@ void net_tasklet(netdev_t *ifnet)
 
 int net_device(netdev_t *ifnet)
 {
+    ifnet->no = ++net_no;
     splock_init(&ifnet->lock);
+    char tmp[20];
+    kprintf(-1, "Network interface (eth%d) - MAC: \e[92m%s\e[0m\n", ifnet->no, net_ethstr(tmp, ifnet->eth_addr));
+
     return 0;
 }
 
@@ -86,7 +91,7 @@ int net_send(skb_t *skb)
 /* Trash a faulty tx packet */
 int net_trash(skb_t *skb)
 {
-    kprintf(0, "Error on packet %s \n", skb->log);
+    kprintf(KLOG_NET, "Error on packet %s \n", skb->log);
     skb->ifnet->tx_packets++;
     skb->ifnet->tx_dropped++;
     kfree(skb);
@@ -113,7 +118,7 @@ int net_write(skb_t *skb, const void *buf, int len)
 {
     if (skb->err)
         return -1;
-    if (skb->pen + len > skb->ifnet->max_packet_size) {
+    if (skb->pen + len > skb->ifnet->mtu) {
         skb->err |= NET_ERR_OVERFILL;
         return -1;
     }
@@ -137,3 +142,19 @@ char *net_ip4str(char *buf, uint8_t *ip)
     snprintf(buf, 16, "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
     return buf;
 }
+
+void net_print(netdev_t *ifnet)
+{
+    char buf[20];
+    kprintf(KLOG_DBG, "eth%d:  flags <%s>  mtu %d\n", ifnet->no,
+        ifnet->flags & NET_CONNECTED ? "UP" : "",
+        ifnet->flags & NET_QUIET ? "QUIET" : "",
+        ifnet->mtu);
+    kprintf(KLOG_DBG, "    MAC address %s\n", net_ethstr(buf, ifnet->eth_addr));
+    kprintf(KLOG_DBG, "    IP address %s\n", net_ip4str(buf, ifnet->ip4_addr));
+    kprintf(KLOG_DBG, "    RX packets %d   bytes %d (%s)\n", ifnet->rx_packets, ifnet->rx_bytes, sztoa(ifnet->rx_bytes));
+    kprintf(KLOG_DBG, "    RX errors %d   dropped %d\n", ifnet->rx_errors, ifnet->rx_dropped);
+    kprintf(KLOG_DBG, "    TX packets %d   bytes %d (%s)\n", ifnet->tx_packets, ifnet->tx_bytes, sztoa(ifnet->tx_bytes));
+    kprintf(KLOG_DBG, "    TX errors %d   dropped %d\n", ifnet->tx_errors, ifnet->tx_dropped);
+}
+

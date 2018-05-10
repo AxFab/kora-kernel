@@ -189,7 +189,7 @@ inode_t *isofs_mount(inode_t *dev)
                 kfree (volume);
             }
 
-            kprintf(-1, " isofs -- Not a volume descriptor at lba %d\n", lba);
+            kprintf(KLOG_DBG, " isofs -- Not a volume descriptor at lba %d\n", lba);
             kunmap(address, addressCnt * 2048);
             errno = EBADF;
             return NULL;
@@ -222,7 +222,7 @@ inode_t *isofs_mount(inode_t *dev)
             if (volume) {
                 kfree (volume);
             }
-            kprintf(-1, " isofs -- Bad volume descriptor id %d\n", descriptor->type);
+            kprintf(KLOG_DBG, " isofs -- Bad volume descriptor id %d\n", descriptor->type);
             kunmap(address, addressCnt * 2048);
             errno = EBADF;
             return NULL;

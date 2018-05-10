@@ -11,8 +11,8 @@
 
 void task_core(task_t *task)
 {
-    kprintf(0, "Task Core %d =========================\n", task->pid);
-    mspace_display(0, task->usmem);
+    kprintf(KLOG_DBG, "Task Core %d =========================\n", task->pid);
+    mspace_display(task->usmem);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -57,7 +57,7 @@ void task_leave_sys()
 void task_start(task_t *task, size_t entry, long args)
 {
     if (task->state != TS_ZOMBIE) {
-        kprintf(-1, "[TASK] Try to grab a used task.");
+        kprintf(KLOG_ERR, "[TASK] Try to grab a used task.");
         return;
     }
 
@@ -170,14 +170,14 @@ void task_signals()
         sig_handler_t *sig = &task->shandler[sn];
 
         if (sn == SIGKILL) {
-            kprintf(0, "[TSK ] Task %d recived SIGKILL\n", task->pid);
+            kprintf(KLOG_TSK, "[TSK ] Task %d recived SIGKILL\n", task->pid);
             task_stop(task, -2);
             scheduler_next();
         } else if (sig->type == SIG_IGN) {
             continue;
         } else if (sig->type == SIG_DFL) {
             if (sn == SIGHUP || sn == SIGINT || sn == SIGQUIT || sn == SIGSEGV) {
-                kprintf(0, "[TSK ] Task %d recived killed %d\n", task->pid, sn);
+                kprintf(KLOG_TSK, "[TSK ] Task %d recived SIG #%d\n", task->pid, sn);
                 task_core(task);
                 task_stop(task, -2);
                 scheduler_next();
@@ -185,7 +185,7 @@ void task_signals()
             }
         } else {
             // TODO -- Ensure sig->type is placed on user memory space.
-            kprintf(0, "[TSK ] Signal custum routine PID:%d\n", kCPU.running->pid);
+            kprintf(KLOG_TSK, "[TSK ] Signal custum routine PID:%d\n", kCPU.running->pid);
             cpu_setup_signal(task, (size_t)sig->type, sn);
         }
     }
@@ -230,12 +230,14 @@ static pid_t task_new_pid()
     return pid;
 }
 
-task_t *task_create(user_t *user, inode_t *root, int flags)
+task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
 {
     task_t *task = task_allocat();
     task->pid = task_new_pid();
     task->user = user;
 
+    kprintf(KLOG_TSK, "Create %s task #%d, %s\n",
+        flags & TSK_USER_SPACE ? "user" : "kernel", task->pid, name);
     task->root = root ? vfs_open(root) : NULL;
     task->pwd = root ? vfs_open(root) : NULL;
     task->resx = resx_create();

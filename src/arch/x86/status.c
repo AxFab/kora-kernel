@@ -103,7 +103,7 @@ void sys_call_x86(regs_t *regs)
 
     task_enter_sys(regs, false);
     // kTSK.regs = regs;
-    // kprintf(-1, "[x86 ] SYS CALL\n");
+    // kprintf(KLOG_DBG, "[x86 ] SYS CALL\n");
     long ret = kernel_scall(regs->eax, regs->ecx, regs->edx, regs->ebx, regs->esi,
                             regs->edi);
     regs->eax = ret;
@@ -117,7 +117,7 @@ void sys_wait_x86(regs_t *regs)
 {
     assert(kCPU.running);
     task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
-    // kprintf(-1, "[x86 ] SYS WAIT\n");
+    // kprintf(KLOG_DBG, "[x86 ] SYS WAIT\n");
     task_pause(TS_INTERRUPTIBLE);
     task_signals();
     task_leave_sys();
@@ -127,7 +127,7 @@ void sys_sigret_x86(regs_t *regs)
 {
     assert(kCPU.running);
     task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
-    // kprintf(-1, "[x86 ] SYS SIG_RETURN\n");
+    // kprintf(KLOG_DBG, "[x86 ] SYS SIG_RETURN\n");
     cpu_return_signal(kCPU.running, regs);
     task_signals();
     task_leave_sys();
@@ -138,7 +138,7 @@ void cpu_exception_x86(int no, regs_t *regs)
     assert(no >= 0 && no <= 20);
 
     task_enter_sys(NULL, regs->cs == SGM_CODE_KERNEL);
-    kprintf(-1, "[x86 ] Detected a cpu exception: %d - %s\n", no,
+    kprintf(KLOG_ERR, "[x86 ] Detected a cpu exception: %d - %s\n", no,
             signal_exception_x86[no].name);
     if (regs->cs == SGM_CODE_KERNEL) {
         // TODO -- If a module is responsable, close this module and send an alert.
@@ -180,9 +180,9 @@ void page_fault_x86(size_t address, int code, regs_t *regs)
     } else {
         reason = PGFLT_ERROR;
     }
-    // kprintf(0, "[CPU ] #PF %08x (%o)\n", address, code);
+    // kprintf(KLOG_DBG, "[CPU ] #PF %08x (%o)\n", address, code);
     int ret = page_fault(mem, address, reason);
-    kprintf(0, "\e[91m#PF\e[0m at %08x\n", address);
+    // kprintf(KLOG_PF, "\e[91m#PF\e[0m at %08x\n", address);
     if (ret < 0) {
         if (kCPU.running) {
             task_kill(kCPU.running, SIGSEGV);
@@ -199,7 +199,7 @@ void sys_irq_x86(int no, regs_t *regs)
 {
     task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
     // kTSK.regs = regs;
-    // kprintf(-1, "[x86 ] IRQ %d\n", no);
+    // kprintf(KLOG_DBG, "[x86 ] IRQ %d\n", no);
     // bufdump(regs, 0x60);
     sys_irq(no);
     kCPU.io_elapsed += cpu_elapsed(&kCPU.last);

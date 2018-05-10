@@ -134,7 +134,7 @@ int task_resume(task_t *task);
 _Noreturn int task_pause(int state);
 void task_signals();
 
-task_t *task_create(user_t *user, inode_t *root, int flags);
+task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name);
 task_t *task_clone(task_t *model, int clone, int flags);
 task_t *task_search(pid_t pid);
 

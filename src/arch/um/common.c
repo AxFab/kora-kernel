@@ -146,7 +146,7 @@ void kunmap(void *address, size_t length)
 
 void kpanic(const char *msg, ...)
 {
-    kprintf(0, "\033[31m;Kernel panic: %s \033[0m;\n", msg);
+    kprintf(KLOG_ERR, "\033[31m;Kernel panic: %s \033[0m;\n", msg);
     abort();
 }
 

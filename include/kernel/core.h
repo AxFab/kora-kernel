@@ -57,22 +57,33 @@ void kernel_start();
 void kernel_ready();
 void kernel_sweep();
 
+void kernel_tasklet(void* start, long arg, CSTR name);
+
 int rand(void);
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 int sprintf(char *str, const char *format, ...);
 int snprintf(char *, int, const char *, ...);
+int vsnprintf(char *, int, const char *, va_list ap);
 int vprintf(const char *format, va_list ap);
 
 void *malloc(size_t size);
 void free(void *ptr);
 
 page_t mmu_read(size_t vaddress);
-void kdump(int no, const void *buf, int len);
+void kdump(const void *buf, int len);
 void task_core(task_t *task);
 void task_wait(void *listener, long timeout_ms);
 
-task_t *task_create(user_t *user, inode_t *root, int flags);
-void task_start(task_t *task, size_t entry, long args);
+#define KLOG_MSG 0 // Regular messages
+#define KLOG_DBG 1 // Debug information
+#define KLOG_ERR 2 // Errors
+#define KLOG_MEM 3 // Memory information
+#define KLOG_IRQ 4 // IRQ information
+#define KLOG_PF 5 // Page fault and resolution info
+#define KLOG_SYC 6 // Syscall trace
+#define KLOG_NET 7 // Network packets
+#define KLOG_TSK 8 // Task information
+#define KLOG_USR 9 // User syslog
 
 typedef struct kmod kmod_t;
 struct kmod {

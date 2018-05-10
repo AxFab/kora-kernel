@@ -58,8 +58,8 @@ typedef struct E1000_inet {
 
 int e1000_send(E1000_inet_t *ifnet, skb_t *skb)
 {
-    kprintf(0, "REQUEST SEND NETWORK %s (%d)\n", skb->log, skb->length);
-    kdump(0, skb->buf, skb->length);
+    kprintf(KLOG_DBG, "REQUEST SEND NETWORK %s (%d)\n", skb->log, skb->length);
+    kdump(skb->buf, skb->length);
     splock_lock(&ifnet->lock);
     struct PCI_device *pci = ifnet->pci;
     ifnet->tx_index = PCI_rd32(pci, 0, REG_TDT);
@@ -78,24 +78,26 @@ int e1000_irq_handler(E1000_inet_t *ifnet)
 {
     struct PCI_device *pci = ifnet->pci;
     uint32_t status = PCI_rd32(pci, 0, 0xc0);
-    kprintf(0, "%s IRQ status: %x\n", ifnet->name, status);
+    kprintf(KLOG_DBG, "%s IRQ status: %x\n", ifnet->name, status);
     if (status == 0)
-        return 0;
+        return -1;
 
     if (status & 0x04) {
-        kprintf(0, "%s Link status change \n", ifnet->name);
+        ifnet->dev.flags |= NET_CONNECTED;
+        // int link_up = PCI_rd32(pci, 0, REG_STATUS) & (1 << 1)
+        kprintf(KLOG_DBG, "%s Link UP \n", ifnet->name);
     } else if (status & 0x10) {
-        kprintf(0, "%s Min thresohold RX hit \n", ifnet->name);
+        kprintf(KLOG_DBG, "%s Min thresohold RX hit \n", ifnet->name);
         // Send ICMP command 3 !?
     } else if (status & 0xC0) {
-        kprintf(0, "%s Receive ticks \n", ifnet->name);
+        kprintf(KLOG_DBG, "%s Receive ticks \n", ifnet->name);
         // uint16_t old_idx;
         // while (ifnet->rx_descs[ifnet->rx_index].status & 1) {
             // uint8_t *buffer =
             //     ifnet->rx_bufs[card->rx_cur]; // (uint8_t*)card->rx_descs[card->rx_cur].address;
             // uint16_t length = card->rx_descs[card->rx_cur].length;
 
-            // kprintf(0, "E1000] Received packet (%d bytes)\n", length);
+            // kprintf(KLOG_DBG, "E1000] Received packet (%d bytes)\n", length);
             // net_receive(ndev, buffer, length); // Inject new packet on network stack
 
             // card->rx_descs[card->rx_cur].status = 0;
@@ -103,7 +105,6 @@ int e1000_irq_handler(E1000_inet_t *ifnet)
             // card->rx_cur = (card->rx_cur + 1) % card->rx_count;
             // PCI_write(card->pci, REG_RDT, old_cur);
         // }
-
     }
     return 0;
 }
@@ -161,20 +162,6 @@ void e1000_init_hw(E1000_inet_t *ifnet)
 {
     int i;
     struct PCI_device *pci = ifnet->pci;
-
-    /* PCI Init command */
-    uint16_t cmd = PCI_cfg_rd16(pci, PCI_COMMAND);
-    cmd |= (1 << 2) | (1 << 0);
-    PCI_cfg_wr32(pci, PCI_COMMAND, cmd);
-
-    /* Find MAC address */
-    if (e1000_read_mac(pci, ifnet->dev.eth_addr) != 0)
-        return;
-    char tmp[20];
-    kprintf(-1, "%s Read MAC \e[92m%s\e[0m\n", ifnet->name, net_ethstr(tmp, ifnet->dev.eth_addr));
-
-    /* initialize */
-    PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
 
     /* Wait */
     task_wait(NULL, 1000000); // 1 sec
@@ -251,10 +238,9 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     PCI_wr32(pci, 0, REG_IMC, 0xFF);
     PCI_wr32(pci, 0, REG_IMS, _B(0) | _B(1) | _B(2) | _B(6) | _B(7));
 
-    task_wait(NULL, 1000000); // 1 sec
-
-    int link_is_up = PCI_rd32(pci, 0, REG_STATUS) & (1 << 1);
-    kprintf(0, "%s, DONE %d \n", ifnet->name, link_is_up);
+    // task_wait(NULL, 1000000); // 1 sec
+    // if (PCI_rd32(pci, 0, REG_STATUS) & (1 << 1))
+    // kprintf(0, "%s, DONE %d \n", ifnet->name, link_is_up);
 
     ifnet->dev.send = (void*)e1000_send;
 
@@ -263,6 +249,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
 void e1000_start(E1000_inet_t *ifnet)
 {
     e1000_init_hw(ifnet);
+    // net_tasket(ifnet);
 
     ifnet->dev.ip4_addr[0] = 192;
     ifnet->dev.ip4_addr[1] = 168;
@@ -274,7 +261,7 @@ void e1000_start(E1000_inet_t *ifnet)
 
     for (;;) {
         task_wait(NULL, 1000000); // 1 sec
-        kprintf(0, "E1000's waiting...\n");
+        // kprintf(0, "E1000's waiting...\n");
     }
 }
 
@@ -286,11 +273,11 @@ void e1000_startup(struct PCI_device *pci, const char *name)
 
     ifnet->pci = pci;
     ifnet->name = name;
-    ifnet->dev.max_packet_size = 1500;
+    ifnet->dev.mtu = 1500;
     splock_init(&ifnet->lock);
 
     pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VMA_PHYSIQ);
-    kprintf(-1, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
+    kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
 
     ifnet->rx_base = kmap(4096, NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
     ifnet->rx_phys = mmu_read((size_t)ifnet->rx_base);
@@ -318,8 +305,23 @@ void e1000_startup(struct PCI_device *pci, const char *name)
         ifnet->tx_base[i].cmd = (1 << 0);
     }
 
-    task_t *task = task_create(NULL, NULL, 0);
-    task_start(task, (size_t)&e1000_start, (long)ifnet);
+    /* PCI Init command */
+    uint16_t cmd = PCI_cfg_rd16(pci, PCI_COMMAND);
+    cmd |= (1 << 2) | (1 << 0);
+    PCI_cfg_wr32(pci, PCI_COMMAND, cmd);
+
+    /* Find MAC address */
+    if (e1000_read_mac(pci, ifnet->dev.eth_addr) != 0)
+        return;
+
+    net_device(&ifnet->net);
+
+    /* initialize */
+    PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
+
+
+
+    kernel_tasklet(&e1000_start, (long)ifnet, "Ethernet");
 
 }
 
@@ -395,7 +397,7 @@ void e1000_setup()
         if (pci == NULL)
             break;
         name = "Intel PRO/1000";
-        kprintf(0, "Found %s (PCI.%02d.%02d)\n", name, pci->bus, pci->slot);
+        // kprintf(0, "Found %s (PCI.%02d.%02d)\n", name, pci->bus, pci->slot);
         e1000_startup(pci, name);
     }
 }

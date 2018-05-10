@@ -279,7 +279,7 @@ void vfs_close(inode_t *ino)
     }
 
     // if (cnt == ino->links + 1) {
-    //     kprintf(-1, "Only links for %d \n", ino->no);
+    //     kprintf(KLOG_DBG, "Only links for %d \n", ino->no);
     //     // vfs_dirent_rcu(ino);
     //     // Push dirent on LRU !?
     // }

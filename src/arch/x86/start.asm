@@ -375,8 +375,6 @@ x86_syssigret:
     push %1
     call sys_irq_x86
     add esp, 8
-    mov al,0x20
-    out 0x20,al
     LOAD_REGS
     iret
 %endmacro

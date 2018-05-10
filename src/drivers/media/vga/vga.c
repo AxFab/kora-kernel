@@ -51,7 +51,7 @@ void vga_setup()
         if (pci == NULL)
             break;
         struct device_id *info = vga_pci_info(pci);
-        kprintf(0, "Found %s (PCI.%02d.%02d)\n", info->name, pci->bus, pci->slot);
+        // kprintf(0, "Found %s (PCI.%02d.%02d)\n", info->name, pci->bus, pci->slot);
         info->start(pci, info);
     }
 }

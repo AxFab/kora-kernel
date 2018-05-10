@@ -24,7 +24,7 @@ void PIT_set_interval(unsigned frequency)
     outb(PIT_CH0, divisor & 0xff);   /* Set low byte of divisor */
     outb(PIT_CH0, (divisor >> 8) & 0xff);     /* Set high byte of divisor */
 
-    kprintf (0, "Set ticks: %d Hz\n", PIT_frequency);
+    kprintf (KLOG_MSG, "Set cpu ticks frequency: %d Hz\n", PIT_frequency);
 }
 
 

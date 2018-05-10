@@ -15,7 +15,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 NAME=kora-kernel
-VERSION=1.0-$(GIT)
+VERSION=0.0-$(GIT)
 
 include $(srcdir)/drivers/drivers.mk
 
@@ -111,12 +111,11 @@ DV_UTILS += $(bindir)/kImg
 
 # T E S T I N G   U T I L I T I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ckVfs_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
-ckVfs_src-y += $(wildcard $(srcdir)/libc/*.c)
+ckVfs_src-y += $(srcdir)/libc/bbtree.c
 ckVfs_src-y += $(drv_src-y)
 ckVfs_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckVfs_src-y += $(srcdir)/core/debug.c
 ckVfs_src-y += $(srcdir)/tests/ck_vfs.c
-ckVfs_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
 ckVfs_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckVfs,std))
 DV_UTILS += $(bindir)/ckVfs
@@ -124,24 +123,23 @@ DV_UTILS += $(bindir)/ckVfs
 # -------------------------
 
 ckMem_src-y += $(wildcard $(srcdir)/core/mem/*.c)
-ckMem_src-y += $(wildcard $(srcdir)/libc/*.c)
+ckMem_src-y += $(srcdir)/libc/bbtree.c
 ckMem_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckMem_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/mmu.c
 ckMem_src-y += $(srcdir)/tests/ck_mem.c
-ckMem_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
+ckMem_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckMem,std))
 DV_UTILS += $(bindir)/ckMem
 
 # -------------------------
 
 ckFile_src-y += $(wildcard $(srcdir)/core/file/*.c)
-ckFile_src-y += $(wildcard $(srcdir)/libc/*.c)
+# ckFile_src-y += $(wildcard $(srcdir)/libc/*.c)
 ckFile_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckFile_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/mmu.c
 ckFile_src-y += $(srcdir)/tests/ck_file.c
-ckFile_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
+# ckFile_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
 ckFile_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-# `pkg-config --libs cairo x11`
 $(eval $(call link,ckFile,std))
 DV_UTILS += $(bindir)/ckFile
 

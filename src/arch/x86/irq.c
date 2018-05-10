@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdatomic.h>
+#include <kernel/core.h>
 
 bool irq_enable();
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -37,3 +38,16 @@ void irq_disable()
         ++irq_sem;
     }
 }
+
+#define PIC1_CMD 0x20
+#define PIC2_CMD 0xA0
+#define PIC_EOI 0x20
+
+void irq_ack(int no)
+{
+    if (no >= 8)
+        outb(PIC2_CMD, PIC_EOI);
+    outb(PIC1_CMD, PIC_EOI);
+}
+
+

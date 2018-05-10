@@ -1,6 +1,6 @@
 #include <kernel/core.h>
-#include <cairo.h>
-#include <cairo-xlib.h>
+// #include <cairo.h>
+// #include <cairo-xlib.h>
 
 
 // void seat_fb0(int width, int height, int format, int pitch, void* mmio);

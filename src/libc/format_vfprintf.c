@@ -355,11 +355,11 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
                 lg -= 2;
             }
 
-            if (str[-1] & 32) {
+            if (str[-1] & 32)
                 _utoa(arg.i, tmp, 16, _utoa_digits);
-            } else {
+            else
                 _utoa(arg.i, tmp, 16, _utoa_digitsX);
-            }
+
 
             break;
 
@@ -378,10 +378,8 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
                 _utoa(arg.s, tmp, 10, _utoa_digits);
             } else {
                 lg--;
-
-                if (fp->write(fp, "-", 1) < 0) {
+                if (fp->write(fp, "-", 1) < 0)
                     return -1;
-                }
 
                 _utoa(-arg.s, tmp, 10, _utoa_digits);
             }
@@ -391,10 +389,8 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
         case 'c':
             ch = (char)arg.s;
 
-            if (fp->write(fp, &ch, 1) < 0) {
+            if (fp->write(fp, &ch, 1) < 0)
                 return -1;
-            }
-
             break;
 
         case 's':
@@ -405,10 +401,8 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
 
             lg = strlen((char *)arg.p);
 
-            if (fp->write(fp, (char *)arg.p, lg) < 0) {
+            if (lg > 0 && fp->write(fp, (char *)arg.p, lg) < 0)
                 return -1;
-            }
-
             break;
         }
 

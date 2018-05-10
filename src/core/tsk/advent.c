@@ -16,14 +16,14 @@ llhead_t wlist;
 splock_t wlock;
 time64_t wtime = INT64_MAX;
 
-void task_wait(void *listener, long timeout_ms)
+void task_wait(void *listener, long timeout_us)
 {
     assert(kCPU.running != NULL);
     advent_t *advent = (advent_t*)kalloc(sizeof(advent_t));
     advent->listener = listener;
     advent->task = kCPU.running;
-    if (timeout_ms > 0)
-        advent->timeout = time64() + timeout_ms;
+    if (timeout_us > 0)
+        advent->timeout = time64() + timeout_us;
     else
         advent->timeout = INT64_MAX;
 
@@ -40,7 +40,6 @@ void task_wait(void *listener, long timeout_ms)
 void task_wakeup_timeout()
 {
     time64_t now = time64();
-    // kprintf(0, "TIME %lld / %lld \n", now, wtime);
     if (time64() < wtime)
         return;
     if (!splock_trylock(&wlock))
@@ -53,6 +52,7 @@ void task_wakeup_timeout()
             /* Wakup task and mark as timeout */
             ll_remove(&wlist, &advent->t_node);
             task_resume(advent->task);
+            kfree(advent);
         } else if (advent->timeout < next) {
             next = advent->timeout;
         }

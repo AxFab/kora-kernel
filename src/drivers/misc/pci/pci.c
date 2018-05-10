@@ -254,16 +254,16 @@ static void PCI_check_device(uint8_t bus, uint8_t slot)
     const char *vendor_name = PCI_vendor_name(vendor_id);
     const char *class_name = PCI_class_name(device_stack[dev_sp].class_id);
 
-    kprintf(0, "PCI.%02x.%02x ", bus, slot);
+    kprintf(KLOG_MSG, "PCI.%02x.%02x ", bus, slot);
     if (vendor_name != NULL)
-        kprintf(0, " %s", vendor_name);
+        kprintf(KLOG_MSG, " %s", vendor_name);
     if (class_name != NULL)
-        kprintf(0, " %s", class_name);
-    kprintf(0, " (%04x.%05x.%04x) ", vendor_id, device_stack[dev_sp].class_id, device_stack[dev_sp].device_id);
+        kprintf(KLOG_MSG, " %s", class_name);
+    kprintf(KLOG_MSG, " (%04x.%05x.%04x) ", vendor_id, device_stack[dev_sp].class_id, device_stack[dev_sp].device_id);
 
     if (device_stack[dev_sp].irq != 0)
-        kprintf(0, " IRQ%d", device_stack[dev_sp].irq);
-    kprintf(0, "\n");
+        kprintf(KLOG_MSG, " IRQ%d", device_stack[dev_sp].irq);
+    kprintf(KLOG_MSG, "\n");
 
     int i;
     for (i = 0; i < 4; ++i) {
@@ -276,16 +276,16 @@ static void PCI_check_device(uint8_t bus, uint8_t slot)
         device_stack[dev_sp].bar[i].base = bar;
         device_stack[dev_sp].bar[i].size = bar_sz;
 
-        // if ((bar & 3) != 0) {
-        //     kprintf(0, "          IO region #%d: %x..%x \n", i, bar & 0xFFFFFFFC,
-        //             (bar & 0xFFFFFFFC) + bar_sz + 1);
-        // } else if (bar & 8) {
-        //     kprintf(0, "          MMIO PREFETCH region #%d: %08x..%08x\n", i, bar & ~15,
-        //             (bar & ~15) + bar_sz + 8);
-        // } else if (bar_sz != 0) {
-        //     kprintf(0, "          MMIO region #%d: %08x..%08x\n", i, bar & ~15,
-        //             (bar & ~15) + bar_sz);
-        // }
+        if ((bar & 3) != 0) {
+            kprintf(KLOG_DBG, "          IO region #%d: %x..%x \n", i, bar & 0xFFFFFFFC,
+                    (bar & 0xFFFFFFFC) + bar_sz + 1);
+        } else if (bar & 8) {
+            kprintf(KLOG_DBG, "          MMIO PREFETCH region #%d: %08x..%08x\n", i, bar & ~15,
+                    (bar & ~15) + bar_sz + 8);
+        } else if (bar_sz != 0) {
+            kprintf(KLOG_DBG, "          MMIO region #%d: %08x..%08x\n", i, bar & ~15,
+                    (bar & ~15) + bar_sz);
+        }
     }
 
     dev_sp++;

@@ -22,7 +22,7 @@ void irq_register(int no, irq_handler_t func, void *data)
     if (no < 0 || no >= 16) {
         return;
     }
-    // kprintf(0, "Register IRQ%d <%08x(%08x)> \n", no, func, data);
+    kprintf(KLOG_IRQ, "Register IRQ%d <%08x(%08x)> \n", no, func, data);
     irq_record_t *record = (irq_record_t *)kalloc(sizeof(irq_record_t));
     record->func = func;
     record->data = data;
@@ -48,15 +48,19 @@ void irq_unregister(int no, irq_handler_t func, void *data)
 
 void sys_irq(int no)
 {
+    irq_disable();
     assert(no >= 0 && no < 16);
     irq_record_t *record;
     if (irqv[no].list.count_ == 0) {
-        // kprintf(-1, "[IRQ ] Received IRQ%d, no handlers.\n", no);
+        irq_ack(no);
+        kprintf(KLOG_IRQ, "Received IRQ%d, no handlers.\n", no);
         return;
     }
     for ll_each(&irqv[no].list, record, irq_record_t, node) {
         record->func(record->data);
     }
+    irq_ack(no);
+    irq_enable();
 }
 
 // #define HZ 100

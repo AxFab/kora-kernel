@@ -35,7 +35,7 @@ void ac97_setup()
         pci = PCI_search2(ac97_match_pci_device);
         if (pci == NULL)
             break;
-        kprintf(0, "Found %s (PCI.%02d.%02d)\n", AC97_NAME, pci->bus, pci->slot);
+        // kprintf(0, "Found %s (PCI.%02d.%02d)\n", AC97_NAME, pci->bus, pci->slot);
         ac97_startup(pci);
     }
 }

@@ -23,7 +23,7 @@
 
 static void vds_rect(surface_t *win, int x, int y, int w, int h, uint32_t color)
 {
-    int i, j, dp = win->bits;
+    int i, j, dp = win->depth;
     for (j = 0; j < h; ++j) {
         for (i = 0; i < w; ++i) {
             win->pixels[(j+y)*win->pitch+(i+x)* dp + 0] = (color >> 0) & 0xFF;
@@ -53,9 +53,13 @@ void vds_fill(surface_t *win, uint32_t color)
 
 void vds_copy(surface_t *dest, surface_t *src, int x, int y)
 {
-    int j, i, dd = dest->bits, ds = src->bits;
+    int j, i, dd = dest->depth, ds = src->depth;
     for (j = 0; j < src->height; ++j) {
+        if (j + y < 0 || j + y >= dest->height)
+            continue;
         for (i = 0; i < src->width; ++i) {
+            if (i + x < 0 || i + x >= dest->width)
+                continue;
             int r, g, b;
             r = src->pixels[(j)*src->pitch+(i)* ds + 2];
             g = src->pixels[(j)*src->pitch+(i)* ds + 1];
@@ -67,6 +71,36 @@ void vds_copy(surface_t *dest, surface_t *src, int x, int y)
     }
 }
 
+static void vds_array(surface_t *win, int x, int y, int sz, uint32_t color)
+{
+    int j, i, dp = win->depth;
+    for (j = 0; j < sz; ++j) {
+        if (j + y < 0 || j + y >= win->height)
+            continue;
+        int n = j - (j < (sz-6) ? 0 : j - (sz-6)) * 3;
+        for (i = 0; i < n; ++i) {
+            if (i + x < 0 || i + x >= win->width)
+                continue;
+            win->pixels[(j+y)*win->pitch+(i+x)* dp + 0] = (color >> 0) & 0xFF;
+            win->pixels[(j+y)*win->pitch+(i+x)* dp + 1] = (color >> 8) & 0xFF;
+            win->pixels[(j+y)*win->pitch+(i+x)* dp + 2] = (color >> 16) & 0xFF;
+        }
+    }
+}
+
+void vds_mouse(surface_t *win, int x, int y)
+{
+    vds_array(win, x, y, 16, 0x000000);
+    vds_array(win, x+1, y+2, 14, 0xFFFFFF);
+}
+
+void vds_flip(surface_t *surface)
+{
+    if (surface->flip)
+        surface->flip(surface);
+}
+
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 surface_t *vds_create_empty(int width, int height, int depth)
@@ -74,7 +108,7 @@ surface_t *vds_create_empty(int width, int height, int depth)
     surface_t *win = (surface_t*)kalloc(sizeof(surface_t));
     win->width = width;
     win->height = height;
-    win->bits = depth;
+    win->depth = depth;
     win->pitch = ALIGN_UP(width * depth, 4);
     return win;
 }
@@ -84,7 +118,7 @@ surface_t *vds_create(int width, int height, int depth)
     surface_t *win = (surface_t*)kalloc(sizeof(surface_t));
     win->width = width;
     win->height = height;
-    win->bits = depth;
+    win->depth = depth;
     win->pitch = ALIGN_UP(width * depth, 4);
     win->pixels = kalloc(height * win->pitch);
     return win;

@@ -111,7 +111,7 @@ int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset)
     lseek(fd, offset, SEEK_SET);
     int r = read(fd, data, size);
     if (errno != 0 || r != (int)size)
-        kprintf(-1, "[IMG ] Read err: %s\n", strerror(errno));
+        kprintf(KLOG_ERR, "[IMG ] Read err: %s\n", strerror(errno));
     splock_unlock(&sdx[ino->lba].lock);
     return 0;
 }
@@ -131,7 +131,7 @@ int imgdk_write(inode_t *ino, const void *data, size_t size, off_t offset)
     lseek(fd, offset, SEEK_SET);
     int r = write(fd, data, size);
     if (errno != 0 || r != (int)size)
-        kprintf(-1, "[IMG ] Write err: %s\n", strerror(errno));
+        kprintf(KLOG_ERR, "[IMG ] Write err: %s\n", strerror(errno));
     splock_unlock(&sdx[ino->lba].lock);
     return 0;
 }

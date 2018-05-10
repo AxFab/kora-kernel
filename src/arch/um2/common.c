@@ -52,7 +52,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
 
     static char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"};
     char sh = flags & VMA_COPY_ON_WRITE ? (flags & VMA_SHARED ? 'W' : 'w') : (flags & VMA_SHARED ? 'S' : 'p');
-    kprintf(-1, " - Krn :: "FPTR"-"FPTR" %s%c {%x}\n", ptr, ptr + length, rights[flags & 7], sh, flags);
+    kprintf(KLOG_MEM, " - Krn :: "FPTR"-"FPTR" %s%c {%x}\n", ptr, ptr + length, rights[flags & 7], sh, flags);
 
     switch (flags & VMA_TYPE) {
     case VMA_FILE:
@@ -65,7 +65,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     case VMA_HEAP:
     case VMA_PHYS:
     default:
-        kprintf(-1, "Error kmap type %x\n", flags & VMA_TYPE);
+        kprintf(KLOG_ERR, "Error kmap type %x\n", flags & VMA_TYPE);
         abort();
     }
 
@@ -89,7 +89,7 @@ void kclock(struct timespec *ts)
 
 void __perror_fail(int err, const char *file, int line, const char *msg)
 {
-    kprintf(-1, "ERROR] Process fails (%d) at %s:%d -- %s\n", err, file, line,
+    kprintf(KLOG_ERR, "ERROR] Process fails (%d) at %s:%d -- %s\n", err, file, line,
             msg);
     abort();
 }

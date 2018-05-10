@@ -27,6 +27,7 @@ struct scall {
     scall_handler handler;
     char name[12];
     uint8_t args[5];
+    bool noreturn;
 };
 
 enum {

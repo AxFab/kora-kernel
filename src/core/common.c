@@ -31,7 +31,7 @@
 
 void __perror_fail(int err, const char *file, int line, const char *msg)
 {
-    kprintf(-1, "ERROR] Process fails (%d) at %s:%d -- %s\n", err, file, line,
+    kprintf(KLOG_ERR, "ERROR] Process fails (%d) at %s:%d -- %s\n", err, file, line,
             msg);
 }
 
@@ -45,7 +45,7 @@ void __perror_fail(int err, const char *file, int line, const char *msg)
  */
 _Noreturn void __assert_fail(const char *expr, const char *file, int line)
 {
-    kprintf(0, "Assertion failed (%s) at %s:%d -- %s\n", expr, file, line);
+    kprintf(KLOG_ERR, "Assertion failed (%s) at %s:%d -- %s\n", expr, file, line);
     task_t *task = kCPU.running;
     if (task)
         task_core(task);
@@ -69,11 +69,6 @@ int isdigit(char a)
     return a >= '0' && a <= '9';
 }
 
-// int *__ctype_b_loc()
-// {
-//     return NULL;
-// }
-
 void *heap_map(size_t length)
 {
     return kmap(length, NULL, 0, VMA_FG_HEAP);
@@ -91,22 +86,22 @@ _Noreturn void abort()
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-FILE *klogs = NULL;
-splock_t klog_lock;
 
+int no_dbg = 1;
 
 int vfprintf(FILE *fp, const char *str, va_list ap);
 
 void kprintf(int log, const char *msg, ...)
 {
+    if ((log == KLOG_DBG && no_dbg) || log == KLOG_MEM)
+        return;
     va_list ap;
     va_start(ap, msg);
-    splock_lock(&klog_lock);
-    if (klogs != NULL) {
-        vfprintf(klogs, msg, ap);
-    }
-    splock_unlock(&klog_lock);
+    char *buf = kalloc(256);
+    int len = vsnprintf(buf, 256, msg, ap);
     va_end(ap);
+    kwrite(buf, len);
+    kfree(buf);
 }
 
 void *kalloc(size_t size)
@@ -142,7 +137,7 @@ void kunmap(void *address, size_t length)
 
 _Noreturn void kpanic(const char *msg, ...)
 {
-    kprintf(0, "\033[31m;Kernel panic: %s \033[0m;\n", msg);
+    kprintf(KLOG_ERR, "\033[31m;Kernel panic: %s \033[0m;\n", msg);
     abort();
 }
 

@@ -54,7 +54,7 @@ _Noreturn void scheduler_next()
 
     kCPU.running->other_elapsed += cpu_elapsed(&kCPU.running->last);
     // TODO - We need to change TSS of the CPU in order to switch back to the correct kernel-stack!
-    // kprintf(0, "[SCH ] Run task pid=%d\n", kCPU.running->pid);
+    // kprintf(KLOG_DBG, "[SCH ] Run task pid=%d\n", kCPU.running->pid);
     task_signals();
     task_leave_sys();
     cpu_run(kCPU.running);

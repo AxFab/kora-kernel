@@ -53,7 +53,7 @@ struct tty {
 /* Paint a glyph into the window attached to the TTY */
 static void tty_glyph(tty_t *tty, line_t *line, int col, int ch)
 {
-    int i, j = 0, l = 0, dp = tty->win->bits;
+    int i, j = 0, l = 0, dp = tty->win->depth;
     uint8_t *px_row;
     int row = line->row - tty->row;
     if (row < 0 || row > tty->row_max || col > tty->col_max)

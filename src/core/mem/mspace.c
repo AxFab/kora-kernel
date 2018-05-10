@@ -88,7 +88,7 @@ static vma_t *mspace_split_vma(mspace_t *mspace, vma_t *area, size_t length)
 {
     assert(splock_locked(&mspace->lock));
     assert(area->length > length);
-    kprintf(-1, "[MEM ] Split [%08x-%08x] at %x.\n", area->node.value_,
+    kprintf(KLOG_MEM, "[MEM ] Split [%08x-%08x] at %x.\n", area->node.value_,
             area->node.value_ + area->length, area->node.value_ + length);
 
     vma_t *vma = (vma_t *)kalloc(sizeof(vma_t));
@@ -138,7 +138,7 @@ static int mspace_close_vma(mspace_t *mspace, vma_t *vma, int arg)
         vfs_close(vma->ino);
     }
     bbtree_remove(&mspace->tree, vma->node.value_);
-    kprintf(-1, "[MEM ] Free [%08x-%08x] \n", vma->node.value_,
+    kprintf(KLOG_MEM, "[MEM ] Free [%08x-%08x] \n", vma->node.value_,
             vma->node.value_ + vma->length);
     mspace->v_size -= vma->length;
     kfree(vma);
@@ -231,7 +231,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
         return NULL;
     }
 
-    // kprintf(-1, "mspace_t { treecount:%d, dir:%x, lower:%x, upper:%x, lock:%d } \n",
+    // kprintf(KLOG_DBG, "mspace_t { treecount:%d, dir:%x, lower:%x, upper:%x, lock:%d } \n",
     //   mspace->tree.count_, mspace->directory, mspace->lower_bound, mspace->upper_bound, mspace->lock);
 
     splock_lock(&mspace->lock);
@@ -274,14 +274,12 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
 
     static char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"};
     char sh = vflags & VMA_COPY_ON_WRITE ? (vflags & VMA_SHARED ? 'W' : 'w') : (vflags & VMA_SHARED ? 'S' : 'p');
-
+    // TODO Add inode info
     if (mspace == &kernel_space)
-        kprintf(-1, " - Krn :: "FPTR"-"FPTR" %s%c {%x}\n", address, address + length, rights[vflags & 7], sh, vflags);
+        kprintf(KLOG_MEM, " - Krn :: "FPTR"-"FPTR" %s%c {%x}\n", address, address + length, rights[vflags & 7], sh, vflags);
     else
-        kprintf(-1, " - Usr :: "FPTR"-"FPTR" %s%c {%x}\n", address, address + length, rights[vflags & 7], sh, vflags);
+        kprintf(KLOG_MEM, " - Usr :: "FPTR"-"FPTR" %s%c {%x}\n", address, address + length, rights[vflags & 7], sh, vflags);
 
-    // kprintf(-1, "[MEM ] Mapping [%08x-%08x] (%x, %x)\n", address,
-    //         address + length, ino, offset);
     return (void *)address;
 }
 
@@ -316,7 +314,7 @@ int mspace_scavenge(mspace_t *mspace)
 }
 
 /* Display the state of the current address space */
-void mspace_display(int log, mspace_t *mspace)
+void mspace_display(mspace_t *mspace)
 {
     const char *rights[] = {
         "---p", "--xp", "-w-p", "-wxp",
@@ -325,16 +323,16 @@ void mspace_display(int log, mspace_t *mspace)
         "r-- ", "r-x ", "rw- ", "rwx ",
     };
     splock_lock(&mspace->lock);
-    kprintf(0, "%p-%p mapped: %d KB   writable/private: %d KB   shared: %d KB\n",
+    kprintf(KLOG_DBG, "%p-%p mapped: %d KB   writable/private: %d KB   shared: %d KB\n",
             mspace->lower_bound, mspace->upper_bound,
             mspace->v_size / 1024, mspace->p_size / 1024, mspace->s_size / 1024);
-    kprintf(0, "------------------------------------------------\n");
+    kprintf(KLOG_DBG, "------------------------------------------------\n");
     vma_t *vma = bbtree_first(&mspace->tree, vma_t, node);
     while (vma) {
-        kprintf(0, "%p-%p %s %08x ",
+        kprintf(KLOG_DBG, "%p-%p %s %08x ",
                 vma->node.value_, vma->node.value_ + vma->length,
                 rights[vma->flags & 15], vma->offset);
-        kprintf(0, "\n");
+        kprintf(KLOG_DBG, "\n");
         vma = bbtree_next(&vma->node, vma_t, node);
     }
     splock_unlock(&mspace->lock);
@@ -418,12 +416,12 @@ vma_t *mspace_search_vma(mspace_t *kspace, mspace_t *mspace, size_t address)
         vma = bbtree_search_le(&mspace->tree, address, vma_t, node);
         splock_unlock(&mspace->lock);
     } else {
-        kprintf(-1, "[MEM ] Page error outside of address spaces [%d].\n", address);
+        kprintf(KLOG_MEM, "[MEM ] Page error outside of address spaces [%d].\n", address);
         return NULL;
     }
 
     if (vma == NULL || vma->node.value_ + vma->length <= address) {
-        kprintf(-1, "[MEM ] Page error without associated VMA [%d].\n", address);
+        kprintf(KLOG_MEM, "[MEM ] Page error without associated VMA [%d].\n", address);
         return NULL;
     }
     return vma;

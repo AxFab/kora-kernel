@@ -71,7 +71,9 @@ int icmp_receive(skb_t *skb, int len);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 struct netdev {
-    int max_packet_size;
+    int mtu;
+    int no;
+    int flags;
     uint8_t eth_addr[ETH_ALEN];
     uint8_t ip4_addr[IP4_ALEN];
     int(*send)(netdev_t*,skb_t*);
@@ -83,6 +85,7 @@ struct netdev {
     long rx_bytes;
     long rx_broadcast;
     long rx_errors;
+    long rx_dropped;
     long tx_packets;
     long tx_bytes;
     long tx_broadcast;
@@ -106,6 +109,12 @@ struct skb {
 #define NET_ERR_HW_ADDR (1 << 1)
 #define NET_ERR_SW_ADDR (1 << 2)
 
+#define NET_CONNECTED  (1 << 0)
+#define NET_QUIET  (1 << 1)
+#define NET_NO_DHCP  (1 << 2)
+
+/* Register a network device */
+int net_device(netdev_t *ifnet);
 /* Create a new tx packet */
 skb_t *net_packet(netdev_t *ifnet);
 /* Create a new rx packet and push it into received queue */

@@ -9,7 +9,7 @@
 extern inode_t *mouse_ino;
 extern inode_t *kdb_ino;
 
-void PS2_event(inode_t *ino, uint8_t type, uint32_t param1, uint16_t param2);
+void PS2_event(inode_t *ino, uint8_t type, int32_t param1, int32_t param2);
 
 void PS2_kdb_handler();
 

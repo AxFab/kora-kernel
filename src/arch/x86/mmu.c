@@ -195,14 +195,14 @@ void mmu_dump_x86()
 {
     int i, j;
     uint32_t *dir = (uint32_t *)0xFFFFF000;
-    kprintf(0, "-- Pages dump\n");
+    kprintf(KLOG_DBG, "-- Pages dump\n");
     for (i = 1; i < 1024; ++i) {
         if (dir[i] != 0) {
-            kprintf(0, "  %3x - %08x\n", i << 2, dir[i]);
+            kprintf(KLOG_DBG, "  %3x - %08x\n", i << 2, dir[i]);
             uint32_t *tbl = (uint32_t *)(0xFFC00000 | (i << 12));
             for (j = 0; j < 1024; ++j) {
                 if (tbl[j] != 0) {
-                    kprintf(0, "   |- %3x - %08x\n", (i << 12) | (j << 2), tbl[j]);
+                    kprintf(KLOG_DBG, "   |- %3x - %08x\n", (i << 12) | (j << 2), tbl[j]);
                 }
             }
         }
@@ -213,10 +213,10 @@ void mmu_explain_x86(size_t a)
 {
     size_t d = 0xFFFFF000 | ((a >> 20) & ~3);
     size_t t = 0xFFC00000 | ((a >> 10) & ~3);
-    kprintf(0, "Address <%08x> - [DIR=%08x:%08x]", a, d, *(int *)d);
+    kprintf(KLOG_DBG, "Address <%08x> - [DIR=%08x:%08x]", a, d, *(int *)d);
     if (*(int *)d != 0) {
-        kprintf(0, " - [TBL=%08x:%08x]\n", t, *(int *)t);
+        kprintf(KLOG_DBG, " - [TBL=%08x:%08x]\n", t, *(int *)t);
     } else {
-        kprintf(0, "\n");
+        kprintf(KLOG_DBG, "\n");
     }
 }

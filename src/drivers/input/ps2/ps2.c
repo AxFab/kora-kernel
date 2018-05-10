@@ -6,7 +6,7 @@ inode_t *kdb_ino;
 device_t ps2_kbd;
 device_t ps2_mse;
 
-void PS2_event(inode_t *ino, uint8_t type, uint32_t param1, uint16_t param2)
+void PS2_event(inode_t *ino, uint8_t type, int32_t param1, int32_t param2)
 {
     // if (seat_event(type, param1, param2) != 0) {
     //     return;
@@ -18,28 +18,38 @@ void PS2_event(inode_t *ino, uint8_t type, uint32_t param1, uint16_t param2)
     ev.param1 = param1;
     ev.param2 = param2;
     (void)ev;
+    wmgr_event(&ev);
     // dev_char_write(ino, &ev, sizeof(ev));
 }
 
-int PS2_irq()
+// PS/2 Reset
+void PS2_reset()
 {
-    uint8_t r;
-    while ((r = inb(0x64)) & 1) {
-        if (r & 0x20) {
-            PS2_mouse_handler();
-        } else {
-            PS2_kdb_handler();
-        }
-    }
-    return 0;
+    uint8_t tmp = inb(0x61);
+    outb(0x61, tmp | 0x80);
+    outb(0x61, tmp & 0x7F);
+    inb(0x60);
 }
+
+// int PS2_irq()
+// {
+//     uint8_t r;
+//     while ((r = inb(0x64)) & 1) {
+//         if (r & 0x20) {
+//             PS2_mouse_handler();
+//         } else {
+//             PS2_kdb_handler();
+//         }
+//     }
+//     return 0;
+// }
 
 
 void PS2_setup()
 {
+    irq_register(1, (irq_handler_t)PS2_kdb_handler, NULL);
+    irq_register(12, (irq_handler_t)PS2_mouse_handler, NULL);
     PS2_mouse_setup();
-    irq_register(1, (irq_handler_t)PS2_irq, NULL);
-    irq_register(12, (irq_handler_t)PS2_irq, NULL);
 
     kdb_ino = vfs_inode(1, S_IFCHR | 700, NULL, 0);
     ps2_kbd.block = sizeof(event_t);

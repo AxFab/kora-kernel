@@ -243,13 +243,13 @@ static int ATA_Polling (struct ATA_Drive *dr)
 
     // (III) Check For Errors:
     if (state & ATA_SR_ERR) {
-        kprintf(0, "ATA] device on error\n");
+        kprintf(KLOG_ERR, "ATA] device on error\n");
         return 2; // Error.
     }
 
     // (IV) Check If Device fault:
     if (state & ATA_SR_DF) {
-        kprintf(0, "ATA] device fault\n");
+        kprintf(KLOG_ERR, "ATA] device fault\n");
         return 1; // Device Fault.
     }
 
@@ -257,7 +257,7 @@ static int ATA_Polling (struct ATA_Drive *dr)
     // -------------------------------------------------
     // BSY = 0; DF = 0; ERR = 0 so we should check for DRQ now.
     if ((state & ATA_SR_DRQ) == 0) {
-        kprintf(0, "ATA] DRQ should be set\n");
+        kprintf(KLOG_ERR, "ATA] DRQ should be set\n");
         return 3; // DRQ should be set
     }
 

@@ -10,7 +10,7 @@ void stackdump(size_t frame)
 {
     size_t *ebp = &frame - 2;
     size_t *args;
-    kprintf(0, "Stack trace: [%x]\n", (size_t)ebp);
+    kprintf(KLOG_DBG, "Stack trace: [%x]\n", (size_t)ebp);
 
     while (frame-- > 0) {
         size_t eip = ebp[1];
@@ -22,21 +22,21 @@ void stackdump(size_t frame)
         // Unwind to previous stack frame
         ebp = (size_t *)(ebp[0]);
         args = &ebp[2];
-        kprintf(0, "  0x%x - %s ()         [args: %x] \n", eip, ksymbol((void *)eip),
+        kprintf(KLOG_DBG, "  0x%x - %s ()         [args: %x] \n", eip, ksymbol((void *)eip),
                 (size_t)args);
     }
 }
 
-void kdump(int no, const void *buf, int len)
+void kdump(const void *buf, int len)
 {
     int i, j;
     const uint8_t *ptr = (const uint8_t *)buf;
     for (i = 0; i < len; i += 16) {
-        kprintf(no, "%04x   ", i);
+        kprintf(KLOG_DBG, "%04x   ", i);
         int n = MIN(16, len - i);
         for (j = 0; j < n; ++j)
-            kprintf(no, "%02x ", ptr[i+j]);
-        kprintf(no, "\n");
+            kprintf(KLOG_DBG, "%02x ", ptr[i+j]);
+        kprintf(KLOG_DBG, "\n");
     }
 }
 
@@ -45,15 +45,15 @@ void bufdump(const void *buf, int len)
     int i;
     const uint8_t *ptr = (const uint8_t *)buf;
     for (; len > 0; len -= 16, ptr += 16) {
-        kprintf(0, "0x%08x  ", ptr);
+        kprintf(KLOG_DBG, "0x%08x  ", ptr);
         for (i = 0; i < 16; ++i) {
-            kprintf(0, "%02x ", ptr[i]);
+            kprintf(KLOG_DBG, "%02x ", ptr[i]);
         }
-        kprintf(0, " ");
+        kprintf(KLOG_DBG, " ");
         for (i = 0; i < 16; ++i) {
-            kprintf(0, "%c", ptr[i] < 0x20 || ptr[i] >= 0x7F ? '.' : ptr[i]);
+            kprintf(KLOG_DBG, "%c", ptr[i] < 0x20 || ptr[i] >= 0x7F ? '.' : ptr[i]);
         }
-        kprintf(0, "\n");
+        kprintf(KLOG_DBG, "\n");
     }
 }
 

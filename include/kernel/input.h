@@ -58,8 +58,8 @@ typedef struct event event_t;
 struct event {
     uint32_t tm_sec;
     uint32_t tm_nsec;
-    uint32_t param1;
-    uint16_t param2;
+    int32_t param1;
+    int32_t param2;
     uint8_t type;
     uint8_t unsued;
 };

@@ -21,21 +21,26 @@
 #define _KERNEL_FILES_H 1
 
 #include <kernel/core.h>
-#include <stdint.h>
+#include <kora/llist.h>
+
 
 
 typedef struct surface surface_t;
 typedef struct line line_t;
 typedef struct tty tty_t;
 typedef struct bitmap_font font_t;
+typedef struct desktop desktop_t;
+typedef struct display display_t;
 
 struct surface {
     int width;
     int height;
     int pitch;
-    int bits;
+    int depth;
     uint8_t *pixels;
     uint8_t *backup;
+    llnode_t node;
+    void (*flip)(surface_t *screen);
 };
 
 struct bitmap_font {
@@ -61,11 +66,12 @@ void vds_copy(surface_t *dest, surface_t *src, int x, int y);
 surface_t *vds_create_empty(int width, int height, int depth);
 surface_t *vds_create(int width, int height, int depth);
 void vds_destroy(surface_t *srf);
+void vds_mouse(surface_t *scr, int x, int y);
 
 
-
-void wmgr_add_display(surface_t *screen);
-surface_t *wmgr_window();
+desktop_t *wmgr_desktop();
+void wmgr_register_screen(surface_t *screen);
+surface_t *wmgr_window(desktop_t *desktop, int width, int height);
 
 
 #endif /* _KERNEL_FILES_H */

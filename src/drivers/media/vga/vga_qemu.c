@@ -46,7 +46,7 @@ uint16_t size[] = {
 
 static void vga_change_resol(uint16_t width, uint16_t height)
 {
-    kprintf(0, "VGA Resolution requested to %dx%dx32 \n",  width, height);
+    // kprintf(0, "VGA Resolution requested to %dx%dx32 \n",  width, height);
 
     outw(VGA_PORT_CMD, 0x04);
     outw(VGA_PORT_DATA, 0x00);
@@ -73,13 +73,21 @@ static void vga_change_resol(uint16_t width, uint16_t height)
     outw(VGA_PORT_CMD, VGA_REG_RESOL_Y);
     height = inw(VGA_PORT_DATA);
 
-    kprintf(0, "VGA Resolution set to %dx%dx32 \n", width, height);
+    kprintf(KLOG_MSG, "VGA Resolution: %dx%dx32 \n", width, height);
 }
 
 static void vga_change_offset(uint16_t offset)
 {
     outw(VGA_PORT_CMD, VGA_REG_OFF_Y);
     outw(VGA_PORT_DATA, offset);
+}
+
+void vga_flip(surface_t *screen)
+{
+    vga_change_offset(screen->pixels > screen->backup ? screen->height : 0);
+    uint8_t *tmp = screen->pixels;
+    screen->pixels = screen->backup;
+    screen->backup = tmp;
 }
 
 void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
@@ -99,15 +107,15 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
     outw(VGA_PORT_CMD, VGA_REG_MEMORY);
     i = inw(VGA_PORT_DATA);
     uint32_t mem = i > 1 ? (uint32_t)i * 64 * 1024 : inl(VGA_PORT_DATA);
-    kprintf(0, "VGA Memory size %s \n", sztoa(mem));
+    kprintf(KLOG_DBG, "VGA Memory size %s \n", sztoa(mem));
 
     pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VMA_PHYSIQ);
 
     uint32_t pixels0 = pci->bar[0].mmio;
-    kprintf(-1, "%s MMIO mapped at %x\n", info->name, pixels0);
+    kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", info->name, pixels0);
 
     // Load surface device !
-    i = 20;
+    i = 7;
     while (size[i*2] * size[i*2+1] * 8U > mem) --i;
     vga_change_resol(size[i*2], size[i*2+1]);
 
@@ -116,9 +124,10 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
     // screen->pixels = (uint8_t*)pixels1;
     // vds_fill(screen, 0xa61010);
     screen->pixels = (uint8_t*)pixels0;
+    screen->backup = (uint8_t*)pixels1;
+    screen->flip = vga_flip;
     // vds_fill(screen, 0xa6a610);
-    // vga_change_offset(screen->height / 2);
+    vga_change_offset(screen->height);
     // inode_t *ino = vfs_inode(0, );
-
-    wmgr_add_display(screen);
+    wmgr_register_screen(screen);
 }

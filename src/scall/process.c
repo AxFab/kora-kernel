@@ -43,7 +43,7 @@ int sys_exec(const char *exec, const char *cmdline)
         return -1;
     }
 
-    task_t *task = task_create(NULL, parent->root, TSK_USER_SPACE);
+    task_t *task = task_create(NULL, parent->root, TSK_USER_SPACE, exec);
     if (elf_open(task, ino) != 0) {
         return -1;
     }

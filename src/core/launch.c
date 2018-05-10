@@ -43,23 +43,20 @@ uint32_t colors_kora[] = {
     0x323232, 0xD01010, 0x10D010, 0xD06010, 0x1010D0, 0xD010D0, 0x10D0D0, 0xD0D0D0, 0xFFFFFF,
 };
 
-tty_t *tty_syslog;
-static void kwrite(FILE *fp, const char *buf, int len)
+tty_t *tty_syslog = NULL;
+splock_t klog_lock;
+
+void kwrite(const char *buf, int len)
 {
+    if (tty_syslog == NULL)
+        return;
+    splock_lock(&klog_lock);
     tty_write(tty_syslog, buf, len);
+    splock_unlock(&klog_lock);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-
-extern FILE *klogs;
-
-// FILE slog;
-// // terminal_t *term_syslog;
-// void syslog_write(FILE *fp, const char *buf, int lg)
-// {
-//     term_write(term_syslog, buf, lg);
-// }
 
 struct kSys kSYS;
 struct kCpu kCPU0;
@@ -73,6 +70,14 @@ void kernel_module(kmod_t *mod)
     mod->setup();
 }
 
+void kernel_tasklet(void* start, long arg, CSTR name)
+{
+    task_t *task = task_create(NULL, NULL, 0, name);
+    task_start(task, (size_t)start, arg);
+}
+
+extern int no_dbg;
+
 void kernel_start()
 {
     page_initialize();
@@ -85,20 +90,19 @@ void kernel_start()
     (void)p;
 
     tty_syslog = tty_create(NULL, &font_6x10, colors_kora, 0);
-    klogs->write = kwrite;
 
-    kprintf(-1, "\e[98mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
-    kprintf (-1, "\n\e[94m  Greetings...\e[0m\n\n");
+    kprintf(KLOG_MSG, "\e[98mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
+    kprintf (KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
 
 
-    kprintf (-1, "Memory available %s over ", sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
-    kprintf (-1, "%s\n", sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
+    kprintf (KLOG_MSG, "Memory available %s over ", sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
+    kprintf (KLOG_MSG, "%s\n", sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
 
     cpu_awake();
     irq_reset(false);
 
     time_t now = cpu_time();
-    kprintf(-1, "Startup: %s", asctime(gmtime(&now)));
+    kprintf(KLOG_MSG, "Startup: %s", asctime(gmtime(&now)));
 
     // seat_initscreen(); // Return an inode to close !
     // surface_t *src0 = seat_screen(0);
@@ -117,8 +121,8 @@ void kernel_start()
     // kernel_module("tmpfs", TMPFS_setup, TMPFS_teardown);
     // DEVFS_setup();
 
-    bool irq = irq_enable();
-    assert(irq);
+    // bool irq = irq_enable();
+    // assert(irq);
 
 #if 1
     KSETUP(ps2);
@@ -133,7 +137,9 @@ void kernel_start()
 #endif
     KSETUP(isofs);
 
-    tty_attach(tty_syslog, wmgr_window(), &font_6x10, colors_kora, 0);
+    desktop_t *dekstop = wmgr_desktop();
+
+    tty_attach(tty_syslog, wmgr_window(dekstop, 600, 600), &font_6x9, colors_kora, 0);
 
     irq_disable();
 
@@ -152,7 +158,7 @@ void kernel_start()
         return;
     }
 
-    task_t *task0 = task_create(NULL, root, TSK_USER_SPACE);
+    task_t *task0 = task_create(NULL, root, TSK_USER_SPACE, "init");
     if (elf_open(task0, ino) != 0) {
         kprintf(-1, "Unable to execute file\n");
     }
@@ -161,7 +167,9 @@ void kernel_start()
     vfs_close(ino);
 
     clock_init();
+    no_dbg = 0;
     irq_register(0, (irq_handler_t)sys_ticks, NULL);
+    PS2_reset();
 }
 
 void kernel_ready()

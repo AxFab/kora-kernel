@@ -243,20 +243,20 @@ void cpu_awake()
     x86_cpu_features(&cpu);
 
     if (!x86_FEATURES_MSR(cpu)) {
-        kprintf(0, "CPU vendor: %s, No MSR capability\n", cpu.vendor);
+        kprintf(KLOG_MSG, "CPU vendor: %s, No MSR capability\n", cpu.vendor);
         return;
     } else if (!x86_FEATURES_APIC(cpu)) {
-        kprintf(0, "CPU vendor: %s, No APIC capability\n", cpu.vendor);
+        kprintf(KLOG_MSG, "CPU vendor: %s, No APIC capability\n", cpu.vendor);
         return;
     }
 
     uint32_t regA, regB;
     x86_rdmsr(IA32_APIC_BASE_MSR, &regA, &regB);
     if ((regA & (1 << 11)) == 0) {
-        kprintf(0, "CPU vendor: %s, APIC disabled\n", cpu.vendor);
+        kprintf(KLOG_MSG, "CPU vendor: %s, APIC disabled\n", cpu.vendor);
         return;
     } else if ((regA & (1 << 8)) == 0) {
-        kprintf(0, "CPU vendor: %s, unfound BSP\n", cpu.vendor);
+        kprintf(KLOG_MSG, "CPU vendor: %s, unfound BSP\n", cpu.vendor);
         return;
     }
 
@@ -290,9 +290,9 @@ void cpu_awake()
     irq_disable();
     // kSYS.cpuCount_ = cpu_count + 1;
     if (cpu_count == 0)
-        kprintf(0, "CPU%d: %s, single CPU\n", cpu_no(), cpu.vendor);
+        kprintf(KLOG_MSG, "CPU%d: %s, single CPU\n", cpu_no(), cpu.vendor);
     else
-        kprintf(0, "BSP is CPU%d: %s, found a count of %d CPUs\n", cpu_no(), cpu.vendor, cpu_count + 1);
+        kprintf(KLOG_MSG, "BSP is CPU%d: %s, found a count of %d CPUs\n", cpu_no(), cpu.vendor, cpu_count + 1);
 
     char *tmp = kalloc(1024);
     tmp[0] = 0;
@@ -352,7 +352,7 @@ void cpu_awake()
     if (x86_FEATURES_OSXSAVE(all_cpu)) strcat(tmp, "OSXSAVE, ");
     if (x86_FEATURES_AVX(all_cpu)) strcat(tmp, "AVX, ");
 
-    kprintf(0, "CPUs features: %s\n", tmp);
+    kprintf(KLOG_MSG, "CPUs features: %s\n", tmp);
 }
 
 
@@ -364,6 +364,6 @@ void cpu_setup_core_x86()
     // Check cpu features first
     x86_cpu_features(&cpu);
 
-    kprintf(-1, "Wakeup CPU%d: %s.\n", cpu_no(), cpu.vendor);
+    kprintf(KLOG_MSG, "Wakeup CPU%d: %s.\n", cpu_no(), cpu.vendor);
     // TODO - Prepare structure - Compute TSS
 }

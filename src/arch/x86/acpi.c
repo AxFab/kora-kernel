@@ -30,11 +30,11 @@ int acpi_initialize()
     }
 
     if (rsdp == NULL) {
-        kprintf(-1, "[ACPI] Unable to find RSDP\n");
+        kprintf(KLOG_ERR, "[ACPI] Unable to find RSDP\n");
         return -1;
     }
 
-    kprintf(-1, "[ACPI] Found RSDP, revision %d, %d tables\n", rsdp->revision,
+    kprintf(KLOG_DBG, "[ACPI] Found RSDP, revision %d, %d tables\n", rsdp->revision,
             (rsdp->table_size - ACPI_SDT_SIZE) / 16);
 
     acpi_enter();

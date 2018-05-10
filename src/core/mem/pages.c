@@ -193,20 +193,20 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
     } else if (reason == PGFLT_MISSING) {
         /* Missing a blank page. */
         if (type != VMA_HEAP && type != VMA_STACK && type != VMA_ANON) {
-            kprintf(-1, "[MEM ] Unqualified VMA type at 0x%08x [%x].\n", address,
+            kprintf(KLOG_PF, "[MEM ] Unqualified VMA type at 0x%08x [%x].\n", address,
                     vma->flags);
         }
         return mmu_resolve(address, 0, vma->flags, true);
 
     } else if (reason == PGFLT_WRITE_DENY && type == VMA_FILE) {
         if (!(vma->flags & VMA_CAN_WRITE) || !(vma->flags & VMA_COPY_ON_WRITE)) {
-            kprintf(-1, "[MEM ] Page fault on read only file at 0x%08x (%d) [%x].\n", address,
+            kprintf(KLOG_PF, "[MEM ] Page fault on read only file at 0x%08x (%d) [%x].\n", address,
             reason, vma->flags);
             return -1;
         }
         return page_copy_vma(vma);
     }
-    kprintf(-1, "[MEM ] Unresolvable page fault 0x%08x (%d) [%x].\n", address,
+    kprintf(KLOG_PF, "[MEM ] Unresolvable page fault 0x%08x (%d) [%x].\n", address,
             reason, vma->flags);
     return -1;
 }
@@ -224,7 +224,7 @@ int page_resolve(mspace_t *mspace, size_t address, size_t length)
     off_t offset = vma->offset + (address - vma->node.value_);
     if ((vma->flags & VMA_TYPE) == VMA_PHYS) {
         page = offset;
-        // kprintf(-1, "[MEM ] Page resolve for physical pages at [%x] (%s).\n", address, sztoa(length));
+        // kprintf(KLOG_PF, "[MEM ] Page resolve for physical pages at [%x] (%s).\n", address, sztoa(length));
         while (length > 0) {
             mmu_resolve(address, page, vma->flags, false);
             page += PAGE_SIZE;
@@ -234,14 +234,14 @@ int page_resolve(mspace_t *mspace, size_t address, size_t length)
     } else if ((vma->flags & VMA_TYPE) == VMA_HEAP ||
                (vma->flags & VMA_TYPE) == VMA_STACK ||
                (vma->flags & VMA_TYPE) == VMA_ANON) {
-        // kprintf(-1, "[MEM ] Page resolve for blank pages at [%x] (%s).\n", address, sztoa(length));
+        // kprintf(KLOG_PF, "[MEM ] Page resolve for blank pages at [%x] (%s).\n", address, sztoa(length));
         while (length > 0) {
             mmu_resolve(address, page_new(), vma->flags, true);
             address += PAGE_SIZE;
             length -= PAGE_SIZE;
         }
     } else {
-        kprintf(-1, "[MEM ] Page resolve called with incorrect VMA type.\n");
+        kprintf(KLOG_ERR, "[MEM ] Page resolve called with incorrect VMA type.\n");
     }
 
     return -1;

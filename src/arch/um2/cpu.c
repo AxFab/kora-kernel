@@ -3,7 +3,7 @@
 
 void cpu_awake()
 {
-    kprintf(0, "CPU: %s, Single CPU\n", "HostSimulatedCPU");
+    kprintf(KLOG_MSG, "CPU: %s, Single CPU\n", "HostSimulatedCPU");
 }
 
 

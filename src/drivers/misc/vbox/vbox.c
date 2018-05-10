@@ -75,7 +75,7 @@ static void vbox_set_header(struct vbox_header *header, int size, int req)
 
 void vbox_irq_handler(struct PCI_device *pci)
 {
-    kprintf(0, "IRQ for %s\n", VBOX_NAME);
+    kprintf(KLOG_MSG, "IRQ for %s\n", VBOX_NAME);
 }
 
 void vbox_startup(struct PCI_device *pci)
@@ -117,7 +117,7 @@ void vbox_startup(struct PCI_device *pci)
     PCI_wr32(pci, 0, 0, mmu_read((size_t)vbox_mouse));
 
     pci->bar[1].mmio = (uint32_t)kmap(pci->bar[1].size, NULL, pci->bar[1].base & ~7, VMA_PHYSIQ);
-    kprintf(-1, "%s MMIO mapped at %x\n", VBOX_NAME, pci->bar[1].mmio);
+    kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", VBOX_NAME, pci->bar[1].mmio);
 
     vbox_vmmdev = (uint32_t*)pci->bar[1].mmio;
     vbox_vmmdev[3] = 0xFFFFFFFF;
@@ -141,7 +141,7 @@ void vbox_setup()
         pci = PCI_search2(vbox_match_pci_device);
         if (pci == NULL)
             break;
-        kprintf(0, "Found %s (PCI.%02d.%02d)\n", VBOX_NAME, pci->bus, pci->slot);
+        // kprintf(0, "Found %s (PCI.%02d.%02d)\n", VBOX_NAME, pci->bus, pci->slot);
         vbox_startup(pci);
     }
 }

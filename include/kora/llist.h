@@ -93,7 +93,7 @@ static inline void ll_push_back(llhead_t *list, llnode_t *node)
     ++list->count_;
 }
 
-/* Retrun and remove an element from the start of a linked list */
+/* Return and remove an element from the start of a linked list */
 static inline llnode_t *ll_pop_front(llhead_t *list)
 {
     llnode_t *first = list->first_;
@@ -116,7 +116,7 @@ static inline llnode_t *ll_pop_front(llhead_t *list)
     return first;
 }
 
-/* Retrun and remove an element from the end of a linked list */
+/* Return and remove an element from the end of a linked list */
 static inline llnode_t *ll_pop_back(llhead_t *list)
 {
     llnode_t *last = list->last_;
@@ -139,7 +139,7 @@ static inline llnode_t *ll_pop_back(llhead_t *list)
     return last;
 }
 
-/* Remove an item from the linked list, whitout checking presence or not */
+/* Remove an item from the linked list, without checking presence or not */
 static inline void ll_remove(llhead_t *list, llnode_t *node)
 {
 #if !defined(NDEBUG)

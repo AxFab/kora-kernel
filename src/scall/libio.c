@@ -114,6 +114,6 @@ int sys_window(struct image *img, int features, int events)
 
 int sys_syslog(const char *msg)
 {
-    kprintf(0, "%s\n", msg);
+    kprintf(KLOG_USR, "%s\n", msg);
     return 1;
 }
