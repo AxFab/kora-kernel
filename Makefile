@@ -92,7 +92,7 @@ $(libdir)/lib$1.so: $(call obj,$2,$1,o) $(call libs,$1_SLIBS,a) $(call libs,$1_D
 	$(Q) echo "    LD  "$$@
 	$(V) $(CC) -shared $($(1)_LFLAGS) -o $$@ $(call obj,$2,$1,o) $(call libs,$1_SLIBS,a) $($(1)_LIBS)
 	$(Q) ls -lh $$@
-	$(Q) size $$@
+	# $(Q) size $$@
 endef
 
 define link
@@ -103,7 +103,7 @@ $(bindir)/$1: $(call obj,$2,$1,o) $(call libs,$1_SLIBS,a) $(call libs,$1_DLIBS,a
 	$(Q) echo "    LD  "$$@
 	$(V) $(CC) $($(1)_LFLAGS) -o $$@ $(call obj,$2,$1,o) $(call libs,$1_SLIBS,a) $($(1)_LIBS)
 	$(Q) ls -lh $$@
-	$(Q) size $$@
+	# $(Q) size $$@
 endef
 
 define linkp
@@ -114,7 +114,7 @@ $(bindir)/$1: $(call obj,$2,$1,o) $(call libs,$1_SLIBS,a) $(call libs,$1_DLIBS,s
 	$(Q) echo "    LD  "$$@
 	$(V) $(LD) -T $($(1)_SCP) $($(1)_LFLAGS) -o $$@ -Map $$@.map $(call obj,$2,$1,o) $(call libs,$1_SLIBS,a)
 	$(Q) ls -lh $$@
-	$(Q) size $$@
+	# $(Q) size $$@
 endef
 
 define kimg
@@ -125,7 +125,7 @@ $(bindir)/$1: $(call obj,$2,$1,o) # $(outdir)/_$(target_arch)/crtk.o
 	$(Q) echo "    LD  "$$@
 	$(V) $(LD) -T $(srcdir)/arch/$(target_arch)/kernel.ld $($(1)_LFLAGS) -o $$@ $(call obj,$2,$1,o)
 	$(Q) ls -lh $$@
-	$(Q) size $$@
+	# $(Q) size $$@
 endef
 
 define ccpl
