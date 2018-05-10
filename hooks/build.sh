@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export PATH="$HOME/opt/bin":$PATH
-export CROSS=i686-elf-
+# export CROSS=i686-elf-
 
 require () {
     apt-get install -y binutils nasm xorriso
@@ -14,7 +14,7 @@ dbg () {
 make_util () {
     if [ -f $SRC_UTL/src/$1.c ]; then
         ${CROSS}gcc -c -o $SRC_UTL/obj/$1.o $SRC_UTL/src/$1.c -nostdlib
-        ${CROSS}ld -T hooks/app.ld $SRC_UTL/obj/crt0.o $SRC_UTL/obj/$1.o -o $SRC_UTL/bin/$1
+        ${CROSS}ld -T $SRC_UTL/arch/x86/app.ld $SRC_UTL/obj/crt0.o $SRC_UTL/obj/$1.o -o $SRC_UTL/bin/$1
         cp $SRC_UTL/bin/$1 iso/bin/$1
     fi
 }
@@ -79,7 +79,7 @@ menuentry "Kora x86" {
 }
 EOF
 
-    grub-mkrescue -o "$iso_name" iso >/dev/null
+    grub-mkrescue -o "$iso_name" iso 2>/dev/null >/dev/null
     ls -lh "$iso_name"
 }
 

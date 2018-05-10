@@ -19,22 +19,14 @@ VERSION=0.0-$(GIT)
 
 include $(srcdir)/drivers/drivers.mk
 
-CFLAGS += -Wall -Wextra -Wno-unused-parameter -fno-builtin -Wno-implicit-fallthrough
+CFLAGS += -Wall -Wextra -Wno-unused-parameter -fno-builtin
 CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
-CFLAGS += -Wno-multichar
-# CFLAGS += -nostdinc
-# ifneq ($(target_os),smkos)
+CFLAGS += -Wno-multichar -Wno-implicit-fallthrough
+CFLAGS += -ggdb3 -I$(topdir)/include -I$(topdir)/include/cc
 
 COV_FLAGS += --coverage -fprofile-arcs -ftest-coverage
-# # CFLAGS += -DNDEBUG
-# LFLAGS += --coverage -fprofile-arcs -ftest-coverage
-# endif
 
-CFLAGS += -ggdb3 -I$(topdir)/include -I$(topdir)/include/cc
-# CFLAGS += -nostdinc
-# -I../libc/include
-# CFLAGS += `pkg-config --cflags cairo x11`
 
 # We define one mode of compiling `std`
 std_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/um $(COV_FLAGS)
@@ -44,43 +36,27 @@ $(eval $(call ccpl,std))
 $(eval $(call ccpl,krn))
 $(eval $(call ccpl,mod))
 
-# We create the `tests` delivery
-tests_src-y += $(wildcard $(srcdir)/skc/*.c)
-tests_src-y += $(wildcard $(srcdir)/libc/*.c)
-tests_src-y += $(wildcard $(srcdir)/core/*.c)
-tests_src-y += $(wildcard $(srcdir)/tests/*.c)
-tests_src-y += $(wildcard $(srcdir)/arch/um/*.c)
-tests_src-y += $(wildcard $(srcdir)/arch/um/*.asm)
-tests_src-y += $(wildcard $(srcdir)/fs/tmpfs/*.c)
-tests_src-y += $(wildcard $(srcdir)/fs/isofs/*.c)
-tests_src-y += $(wildcard $(srcdir)/drv/img/*.c)
-tests_src-y += $(wildcard $(srcdir)/drv/mbr/*.c)
-tests_omit-y += $(srcdir)/libc/string.c $(srcdir)/core/common.c $(srcdir)/core/launch.c $(srcdir)/core/scall.c
-tests_omit-y += $(srcdir)/core/vfs.c $(srcdir)/tests/vfs.c $(srcdir)/core/net.c
-# tests_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c $(srcdir)/tests/format.c
-tests_LFLAGS := $(LFLAGS)
-tests_LIBS := $(shell pkg-config --libs check)
-# DV_UTILS += $(bindir)/tests
+
+core_src-y += $(wildcard $(srcdir)/core/*.c)
+core_src-y += $(wildcard $(srcdir)/core/file/*.c)
+core_src-y += $(wildcard $(srcdir)/core/io/*.c)
+core_src-y += $(wildcard $(srcdir)/core/tsk/*.c)
+core_src-y += $(wildcard $(srcdir)/core/mem/*.c)
+core_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
+core_src-y += $(wildcard $(srcdir)/core/net/*.c)
+
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # We create the `kernel` delivery
 # kSim_src-y += $(wildcard $(srcdir)/arch/um/*.asm)
 kSim_src-y += $(wildcard $(srcdir)/arch/um2/*.c)
-kSim_src-y += $(wildcard $(srcdir)/skc/*.c)
 kSim_src-y += $(wildcard $(srcdir)/libc/*.c)
-kSim_src-y += $(wildcard $(srcdir)/core/*.c)
-kSim_src-y += $(wildcard $(srcdir)/core/io/*.c)
-kSim_src-y += $(wildcard $(srcdir)/core/tsk/*.c)
-kSim_src-y += $(wildcard $(srcdir)/core/mem/*.c)
-kSim_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
-kSim_src-y += $(wildcard $(srcdir)/core/net/*.c)
 kSim_src-y += $(wildcard $(srcdir)/scall/*.c)
-kSim_src-y += $(drv_src-y)
+kSim_src-y += $(drv_src-y) $(core_src-y)
 kSim_omit-y += $(srcdir)/core/common.c
 kSim_omit-y += $(srcdir)/core/io/seat.c $(srcdir)/core/io/termio.c
 kSim_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
 kSim_omit-y += $(srcdir)/libc/format_vfscanf.c $(srcdir)/libc/format_scan.c
-# kSim_LFLAGS := $(LFLAGS) `pkg-config --libs cairo x11`
 $(eval $(call link,kSim,std))
 DV_UTILS += $(bindir)/kSim
 
@@ -90,20 +66,10 @@ DV_UTILS += $(bindir)/kSim
 # We create the `kernel` delivery
 kImg_src-y += $(wildcard $(srcdir)/arch/x86/*.asm)
 kImg_src-y += $(wildcard $(srcdir)/arch/x86/*.c)
-kImg_src-y += $(wildcard $(srcdir)/skc/*.c)
 kImg_src-y += $(wildcard $(srcdir)/libc/*.c)
-kImg_src-y += $(wildcard $(srcdir)/core/*.c)
-kImg_src-y += $(wildcard $(srcdir)/core/file/*.c)
-kImg_src-y += $(wildcard $(srcdir)/core/io/*.c)
-kImg_src-y += $(wildcard $(srcdir)/core/tsk/*.c)
-kImg_src-y += $(wildcard $(srcdir)/core/mem/*.c)
-kImg_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
-kImg_src-y += $(wildcard $(srcdir)/core/net/*.c)
 kImg_src-y += $(wildcard $(srcdir)/scall/*.c)
-kImg_src-y += $(drv_src-y)
+kImg_src-y += $(drv_src-y) $(core_src-y)
 kImg_omit-y += $(srcdir)/core/io/seat.c $(srcdir)/core/io/termio.c
-
-# kImg_LFLAGS := $(LFLAGS)
 $(eval $(call kimg,kImg,krn))
 DV_UTILS += $(bindir)/kImg
 
