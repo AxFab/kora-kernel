@@ -27,6 +27,8 @@
 #include <kora/splock.h>
 #include <stdatomic.h>
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* VMA access right  */
 #define VMA_EXEC 0x001  /* Give execute right to this VMA */
 #define VMA_WRITE 0x002  /* Give write access to this VMA */
 #define VMA_READ 0x004  /* Allow reading data from this VMA */
@@ -38,32 +40,21 @@
 
 #define VMA_RIGHTS 0x007  /* Mask for VMA accesses */
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
+/* Type of the VMA content */
 #define VMA_HEAP 0x100  /* Flag the VMA as part of the HEAP structure */
 #define VMA_STACK 0x200  /* Flag the VMA as part of a STACK structure */
 #define VMA_FILE 0x300  /* Flag the VMA as backuped by a file */
 #define VMA_PHYS 0x400  /* Flags the VMA as mapping a physical address */
 #define VMA_ANON 0x500  /* Flags the VMA as anonymous */
+#define VMA_PIPE 0x600  /* Flags the VMA as a pipe or tty buffer */
 
 #define VMA_TYPE 0xF00  /* Mask used to know the VMA type */
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-#define VMA_DEAD 0x8000  /* Set the VMA as invalid. The VMA has to be cleared */
+/* VMA options */
 #define VMA_LOCKED  0x1000  /* Lock the VMA */
-
-// #define VMA_CAN_GROW_UP 0x4000
-// #define VMA_CAN_GROW_DOWN 0x8000
-// #define VMA_NOBLOCK 0x10000
-// #define VMA_HUGETABLE 0x20000
-
 #define VMA_MAP_FIXED  0x10000  /* Flags used only for mspace_map(), tell to not use the address as an hint. */
 #define VMA_RESOLVE  0x20000  /* Flags used for kmap(), tell to resolve page if possible */
 
-#define VMA_CFG_MAXSIZE (128 * _Mib_)  /* Maximum allowed VMA length */
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* Preset VMA right flags */
 #define VMA_RO  (VMA_READ | VMA_CAN_READ)
 #define VMA_RD  (VMA_READ | VMA_CAN_READ | VMA_CAN_WRITE)
@@ -72,34 +63,26 @@
 #define VMA_RW  (VMA_READ | VMA_CAN_READ | VMA_WRITE | VMA_CAN_WRITE)
 #define VMA_RX  (VMA_READ | VMA_CAN_READ | VMA_EXEC | VMA_CAN_EXEC)
 
-// Flag preset
-#define VMA_FG_CODE  (VMA_RX | VMA_FILE)
-#define VMA_FG_DATA  (VMA_RD | VMA_COPY_ON_WRITE | VMA_FILE)
-#define VMA_FG_STACK  (VMA_RW | VMA_STACK)
-#define VMA_FG_HEAP  (VMA_RW | VMA_HEAP)
-#define VMA_FG_ANON  (VMA_RW | VMA_ANON)
-// #define VMA_FG_PHYS  (VMA_RW | VMA_PHYS)
-#define VMA_FG_FIFO  (VMA_RW | VMA_ANON)
-
-#define VMA_FG_RW_FILE  (VMA_RW | VMA_FILE)
-#define VMA_FG_RO_FILE  (VMA_RO | VMA_FILE)
-
-#define VMA_FILE_RO  (VMA_RO | VMA_FILE)
-#define VMA_FILE_RW  (VMA_RW | VMA_FILE)
-
-#define VMA_ANON_RW  (VMA_RW | VMA_ANON)
+/* Preset for VMA flags */
+#define VMA_HEAP_RW  (VMA_RW | VMA_HEAP)
+#define VMA_STACK_RW  (VMA_RW | VMA_STACK)
+#define VMA_PIPE_RW  (VMA_RW | VMA_PIPE)
 #define VMA_PHYSIQ   (VMA_RW | VMA_PHYS | VMA_RESOLVE)
+#define VMA_FILE_RO  (VMA_RO | VMA_FILE | VMA_SHARED)
+#define VMA_FILE_RD  (VMA_RD | VMA_FILE | VMA_SHARED)
+#define VMA_FILE_RW  (VMA_RW | VMA_FILE | VMA_SHARED)
+#define VMA_FILE_WP  (VMA_RD | VMA_FILE)
+#define VMA_ANON_RW  (VMA_RW | VMA_ANON)
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* Page fault reason */
+#define PGFLT_MISSING  1
+#define PGFLT_WRITE  2
+#define PGFLT_ERROR  4
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-/*
- * Page fault reason
- */
-#define PGFLT_MISSING  0
-#define PGFLT_WRITE_DENY  1
-#define PGFLT_ERROR  2
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 struct mspace {
     atomic_uint users;  /* Usage counter */
@@ -108,12 +91,14 @@ struct mspace {
     size_t lower_bound;  /* Lower bound of the address space */
     size_t upper_bound;  /* Upper bound of the address space */
     size_t v_size;  /* Virtual allocated page counter */
-    size_t p_size;  /* Private allocated page counter */
+    size_t p_size;  /* Physical allocated page counter */
+    size_t a_size;  /* Total allocated page counter */
     size_t s_size;  /* Shared allocated page counter */
     size_t phys_pg_count;  /* Physical page used on this address space */
     splock_t lock;  /* Memory space protection lock */
 };
 
+#if 0
 
 struct vma {
     bbnode_t node;  /* Binary tree node of VMAs contains the base address */
@@ -124,6 +109,6 @@ struct vma {
     int flags;  /* VMA flags */
     struct mspace *mspace;
 };
-
+#endif
 
 #endif  /* _KERNEL_ASM_VMA_H */

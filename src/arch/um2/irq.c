@@ -16,7 +16,7 @@ bool irq_last = false;
 void irq_reset(bool enable)
 {
     irq_active = true;
-    irq_sem = 1;
+    irq_sem = enable ? 1 : 0;
     irq_last = false;
     if (enable) {
         irq_enable();
@@ -42,3 +42,8 @@ void irq_disable()
         ++irq_sem;
     }
 }
+
+void irq_ack(int no)
+{
+}
+

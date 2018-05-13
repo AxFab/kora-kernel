@@ -4,6 +4,12 @@
 #include <string.h>
 
 
+page_t block_page(inode_t *ino, off_t off)
+{
+    return 0;
+}
+
+
 int blk_read(inode_t *ino, char *buffer, size_t length, off_t offset)
 {
     if (offset >= ino->length)
@@ -17,7 +23,7 @@ int blk_read(inode_t *ino, char *buffer, size_t length, off_t offset)
             if (map != NULL)
                 kunmap(map, PAGE_SIZE);
             poff = po;
-            map = kmap(PAGE_SIZE, ino, poff, VMA_FG_RO_FILE);
+            map = kmap(PAGE_SIZE, ino, poff, VMA_FILE_RO | VMA_RESOLVE);
             if (map == NULL)
                 return -1;
         }

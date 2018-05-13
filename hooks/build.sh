@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export PATH="$HOME/opt/bin":$PATH
-# export CROSS=i686-elf-
+export CROSS=i686-elf-
 
 require () {
     apt-get install -y binutils nasm xorriso

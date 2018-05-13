@@ -28,7 +28,6 @@
 #include <kernel/asm/vma.h>
 #include <time.h>
 
-#define FPTR "%016p"
 typedef const char* CSTR;
 
 void outb(int port, uint8_t val);
@@ -69,7 +68,7 @@ int vprintf(const char *format, va_list ap);
 void *malloc(size_t size);
 void free(void *ptr);
 
-page_t mmu_read(size_t vaddress);
+// page_t mmu_read(size_t vaddress);
 void kdump(const void *buf, int len);
 void task_core(task_t *task);
 void task_wait(void *listener, long timeout_ms);

@@ -21,11 +21,20 @@
 #define _KERNEL_MEMORY_H 1
 
 #include <kernel/types.h>
+#include <kernel/asm/vma.h>
 
 typedef struct mspace mspace_t;
 typedef struct vma vma_t;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* Create a memory space for a user application */
+mspace_t *mspace_create();
+/* Increment memory space RCU */
+mspace_t *mspace_open(mspace_t *mspace);
+/* Decrement memory space RCU */
+void mspace_close(mspace_t *mspace);
+/* Copy all VMA and associated pages */
+mspace_t *mspace_clone(mspace_t *model);
 
 /* Map a memory area inside the provided address space. */
 void *mspace_map(mspace_t *mspace, size_t address, size_t length,
@@ -34,23 +43,12 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
 int mspace_protect(mspace_t *mspace, size_t address, size_t length, int flags);
 /* Change the flags of a memory area. */
 int mspace_unmap(mspace_t *mspace, size_t address, size_t length);
-/* Release all VMA marked as DEAD. */
-int mspace_scavenge(mspace_t *mspace);
+/* Search a VMA structure at a specific address */
+vma_t *mspace_search_vma(mspace_t *mspace, size_t address);
 /* Print the information of memory space -- used for /proc/{x}/mmap  */
 void mspace_display();
-/* Create a memory space for a user application */
-mspace_t *mspace_create();
-/* Release all VMA and free all mspace data structure. */
-void mspace_sweep(mspace_t *mspace);
-/* Search a VMA structure at a specific address */
-vma_t *mspace_search_vma(mspace_t *kspace, mspace_t *mspace, size_t address);
-/* - */
-mspace_t *mspace_rcu(mspace_t *mspace, int usage);
-/* - */
-mspace_t *mspace_clone(mspace_t *model);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
 /* - */
 void page_initialize();
 /* - */
@@ -60,31 +58,37 @@ page_t page_new ();
 /* Mark a physique page, returned by `mmu_new_page`, as available again */
 void page_release(page_t paddress);
 /* Free all used pages into a range of virtual addresses */
-void page_sweep(size_t address, size_t length, bool clean);
+void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean);
 /* Resolve a page fault */
 int page_fault(mspace_t *mspace, size_t address, int reason);
 
-int page_resolve(mspace_t *mspace, size_t address, size_t length);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
 /* - */
 void mmu_enable();
+void mmu_leave();
+
+void mmu_context(mspace_t *mspace);
 /* - */
-int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean);
+int mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access, bool clean);
 /* - */
-page_t mmu_read(size_t vaddress);
+page_t mmu_read(mspace_t *mspace, size_t vaddress);
 /* - */
-page_t mmu_drop(size_t vaddress, bool clean);
+page_t mmu_drop(mspace_t *mspace, size_t vaddress, bool clean);
 /* - */
-// page_t mmu_directory();
-// /* - */
-// void mmu_release_dir(page_t dir);
+void mmu_protect(mspace_t *mspace, size_t address, size_t length, int access);
 
 void mmu_create_uspace(mspace_t *mspace);
 void mmu_destroy_uspace(mspace_t *mspace);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+void memory_initialize();
+void memory_sweep();
+void memory_info();
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 
 struct kMmu {
     size_t upper_physical_page;  /* Maximum amount of memory */
@@ -95,7 +99,10 @@ struct kMmu {
     // size_t uspace_upper_bound;  /* Userspace upper bound */
     // size_t kheap_lower_bound;  /* Kernel heap lower bound */
     // size_t kheap_upper_bound;  /* Kernel heap upper bound */
-    // size_t max_vma_length;  /* Maximum size of a VMA */
+    size_t max_vma_size;  /* Maximum size of a VMA */
+
+    long soft_page_fault;
+
     mspace_t *kspace;  /* Kernel address space */
 };
 

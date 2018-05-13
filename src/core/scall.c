@@ -1,68 +1,76 @@
 #include <kernel/core.h>
 #include <kernel/scall.h>
 #include <kernel/task.h>
-// #include <stdio.h>
+#include <kora/syscalls.h>
 #include <errno.h>
 
 scall_t scalls[] = {
-    { (scall_handler)NULL, "scall", { SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-    // { (scall_handler)sys_yield, "yield", { SC_SIGNED, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG }, true },
-    { (scall_handler)sys_exit, "exit", { SC_SIGNED, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG }, true },
-    { (scall_handler)sys_exec, "exec", { SC_STRING, SC_STRING, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-    { (scall_handler)sys_kill, "kill", { SC_UNSIGNED, SC_SIGNED, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-    { (scall_handler)sys_wait, "wait", { SC_UNSIGNED, SC_UNSIGNED, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-    { (scall_handler)sys_syslog, "syslog", { SC_STRING, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-    { (scall_handler)sys_sigaction, "sigaction", { SC_SIGNED, SC_POINTER, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-
-    { (scall_handler)sys_mmap, "mmap", { SC_HEX, SC_HEX, SC_FD, SC_OFFSET, SC_OCTAL }, false },
-    { (scall_handler)sys_mprotect, "mprotect", { SC_HEX, SC_HEX, SC_OCTAL, SC_NOARG, SC_NOARG }, false },
-    { (scall_handler)sys_munmap, "munmap", { SC_HEX, SC_HEX, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-
-    { (scall_handler)sys_window, "window", { SC_POINTER, SC_HEX, SC_HEX, SC_NOARG, SC_NOARG }, false },
-    // EXEC
-    // EXIT GROUP
-    // GET PROCESS STAT (PID / MEM / )
-    // CLONE / FORK
-    // CHDIR
-    // CHROOT
-    // { "yield", SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG },
-
-    // WAIT PID
-    // ALARM
-    // SIGNAL
-    // SIGACTION
-    // SIGSUSPEND / SIGPENDING
-    // NANOSLEEP
-    // ITIMER
-
-    { (scall_handler)sys_open, "open", { SC_FD, SC_STRING, SC_HEX, SC_OCTAL, SC_NOARG }, false },
-    { (scall_handler)sys_close, "close", { SC_FD, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-    { (scall_handler)sys_read, "read", { SC_FD, SC_STRUCT, SC_UNSIGNED, SC_NOARG, SC_NOARG }, false },
-    { (scall_handler)sys_write, "write", { SC_FD, SC_STRUCT, SC_UNSIGNED, SC_NOARG, SC_NOARG }, false },
-    { (scall_handler)sys_seek, "seek", { SC_FD, SC_OFFSET, SC_NOARG, SC_SIGNED, SC_NOARG }, false },
-    // DUP
-    { (scall_handler)sys_pipe, "pipe", { SC_POINTER, SC_UNSIGNED, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-    // READ AHEAD
-
-    { (scall_handler)sys_power, "power", { SC_SIGNED, SC_UNSIGNED, SC_NOARG, SC_NOARG, SC_NOARG }, false },
-    // TIME / CLOCK
-    // SET TIME - NTP - ADJTIMEX
-    // UNAME
-    // GET / SET STRING (HOSTNAME / DOMAIN ...)
-
-    // SYSLOG
-    // FUTEX / MUTEX
+    /* System */
+    [SYS_POWER] = { (scall_handler)sys_power, "power", true,
+        { SC_UNSIGNED, SC_UNSIGNED, SC_NOARG, SC_NOARG, SC_NOARG } },
+    [SYS_SCALL] = { (scall_handler)sys_scall, "scall", true,
+        { SC_STRING, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG } },
+    [SYS_SYSLOG] = { (scall_handler)sys_syslog, "syslog", true,
+        { SC_STRING, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG } },
+    [SYS_SYSINFO] = { (scall_handler)sys_sysinfo, "sysinfo", true,
+        { SC_UNSIGNED, SC_POINTER, SC_UNSIGNED, SC_NOARG, SC_NOARG } },
+    // TIME / CLOCK | SET TIME - NTP - ADJTIMEX
     // KERNEL MODULE (INIT / DELETE)
 
+    /* Task */
+    [SYS_YIELD] = { (scall_handler)sys_yield, "yield", false,
+        { SC_OCTAL, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG } },
+    [SYS_EXIT] = { (scall_handler)sys_exit, "exit", false,
+        { SC_SIGNED, SC_UNSIGNED, SC_NOARG, SC_NOARG, SC_NOARG } },
+    [SYS_WAIT] = { (scall_handler)sys_wait, "wait", false,
+        { SC_UNSIGNED, SC_SIGNED, SC_UNSIGNED, SC_NOARG, SC_NOARG } },
+    [SYS_EXEC] = { (scall_handler)sys_exec, "exec", true,
+        { SC_STRING, SC_POINTER, SC_POINTER, SC_OCTAL, SC_NOARG } },
+    [SYS_CLONE] = { (scall_handler)sys_clone, "clone", true,
+        { SC_OCTAL, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG } },
+    // GET PROCESS STAT (PID / MEM / ) |  CHDIR |  CHROOT | GET/SET UID
+    // NANOSLEEP | ITIMER | PRIORITY / RT
     // USE LIB
 
-    // SWAP ON / OFF
-    // MMAP / UNMAP
-    // MPROTECT
-    // MSYNC
-    // MLOCK / MUNLOCK
+    /* Signals */
+    [SYS_SIGRAISE] = { (scall_handler)sys_sigraise, "sigraise", true,
+        { SC_UNSIGNED, SC_SIGNED, SC_NOARG, SC_NOARG, SC_NOARG } },
+    [SYS_SIGACTION] = { (scall_handler)sys_sigaction, "sigaction", true,
+        { SC_UNSIGNED, SC_POINTER, SC_NOARG, SC_NOARG, SC_NOARG } },
+    [SYS_SIGRETURN] = { (scall_handler)sys_sigreturn, "sigreturn", false,
+        { SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG } },
+    // SIGSUSPEND / SIGPENDING
 
-    // SOCKET (SEND / RECEIVE)
+    /* Memory */
+    [SYS_MMAP] = { (scall_handler)sys_mmap, "mmap", true,
+        { SC_HEX, SC_HEX, SC_FD, SC_OFFSET, SC_OCTAL } },
+    [SYS_UNMAP] = { (scall_handler)sys_munmap, "munmap", true,
+        { SC_HEX, SC_HEX, SC_NOARG, SC_NOARG, SC_NOARG } },
+    [SYS_MPROTECT] = { (scall_handler)sys_mprotect, "mprotect", true,
+        { SC_HEX, SC_HEX, SC_OCTAL, SC_NOARG, SC_NOARG } },
+    // SWAP ON / OFF |  MSYNC |  MLOCK / MUNLOCK
+
+    /* Stream */
+    [SYS_OPEN] = { (scall_handler)sys_open, "open", true,
+        { SC_FD, SC_STRING, SC_OCTAL, SC_OCTAL, SC_NOARG } },
+    [SYS_CLOSE] = { (scall_handler)sys_close, "close", true,
+        { SC_FD, SC_NOARG, SC_NOARG, SC_NOARG, SC_NOARG } },
+    [SYS_READ] =  { (scall_handler)sys_read, "read", true,
+        { SC_FD, SC_POINTER, SC_UNSIGNED, SC_NOARG, SC_NOARG } },
+    [SYS_WRITE] = { (scall_handler)sys_write, "write", true,
+        { SC_FD, SC_POINTER, SC_UNSIGNED, SC_NOARG, SC_NOARG } },
+    [SYS_SEEK] = { (scall_handler)sys_seek, "seek", true,
+        { SC_FD, SC_OFFSET, SC_SIGNED, SC_NOARG, SC_NOARG } },
+    // DUP |  READ AHEAD
+
+    /* - */
+    [SYS_WINDOW] = { (scall_handler)sys_window, "window", true,
+        { SC_POINTER, SC_FD, SC_POINTER, SC_OCTAL, SC_OCTAL } },
+    [SYS_PIPE] = { (scall_handler)sys_pipe, "pipe", true,
+        { SC_POINTER, SC_UNSIGNED, SC_NOARG, SC_NOARG, SC_NOARG } },
+    // SOCKET (SEND / RECEIVE) |  FUTEX / MUTEX
+
+
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -113,7 +121,7 @@ long kernel_scall(long no, long a1, long a2, long a3, long a4, long a5)
         }
     }
 
-    if (sc->noreturn) {
+    if (!sc->retrn) {
         lg += sprintf(&buf[lg], ")\n");
         kprintf(KLOG_SYC, buf);
     }

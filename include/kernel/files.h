@@ -31,6 +31,7 @@ typedef struct tty tty_t;
 typedef struct bitmap_font font_t;
 typedef struct desktop desktop_t;
 typedef struct display display_t;
+typedef struct pipe pipe_t;
 
 struct surface {
     int width;
@@ -72,6 +73,16 @@ void vds_mouse(surface_t *scr, int x, int y);
 desktop_t *wmgr_desktop();
 void wmgr_register_screen(surface_t *screen);
 surface_t *wmgr_window(desktop_t *desktop, int width, int height);
+
+
+
+
+pipe_t *pipe_create();
+void pipe_destroy(pipe_t *pipe);
+int pipe_resize(pipe_t *pipe, int size);
+int pipe_erase(pipe_t *pipe, int len);
+int pipe_write(pipe_t *pipe, const char *buf, int len, int flags);
+int pipe_read(pipe_t *pipe, char *buf, int len, int flags);
 
 
 #endif /* _KERNEL_FILES_H */

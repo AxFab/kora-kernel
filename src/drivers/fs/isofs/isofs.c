@@ -71,7 +71,7 @@ int isofs_closedir(ISO_inode_t *dir, ISO_dirctx_t *ctx)
 ISO_inode_t *isofs_lookup(ISO_inode_t *dir, const char *name)
 {
     int lba = dir->ino.lba;
-    uint8_t *address = kmap(8192, dir->vol->dev, lba * 2048, VMA_FG_RO_FILE);
+    uint8_t *address = kmap(8192, dir->vol->dev, lba * 2048, VMA_FILE_RO);
 
     /* Skip the first two entries */
     ISOFS_entry_t *entry = (ISOFS_entry_t *)address;
@@ -104,7 +104,7 @@ ISO_inode_t *isofs_lookup(ISO_inode_t *dir, const char *name)
             size_t off = (size_t)entry - (size_t)address - 4096;
             lba += 2;
             kunmap(address, 8192);
-            address = kmap(8192, dir->vol->dev, lba * 2048, VMA_FG_RO_FILE);
+            address = kmap(8192, dir->vol->dev, lba * 2048, VMA_FILE_RO);
             entry = (ISOFS_entry_t *)((size_t)address + off);
         }
     }
@@ -120,7 +120,7 @@ ISO_inode_t *isofs_readdir(ISO_inode_t *dir, char *name, ISO_dirctx_t *ctx)
     if (ctx->lba == 0)
         ctx->lba = dir->ino.lba;
     if (ctx->base == NULL)
-        ctx->base = kmap(8192, dir->vol->dev, ctx->lba * 2048, VMA_FG_RO_FILE);
+        ctx->base = kmap(8192, dir->vol->dev, ctx->lba * 2048, VMA_FILE_RO);
 
     /* Skip the first two entries */
     ISOFS_entry_t *entry = (ISOFS_entry_t *)(&ctx->base[ctx->off]);
@@ -168,7 +168,7 @@ inode_t *isofs_mount(inode_t *dev)
         return NULL;
     }
 
-    uint8_t *address = (uint8_t *)kmap(8192, dev, lba * 2048, VMA_FG_RO_FILE);
+    uint8_t *address = (uint8_t *)kmap(8192, dev, lba * 2048, VMA_FILE_RO);
     int addressLba = 16;
     int addressCnt = 4;
     for (lba = 16; ; ++lba) {
@@ -177,7 +177,7 @@ inode_t *isofs_mount(inode_t *dev)
             kunmap(address, addressCnt * 2048);
             addressLba = lba;
             address = (uint8_t *)kmap(addressCnt * 2048, dev, addressLba * 2048,
-                                      VMA_FG_RO_FILE);
+                                      VMA_FILE_RO);
         }
 
         ISOFS_descriptor_t *descriptor = (ISOFS_descriptor_t *)&address[(lba -

@@ -1,5 +1,6 @@
 #include <kernel/core.h>
 #include <kernel/vfs.h>
+#include <kernel/memory.h>
 #include <kora/mcrs.h>
 #include <time.h>
 #include <stddef.h>
@@ -35,15 +36,15 @@ void kfree(void *ptr)
     free(ptr);
 }
 
-void heap_map()
-{
-    abort();
-}
+// void heap_map()
+// {
+//     abort();
+// }
 
-void heap_unmap()
-{
-    abort();
-}
+// void heap_unmap()
+// {
+//     abort();
+// }
 
 void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
 {
@@ -58,6 +59,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     case VMA_FILE:
         vfs_read(ino, ptr, length, offset);
         break;
+    case VMA_PIPE:
     case VMA_ANON:
     case VMA_STACK:
         memset(ptr, 0, length);
@@ -111,5 +113,3 @@ void kprintf(int lvl, const char *format, ...)
     vprintf(format, ap);
     va_end(ap);
 }
-
-void *klogs;

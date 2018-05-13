@@ -33,7 +33,7 @@ int elf_open(task_t *task, inode_t *ino)
     }
 
     struct ELF_header *head = (struct ELF_header *)kmap(PAGE_SIZE, ino, 0,
-                              VMA_FG_RO_FILE);
+                              VMA_FILE_RO);
     if (head == NULL) {
         errno = EIO;
         return -1;

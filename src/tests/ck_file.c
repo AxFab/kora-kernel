@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/files.h>
+#include <kernel/cpu.h>
 #include <kora/mcrs.h>
 #include <string.h>
 
@@ -31,6 +32,28 @@ int fread(void *, size_t, size_t, FILE *);
 int fwrite(const void *, size_t, size_t, FILE *);
 int fclose(FILE*);
 
+
+// time64_t time64()
+// {
+//     return time(NULL) * 1000000LL;
+// }
+
+// void task_resume(task_t *task)
+// {
+
+// }
+
+void advent_awake(llhead_t *list)
+{
+
+}
+
+void advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
+{
+}
+
+// struct kSys kSYS;
+// struct kCpu kCPU0;
 
 PACK(struct BMP_header {
     uint16_t magic;
@@ -202,12 +225,61 @@ void test_VDS()
     vds_destroy(screen);
 }
 
+struct pipe {
+    char *base;
+    char *rpen;
+    char *wpen;
+    char *end;
+    int size;
+    int max_size;
+    int avail;
+
+    splock_t lock;
+    llhead_t rlist;
+    llhead_t wlist;
+};
+
+
+void test_pipe_01()
+{
+    int ret;
+    char buf[1024];
+    pipe_t* pipe = pipe_create();
+    pipe->max_size = 32;
+
+    memset(buf, 0x01, 1024);
+    ret = pipe_write(pipe, buf, 12, 0);
+
+    memset(buf, 0x0, 1024);
+    ret = pipe_read(pipe, buf, 5, 0);
+
+    bufdump(pipe->base, pipe->size);
+    kprintf(KLOG_DBG, "\n");
+
+    memset(buf, 0x02, 1024);
+    ret = pipe_write(pipe, buf, 7, 0);
+
+    bufdump(pipe->base, pipe->size);
+    kprintf(KLOG_DBG, "\n");
+
+    memset(buf, 0x03, 1024);
+    ret = pipe_write(pipe, buf, 3, 0);
+
+    memset(buf, 0x04, 1024);
+    ret = pipe_write(pipe, buf, 11, 0);
+
+
+    bufdump(pipe->base, pipe->size);
+    kprintf(KLOG_DBG, "\n");
+}
 
 int main ()
 {
+    // kSYS.cpus[0] = &kCPU0;
     kprintf(-1, "Kora FILE check - " __ARCH " - v" _VTAG_ "\n");
 
     test_VDS();
+    test_pipe_01();
     return 0;
 }
 

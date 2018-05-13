@@ -80,28 +80,28 @@ void wmgr_tasket(desktop_t *desktop)
 {
     // task_priority(kCPU.running, KRN_RT, MICROSEC_PER_SEC / DISPLAY_HZ);
     for (; ; ) {
-        task_wait(NULL, 1000000 / DISPLAY_HZ); // 1 sec
+        advent_wait(NULL, NULL, 1000000 / DISPLAY_HZ); // 1 sec
+        kprintf(KLOG_MSG, "Paint\n");
+        // display_t *display = desktop->display;
+        // splock_lock(&display->lock);
+        // surface_t *screen;
+        // for ll_each(&display->screens, screen, surface_t, node) {
+        //     vds_mouse(screen, desktop->mouse_x, desktop->mouse_y);
+        //     vds_flip(screen);
+        //     vds_fill(screen, desktop->bg_color);
+        // }
 
-        display_t *display = desktop->display;
-        splock_lock(&display->lock);
-        surface_t *screen;
-        for ll_each(&display->screens, screen, surface_t, node) {
-            vds_mouse(screen, desktop->mouse_x, desktop->mouse_y);
-            vds_flip(screen);
-            vds_fill(screen, desktop->bg_color);
-        }
+        // splock_lock(&desktop->lock);
+        // for ll_each(&display->screens, screen, surface_t, node) {
 
-        splock_lock(&desktop->lock);
-        for ll_each(&display->screens, screen, surface_t, node) {
+        //     surface_t *win;
+        //     for ll_each(&desktop->windows, win, surface_t, node) {
+        //         vds_copy(screen, win, 10, 10);
+        //     }
+        // }
 
-            surface_t *win;
-            for ll_each(&desktop->windows, win, surface_t, node) {
-                vds_copy(screen, win, 10, 10);
-            }
-        }
-
-        splock_unlock(&desktop->lock);
-        splock_unlock(&display->lock);
+        // splock_unlock(&desktop->lock);
+        // splock_unlock(&display->lock);
     }
 }
 

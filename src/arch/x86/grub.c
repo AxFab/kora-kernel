@@ -13,6 +13,7 @@ uint32_t *grub_table;
 int grub_start(uint32_t *table)
 {
     grub_table = table;
+    SRL_setup();
 
     memset((void *)0x000B8000, 0, 80 * 25 * 2);
 

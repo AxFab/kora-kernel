@@ -268,8 +268,9 @@ void cpu_awake()
     PIT_set_interval(CLOCK_HZ);
 
     irq_register(0, (irq_handler_t)x86_delayIRQ, NULL);
-    bool irq = irq_enable();
-    assert(irq);
+    irq_reset(true);
+    // bool irq = irq_enable();
+    // assert(irq);
 
     // Set the Spourious Interrupt Vector Register bit 8 to start receiving interrupts
     apic[APIC_SVR] |= 0x800; // Enable the APIC
@@ -367,3 +368,89 @@ void cpu_setup_core_x86()
     kprintf(KLOG_MSG, "Wakeup CPU%d: %s.\n", cpu_no(), cpu.vendor);
     // TODO - Prepare structure - Compute TSS
 }
+
+
+void cpu_reboot()
+{
+    while ((inb(0x64) & 2) != 0);
+    outb(0x64, 0xFE); /* Reset */
+    for (;;);
+}
+
+#include <kernel/task.h>
+
+
+// int cpu_setjump(task_t *task)
+// {
+//     size_t eip, esp, ebp;
+//     asm volatile ("mov %%esp, %0" : "=r" (esp));
+//     asm volatile ("mov %%ebp, %0" : "=r" (ebp));
+//     kprintf(-1, "Task %d.1 EIP:%x ESP:%x - %x\n", task->pid, eip, esp, &task);
+//     eip = get_eip();
+//     asm volatile ("");
+//     /* Invalid EIP means we're restarting */
+//     if (eip == 0) {
+//         kprintf(-1, "Task %d.2 EIP:%x ESP:%x - %x\n", task->pid, eip, esp, &task);
+//         kprintf(-1, "Real task is %d\n", kCPU.running->pid);
+//         // asm volatile ("sti");
+//         return 1;
+//     }
+
+//     /* Save state of task */
+//     kprintf(-1, "Save task %d, EIP:%x, ESP:%x, EBP:%x\n", task->pid, eip, esp, ebp);
+//     task->state.eip = eip;
+//     task->state.esp = esp;
+//     task->state.ebp = ebp;
+
+//     int cpu = cpu_no();
+//     size_t stack = 0x100000 + cpu * 0x1000;
+//     memcpy((size_t*)stack, task->kstack, PAGE_SIZE);
+//     esp = stack | (esp & (PAGE_SIZE - 1));
+//     ebp = stack | (ebp & (PAGE_SIZE - 1));
+//     asm volatile ("mov %0, %%esp" : "=r" (esp));
+//     asm volatile ("mov %0, %%ebp" : "=r" (ebp));
+
+//     // TODO - FPU State
+//     return 0;
+// }
+
+// void cpu_jump(task_t *task)
+// {
+//     /* Restore state of task */
+//     size_t eip = task->state.eip;
+//     size_t esp = task->state.esp;
+//     size_t ebp = task->state.ebp;
+//     // TODO - FPU State
+
+//     kprintf(-1, "Restore task %d, EIP:%x, ESP:%x, EBP:%x\n", task->pid, eip, esp, ebp);
+//     /* Do Jump */
+//     asm volatile (
+//             "cli\n"
+//             "mov %0, %%ebx\n"
+//             "mov %1, %%esp\n"
+//             "mov %2, %%ebp\n"
+//             "xor %%eax, %%eax\n" /* cpu_setjump will return 0 */
+//             "jmp *%%ebx"
+//             : : "r" (eip), "r" (esp), "r" (ebp)
+//             : "%ebx", "%esp", "%eax");
+
+// }
+
+static void _exit() {
+    for (;;) task_switch(TS_ZOMBIE, -42);
+}
+
+int cpu_tasklet(task_t* task, void *entry, void *param)
+{
+    void **stack = (void**)task->kstack;
+    task->state[5] = (size_t)entry;
+    task->state[3] = (size_t)task->kstack;
+
+    stack--; *stack = param;
+    stack--; *stack = _exit;
+    task->state[4] = (size_t)stack;
+}
+
+
+
+

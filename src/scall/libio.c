@@ -5,13 +5,15 @@
 #include <errno.h>
 
 
-int sys_open(int fd, const char *name, int flags, int mode)
+
+
+int sys_open(int fd, const char *path, unsigned long flags, unsigned long mode)
 {
     task_t *task = kCPU.running;
     inode_t *dir = task->pwd;
     if (fd >= 0)
         dir = resx_get(task->resx, fd);
-    inode_t *ino = vfs_search(task->root, dir, name, NULL);
+    inode_t *ino = vfs_search(task->root, dir, path, NULL);
     if (ino == NULL)
         return -1;
     errno = 0;
@@ -24,7 +26,7 @@ int sys_close(int fd)
     return resx_close(task->resx, fd);
 }
 
-int sys_read(int fd, const struct iovec *vec, unsigned vlen)
+int sys_read(int fd, const struct iovec *vec, unsigned long vlen)
 {
     task_t *task = kCPU.running;
     inode_t *ino = resx_get(task->resx, fd);
@@ -51,7 +53,7 @@ int sys_read(int fd, const struct iovec *vec, unsigned vlen)
     return bytes;
 }
 
-int sys_write(int fd, const struct iovec *vec, unsigned vlen)
+int sys_write(int fd, const struct iovec *vec, unsigned long vlen)
 {
     task_t *task = kCPU.running;
     inode_t *ino = resx_get(task->resx, fd);
@@ -79,7 +81,7 @@ int sys_write(int fd, const struct iovec *vec, unsigned vlen)
     return bytes;
 }
 
-int sys_seek(int fd, off_t offset, int whence)
+int sys_seek(int fd, off_t off, unsigned long whence)
 {
     // task_t *task = kCPU.running;
     return -1;
@@ -97,7 +99,7 @@ int sys_pipe(int *fd, size_t size)
     return 0;
 }
 
-int sys_window(struct image *img, int features, int events)
+int sys_window(void *img, int fd, void *info, unsigned long features, unsigned long events)
 {
     // int width = ALIGN_UP(img->width, 16);
     // int height = ALIGN_UP(img->height, 16);
@@ -110,10 +112,4 @@ int sys_window(struct image *img, int features, int events)
     // // ALLOC ALL PAGES !
     // // Create a new inode of type frame buffer !
     return 0;
-}
-
-int sys_syslog(const char *msg)
-{
-    kprintf(KLOG_USR, "%s\n", msg);
-    return 1;
 }

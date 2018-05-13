@@ -48,10 +48,13 @@ splock_t klog_lock;
 
 void kwrite(const char *buf, int len)
 {
-    if (tty_syslog == NULL)
-        return;
     splock_lock(&klog_lock);
-    tty_write(tty_syslog, buf, len);
+    TXT_write(buf, len);
+    SRL_write(buf, len);
+
+    // if (tty_syslog == NULL)
+    //     return;
+    // tty_write(tty_syslog, buf, len);
     splock_unlock(&klog_lock);
 }
 
@@ -80,10 +83,11 @@ extern int no_dbg;
 
 void kernel_start()
 {
-    page_initialize();
+    irq_reset(false);
+    irq_disable();
+    memory_initialize();
 
     kSYS.cpus[0] = &kCPU0;
-    irq_reset(false);
 
     //   // TODO -- Use recursive spinlock unstead.
     void *p = kalloc(2);
@@ -100,6 +104,7 @@ void kernel_start()
 
     cpu_awake();
     irq_reset(false);
+    irq_disable();
 
     time_t now = cpu_time();
     kprintf(KLOG_MSG, "Startup: %s", asctime(gmtime(&now)));
@@ -125,13 +130,13 @@ void kernel_start()
     // assert(irq);
 
 #if 1
-    KSETUP(ps2);
+    // KSETUP(ps2);
     KSETUP(ide_ata);
     KSETUP(pci);
     KSETUP(e1000);
     KSETUP(vbox);
     KSETUP(ac97);
-    KSETUP(vga);
+    // KSETUP(vga);
 #else
     KSETUP(imgdk);
 #endif
@@ -139,37 +144,37 @@ void kernel_start()
 
     desktop_t *dekstop = wmgr_desktop();
 
-    tty_attach(tty_syslog, wmgr_window(dekstop, 600, 600), &font_6x9, colors_kora, 0);
+    // tty_attach(tty_syslog, wmgr_window(dekstop, 600, 600), &font_6x9, colors_kora, 0);
 
     irq_disable();
 
-    inode_t *root = vfs_mount("sdC", "isofs");
-    if (root == NULL) {
-        kprintf(-1, "Expected mount point named 'ISOIMAGE' over 'sdC' !\n");
-        return;
-    }
+    // inode_t *root = vfs_mount("sdC", "isofs");
+    // if (root == NULL) {
+    //     kprintf(-1, "Expected mount point named 'ISOIMAGE' over 'sdC' !\n");
+    //     return;
+    // }
 
-    // vfs_mount(root, "dev", NULL, "devfs");
-    // vfs_mount(root, "tmp", NULL, "tmpfs");
+    // // vfs_mount(root, "dev", NULL, "devfs");
+    // // vfs_mount(root, "tmp", NULL, "tmpfs");
 
-    inode_t *ino = vfs_search(root, root, "bin/init", NULL);
-    if (ino == NULL) {
-        kprintf(-1, "Expected file 'bin/init'.\n");
-        return;
-    }
+    // inode_t *ino = vfs_search(root, root, "bin/init", NULL);
+    // if (ino == NULL) {
+    //     kprintf(-1, "Expected file 'bin/init'.\n");
+    //     return;
+    // }
 
-    task_t *task0 = task_create(NULL, root, TSK_USER_SPACE, "init");
-    if (elf_open(task0, ino) != 0) {
-        kprintf(-1, "Unable to execute file\n");
-    }
+    // task_t *task0 = task_create(NULL, root, TSK_USER_SPACE, "init");
+    // if (elf_open(task0, ino) != 0) {
+    //     kprintf(-1, "Unable to execute file\n");
+    // }
 
-    vfs_close(root);
-    vfs_close(ino);
-
+    // vfs_close(root);
+    // vfs_close(ino);
+    irq_reset(false);
     clock_init();
     no_dbg = 0;
     irq_register(0, (irq_handler_t)sys_ticks, NULL);
-    PS2_reset();
+    // PS2_reset();
 }
 
 void kernel_ready()

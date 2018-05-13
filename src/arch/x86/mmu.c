@@ -75,8 +75,10 @@ void mmu_enable()
     x86_enable_MMU();
 }
 
+void mmu_leave() {}
+
 /* - */
-int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
+int mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access, bool clean)
 {
     assert((vaddress & (PAGE_SIZE - 1)) == 0);
 
@@ -136,16 +138,19 @@ static page_t mmu_read_(size_t vaddress, bool drop, bool clean)
     return *tbl & (~(PAGE_SIZE - 1));
 }
 
-page_t mmu_read(size_t vaddress)
+page_t mmu_read(mspace_t *mspace, size_t vaddress)
 {
     return mmu_read_(vaddress, false, false);
 }
 
-page_t mmu_drop(size_t vaddress, bool clean)
+page_t mmu_drop(mspace_t *mspace, size_t vaddress, bool clean)
 {
     return mmu_read_(vaddress, true, clean);
 }
 
+void mmu_protect(mspace_t *mspace, size_t address, size_t length, int access)
+{
+}
 
 /* - */
 static page_t mmu_directory()
@@ -190,6 +195,10 @@ void mmu_destroy_uspace(mspace_t *mspace)
     page_release(mspace->directory);
 }
 
+void mmu_context(mspace_t *mspace)
+{
+
+}
 
 void mmu_dump_x86()
 {

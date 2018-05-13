@@ -33,7 +33,6 @@ typedef struct sig_handler sig_handler_t;
 typedef struct stream stream_t;
 typedef struct resx resx_t;
 
-
 struct user {
     uint8_t id[16];
 };
@@ -67,12 +66,13 @@ struct task {
     size_t *ustack;  /* User space stack base address */
     size_t kstack_len;  /* Kernel stack length */
     size_t ustack_len;  /* User space stack length */
-    uint8_t state;  /* Task state (see enum TS_TaskState) */
+    uint8_t status;  /* Task state (see enum TS_TaskState) */
     int prio;
-    int exit_code;
+    int retcode;
     // int rp;
-    regs_t *regs/*[8]*/;
-    regs_t *sig_regs;
+    cpu_state_t state;
+    // regs_t *regs/*[8]*/;
+    // regs_t *sig_regs;
     splock_t lock;
 
     sig_handler_t shandler[32];
@@ -85,8 +85,9 @@ struct task {
     task_t *parent;
 
     /* Scheduler entity */
-    task_t *prev;
-    task_t *next;
+    llnode_t node;
+    // task_t *prev;
+    // task_t *next;
 
     // unsigned long stack_canary;
 
@@ -117,6 +118,7 @@ struct task {
     /* Memory address space */
     mspace_t *usmem;  /* User space memory */
 
+    llhead_t wlist;
 };
 
 #define TSK_USER_SPACE  0x001
@@ -128,7 +130,7 @@ void task_leave_sys();
 
 void task_start(task_t *task, size_t entry, long args);
 int task_stop(task_t *task, int code);
-int task_kill(task_t *task, int signum);
+int task_kill(task_t *task, unsigned signum);
 int task_resume(task_t *task);
 
 _Noreturn int task_pause(int state);
@@ -143,8 +145,13 @@ _Noreturn void cpu_run(task_t *task);
 
 void scheduler_add(task_t *item);
 void scheduler_rm(task_t *item);
-_Noreturn void scheduler_next();
-void scheduler_ticks();
+task_t *scheduler_next();
+// void scheduler_ticks();
+
+
+void advent_awake(llhead_t *list);
+void advent_wait(splock_t *lock, llhead_t *list, long timeout_us);
+void adent_timeout();
 
 
 int elf_open(task_t *task, inode_t *ino);

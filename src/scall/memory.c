@@ -24,7 +24,7 @@
 #include <kernel/sys/inode.h>
 #include <errno.h>
 
-void *sys_mmap(size_t address, size_t length, int fd, off_t offset, int flags)
+void *sys_mmap(size_t address, size_t length, int fd, off_t offset, unsigned long flags)
 {
     task_t *task = kCPU.running;
     inode_t *ino = NULL;
@@ -44,7 +44,7 @@ void *sys_mmap(size_t address, size_t length, int fd, off_t offset, int flags)
     return mspace_map(task->usmem, address, length, ino, offset, 0, vmaflags);
 }
 
-int sys_mprotect(size_t address, size_t length, int flags)
+int sys_mprotect(size_t address, size_t length, unsigned int flags)
 {
     int vmaflags = flags & VMA_RIGHTS;
     return mspace_protect(kCPU.running->usmem, address, length, vmaflags);
@@ -52,5 +52,5 @@ int sys_mprotect(size_t address, size_t length, int flags)
 
 int sys_munmap(size_t address, size_t length)
 {
-    return mspace_protect(kCPU.running->usmem, address, length, VMA_DEAD);
+    return mspace_unmap(kCPU.running->usmem, address, length);
 }

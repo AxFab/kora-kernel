@@ -38,9 +38,9 @@ $(eval $(call ccpl,mod))
 
 
 core_src-y += $(wildcard $(srcdir)/core/*.c)
-core_src-y += $(wildcard $(srcdir)/core/file/*.c)
+core_src-y += $(wildcard $(srcdir)/core/files/*.c)
 core_src-y += $(wildcard $(srcdir)/core/io/*.c)
-core_src-y += $(wildcard $(srcdir)/core/tsk/*.c)
+core_src-y += $(wildcard $(srcdir)/core/task/*.c)
 core_src-y += $(wildcard $(srcdir)/core/mem/*.c)
 core_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
 core_src-y += $(wildcard $(srcdir)/core/net/*.c)
@@ -99,15 +99,28 @@ DV_UTILS += $(bindir)/ckMem
 
 # -------------------------
 
-ckFile_src-y += $(wildcard $(srcdir)/core/file/*.c)
+ckFile_src-y += $(wildcard $(srcdir)/core/files/*.c)
+ckFile_omit-y += $(srcdir)/core/files/wmgr.c
 # ckFile_src-y += $(wildcard $(srcdir)/libc/*.c)
 ckFile_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
-ckFile_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/mmu.c
+ckFile_src-y += $(srcdir)/core/debug.c  $(srcdir)/arch/um2/cpu.c
+# $(srcdir)/arch/um2/mmu.c
 ckFile_src-y += $(srcdir)/tests/ck_file.c
-# ckFile_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
 ckFile_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckFile,std))
 DV_UTILS += $(bindir)/ckFile
+
+# -------------------------
+
+ckTask_src-y += $(wildcard $(srcdir)/core/task/*.c)
+ckTask_src-y += $(srcdir)/libc/bbtree.c $(srcdir)/libc/setjmp_x86_64.asm
+ckTask_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
+ckTask_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/cpu.c
+# $(srcdir)/arch/um2/mmu.c
+ckTask_src-y += $(srcdir)/tests/ck_task.c
+ckTask_LFLAGS += $(LFLAGS) $(COV_FLAGS)
+$(eval $(call link,ckTask,std))
+DV_UTILS += $(bindir)/ckTask
 
 
 
@@ -119,5 +132,5 @@ $(outdir)/krn/%.o: $(srcdir)/%.asm
 $(outdir)/std/%.o: $(srcdir)/%.asm
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    ASM "$@
-	$(V) nasm -f elf32 -o $@ $^
+	$(V) nasm -f elf64 -o $@ $^
 
