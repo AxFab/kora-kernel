@@ -17,14 +17,13 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/memory.h>
 #include <kernel/vfs.h>
 #include <kora/mcrs.h>
+#include "mspace.h"
 #include <assert.h>
 #include <errno.h>
 
-extern mspace_t kernel_space;
+
 /** Check in an address interval is available on this address space */
 static bool mspace_is_available(mspace_t *mspace, size_t address, size_t length)
 {
@@ -56,113 +55,66 @@ static size_t mspace_find_free(mspace_t *mspace, size_t length)
     assert(splock_locked(&mspace->lock));
     vma_t *next;
     vma_t *vma = bbtree_first(&mspace->tree, vma_t, node);
-    if (vma == NULL || mspace->lower_bound + length <= vma->node.value_) {
+    if (vma == NULL || mspace->lower_bound + length <= vma->node.value_)
         return mspace->lower_bound;
-    }
 
     for (;;) {
         next = bbtree_next(&vma->node, vma_t, node);
-        if (next == NULL ||
-                vma->node.value_ + vma->length + length <= next->node.value_) {
+        if (next == NULL || vma->node.value_ + vma->length + length <= next->node.value_)
             break;
-        }
         vma = next;
     }
-    if (next == NULL &&
-            vma->node.value_ + vma->length + length > mspace->upper_bound) {
+    if (next == NULL && vma->node.value_ + vma->length + length > mspace->upper_bound)
         return 0;
-    }
     return vma->node.value_ + vma->length;
 }
 
-/** Split one VMA into two.
- *
- * @mspace  The address space concerned
- * @area  The already existing VMA that need to be splited.
- * @length  The length of the new VMA
- *
- * The VMA is cut after the length provided. A new VMA is add that will map
- * the rest of the VMA serving the exact same data.
- */
-static vma_t *mspace_split_vma(mspace_t *mspace, vma_t *area, size_t length)
-{
-    assert(splock_locked(&mspace->lock));
-    assert(area->length > length);
-    kprintf(KLOG_MEM, "[MEM ] Split [%08x-%08x] at %x.\n", area->node.value_,
-            area->node.value_ + area->length, area->node.value_ + length);
-
-    vma_t *vma = (vma_t *)kalloc(sizeof(vma_t));
-    vma->mspace = mspace;
-    vma->node.value_ = area->node.value_ + length;
-    vma->length = area->length - length;
-    vma->ino = area->ino ? vfs_open(area->ino) : NULL;
-    vma->offset = area->offset + length;
-    vma->flags = area->flags;
-
-    area->length = length;
-    if (area->limit != 0) {
-        if (area->limit > (off_t)length) {
-            vma->limit = area->limit - length;
-            area->limit = 0;
-        } else {
-            vma->limit = -1;
-        }
-    }
-    bbtree_insert(&mspace->tree, &vma->node);
-    return vma;
-}
-
 /** Check and transfrom the flags before assign to a new VMA. */
-static int mspace_set_flags(int flags)
+static int mspace_set_flags(int flags, bool is_kernel)
 {
-    flags |= (flags & VMA_RIGHTS) << 4;  /* Copy rights flags as capabilties */
-    if (flags & VMA_COPY_ON_WRITE) {
-        flags &= ~VMA_WRITE;
+    int caps = (flags >> 4) & VMA_RIGHTS;
+    /* Check capabilities are set correcly */
+    if ((flags & caps) != (flags & VMA_RIGHTS))
+        return 0;
+    /* Forbid a map write and execute */
+    if (caps & VMA_WRITE && caps & VMA_EXEC)
+        return 0;
+    /* Flags forbidden, intern code only */
+    if (flags & VMA_COPY_ON_WRITE)
+        return 0;
+
+    switch (flags & VMA_TYPE) {
+    case VMA_HEAP:
+        /* Heaps are always private and RW */
+        if (caps != (VMA_READ | VMA_WRITE) || flags & VMA_SHARED)
+            return 0;
+        break;
+    case VMA_STACK:
+        /* Stacks are always private and RW */
+        if (caps != (VMA_READ | VMA_WRITE) || flags & VMA_SHARED)
+            return 0;
+        break;
+    case VMA_PIPE:
+        /* Pipes are always on kernel and RW */
+        if (caps != (VMA_READ | VMA_WRITE) || flags & VMA_SHARED || !is_kernel)
+            return 0;
+        break;
+    case VMA_PHYS:
+        /* Physical mapping is always on kernel, can't be executed */
+        if (flags & VMA_SHARED || !is_kernel || caps & VMA_EXEC)
+            return 0;
+        break;
+    case VMA_ANON:
+        if (flags & VMA_SHARED)
+            return 0;
+        break;
+    case VMA_FILE:
+        break;
+    default:
+        return 0;
     }
+
     return flags & 0x0FFF;
-}
-
-/** Close a VMA and release private pages.
- *
- * WARNING: Possible memory leak or other error in case page are not
- * properly release.
- */
-static int mspace_close_vma(mspace_t *mspace, vma_t *vma, int arg)
-{
-    (void)arg;
-    int type = vma->flags & VMA_TYPE;
-    if ((vma->flags & VMA_SHARED) == 0 && type != VMA_PHYS && type != VMA_FILE) {
-        page_sweep(vma->node.value_, vma->length, true);
-    }
-    if (vma->ino) {
-        vfs_close(vma->ino);
-    }
-    bbtree_remove(&mspace->tree, vma->node.value_);
-    kprintf(KLOG_MEM, "[MEM ] Free [%08x-%08x] \n", vma->node.value_,
-            vma->node.value_ + vma->length);
-    mspace->v_size -= vma->length;
-    kfree(vma);
-    return 0;
-}
-
-/** Change the flags of a VMA. */
-static int mspace_protect_vma(mspace_t *mspace, vma_t* vma, int flags)
-{
-    (void)mspace;
-    if (flags & VMA_RIGHTS) {
-        // Change access right
-        if ((flags & ((vma->flags >> 4) & VMA_RIGHTS)) != flags) {
-            errno = EPERM;
-            return -1;
-            // Un-autorized!
-        }
-
-        vma->flags &= ~VMA_RIGHTS;
-        vma->flags |= flags;
-    } else if (flags == VMA_DEAD) {
-        vma->flags = flags;
-    }
-    return 0;
 }
 
 /** Utility method used to apply a change on a address interval.
@@ -187,7 +139,7 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length, int(
     splock_lock(&mspace->lock);
     while (length != 0) {
         vma = bbtree_search_le(&mspace->tree, address, vma_t, node);
-        if (vma == NULL || vma->flags & VMA_DEAD) {
+        if (vma == NULL) {
             errno = ENOENT;
             splock_unlock(&mspace->lock);
             return -1;
@@ -195,17 +147,18 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length, int(
 
         if (vma->node.value_ != address) {
             assert(vma->node.value_ < address);
-            vma = mspace_split_vma(mspace, vma, address - vma->node.value_);
+            vma = vma_split(mspace, vma, address - vma->node.value_);
         }
 
         assert(vma->node.value_ == address);
-        if (vma->length > length) {
-            mspace_split_vma(mspace, vma, length);
-        }
+        if (vma->length > length)
+            vma_split(mspace, vma, length);
 
         address += vma->length;
         length -= vma->length;
         if (action(mspace, vma, arg)) {
+            assert (errno != 0);
+            splock_unlock(&mspace->lock);
             return -1;
         }
     }
@@ -221,22 +174,19 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length, int(
 void *mspace_map(mspace_t *mspace, size_t address, size_t length,
                  inode_t *ino, off_t offset, off_t limit, int flags)
 {
-    vma_t *vma;
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
 
-    int vflags = mspace_set_flags(flags);
-    if (length == 0 || length > VMA_CFG_MAXSIZE || vflags == 0) {
+    /* Check some parameters */
+    int vflags = mspace_set_flags(flags, mspace == kMMU.kspace);
+    if (length == 0 || length > kMMU.max_vma_size || vflags == 0) {
         errno = EINVAL;
         return NULL;
     }
 
-    // kprintf(KLOG_DBG, "mspace_t { treecount:%d, dir:%x, lower:%x, upper:%x, lock:%d } \n",
-    //   mspace->tree.count_, mspace->directory, mspace->lower_bound, mspace->upper_bound, mspace->lock);
-
     splock_lock(&mspace->lock);
 
-    // If we have an address, check availability
+    /* If we have an address, check availability */
     if (address != 0) {
         if (!mspace_is_available(mspace, address, length)) {
             if (flags & VMA_MAP_FIXED) {
@@ -248,7 +198,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
         }
     }
 
-    // If we don't have address yet
+    /* If we don't have address yet, look for one */
     if (address == 0) {
         address = mspace_find_free(mspace, length);
         if (address == 0) {
@@ -258,84 +208,24 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
         }
     }
 
-    // Create the VMA
+    /* Create the VMA */
+    vma_t *vma = vma_create(mspace, address, length, ino, offset, limit, vflags);
+    if (flags & VMA_RESOLVE)
+        vma_resolve(vma, address, length);
     errno = 0;
-    vma = (vma_t *)kalloc(sizeof(vma_t));
-    vma->mspace = mspace;
-    vma->node.value_ = address;
-    vma->length = length;
-    vma->ino = vfs_open(ino);
-    vma->offset = offset;
-    vma->limit = limit;
-    vma->flags = vflags;
-    bbtree_insert(&mspace->tree, &vma->node);
     splock_unlock(&mspace->lock);
-    mspace->v_size += length;
-
-    static char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"};
-    char sh = vflags & VMA_COPY_ON_WRITE ? (vflags & VMA_SHARED ? 'W' : 'w') : (vflags & VMA_SHARED ? 'S' : 'p');
-    // TODO Add inode info
-    if (mspace == &kernel_space)
-        kprintf(KLOG_MEM, " - Krn :: "FPTR"-"FPTR" %s%c {%x}\n", address, address + length, rights[vflags & 7], sh, vflags);
-    else
-        kprintf(KLOG_MEM, " - Usr :: "FPTR"-"FPTR" %s%c {%x}\n", address, address + length, rights[vflags & 7], sh, vflags);
-
     return (void *)address;
 }
 
 /* Change the flags of a memory area. */
 int mspace_protect(mspace_t *mspace, size_t address, size_t length, int flags)
 {
-    if ((flags & VMA_RIGHTS) != flags && flags != VMA_DEAD) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    return mspace_interval(mspace, address, length, mspace_protect_vma, flags);
+    return mspace_interval(mspace, address, length, vma_protect, flags);
 }
 
 int mspace_unmap(mspace_t *mspace, size_t address, size_t length)
 {
-    return mspace_interval(mspace, address, length, mspace_close_vma, 0);
-}
-
-/* Remove disabled memory area */
-int mspace_scavenge(mspace_t *mspace)
-{
-    vma_t *vma = bbtree_first(&mspace->tree, vma_t, node);
-    while (vma) {
-        vma_t *next = bbtree_next(&vma->node, vma_t, node);
-        if (vma->flags & VMA_DEAD) {
-            mspace_close_vma(mspace, vma, 0);
-        }
-        vma = next;
-    }
-    return -1;
-}
-
-/* Display the state of the current address space */
-void mspace_display(mspace_t *mspace)
-{
-    const char *rights[] = {
-        "---p", "--xp", "-w-p", "-wxp",
-        "r--p", "r-xp", "rw-p", "rwxp",
-        "--- ", "--x ", "-w- ", "-wx ",
-        "r-- ", "r-x ", "rw- ", "rwx ",
-    };
-    splock_lock(&mspace->lock);
-    kprintf(KLOG_DBG, "%p-%p mapped: %d KB   writable/private: %d KB   shared: %d KB\n",
-            mspace->lower_bound, mspace->upper_bound,
-            mspace->v_size / 1024, mspace->p_size / 1024, mspace->s_size / 1024);
-    kprintf(KLOG_DBG, "------------------------------------------------\n");
-    vma_t *vma = bbtree_first(&mspace->tree, vma_t, node);
-    while (vma) {
-        kprintf(KLOG_DBG, "%p-%p %s %08x ",
-                vma->node.value_, vma->node.value_ + vma->length,
-                rights[vma->flags & 15], vma->offset);
-        kprintf(KLOG_DBG, "\n");
-        vma = bbtree_next(&vma->node, vma_t, node);
-    }
-    splock_unlock(&mspace->lock);
+    return mspace_interval(mspace, address, length, vma_close, 0);
 }
 
 /* Create a memory space for a user application */
@@ -349,53 +239,55 @@ mspace_t *mspace_create()
     return mspace;
 }
 
-mspace_t *mspace_rcu(mspace_t *mspace, int usage)
-{
-    if (usage == 1)
-        atomic_inc(&mspace->users);
-    else {
-        if (atomic_fetch_add(&mspace->users, -1) == 1) {
-            // WE CAN DESALLOCATE THIS ONE !
-            mspace_sweep(mspace);
-            kfree(mspace);
-        }
-    }
-    return mspace;
-}
-
 mspace_t *mspace_clone(mspace_t *model)
 {
-    mspace_t *mspace = (mspace_t *)kalloc(sizeof(mspace_t));
-    bbtree_init(&mspace->tree);
-    splock_init(&mspace->lock);
-    atomic_inc(&mspace->users);
+    mspace_t *mspace = mspace_create();
     splock_lock(&model->lock);
-    mspace->lower_bound = model->lower_bound;
-    mspace->upper_bound = model->upper_bound;
-    // TODO Copy all VMA, put both on read on write !
+    assert(mspace->lower_bound == model->lower_bound);
+    assert(mspace->upper_bound = model->upper_bound);
+
+    vma_t *vma = bbtree_first(&model->tree, vma_t, node);
+    for (; vma ; vma = bbtree_next(&vma->node, vma_t, node)) {
+        int type = vma->flags & VMA_TYPE;
+        if (type == VMA_STACK || type == VMA_PIPE || type == VMA_PHYS)
+            continue;
+        vma_clone(mspace, vma);
+    }
+
     splock_unlock(&model->lock);
     return mspace;
 }
 
 
+mspace_t *mspace_open(mspace_t *mspace)
+{
+    atomic_inc(&mspace->users);
+    return mspace;
+}
 
-/* Release all VMA and free all mspace data structure.
- *
- * WARNING: VMA might contains pages that need to be released first.
- */
+/* Close all VMAs */
 void mspace_sweep(mspace_t *mspace)
 {
     splock_lock(&mspace->lock);
     vma_t *vma = bbtree_first(&mspace->tree, vma_t, node);
     while (vma != NULL) {
-        mspace_close_vma(mspace, vma, 0);
+        vma_close(mspace, vma, 0);
         vma = bbtree_first(&mspace->tree, vma_t, node);
     }
-
-    mmu_destroy_uspace(mspace);
+    /* Free MMU releated data */
     splock_unlock(&mspace->lock);
 }
 
+/* Decrement RCU and might release all VMA and free data structures. */
+void mspace_close(mspace_t *mspace)
+{
+    if (atomic_fetch_add(&mspace->users, -1) == 1) {
+        mspace_sweep(mspace);
+        mmu_destroy_uspace(mspace);
+        /* Free memory space */
+        kfree(mspace);
+    }
+}
 /* Search a VMA structure at a specific address.
  *
  * @mspace  The instance of the address space object
@@ -403,26 +295,43 @@ void mspace_sweep(mspace_t *mspace)
  *
  * Return a VMA structure.
  */
-vma_t *mspace_search_vma(mspace_t *kspace, mspace_t *mspace, size_t address)
+vma_t *mspace_search_vma(mspace_t *mspace, size_t address)
 {
-    vma_t *vma;
-    if (address >= kspace->lower_bound && address < kspace->upper_bound) {
-        splock_lock(&kspace->lock);
-        vma = bbtree_search_le(&kspace->tree, address, vma_t, node);
-        splock_unlock(&kspace->lock);
-    } else if (mspace != NULL && address >= mspace->lower_bound &&
-               address < mspace->upper_bound) {
+    vma_t *vma = NULL;
+    if (address >= kMMU.kspace->lower_bound && address < kMMU.kspace->upper_bound) {
+        splock_lock(&kMMU.kspace->lock);
+        vma = bbtree_search_le(&kMMU.kspace->tree, address, vma_t, node);
+    } else if (mspace != NULL && address >= mspace->lower_bound && address < mspace->upper_bound) {
         splock_lock(&mspace->lock);
         vma = bbtree_search_le(&mspace->tree, address, vma_t, node);
-        splock_unlock(&mspace->lock);
-    } else {
-        kprintf(KLOG_MEM, "[MEM ] Page error outside of address spaces [%d].\n", address);
-        return NULL;
     }
 
-    if (vma == NULL || vma->node.value_ + vma->length <= address) {
-        kprintf(KLOG_MEM, "[MEM ] Page error without associated VMA [%d].\n", address);
+    if (vma == NULL)
+        return NULL;
+    if (vma->node.value_ + vma->length <= address) {
+        splock_unlock(&vma->mspace->lock);
         return NULL;
     }
     return vma;
+}
+
+
+/* Display the state of the current address space */
+void mspace_display(mspace_t *mspace)
+{
+    splock_lock(&mspace->lock);
+    kprintf(KLOG_DBG, ""FPTR"-"FPTR" mapped: %d KB   physical: %d KB   shared: %d KB   used: %d KB\n",
+            mspace->lower_bound, mspace->upper_bound,
+            mspace->v_size / 1024, mspace->p_size / 1024,
+            mspace->s_size / 1024, mspace->a_size / 1024);
+    kprintf(KLOG_DBG, "------------------------------------------------\n");
+    char *buf = malloc(4096);
+    vma_t *vma = bbtree_first(&mspace->tree, vma_t, node);
+    while (vma) {
+        vma_print(buf, 4096, vma);
+        kprintf(KLOG_DBG, "%s\n", buf);
+        vma = bbtree_next(&vma->node, vma_t, node);
+    }
+    kfree(buf);
+    splock_unlock(&mspace->lock);
 }

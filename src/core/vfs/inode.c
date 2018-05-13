@@ -156,7 +156,12 @@ int vfs_rename(inode_t *dir, CSTR name, inode_t *ino);
 /* Create a symlink */
 inode_t *vfs_symlink(inode_t *dir, CSTR name, CSTR path);
 /* Read a link */
-int vfs_readlink(inode_t *ino, char *buf, int len, int flags);
+int vfs_readlink(inode_t *ino, char *buf, int len, int flags)
+{
+    buf[0] = ':';
+    buf[1] = '\0';
+    return -1;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

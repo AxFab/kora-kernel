@@ -101,7 +101,7 @@ void sys_call_x86(regs_t *regs)
     assert(kCPU.running);
     assert(regs->cs != SGM_CODE_KERNEL);
 
-    task_enter_sys(regs, false);
+    // task_enter_sys(regs, false);
     // kTSK.regs = regs;
     // kprintf(KLOG_DBG, "[x86 ] SYS CALL\n");
     long ret = kernel_scall(regs->eax, regs->ecx, regs->edx, regs->ebx, regs->esi,
@@ -109,47 +109,46 @@ void sys_call_x86(regs_t *regs)
     regs->eax = ret;
     regs->ebx = errno;
     // regs->edx = ret >> 32;
-    task_signals();
-    task_leave_sys();
+    // task_signals();
+    // task_leave_sys();
 }
 
 void sys_wait_x86(regs_t *regs)
 {
     assert(kCPU.running);
-    task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
+    // task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
     // kprintf(KLOG_DBG, "[x86 ] SYS WAIT\n");
-    task_pause(TS_INTERRUPTIBLE);
-    task_signals();
-    task_leave_sys();
+    // task_pause(TS_INTERRUPTIBLE);
+    // task_signals();
+    // task_leave_sys();
 }
 
 void sys_sigret_x86(regs_t *regs)
 {
     assert(kCPU.running);
-    task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
-    // kprintf(KLOG_DBG, "[x86 ] SYS SIG_RETURN\n");
-    cpu_return_signal(kCPU.running, regs);
-    task_signals();
-    task_leave_sys();
+    // task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
+    // // kprintf(KLOG_DBG, "[x86 ] SYS SIG_RETURN\n");
+    // cpu_return_signal(kCPU.running, regs);
+    // task_signals();
+    // task_leave_sys();
 }
 
 void cpu_exception_x86(int no, regs_t *regs)
 {
     assert(no >= 0 && no <= 20);
 
-    task_enter_sys(NULL, regs->cs == SGM_CODE_KERNEL);
+    // task_enter_sys(NULL, regs->cs == SGM_CODE_KERNEL);
     kprintf(KLOG_ERR, "[x86 ] Detected a cpu exception: %d - %s\n", no,
             signal_exception_x86[no].name);
-    if (regs->cs == SGM_CODE_KERNEL) {
-        // TODO -- If a module is responsable, close this module and send an alert.
+    if (kCPU.running == NULL)
         kpanic("Kernel code triggered an exception.\n");
-    } else {
-        task_kill(kCPU.running, signal_exception_x86[no].signum);
-    }
+        // TODO -- If a module is responsable, close this module and send an alert.
+    // task_kill(kCPU.running, signal_exception_x86[no].signum);
+    // task_switch();
     for (;;);
 }
 
-void cpu_errot_x86(int no, int code, regs_t *regs)
+void cpu_error_x86(int no, int code, regs_t *regs)
 {
     cpu_exception_x86(no, regs);
 }
@@ -170,34 +169,35 @@ void page_error_x86(int code, regs_t *regs)
 void page_fault_x86(size_t address, int code, regs_t *regs)
 {
     irq_disable();
-    task_enter_sys(NULL, regs->cs == SGM_CODE_KERNEL);
+    // task_enter_sys(NULL, regs->cs == SGM_CODE_KERNEL);
     mspace_t *mem = kCPU.running ? mem = kCPU.running->usmem : NULL;
     int reason = 0;
     if ((code & x86_PFEC_PRST) == 0) {
-        reason = PGFLT_MISSING;
-    } else if (code & x86_PFEC_WR) {
-        reason = PGFLT_WRITE_DENY;
-    } else {
-        reason = PGFLT_ERROR;
+        reason |= PGFLT_MISSING;
+    } if (code & x86_PFEC_WR) {
+        reason |= PGFLT_WRITE;
+    // } else {
+    //     reason = PGFLT_ERROR;
     }
     // kprintf(KLOG_DBG, "[CPU ] #PF %08x (%o)\n", address, code);
     int ret = page_fault(mem, address, reason);
     // kprintf(KLOG_PF, "\e[91m#PF\e[0m at %08x\n", address);
     if (ret < 0) {
+        stackdump(90);
         if (kCPU.running) {
-            task_kill(kCPU.running, SIGSEGV);
-            task_signals();
+            // task_kill(kCPU.running, SIGSEGV);
+            // task_signals();
         } else {
             cpu_exception_x86(14, regs);
         }
     }
-    task_leave_sys();
+    // task_leave_sys();
     irq_enable();
 }
 
 void sys_irq_x86(int no, regs_t *regs)
 {
-    task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
+    // task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
     // kTSK.regs = regs;
     // kprintf(KLOG_DBG, "[x86 ] IRQ %d\n", no);
     // bufdump(regs, 0x60);
@@ -207,73 +207,73 @@ void sys_irq_x86(int no, regs_t *regs)
         kCPU.running->other_elapsed += cpu_elapsed(&kCPU.running->last);
     }
     // task_signals();
-    task_leave_sys();
+    // task_leave_sys();
 }
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static void cpu_setup_stack(task_t *task, size_t instr, size_t stack,
-                            long arg)
-{
-    int i;
-    // TODO -- Is arch dependent!
-    int sp = task->kstack_len / sizeof(size_t);
+// static void cpu_setup_stack(task_t *task, size_t instr, size_t stack,
+//                             long arg)
+// {
+//     int i;
+//     // TODO -- Is arch dependent!
+//     int sp = task->kstack_len / sizeof(size_t);
 
-    task->kstack[--sp] = arg; // ARG
-    task->kstack[--sp] = 0; // ARG
-    if (task->usmem) {
-        task->kstack[--sp] = 0x33; // SS
-        task->kstack[--sp] = stack; // ESP
-        task->kstack[--sp] = 0x200; // FLAGS
-        task->kstack[--sp] = 0x23; // CS
-    } else {
-        task->kstack[--sp] = 0x200; // FLAGS
-        task->kstack[--sp] = 0x08; // CS
-    }
-    task->kstack[--sp] = instr; // EIP
+//     task->kstack[--sp] = arg; // ARG
+//     task->kstack[--sp] = 0; // ARG
+//     if (task->usmem) {
+//         task->kstack[--sp] = 0x33; // SS
+//         task->kstack[--sp] = stack; // ESP
+//         task->kstack[--sp] = 0x200; // FLAGS
+//         task->kstack[--sp] = 0x23; // CS
+//     } else {
+//         task->kstack[--sp] = 0x200; // FLAGS
+//         task->kstack[--sp] = 0x08; // CS
+//     }
+//     task->kstack[--sp] = instr; // EIP
 
-    task->kstack[--sp] = arg; // EAX (ARG)
-    for (i = 0; i < 7; ++i) {
-        task->kstack[--sp] = 0;    // ECX - EDI
-    }
+//     task->kstack[--sp] = arg; // EAX (ARG)
+//     for (i = 0; i < 7; ++i) {
+//         task->kstack[--sp] = 0;    // ECX - EDI
+//     }
 
-    if (task->usmem) {
-        for (i = 0; i < 4; ++i) {
-            task->kstack[--sp] = 0x2B;    // DS - GD
-        }
-    } else {
-        for (i = 0; i < 4; ++i) {
-            task->kstack[--sp] = 0x10;    // DS - GD
-        }
-    }
-    // task->rp = 0;
-    task->regs/*[0]*/ = (regs_t *)&task->kstack[sp];
-}
+//     if (task->usmem) {
+//         for (i = 0; i < 4; ++i) {
+//             task->kstack[--sp] = 0x2B;    // DS - GD
+//         }
+//     } else {
+//         for (i = 0; i < 4; ++i) {
+//             task->kstack[--sp] = 0x10;    // DS - GD
+//         }
+//     }
+//     // task->rp = 0;
+//     task->regs/*[0]*/ = (regs_t *)&task->kstack[sp];
+// }
 
-void cpu_setup_task(task_t *task, size_t entry, long args)
-{
-    size_t ustask = ((size_t)task->ustack) + task->ustack_len - 0x16;
-    cpu_setup_stack(task, entry, ustask, args);
-}
+// void cpu_setup_task(task_t *task, size_t entry, long args)
+// {
+//     size_t ustask = ((size_t)task->ustack) + task->ustack_len - 0x16;
+//     cpu_setup_stack(task, entry, ustask, args);
+// }
 
-void cpu_setup_signal(task_t *task, size_t entry, long args)
-{
-    task->sig_regs = (regs_t*)kalloc(sizeof(regs_t));
-    memcpy(task->sig_regs, task->regs/*[task->rp]*/, sizeof(regs_t));
-    size_t ustask = task->regs/*[task->rp]*/->esp;
-    cpu_setup_stack(task, entry, ustask, args);
-}
+// void cpu_setup_signal(task_t *task, size_t entry, long args)
+// {
+//     task->sig_regs = (regs_t*)kalloc(sizeof(regs_t));
+//     memcpy(task->sig_regs, task->regs/*[task->rp]*/, sizeof(regs_t));
+//     size_t ustask = task->regs/*[task->rp]*/->esp;
+//     cpu_setup_stack(task, entry, ustask, args);
+// }
 
-void cpu_return_signal(task_t *task, regs_t *regs)
-{
-    task->regs = regs;
-    memcpy(task->regs/*[task->rp]*/, task->sig_regs, sizeof(regs_t));
-    kfree(task->sig_regs);
-    task->sig_regs = NULL;
-}
+// void cpu_return_signal(task_t *task, regs_t *regs)
+// {
+//     task->regs = regs;
+//     memcpy(task->regs/*[task->rp]*/, task->sig_regs, sizeof(regs_t));
+//     kfree(task->sig_regs);
+//     task->sig_regs = NULL;
+// }
 
-bool cpu_task_return_uspace(task_t *task)
-{
-    return task->regs/*[task->rp]*/->cs != 0x08;
-}
+// bool cpu_task_return_uspace(task_t *task)
+// {
+//     return task->regs/*[task->rp]*/->cs != 0x08;
+// }

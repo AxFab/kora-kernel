@@ -573,7 +573,7 @@ inode_t *fatfs_mount(inode_t *dev)
         return NULL;
     }
 
-    uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, dev, 0, VMA_FG_RO_FILE);
+    uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, dev, 0, VMA_FILE_RO);
     struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
     if (bpb->BS_jmpBoot[0] != 0xE9 && !(bpb->BS_jmpBoot[0] == 0xEB &&

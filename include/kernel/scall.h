@@ -26,8 +26,8 @@ typedef struct scall scall_t;
 struct scall {
     scall_handler handler;
     char name[12];
+    bool retrn;
     uint8_t args[5];
-    bool noreturn;
 };
 
 enum {
@@ -46,54 +46,13 @@ enum {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-struct iovec {
-    char *buffer;
-    size_t length;
-};
-
-struct image
-{
-    int width, height, pitch, format;
-};
-
-
 #define PW_SHUTDOWN  1
 #define PW_REBOOT  2
 #define PW_SLEEP  3
 #define PW_HIBERNATE  4
 
 
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-int sys_scall(const char *sc_vec);
-void sys_exit(int code);
-int sys_exec(const char *exec, const char *cmdline);
-int sys_kill(pid_t pid, int code);
-int sys_wait(int flags, uint32_t timeout);
-int sys_sigaction(int signum, void *handler);
-int sys_sigreturn();
-
-int sys_syslog(const char* msg);
-
-int sys_open(int fd, const char *name, int flags, int mode);
-int sys_close(int fd);
-int sys_read(int fd, const struct iovec *vec, unsigned vlen);
-int sys_write(int fd, const struct iovec *vec, unsigned vlen);
-int sys_seek(int fd, off_t offset, int whence);
-
-int sys_pipe(int *fd, size_t size);
-
-int sys_power(int cmd, unsigned int delay);
-
-void *sys_mmap(size_t address, size_t length, int fd, off_t offset, int flags);
-int sys_mprotect(size_t address, size_t length, int flags);
-int sys_munmap(size_t address, size_t length);
-
-int sys_window(struct image *img, int features, int events);
-
-
+#include <kora/syscalls.h>
 
 
 #endif  /* _KERNEL_SCALL_H */

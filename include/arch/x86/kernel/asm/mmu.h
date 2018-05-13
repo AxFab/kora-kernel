@@ -77,5 +77,8 @@ typedef unsigned long long page_t; */
   0x..180000   1536 Kb    512 Kb     Initial Heap Area
  */
 
+#define FPTR "%08p"
+typedef size_t cpu_state_t[6];
+
 
 #endif /* _KERNEL_ASM_MMU_H */

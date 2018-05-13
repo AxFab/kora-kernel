@@ -71,7 +71,7 @@ int isdigit(char a)
 
 void *heap_map(size_t length)
 {
-    return kmap(length, NULL, 0, VMA_FG_HEAP);
+    return kmap(length, NULL, 0, VMA_HEAP_RW);
 }
 
 void heap_unmap(void *address, size_t length)
@@ -91,17 +91,21 @@ int no_dbg = 1;
 
 int vfprintf(FILE *fp, const char *str, va_list ap);
 
+char buf[1024];
+splock_t bf_lock;
 void kprintf(int log, const char *msg, ...)
 {
-    if ((log == KLOG_DBG && no_dbg) || log == KLOG_MEM)
-        return;
+    // if ((log == KLOG_DBG && no_dbg) || log == KLOG_MEM)
+    //     return;
     va_list ap;
     va_start(ap, msg);
-    char *buf = kalloc(256);
-    int len = vsnprintf(buf, 256, msg, ap);
+    splock_lock(&bf_lock);
+    // char *buf = kalloc(256);
+    int len = vsnprintf(buf, 1024, msg, ap);
     va_end(ap);
     kwrite(buf, len);
-    kfree(buf);
+    // kfree(buf);
+    splock_unlock(&bf_lock);
 }
 
 void *kalloc(size_t size)
@@ -124,15 +128,12 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     flags &= ~(VMA_RIGHTS << 4);
     flags |= (flags & VMA_RIGHTS) << 4;
     void *ptr = mspace_map(kMMU.kspace, 0, length, ino, offset, 0, flags);
-    if (flags & VMA_RESOLVE) {
-        page_resolve(kMMU.kspace, (size_t)ptr, length);
-    }
     return ptr;
 }
 
 void kunmap(void *address, size_t length)
 {
-    mspace_protect(kMMU.kspace, (size_t)address, length, VMA_DEAD);
+    mspace_unmap(kMMU.kspace, (size_t)address, length);
 }
 
 _Noreturn void kpanic(const char *msg, ...)

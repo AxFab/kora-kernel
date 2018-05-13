@@ -17,10 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/memory.h>
+#include "mspace.h"
 #include <kernel/cpu.h>
-#include <kernel/asm/vma.h>
 #include <kernel/vfs.h>
 #include <kora/mcrs.h>
 #include <assert.h>
@@ -28,34 +26,6 @@
 #include <string.h>
 
 
-mspace_t kernel_space;
-
-struct kMmu kMMU = {
-    .upper_physical_page = 0,
-    .pages_amount = 0,
-    .free_pages = 0,
-    .page_size = PAGE_SIZE,
-    // .uspace_lower_bound = MMU_USPACE_LOWER,
-    // .uspace_upper_bound = MMU_USPACE_UPPER,
-    // .kheap_lower_bound = MMU_KSPACE_LOWER,
-    // .kheap_upper_bound = MMU_KSPACE_UPPER,
-};
-
-void page_initialize()
-{
-    memset(MMU_BMP, 0xff, MMU_LG);
-    kMMU.upper_physical_page = 0;
-    kMMU.pages_amount = 0;
-    kMMU.free_pages = 0;
-
-    // Init Kernel memory space structure
-    bbtree_init(&kernel_space.tree);
-    splock_init(&kernel_space.lock);
-    kMMU.kspace = &kernel_space;
-
-    // Enable MMU
-    mmu_enable();
-}
 
 void page_range(long long base, long long length)
 {
@@ -112,6 +82,30 @@ page_t page_new()
     return (page_t)(i * 8 + j) * PAGE_SIZE;
 }
 
+/* Look for count pages in continous memory */
+page_t page_get(int zone, int count)
+{
+    assert((count & 7) == 0);
+    count = ALIGN_UP(count, 8) / 8;
+    int i = 0, j = 0;
+    while (i < MMU_LG) {
+        while (i < MMU_LG && MMU_BMP[i] != 0) {
+            ++i;
+        }
+        if (i + count >= MMU_LG)
+            return 0;
+        j = 0;
+        while (j < count && MMU_BMP[i + j] == 0)
+            ++j;
+        if (j == count) {
+            memset(&MMU_BMP[i], 0xFF, count);
+            return (page_t)(i * 8 * PAGE_SIZE);
+        }
+        i += j;
+    }
+    return 0;
+}
+
 /* Mark a physique page, returned by `page_new`, as available again */
 void page_release(page_t paddress)
 {
@@ -122,13 +116,15 @@ void page_release(page_t paddress)
     MMU_BMP[i] = MMU_BMP[i] & ~(1 << j);
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 /* Free all used pages into a range of virtual addresses */
-void page_sweep(size_t address, size_t length, bool clean)
+void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean)
 {
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
     while (length) {
-        page_t pg = mmu_drop(address, clean);
+        page_t pg = mmu_drop(mspace, address, clean);
         if (pg != 0) {
             page_release(pg);
         }
@@ -137,112 +133,36 @@ void page_sweep(size_t address, size_t length, bool clean)
     }
 }
 
-
-static int page_copy_vma(vma_t *vma)
-{
-    // TODO - lock VMA or something!?
-    splock_lock(&vma->mspace->lock);
-    vma->flags &= ~VMA_COPY_ON_WRITE;
-    vma->flags |= VMA_WRITE;
-    size_t length = vma->length;
-    size_t base = vma->node.value_;
-    void *buf = kmap(length, NULL, 0, VMA_FG_ANON);
-    memcpy(buf, (void *)base, PAGE_SIZE);
-    size_t cpy_map = (size_t)buf;
-    while (length > 0) {
-        mmu_drop(base, false);
-        page_t copy_page = mmu_read(cpy_map);
-        mmu_resolve(base, copy_page, vma->flags, false);
-        base += PAGE_SIZE;
-        cpy_map += PAGE_SIZE;
-        length -= PAGE_SIZE;
-    }
-    kunmap(buf, vma->length);
-    splock_unlock(&vma->mspace->lock);
-    return 0;
-}
-
 /* Resolve a page fault */
 int page_fault(mspace_t *mspace, size_t address, int reason)
 {
+    int ret = 0;
+    vma_t *vma = mspace_search_vma(mspace, address);
+    if (vma == NULL) {
+        kprintf(KLOG_PF, "\e[91m#PF\e[31m Forbidden address "FPTR"!\e[0m\n", address);
+        return -1;
+    }
+
+    if (reason & PGFLT_WRITE && !(vma->flags & VMA_WRITE) && !(vma->flags & VMA_COPY_ON_WRITE)) {
+        kprintf(KLOG_PF, "\e[91m#PF\e[31m Forbidden writing at "FPTR"!\e[0m\n", address);
+        splock_unlock(&vma->mspace->lock);
+        return -1; // Writing is forbidden
+    }
     address = ALIGN_DW(address, PAGE_SIZE);
-    vma_t *vma = mspace_search_vma(kMMU.kspace, mspace, address);
-    if (vma == NULL) {
+    if (reason & PGFLT_MISSING) {
+        ++kMMU.soft_page_fault;
+        ret = vma_resolve(vma, address, PAGE_SIZE);
+    }
+    if (ret != 0) {
+        kprintf(KLOG_PF, "\e[91m#PF\e[31m Unable to resolve page at "FPTR"!\e[0m\n", address);
+        splock_unlock(&vma->mspace->lock);
         return -1;
     }
-
-    int type = vma->flags & VMA_TYPE;
-    off_t offset = vma->offset + (address - vma->node.value_);
-    if (reason == PGFLT_MISSING && type == VMA_PHYS) {
-        /* Resolve missing page fault - physical address mapping. */
-        return mmu_resolve(address, (page_t)offset, vma->flags, false);
-
-    } else if (reason == PGFLT_MISSING && type == VMA_FILE) {
-        /* Missing file read - TODO vfs_read should be called using INTERUPT */
-        page_t page = 0; // vfs_page(vma->ino, offset);
-        if (page != 0) {
-            return mmu_resolve(address, page, vma->flags, false);
-        }
-        if (mmu_resolve(address, 0, vma->flags, false) != 0) {
-            return -1;
-        }
-        // TODO - Call only if we have a new page !?
-        vfs_read(vma->ino, (void *)ALIGN_DW(address, PAGE_SIZE), PAGE_SIZE, offset);
-        return 0;
-
-    } else if (reason == PGFLT_MISSING) {
-        /* Missing a blank page. */
-        if (type != VMA_HEAP && type != VMA_STACK && type != VMA_ANON) {
-            kprintf(KLOG_PF, "[MEM ] Unqualified VMA type at 0x%08x [%x].\n", address,
-                    vma->flags);
-        }
-        return mmu_resolve(address, 0, vma->flags, true);
-
-    } else if (reason == PGFLT_WRITE_DENY && type == VMA_FILE) {
-        if (!(vma->flags & VMA_CAN_WRITE) || !(vma->flags & VMA_COPY_ON_WRITE)) {
-            kprintf(KLOG_PF, "[MEM ] Page fault on read only file at 0x%08x (%d) [%x].\n", address,
-            reason, vma->flags);
-            return -1;
-        }
-        return page_copy_vma(vma);
-    }
-    kprintf(KLOG_PF, "[MEM ] Unresolvable page fault 0x%08x (%d) [%x].\n", address,
-            reason, vma->flags);
-    return -1;
-}
-
-int page_resolve(mspace_t *mspace, size_t address, size_t length)
-{
-    vma_t *vma = mspace_search_vma(kMMU.kspace, mspace, address);
-    if (vma == NULL) {
-        return -1;
-    } else if (vma->node.value_ != address || vma->length != length) {
-        return -1;
-    }
-
-    page_t page = 0;
-    off_t offset = vma->offset + (address - vma->node.value_);
-    if ((vma->flags & VMA_TYPE) == VMA_PHYS) {
-        page = offset;
-        // kprintf(KLOG_PF, "[MEM ] Page resolve for physical pages at [%x] (%s).\n", address, sztoa(length));
-        while (length > 0) {
-            mmu_resolve(address, page, vma->flags, false);
-            page += PAGE_SIZE;
-            address += PAGE_SIZE;
-            length -= PAGE_SIZE;
-        }
-    } else if ((vma->flags & VMA_TYPE) == VMA_HEAP ||
-               (vma->flags & VMA_TYPE) == VMA_STACK ||
-               (vma->flags & VMA_TYPE) == VMA_ANON) {
-        // kprintf(KLOG_PF, "[MEM ] Page resolve for blank pages at [%x] (%s).\n", address, sztoa(length));
-        while (length > 0) {
-            mmu_resolve(address, page_new(), vma->flags, true);
-            address += PAGE_SIZE;
-            length -= PAGE_SIZE;
-        }
-    } else {
-        kprintf(KLOG_ERR, "[MEM ] Page resolve called with incorrect VMA type.\n");
-    }
-
-    return -1;
+    if (reason & PGFLT_WRITE && (vma->flags & VMA_COPY_ON_WRITE))
+        ret = vma_copy_on_write(vma, address, PAGE_SIZE);
+    if (ret != 0)
+        kprintf(KLOG_PF, "\e[91m#PF\e[31m Error on copy and write at "FPTR"!\e[0m\n", address);
+    kprintf(KLOG_PF, "\e[91m#PF\e[0m Page at "FPTR"!\e[0m\n", address);
+    splock_unlock(&vma->mspace->lock);
+    return 0;
 }

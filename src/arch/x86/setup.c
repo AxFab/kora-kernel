@@ -117,26 +117,36 @@ static void IDT(int no, int segment, uint32_t address, int type)
 void cpu_cr3_x86(page_t);
 _Noreturn void cpu_run_x86(regs_t *);
 
-void cpu_run(task_t *task)
-{
-    asm("cli");
-    if (task->usmem) {
-        cpu_cr3_x86(task->usmem->directory);
-        TSS_BASE[cpu_no()].esp0 = (uint32_t)task->kstack + task->kstack_len - 4;
-    } else {
-        TSS_BASE[cpu_no()].esp0 = (uint32_t)task->kstack + task->kstack_len - 4;
-    }
-    cpu_run_x86(task->regs/*[task->rp]*/);
-}
+// void cpu_run(task_t *task)
+// {
+//     asm("cli");
+//     if (task->usmem) {
+//         cpu_cr3_x86(task->usmem->directory);
+//         TSS_BASE[cpu_no()].esp0 = (uint32_t)task->kstack + task->kstack_len - 4;
+//     } else {
+//         TSS_BASE[cpu_no()].esp0 = (uint32_t)task->kstack + task->kstack_len - 4;
+//     }
+//     cpu_run_x86(task->regs/*[task->rp]*/);
+// }
 
+
+extern unsigned irq_sem;
 
 _Noreturn void cpu_halt_x86(size_t kstack, struct x86_tss* tss);
 
 _Noreturn void cpu_halt()
 {
+    assert(irq_sem == 0);
+    // int i = cpu_no();
+    // TSS_BASE[i].debug_flag = 0x00;
+    // TSS_BASE[i].io_map = 0x00;
+    // TSS_BASE[i].esp0 = 0x100000 + (0x1000 * (i + 1)) - 4;
+    // TSS_BASE[i].ss0 = 0x18;
+    // for (;;) {
+    //     asm volatile("sti");
+    // }
     cpu_halt_x86(0x100000 + (cpu_no() + 1) * 0x1000, &TSS_BASE[cpu_no()]);
 }
-
 
 void cpu_setup_x86 ()
 {

@@ -8,8 +8,12 @@ void cpu_awake()
 
 
 void cpu_elapsed() {}
-void cpu_halt() {}
-void cpu_no() {}
+
+int cpu_no()
+{
+    return 0;
+}
+
 void cpu_run() {}
 void cpu_setup_signal() {}
 void cpu_setup_task() {}
@@ -19,3 +23,15 @@ time_t cpu_time()
 {
     return time(NULL);
 }
+
+void cpu_reboot()
+{
+}
+
+
+
+void cpu_save_task(task_t *task)
+{
+
+}
+

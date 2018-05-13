@@ -23,19 +23,19 @@
 #include <kernel/vfs.h>
 #include <errno.h>
 
-int sys_scall(const char *sc_vec)
+
+int sys_yield(unsigned long flags)
 {
-    errno = ENOSYS;
-    return -1;
+    return 0;
 }
 
-void sys_exit(int code)
+void sys_exit(long status, unsigned long type)
 {
-    task_stop(kCPU.running, code);
-    scheduler_next();
+    // task_stop(kCPU.running, status);
+    // scheduler_next();
 }
 
-int sys_exec(const char *exec, const char *cmdline)
+int sys_exec(const char * exec, char **args, char **env, unsigned long flags)
 {
     task_t *parent = kCPU.running;
     inode_t *ino = vfs_search(parent->root, parent->pwd, exec, NULL);
@@ -52,35 +52,14 @@ int sys_exec(const char *exec, const char *cmdline)
     return 0;
 }
 
-int sys_fork(int flags)
+int sys_clone(unsigned long flags)
 {
     return -1;
 }
 
-int sys_kill(pid_t pid, int code)
-{
-    task_t *task = pid == 0 ? kCPU.running : task_search(pid);
-    if (task == NULL) {
-        return ENOENT;
-        return -1;
-    }
-    return task_kill(task, code);
-}
-
-int sys_wait(int flags, uint32_t timeout)
+int sys_wait(unsigned long cause, long param, unsigned long timeout_us)
 {
     asm("int $0x41");
-    errno = 0;
-    return 0;
-}
-
-int sys_sigaction(int signum, void *handler)
-{
-    if (signum < 0 || signum >= 32) {
-        errno = EINVAL;
-        return -1;
-    }
-    kCPU.running->shandler[signum].type = handler;
     errno = 0;
     return 0;
 }

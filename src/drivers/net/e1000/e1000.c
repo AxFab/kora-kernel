@@ -164,7 +164,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     struct PCI_device *pci = ifnet->pci;
 
     /* Wait */
-    task_wait(NULL, 1000000); // 1 sec
+    advent_wait(NULL, NULL, 1000000); // 1 sec
 
     uint32_t status = PCI_rd32(pci, 0, REG_CTRL);
     status |= (1 << 5);   /* set auto speed detection */
@@ -186,7 +186,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     PCI_wr32(pci, 0, REG_CTRL, status);
 
     /* Wait */
-    task_wait(NULL, 1000000); // 1 sec
+    advent_wait(NULL, NULL, 1000000); // 1 sec
 
     // kprintf(0, "Check E1000 IRQ = %d\n", PCI_cfg_rd16(pci, PCI_INTERRUPT_LINE) & 0xFF);
     irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
@@ -238,7 +238,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     PCI_wr32(pci, 0, REG_IMC, 0xFF);
     PCI_wr32(pci, 0, REG_IMS, _B(0) | _B(1) | _B(2) | _B(6) | _B(7));
 
-    // task_wait(NULL, 1000000); // 1 sec
+    // advent_wait(NULL, NULL, 1000000); // 1 sec
     // if (PCI_rd32(pci, 0, REG_STATUS) & (1 << 1))
     // kprintf(0, "%s, DONE %d \n", ifnet->name, link_is_up);
 
@@ -260,8 +260,8 @@ void e1000_start(E1000_inet_t *ifnet)
 
 
     for (;;) {
-        task_wait(NULL, 1000000); // 1 sec
-        // kprintf(0, "E1000's waiting...\n");
+        advent_wait(NULL, NULL, 1000000); // 1 sec
+        kprintf(0, "E1000's waiting...\n");
     }
 }
 
@@ -314,15 +314,11 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     if (e1000_read_mac(pci, ifnet->dev.eth_addr) != 0)
         return;
 
-    net_device(&ifnet->net);
-
     /* initialize */
     PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
 
-
-
+    net_device(&ifnet->dev);
     kernel_tasklet(&e1000_start, (long)ifnet, "Ethernet");
-
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

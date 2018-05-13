@@ -7,10 +7,10 @@
   for inter-process communication (IPC).
 
   The kernel manipulate both physical and virtual memory. The virtualization
-  of the memory allo a task to access the full extends of system memory, as it
-  was the only one to use it. More than that, it looks like available memory
-  is the maximum supported by the platform, even if the amount of physical
-  memory is much smaller.
+  of the memory allow a task to access the full extends of system memory, as
+  if it was the only one to use it. More than that, it looks like available
+  memory is the maximum supported by the platform, even if the amount of
+  physical memory is much smaller.
 
   This chapter discuss about how the kernel manage virtual and physical memory
   and shared it amoung tasks.

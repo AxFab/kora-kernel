@@ -1,5 +1,6 @@
 #include <kernel/core.h>
 #include <kernel/cpu.h>
+#include <kernel/task.h>
 
 
 #define HZ 100
@@ -31,21 +32,22 @@ void clock_init()
 }
 
 
-void task_wakeup_timeout();
-_Noreturn void scheduler_next();
+void advent_timeout();
 
 void sys_ticks()
 {
+    irq_disable();
     if (timer_cpu == cpu_no()) {
         splock_lock(&xtime_lock);
         time_us += TICKS_PER_SEC;
         ticks_elapsed += cpu_elapsed(&ticks_last);
+        jiffies++;
         // Update Wall time
         // Compute global load
         splock_unlock(&xtime_lock);
     }
-    task_wakeup_timeout();
-    scheduler_next();
+    advent_timeout();
+    task_switch(TS_READY, 0);
 }
 
 

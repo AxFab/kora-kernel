@@ -12,7 +12,7 @@ unsigned irq_sem = 0;
 void irq_reset(bool enable)
 {
     irq_active = true;
-    irq_sem = 1;
+    irq_sem = enable ? 1 : 0;
     asm("cli");
     if (enable) {
         irq_enable();

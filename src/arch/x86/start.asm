@@ -54,6 +54,7 @@ use32
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ; List export routines
 GLOBAL _start
+GLOBAL cpu_save, cpu_restore
 GLOBAL cpu_halt_x86, call_method
 GLOBAL smp_start, smp_error
 
@@ -72,7 +73,7 @@ GLOBAL x86_IRQ0, x86_IRQ1, x86_IRQ2, x86_IRQ3, x86_IRQ4, x86_IRQ5
 GLOBAL x86_IRQ6, x86_IRQ7, x86_IRQ8, x86_IRQ9, x86_IRQ10, x86_IRQ11
 GLOBAL x86_IRQ12, x86_IRQ13, x86_IRQ14, x86_IRQ15
 
-GLOBAL outb, outw, outl, inb, inw, inl
+GLOBAL outb, outw, outl, inb, inw, inl,
 GLOBAL outsb, outsw, outsl, insb, insw, insl
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -102,15 +103,15 @@ mboot:
     dd end
     dd start
 
-    dd 0 ; VGA mode
-    dd 800 ; VGA width
-    dd 600 ; VGA height
-    dd 32 ; VGA depth
+    ; dd 0 ; VGA mode
+    ; dd 800 ; VGA width
+    ; dd 600 ; VGA height
+    ; dd 32 ; VGA depth
 
-    ; dd 1; VGA mode
-    ; dd 80 ; VGA width
-    ; dd 25 ; VGA height
-    ; dd 0 ; VGA depth
+    dd 1; VGA mode
+    dd 80 ; VGA width
+    dd 25 ; VGA height
+    dd 0 ; VGA depth
 
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -174,6 +175,39 @@ align 4
     dw 0xF8, 0, 0, 0
   .idt_regs:
     dw 0x7F8, 0x800, 0, 0
+
+
+
+cpu_save:
+    mov eax, [esp + 4] ; Get buffer
+    mov [eax], ebx ; Store EBX
+    mov [eax + 4], esi ; Store ESI
+    mov [eax + 8], edi ; Store EDI
+    mov [eax + 12], ebp ; Store EBP
+    lea ecx, [esp + 4] ; ESP
+    mov [eax + 16], ecx ; Store ESP
+    mov ecx, [esp] ; EIP
+    mov [eax + 20], ecx ; Store EIP
+    xor eax, eax
+    ret
+
+cpu_restore:
+    mov edx, [esp + 4] ; Get buffer
+    mov eax, [esp + 8] ; Get value
+    test eax, eax
+    jnz .n
+    inc eax ; Be sure we don't return zero!
+.n:
+    mov ebx, [edx] ; Restore EBX
+    mov esi, [edx + 4] ; Restore ESI
+    mov edi, [edx + 8] ; Restore EDI
+    mov ebp, [edx + 12] ; Restore EBP
+    mov ecx, [edx + 16] ; Restore ESP
+    mov esp, ecx
+    mov ecx, [edx + 20] ; Restore EIP
+    sti
+    jmp ecx
+
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
