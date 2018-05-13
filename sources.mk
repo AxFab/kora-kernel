@@ -38,12 +38,12 @@ $(eval $(call ccpl,mod))
 
 
 core_src-y += $(wildcard $(srcdir)/core/*.c)
-core_src-y += $(wildcard $(srcdir)/core/files/*.c)
-core_src-y += $(wildcard $(srcdir)/core/io/*.c)
-core_src-y += $(wildcard $(srcdir)/core/task/*.c)
-core_src-y += $(wildcard $(srcdir)/core/mem/*.c)
-core_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
-core_src-y += $(wildcard $(srcdir)/core/net/*.c)
+core_src-y += $(wildcard $(srcdir)/files/*.c)
+core_src-y += $(wildcard $(srcdir)/io/*.c)
+core_src-y += $(wildcard $(srcdir)/task/*.c)
+core_src-y += $(wildcard $(srcdir)/mem/*.c)
+core_src-y += $(wildcard $(srcdir)/vfs/*.c)
+core_src-y += $(wildcard $(srcdir)/net/*.c)
 
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -54,7 +54,7 @@ kSim_src-y += $(wildcard $(srcdir)/libc/*.c)
 kSim_src-y += $(wildcard $(srcdir)/scall/*.c)
 kSim_src-y += $(drv_src-y) $(core_src-y)
 kSim_omit-y += $(srcdir)/core/common.c
-kSim_omit-y += $(srcdir)/core/io/seat.c $(srcdir)/core/io/termio.c
+kSim_omit-y += $(srcdir)/core/seat.c $(srcdir)/core/termio.c
 kSim_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
 kSim_omit-y += $(srcdir)/libc/format_vfscanf.c $(srcdir)/libc/format_scan.c
 $(eval $(call link,kSim,std))
@@ -69,14 +69,14 @@ kImg_src-y += $(wildcard $(srcdir)/arch/x86/*.c)
 kImg_src-y += $(wildcard $(srcdir)/libc/*.c)
 kImg_src-y += $(wildcard $(srcdir)/scall/*.c)
 kImg_src-y += $(drv_src-y) $(core_src-y)
-kImg_omit-y += $(srcdir)/core/io/seat.c $(srcdir)/core/io/termio.c
+kImg_omit-y += $(srcdir)/io/seat.c $(srcdir)/io/termio.c
 $(eval $(call kimg,kImg,krn))
 DV_UTILS += $(bindir)/kImg
 
 
 
 # T E S T I N G   U T I L I T I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-ckVfs_src-y += $(wildcard $(srcdir)/core/vfs/*.c)
+ckVfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
 ckVfs_src-y += $(srcdir)/libc/bbtree.c
 ckVfs_src-y += $(drv_src-y)
 ckVfs_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
@@ -88,7 +88,7 @@ DV_UTILS += $(bindir)/ckVfs
 
 # -------------------------
 
-ckMem_src-y += $(wildcard $(srcdir)/core/mem/*.c)
+ckMem_src-y += $(wildcard $(srcdir)/mem/*.c)
 ckMem_src-y += $(srcdir)/libc/bbtree.c
 ckMem_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckMem_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/mmu.c
@@ -99,8 +99,8 @@ DV_UTILS += $(bindir)/ckMem
 
 # -------------------------
 
-ckFile_src-y += $(wildcard $(srcdir)/core/files/*.c)
-ckFile_omit-y += $(srcdir)/core/files/wmgr.c
+ckFile_src-y += $(wildcard $(srcdir)/files/*.c)
+ckFile_omit-y += $(srcdir)/files/wmgr.c
 # ckFile_src-y += $(wildcard $(srcdir)/libc/*.c)
 ckFile_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckFile_src-y += $(srcdir)/core/debug.c  $(srcdir)/arch/um2/cpu.c
@@ -112,7 +112,7 @@ DV_UTILS += $(bindir)/ckFile
 
 # -------------------------
 
-ckTask_src-y += $(wildcard $(srcdir)/core/task/*.c)
+ckTask_src-y += $(wildcard $(srcdir)/task/*.c)
 ckTask_src-y += $(srcdir)/libc/bbtree.c $(srcdir)/libc/setjmp_x86_64.asm
 ckTask_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckTask_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/cpu.c
