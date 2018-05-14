@@ -43,7 +43,7 @@ static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type, uint8_t
         return -1;
     if (ip4_header(skb, ip, rand(), 0, sizeof(ICMP_header_t) + len, IP4_ICMP) != 0)
         return net_trash(skb);
-    strncat(skb->log, "ICMP:", NET_LOG_SIZE);
+    strncat(skb->log, "icmp:", NET_LOG_SIZE);
     ICMP_header_t header;
     header.type = type;
     header.code = code;
@@ -68,7 +68,7 @@ int icmp_receive(skb_t *skb, int len)
 {
     int ret;
     uint8_t *payload = NULL;
-    strncat(skb->log, "ICMP:", NET_LOG_SIZE);
+    strncat(skb->log, "icmp:", NET_LOG_SIZE);
     ICMP_header_t header;
     len -= sizeof(header);
     ret = net_read(skb, &header, sizeof(header));

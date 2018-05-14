@@ -62,7 +62,7 @@ int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int le
     if (eth_header(skb, mac, ETH_ALEN) != 0)
         return -1;
 
-    strncat(skb->log, "IP4:", NET_LOG_SIZE);
+    strncat(skb->log, "ipv4:", NET_LOG_SIZE);
     IP4_header_t header;
     header.version = 4;
     header.header_length = 5;
@@ -75,6 +75,7 @@ int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int le
 
     memcpy(header.source, skb->ifnet->ip4_addr, IP4_ALEN);
     memcpy(header.target, ip, IP4_ALEN);
+    memcpy(skb->ip4_addr, ip, IP4_ALEN);
 
     switch (protocol) {
     case IP4_TCP:
@@ -96,7 +97,7 @@ int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int le
 int ip4_receive(skb_t *skb)
 {
     IP4_header_t header;
-    strncat(skb->log, "IP4:", NET_LOG_SIZE);
+    strncat(skb->log, "ipv4:", NET_LOG_SIZE);
     net_read(skb, &header, sizeof(header));
     memcpy(skb->ip4_addr, header.source, IP4_ALEN);
     // net_register(skb->ip4_addr,  skb->eth_addr, ANONYMOUS);

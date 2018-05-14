@@ -21,6 +21,7 @@
 #include <kernel/memory.h>
 #include <kernel/vfs.h>
 #include "mspace.h"
+#include <string.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -225,7 +226,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
         while (length > 0) {
             inode_t *ino = vma->ino;
             splock_unlock(&vma->mspace->lock);
-            page_t pg = block_page(ino, offset); // CAN SLEEP!
+            page_t pg = ioblk_page(ino, offset); // CAN SLEEP!
             splock_lock(&vma->mspace->lock);
             if (pg == 0)
                 return -1;

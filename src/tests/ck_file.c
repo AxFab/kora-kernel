@@ -43,7 +43,7 @@ int fclose(FILE*);
 
 // }
 
-void advent_awake(llhead_t *list)
+void advent_awake(llhead_t *list, int err)
 {
 
 }

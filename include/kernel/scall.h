@@ -52,6 +52,9 @@ enum {
 #define PW_HIBERNATE  4
 
 
+void usr_check_cstr(const char *str, unsigned len);
+void usr_check_buf(const char *buf, unsigned len);
+
 #include <kora/syscalls.h>
 
 

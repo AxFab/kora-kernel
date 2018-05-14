@@ -35,6 +35,8 @@ resx_t *resx_rcu(resx_t *resx, int usage)
     else {
         if (atomic_fetch_add(&resx->users, -1) == 1) {
             // WE CAN DESALLOCATE THIS ONE !
+            kfree(resx);
+            return NULL;
         }
     }
     return resx;

@@ -21,6 +21,7 @@
 #define _KERNEL_VFS_H 1
 
 #include <kernel/core.h>
+#include <kora/llist.h>
 #include <time.h>
 
 #define VFS_MAXPATH 4096
@@ -68,6 +69,31 @@
 #define S_ISGID  01000
 #define S_IXGRP  02000
 #define S_ISVTX  04000
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+typedef struct mountfs mountfs_t;
+typedef struct device device_t;
+
+struct inode {
+    long no;
+    int mode;
+    size_t lba;
+    off_t length;
+    // uid_t uid;
+    // uid_t gid;
+    struct timespec ctime;
+    struct timespec atime;
+    struct timespec mtime;
+    struct timespec btime;
+
+    atomic_uint rcu;
+    atomic_uint links;
+    void *object;
+    llhead_t dlist; // List of dirent_t;
+    mountfs_t *fs;
+    device_t *dev;
+};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

@@ -77,7 +77,7 @@ DV_UTILS += $(bindir)/kImg
 
 # T E S T I N G   U T I L I T I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ckVfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
-ckVfs_src-y += $(srcdir)/libc/bbtree.c
+ckVfs_src-y += $(srcdir)/libc/bbtree.c $(srcdir)/libc/hmap.c
 ckVfs_src-y += $(drv_src-y)
 ckVfs_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckVfs_src-y += $(srcdir)/core/debug.c

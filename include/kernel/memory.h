@@ -23,7 +23,6 @@
 #include <kernel/types.h>
 #include <kernel/asm/vma.h>
 
-typedef struct mspace mspace_t;
 typedef struct vma vma_t;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
