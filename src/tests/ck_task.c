@@ -77,6 +77,13 @@ void test_01()
         sys_ticks();
     }
 
+    task_t *task;
+    task = task_search(1);
+    if (task)
+        task_destroy(task);
+    task = task_search(2);
+    if (task)
+        task_destroy(task);
     printf("Bye!\n");
 }
 

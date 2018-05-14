@@ -22,12 +22,8 @@
 
 #include <kernel/vfs.h>
 #include <kora/splock.h>
-#include <kora/llist.h>
 #include <kora/hmap.h>
 #include <time.h>
-
-typedef struct mountfs mountfs_t;
-typedef struct device device_t;
 
 typedef inode_t *(*fs_mount)(inode_t *dev);
 typedef int (*fs_umount)(inode_t *ino);
@@ -59,25 +55,6 @@ typedef int (*fs_ioctl)(inode_t *ino, int cmd, void* params);
 // };
 
 
-struct inode {
-    long no;
-    int mode;
-    size_t lba;
-    off_t length;
-    // uid_t uid;
-    // uid_t gid;
-    struct timespec ctime;
-    struct timespec atime;
-    struct timespec mtime;
-    struct timespec btime;
-
-    atomic_uint rcu;
-    atomic_uint links;
-    void *object;
-    llhead_t dlist; // List of dirent_t;
-    mountfs_t *fs;
-    device_t *dev;
-};
 
 struct device
 {

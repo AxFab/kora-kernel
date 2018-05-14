@@ -36,6 +36,13 @@ inode_t *vfs_inode(int no, int mode, acl_t *acl, size_t size)
     inode->atime = inode->btime;
     inode->rcu = 1;
     inode->links = 0;
+
+    switch (mode & S_IFMT) {
+    case S_IFREG:
+    case S_IFBLK:
+        ioblk_init(inode);
+        break;
+    }
     // inode->uid = uid;
     // inode->gid = gid;
     return inode;

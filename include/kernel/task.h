@@ -25,6 +25,7 @@
 #include <kernel/memory.h>
 #include <kora/bbtree.h>
 #include <kora/splock.h>
+#include <kora/rwlock.h>
 
 typedef struct regs regs_t;
 typedef struct user user_t;
@@ -139,6 +140,7 @@ void task_signals();
 task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name);
 task_t *task_clone(task_t *model, int clone, int flags);
 task_t *task_search(pid_t pid);
+void task_switch(int status, int retcode);
 
 _Noreturn void cpu_halt();
 _Noreturn void cpu_run(task_t *task);
@@ -149,10 +151,10 @@ task_t *scheduler_next();
 // void scheduler_ticks();
 
 
-void advent_awake(llhead_t *list);
-void advent_wait(splock_t *lock, llhead_t *list, long timeout_us);
-void adent_timeout();
-
+void advent_awake(llhead_t *list, int err);
+int advent_wait(splock_t *lock, llhead_t *list, long timeout_us);
+int advent_wait_rd(rwlock_t *lock, llhead_t *list, long timeout_us);
+void advent_timeout();
 
 int elf_open(task_t *task, inode_t *ino);
 
@@ -162,12 +164,18 @@ void cpu_return_signal(task_t *task, regs_t *regs);
 
 bool cpu_task_return_uspace(task_t *task);
 
+void cpu_tasklet(task_t* task, size_t entry, size_t param);
+int cpu_save(cpu_state_t state);
+void cpu_restore(cpu_state_t state, int no);
 
 resx_t *resx_create();
 resx_t *resx_rcu(resx_t *resx, int usage);
 inode_t *resx_get(resx_t *resx, int fd);
 int resx_set(resx_t *resx, inode_t *ino);
 int resx_close(resx_t *resx, int fd);
+
+
+
 
 
 #endif  /* _KERNEL_TASK_H */

@@ -280,11 +280,11 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
 
     ifnet->rx_base = kmap(4096, NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
-    ifnet->rx_phys = mmu_read((size_t)ifnet->rx_base);
+    ifnet->rx_phys = mmu_read(NULL, (size_t)ifnet->rx_base);
     ifnet->rx_count = MIN(NUM_RX_DESC, 4096 / sizeof(struct rx_desc));
 
     ifnet->tx_base = kmap(4096, NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
-    ifnet->tx_phys = mmu_read((size_t)ifnet->tx_base);
+    ifnet->tx_phys = mmu_read(NULL, (size_t)ifnet->tx_base);
     ifnet->tx_count = MIN(NUM_TX_DESC, 4096 / sizeof(struct tx_desc));
 
     ifnet->mx_count = ifnet->rx_count + ifnet->tx_count;
@@ -292,14 +292,14 @@ void e1000_startup(struct PCI_device *pci, const char *name)
 
     for (i = 0; i < ifnet->rx_count; ++i) {
         ifnet->rx_virt[i] = &map[PAGE_SIZE * i];
-        ifnet->rx_base[i].addr = mmu_read((size_t)ifnet->rx_virt[i]);
+        ifnet->rx_base[i].addr = mmu_read(NULL, (size_t)ifnet->rx_virt[i]);
         // kprintf(0, "rx[%d] 0x%x -> 0x%x\n", i, ifnet->rx_virt[i], ifnet->rx_base[i].addr);
         ifnet->rx_base[i].status = 0;
     }
 
     for (i = 0; i < ifnet->tx_count; ++i) {
         ifnet->tx_virt[i] = &map[PAGE_SIZE * (i + ifnet->rx_count)];
-        ifnet->tx_base[i].addr = mmu_read((size_t)ifnet->tx_virt[i]);
+        ifnet->tx_base[i].addr = mmu_read(NULL, (size_t)ifnet->tx_virt[i]);
         // kprintf(0, "tx[%d] 0x%x -> 0x%x\n", i, ifnet->tx_virt[i], ifnet->tx_base[i].addr);
         ifnet->tx_base[i].status = 0;
         ifnet->tx_base[i].cmd = (1 << 0);

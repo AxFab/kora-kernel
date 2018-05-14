@@ -44,6 +44,7 @@ time64_t time64();
 typedef struct inode inode_t;
 typedef struct user user_t;
 typedef struct task task_t;
+typedef struct mspace mspace_t;
 typedef struct acl acl_t;
 
 #endif  /* _KERNEL_TYPES */

@@ -440,14 +440,14 @@ static void _exit() {
     for (;;) task_switch(TS_ZOMBIE, -42);
 }
 
-int cpu_tasklet(task_t* task, void *entry, void *param)
+void cpu_tasklet(task_t* task, size_t entry, size_t param)
 {
-    void **stack = (void**)task->kstack;
-    task->state[5] = (size_t)entry;
+    size_t *stack = (size_t*)task->kstack;
+    task->state[5] = entry;
     task->state[3] = (size_t)task->kstack;
 
     stack--; *stack = param;
-    stack--; *stack = _exit;
+    stack--; *stack = (size_t)_exit;
     task->state[4] = (size_t)stack;
 }
 

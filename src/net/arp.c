@@ -47,7 +47,7 @@ static int arp_packet_ip4(netdev_t *ifnet, const uint8_t *mac, const uint8_t *ip
         return -1;
     if (eth_header(skb, mac, ETH_ARP) != 0)
         return net_trash(skb);
-    strncat(skb->log, "ARP:", NET_LOG_SIZE);
+    strncat(skb->log, "arp:", NET_LOG_SIZE);
     ARP_header_t header;
     header.hardware = ARP_HW_ETH;
     header.protocol = ARP_PC_IP;
@@ -112,7 +112,7 @@ int arp_query(netdev_t *ifnet, const uint8_t *ip)
 int arp_receive(skb_t *skb)
 {
     ARP_header_t header;
-    strncat(skb->log, "ARP:", NET_LOG_SIZE);
+    strncat(skb->log, "arp:", NET_LOG_SIZE);
     if (net_read(skb, &header, sizeof(header)) != 0)
         return -1;
     if (header.hardware != ARP_HW_ETH || header.protocol != ARP_PC_IP || header.hw_length != ETH_ALEN)

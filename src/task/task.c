@@ -236,7 +236,7 @@ void task_switch(int status, int retcode)
 {
     assert(irq_sem == 1);
     assert(status >= TS_ZOMBIE && status <= TS_READY);
-    volatile task_t *task = kCPU.running;
+    task_t *task = kCPU.running;
     if (task) {
         kprintf(-1, "Leaving Task %d\n", task->pid);
         splock_lock(&task->lock);
@@ -254,7 +254,7 @@ void task_switch(int status, int retcode)
         }
         if (status == TS_ZOMBIE) {
             /* Quit the task */
-            advent_awake(&task->wlist);
+            advent_awake(&task->wlist, 0);
             // task_zombie(task);
         } else if (status == TS_READY) {
             scheduler_add(task);
@@ -366,6 +366,8 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
 
 void task_destroy(task_t *task)
 {
+    // assert(task->status == TS_ZOMBIE);
+
     splock_lock(&task->lock);
     vfs_close(task->root);
     vfs_close(task->pwd);
@@ -376,11 +378,11 @@ void task_destroy(task_t *task)
     if (task->resx)
         resx_rcu(task->resx, 0);
 
+    kunmap(task->kstack, task->kstack_len);
+
     bbtree_remove(&pid_tree, task->pid);
-    irq_disable();
     splock_unlock(&task->lock);
     kfree(task);
-    irq_enable();
 }
 
 task_t *task_search(pid_t pid)

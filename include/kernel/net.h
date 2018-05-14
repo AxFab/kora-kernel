@@ -57,6 +57,8 @@ int arp_receive(skb_t *skb);
 int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, int length, int protocol);
 int ip4_receive(skb_t *skb);
 
+extern const uint8_t ip4_broadcast[IP4_ALEN];
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* ICMP */
 #define ICMP_PONG 0
@@ -102,7 +104,7 @@ struct skb {
     uint8_t ip4_addr[IP4_ALEN];
     char log[NET_LOG_SIZE];
     llnode_t node;
-    uint8_t buf[0];
+    uint8_t buf[1500];
 };
 
 #define NET_ERR_OVERFILL (1 << 0)

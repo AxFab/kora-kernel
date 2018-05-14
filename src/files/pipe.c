@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/files.h>
+#include <kernel/task.h>
 #include <kora/mcrs.h>
 #include <kora/splock.h>
 #include <kora/llist.h>
@@ -146,14 +147,14 @@ int pipe_write(pipe_t *pipe, const char *buf, int len, int flags)
         int cap = MIN3(len, pipe->end - pipe->wpen, pipe->size - pipe->avail);
         if (cap == 0) {
             if (pipe->size < pipe->max_size) {
-    bufdump(pipe->base, pipe->size);
-    kprintf(KLOG_DBG, "Bf\n");
+    // kdump(pipe->base, pipe->size);
+    // kprintf(KLOG_DBG, "Bf\n");
                 pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size));
-    bufdump(pipe->base, pipe->size);
-    kprintf(KLOG_DBG, "Af\n");
+    // kdump(pipe->base, pipe->size);
+    // kprintf(KLOG_DBG, "Af\n");
                 continue;
             }
-            advent_awake(&pipe->rlist);
+            advent_awake(&pipe->rlist, 0);
             if (flags & IO_NO_BLOCK)
                 break;
             if (flags & IO_CONSUME) {
@@ -172,7 +173,7 @@ int pipe_write(pipe_t *pipe, const char *buf, int len, int flags)
         if (pipe->wpen == pipe->end)
             pipe->wpen = pipe->base;
     }
-    advent_awake(&pipe->rlist);
+    advent_awake(&pipe->rlist, 0);
     splock_unlock(&pipe->lock);
     errno = 0;
     return bytes;
@@ -190,7 +191,7 @@ int pipe_read(pipe_t *pipe, char *buf, int len, int flags)
     while (len > 0) {
         int cap = MIN3(len, pipe->end - pipe->rpen, pipe->avail);
         if (cap == 0) {
-            advent_awake(&pipe->wlist);
+            advent_awake(&pipe->wlist, 0);
             if (flags & IO_NO_BLOCK)
                 break;
             advent_wait(&pipe->lock, &pipe->rlist, -1);
@@ -205,7 +206,7 @@ int pipe_read(pipe_t *pipe, char *buf, int len, int flags)
         if (pipe->rpen == pipe->end)
             pipe->rpen = pipe->base;
     }
-    advent_awake(&pipe->wlist);
+    advent_awake(&pipe->wlist, 0);
     splock_unlock(&pipe->lock);
     errno = 0;
     return bytes;

@@ -133,6 +133,10 @@ static page_t mmu_read_(size_t vaddress, bool drop, bool clean)
         memset((void *)vaddress, 0, PAGE_SIZE);
     }
     if (drop) {
+        asm volatile (
+        "movl %0,%%eax\n"
+        "invlpg (%%eax)\n"
+        :: "r"(vaddress) : "%eax");
         *tbl = 0;
     }
     return *tbl & (~(PAGE_SIZE - 1));

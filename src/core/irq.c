@@ -46,6 +46,8 @@ void irq_unregister(int no, irq_handler_t func, void *data)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+void irq_ack(int no);
+
 void sys_irq(int no)
 {
     // irq_disable();

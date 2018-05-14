@@ -158,3 +158,78 @@ void net_print(netdev_t *ifnet)
     kprintf(KLOG_DBG, "    TX errors %d   dropped %d\n", ifnet->tx_errors, ifnet->tx_dropped);
 }
 
+
+
+// ------------
+
+// NET
+// miniscule,
+// ip4 broadcast,
+// header save address on skb
+// use link !
+
+// int task()
+// {
+//     long timeout = time64();
+//     for (;;) {
+//         /* Read available packets */
+//         for(;;) {
+//             splock_lock(&ifnet->lock);
+//             skb_t *skb;
+//             while (timeout - time64() > 0) {
+//                 skb = ll_dequeue(&ifnet->queue, skb_t, node);
+//                 if (skb == NULL)
+//                     advent_wait(&ifnet->lock, ..., timeout - time64());
+//             }
+//             if (skb == NULL)
+//                 break;
+//             splock_unlock(&ifnet->lock);
+
+//             int ret = eth_receive(skb);
+//             if (ret != 0)
+//                ifnet->rx_errors++;
+//             kfree(skb);
+//         }
+
+//         timeout = time64() + NET_DELAY;
+
+//         /* Initialize hardware */
+//         if (!(ifnet->flags & NET_CONNECT)) {
+//             ifnet->link(ifnet);
+//             continue;
+//         }
+
+//         /* check connection - TODO find generic method */
+//         if (!(ifnet->flags & NET_CNX_IP4)) {
+//             dhcp_discovery(ifnet);
+//             continue;
+//         }
+
+//         if ((ifnet->lease_out - time64()) * 4 < ifnet->lease_full && time64() - ifnet->lease_last > NET_LEASE_25P) {
+//             dhcp_renew(ifnet);
+//             continue;
+//         }
+
+//         if ((ifnet->lease_out - time64()) * 2 < ifnet->lease_full && time64() - ifnet->lease_last > NET_LEASE_50P) {
+//             dhcp_renew(ifnet);
+//             continue;
+//         }
+
+//         /* Longer delay when no imediate requirement */
+//         timeout = time64() + NET_LONG_DELAY;
+//     }
+// }
+
+
+// for (;;) {
+//     if (rule == NULL) {
+//         timeout = time64() + NET_LONG_DELAY;
+//         break;
+//     }
+//     if (rule->test(ifnet)) {
+//         rule->action(ifnet);
+//         break;
+//     }
+//     rule = rule->next;
+// }
+
