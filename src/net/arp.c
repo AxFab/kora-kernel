@@ -42,7 +42,7 @@ PACK(struct ARP_header {
 
 static int arp_packet_ip4(netdev_t *ifnet, const uint8_t *mac, const uint8_t *ip, int op)
 {
-    skb_t *skb = net_packet(ifnet);
+    skb_t *skb = net_packet(ifnet, 64);
     if (skb == NULL)
         return -1;
     if (eth_header(skb, mac, ETH_ARP) != 0)

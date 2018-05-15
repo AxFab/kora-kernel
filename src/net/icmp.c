@@ -38,7 +38,7 @@ static uint16_t icmp_checksum (ICMP_header_t *header)
 
 static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type, uint8_t code, uint32_t data, void*extra, int len)
 {
-    skb_t *skb = net_packet(ifnet);
+    skb_t *skb = net_packet(ifnet, 128);
     if (skb == NULL)
         return -1;
     if (ip4_header(skb, ip, rand(), 0, sizeof(ICMP_header_t) + len, IP4_ICMP) != 0)
@@ -64,7 +64,7 @@ int icmp_ping(netdev_t *ifnet, const uint8_t *ip)
     return icmp_packet(ifnet, ip, ICMP_PING, 0, id | (seq << 16), "abcdefghijklmnop", 16);
 }
 
-int icmp_receive(skb_t *skb, int len)
+int icmp_receive(skb_t *skb, unsigned len)
 {
     int ret;
     uint8_t *payload = NULL;

@@ -142,11 +142,11 @@ void kernel_start()
 #endif
     KSETUP(isofs);
 
-    desktop_t *dekstop = wmgr_desktop();
+    // desktop_t *dekstop = wmgr_desktop();
 
     // tty_attach(tty_syslog, wmgr_window(dekstop, 600, 600), &font_6x9, colors_kora, 0);
 
-    irq_disable();
+    // irq_disable();
 
     // inode_t *root = vfs_mount("sdC", "isofs");
     // if (root == NULL) {

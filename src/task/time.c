@@ -36,7 +36,7 @@ void advent_timeout();
 
 void sys_ticks()
 {
-    irq_disable();
+    // irq_disable();
     if (timer_cpu == cpu_no()) {
         splock_lock(&xtime_lock);
         time_us += TICKS_PER_SEC;

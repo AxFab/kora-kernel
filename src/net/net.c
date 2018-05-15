@@ -38,28 +38,21 @@ void net_tasklet(netdev_t *ifnet)
     }
 }
 
-int net_device(netdev_t *ifnet)
-{
-    ifnet->no = ++net_no;
-    splock_init(&ifnet->lock);
-    char tmp[20];
-    kprintf(-1, "Network interface (eth%d) - MAC: \e[92m%s\e[0m\n", ifnet->no, net_ethstr(tmp, ifnet->eth_addr));
-
-    return 0;
-}
-
 /* Create a new tx packet */
-skb_t *net_packet(netdev_t *ifnet)
+skb_t *net_packet(netdev_t *ifnet, unsigned size)
 {
-    skb_t *skb = (skb_t*)kalloc(sizeof(skb_t));
+    if (size > ifnet->mtu)
+        size = ifnet->mtu;
+    skb_t *skb = (skb_t*)kalloc(sizeof(skb_t) + size);
     skb->ifnet = ifnet;
+    skb->size = size;
     return skb;
 }
 
 /* Create a new rx packet and push it into received queue */
-void net_recv(netdev_t *ifnet, uint8_t *buf, int len)
+void net_recv(netdev_t *ifnet, uint8_t *buf, unsigned len)
 {
-    skb_t *skb = (skb_t*)kalloc(sizeof(skb_t));
+    skb_t *skb = (skb_t*)kalloc(sizeof(skb_t) + len);
     skb->ifnet = ifnet;
     memcpy(skb->buf, buf, len);
     skb->length = len;
@@ -99,7 +92,7 @@ int net_trash(skb_t *skb)
 }
 
 /* Read data from a packet */
-int net_read(skb_t *skb, void *buf, int len)
+int net_read(skb_t *skb, void *buf, unsigned len)
 {
     if (skb->err)
         return -1;
@@ -114,7 +107,7 @@ int net_read(skb_t *skb, void *buf, int len)
 }
 
 /* Write data on a packet */
-int net_write(skb_t *skb, const void *buf, int len)
+int net_write(skb_t *skb, const void *buf, unsigned len)
 {
     if (skb->err)
         return -1;
@@ -143,12 +136,25 @@ char *net_ip4str(char *buf, uint8_t *ip)
     return buf;
 }
 
+uint16_t net_rand_port()
+{
+    return (rand() & 0xFFFF) | 0x400;
+}
+
+uint16_t net_ephemeral_port(socket_t *socket)
+{
+    uint16_t port = net_rand_port();
+    // TODO Test port isn't taken
+    return port;
+}
+
+
 void net_print(netdev_t *ifnet)
 {
     char buf[20];
-    kprintf(KLOG_DBG, "eth%d:  flags <%s>  mtu %d\n", ifnet->no,
-        ifnet->flags & NET_CONNECTED ? "UP" : "",
-        ifnet->flags & NET_QUIET ? "QUIET" : "",
+    kprintf(KLOG_DBG, "eth%d:  flags < %s%s>  mtu %d\n", ifnet->no,
+        ifnet->flags & NET_CONNECTED ? "UP " : "",
+        ifnet->flags & NET_QUIET ? "QUIET " : "",
         ifnet->mtu);
     kprintf(KLOG_DBG, "    MAC address %s\n", net_ethstr(buf, ifnet->eth_addr));
     kprintf(KLOG_DBG, "    IP address %s\n", net_ip4str(buf, ifnet->ip4_addr));
@@ -162,17 +168,14 @@ void net_print(netdev_t *ifnet)
 
 // ------------
 
-// NET
-// miniscule,
-// ip4 broadcast,
-// header save address on skb
-// use link !
-
-// int task()
-// {
-//     long timeout = time64();
-//     for (;;) {
-//         /* Read available packets */
+int net_tasket(netdev_t *ifnet)
+{
+    bool send_arp = false;
+    bool send_dhcp = false;
+    time64_t timeout = time64();
+    for (;;) {
+        advent_wait(NULL, NULL, 500000); // 0.5sec
+        /* Read available packets */
 //         for(;;) {
 //             splock_lock(&ifnet->lock);
 //             skb_t *skb;
@@ -193,12 +196,32 @@ void net_print(netdev_t *ifnet)
 
 //         timeout = time64() + NET_DELAY;
 
-//         /* Initialize hardware */
-//         if (!(ifnet->flags & NET_CONNECT)) {
-//             ifnet->link(ifnet);
-//             continue;
-//         }
+        /* Initialize hardware */
+        if (!(ifnet->flags & NET_CONNECTED)) {
+            kprintf(KLOG_NET, "Initialize eth%d\n", ifnet->no);
+            ifnet->link(ifnet);
+            net_print(ifnet);
+            continue;
+        }
 
+
+        if (!send_dhcp) {
+            send_dhcp = true;
+            dhcp_discovery(ifnet);
+        }
+
+        if (!send_arp) {
+            send_arp = true;
+            ifnet->ip4_addr[0] = 192;
+            ifnet->ip4_addr[1] = 168;
+            ifnet->ip4_addr[2] = 1;
+            ifnet->ip4_addr[3] = 9;
+            uint32_t ip = 0x0101a8c0;
+            arp_query(ifnet, (uint8_t*)&ip);
+            continue;
+        }
+
+        kprintf(KLOG_NET, "Net ticks eth%d\n", ifnet->no);
 //         /* check connection - TODO find generic method */
 //         if (!(ifnet->flags & NET_CNX_IP4)) {
 //             dhcp_discovery(ifnet);
@@ -217,9 +240,20 @@ void net_print(netdev_t *ifnet)
 
 //         /* Longer delay when no imediate requirement */
 //         timeout = time64() + NET_LONG_DELAY;
-//     }
-// }
+    }
+}
 
+
+int net_device(netdev_t *ifnet)
+{
+    ifnet->no = ++net_no;
+    splock_init(&ifnet->lock);
+    char tmp[20];
+    kprintf(-1, "Network interface (eth%d) - MAC: \e[92m%s\e[0m\n", ifnet->no, net_ethstr(tmp, ifnet->eth_addr));
+
+    kernel_tasklet(&net_tasket, (long)ifnet, "Ethernet eth%d");
+    return 0;
+}
 
 // for (;;) {
 //     if (rule == NULL) {

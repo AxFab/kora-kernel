@@ -17,6 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <stdint.h>
+
 static unsigned int __seed;
 
 #define RAND_MAX 0x7FFF
@@ -51,3 +53,27 @@ int rand(void)
     return rand_r(&__seed);
 }
 
+uint64_t rand64()
+{
+    uint64_t r = (uint64_t)rand();
+    r |= (uint64_t)rand() << 15;
+    r |= (uint64_t)rand() << 30;
+    r |= (uint64_t)rand() << 45;
+    r |= (uint64_t)rand() << 60;
+    return r;
+}
+
+uint32_t rand32()
+{
+    uint32_t r = (uint32_t)rand();
+    r |= (uint32_t)rand() << 15;
+    r |= (uint32_t)rand() << 30;
+    return r;
+}
+
+uint16_t rand16()
+{
+    uint32_t r = (uint16_t)rand();
+    r |= (uint16_t)rand() << 15;
+    return r;
+}

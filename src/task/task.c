@@ -238,7 +238,7 @@ void task_switch(int status, int retcode)
     assert(status >= TS_ZOMBIE && status <= TS_READY);
     task_t *task = kCPU.running;
     if (task) {
-        kprintf(-1, "Leaving Task %d\n", task->pid);
+        // kprintf(-1, "Leaving Task %d\n", task->pid);
         splock_lock(&task->lock);
         task->retcode = retcode;
         if (cpu_save(task->state) != 0)
@@ -271,7 +271,7 @@ void task_switch(int status, int retcode)
     // TODO Start task chrono!
     if (task->usmem)
         mmu_context(task->usmem);
-    kprintf(-1, "Start Task %d\n", task->pid);
+    // kprintf(-1, "Start Task %d\n", task->pid);
     cpu_restore(task->state, 1);
 }
 
