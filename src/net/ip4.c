@@ -24,8 +24,8 @@
 typedef struct IP4_header IP4_header_t;
 
 PACK(struct IP4_header {
-    uint8_t version:4;
     uint8_t header_length:4;
+    uint8_t version:4;
     uint8_t service_type;
     uint16_t length;
     uint16_t identifier;
@@ -37,6 +37,7 @@ PACK(struct IP4_header {
     uint8_t target[4];
 });
 
+const uint8_t ip4_broadcast[IP4_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -57,9 +58,11 @@ static uint16_t ip4_checksum(IP4_header_t *header)
 int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int length, int protocol)
 {
     uint8_t mac [ETH_ALEN];
+    if (ip == ip4_broadcast)
+        memset(mac, 0xFF, ETH_ALEN);
     // todo, findac address using ip
     // memcpy(mac, !?, ETH_ALEN);
-    if (eth_header(skb, mac, ETH_ALEN) != 0)
+    if (eth_header(skb, mac, ETH_IP4) != 0)
         return -1;
 
     strncat(skb->log, "ipv4:", NET_LOG_SIZE);
@@ -67,7 +70,7 @@ int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int le
     header.version = 4;
     header.header_length = 5;
     header.service_type = 0;
-    header.length = sizeof(header) + length;
+    header.length = htonw(sizeof(header) + length);
     header.identifier = identifier;
     header.offset = offset;
     header.ttl = 128;
@@ -76,21 +79,9 @@ int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int le
     memcpy(header.source, skb->ifnet->ip4_addr, IP4_ALEN);
     memcpy(header.target, ip, IP4_ALEN);
     memcpy(skb->ip4_addr, ip, IP4_ALEN);
-
-    switch (protocol) {
-    case IP4_TCP:
-        return -1;
-    case IP4_UDP:
-        header.checksum = ip4_checksum(&header);
-        return net_write(skb, &header, sizeof(header));
-    case IP4_ICMP:
-        if (offset != 0)
-            return -1;
-        header.checksum = ip4_checksum(&header);
-        return net_write(skb, &header, sizeof(header));
-    default:
-        return -1;
-    }
+    // TODO options
+    header.checksum = ip4_checksum(&header);
+    return net_write(skb, &header, sizeof(header));
 }
 
 
@@ -105,9 +96,9 @@ int ip4_receive(skb_t *skb)
     // REGROUP SOCKET
     switch (header.protocol) {
     case IP4_TCP:
-        return -1; // tcp_receive(skb);
+        return tcp_receive(skb, header.length - sizeof(header));
     case IP4_UDP:
-        return -1; // udp_receive(skb);
+        return udp_receive(skb, header.length - sizeof(header));
     case IP4_ICMP:
         if (header.offset != 0)
             return -1;

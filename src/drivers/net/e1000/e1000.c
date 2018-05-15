@@ -238,32 +238,34 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     PCI_wr32(pci, 0, REG_IMC, 0xFF);
     PCI_wr32(pci, 0, REG_IMS, _B(0) | _B(1) | _B(2) | _B(6) | _B(7));
 
-    // advent_wait(NULL, NULL, 1000000); // 1 sec
-    // if (PCI_rd32(pci, 0, REG_STATUS) & (1 << 1))
-    // kprintf(0, "%s, DONE %d \n", ifnet->name, link_is_up);
+    /* Wait */
+    advent_wait(NULL, NULL, 1000000); // 1 sec
 
-    ifnet->dev.send = (void*)e1000_send;
-
-}
-
-void e1000_start(E1000_inet_t *ifnet)
-{
-    e1000_init_hw(ifnet);
-    // net_tasket(ifnet);
-
-    ifnet->dev.ip4_addr[0] = 192;
-    ifnet->dev.ip4_addr[1] = 168;
-    ifnet->dev.ip4_addr[2] = 1;
-    ifnet->dev.ip4_addr[3] = 9;
-    uint32_t ip = 0x0101a8c0;
-    arp_query(&ifnet->dev, (uint8_t*)&ip);
-
-
-    for (;;) {
-        advent_wait(NULL, NULL, 1000000); // 1 sec
-        kprintf(0, "E1000's waiting...\n");
+    uint32_t is_up = PCI_rd32(pci, 0, REG_STATUS); // & (1 << 1);
+    if (is_up & (1 << 1)) {
+        ifnet->dev.flags |= NET_CONNECTED;
+        kprintf(0, "%s, DONE %x \n", ifnet->name, is_up);
     }
 }
+
+// void e1000_start(E1000_inet_t *ifnet)
+// {
+//     e1000_init_hw(ifnet);
+//     // net_tasket(ifnet);
+
+//     ifnet->dev.ip4_addr[0] = 192;
+//     ifnet->dev.ip4_addr[1] = 168;
+//     ifnet->dev.ip4_addr[2] = 1;
+//     ifnet->dev.ip4_addr[3] = 9;
+//     uint32_t ip = 0x0101a8c0;
+//     arp_query(&ifnet->dev, (uint8_t*)&ip);
+
+
+//     for (;;) {
+//         advent_wait(NULL, NULL, 1000000); // 1 sec
+//         kprintf(0, "E1000's waiting...\n");
+//     }
+// }
 
 
 void e1000_startup(struct PCI_device *pci, const char *name)
@@ -272,12 +274,12 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     E1000_inet_t *ifnet = (E1000_inet_t*)kalloc(sizeof(E1000_inet_t));
 
     ifnet->pci = pci;
-    ifnet->name = name;
+    ifnet->name = strdup(name);
     ifnet->dev.mtu = 1500;
     splock_init(&ifnet->lock);
 
     pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VMA_PHYSIQ);
-    kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
+    // kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
 
     ifnet->rx_base = kmap(4096, NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
     ifnet->rx_phys = mmu_read(NULL, (size_t)ifnet->rx_base);
@@ -317,8 +319,10 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     /* initialize */
     PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
 
+    ifnet->dev.send = (void*)e1000_send;
+    ifnet->dev.link = (void*)e1000_init_hw;
+
     net_device(&ifnet->dev);
-    kernel_tasklet(&e1000_start, (long)ifnet, "Ethernet");
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -329,15 +333,15 @@ struct e1000_id {
 };
 
 
-struct e1000_id __ids[] = {
+struct e1000_id __e1000_ids[] = {
     { .id = E1000_DEV_ID_82542, .name = "E1000 82542" },
-    { .id = E1000_DEV_ID_82543GC_FIBER, .name = "E1000 82543GC FIBER" },
-    { .id = E1000_DEV_ID_82543GC_COPPER, .name = "E1000 82543GC COPPER" },
+    { .id = E1000_DEV_ID_82543GC_FIBER, .name = "T Server (82543GC-fiber)" },
+    { .id = E1000_DEV_ID_82543GC_COPPER, .name = "T Server (82543GC-copper)" },
     { .id = E1000_DEV_ID_82544EI_COPPER, .name = "E1000 82544EI COPPER" },
     { .id = E1000_DEV_ID_82544EI_FIBER, .name = "E1000 82544EI FIBER" },
     { .id = E1000_DEV_ID_82544GC_COPPER, .name = "E1000 82544GC COPPER" },
     { .id = E1000_DEV_ID_82544GC_LOM, .name = "E1000 82544GC LOM" },
-    { .id = E1000_DEV_ID_82540EM, .name = "E1000 82540EM" },
+    { .id = E1000_DEV_ID_82540EM, .name = "MT Desktop (82540EM)" },
     { .id = E1000_DEV_ID_82540EM_LOM, .name = "E1000 82540EM LOM" },
     { .id = E1000_DEV_ID_82540EP_LOM, .name = "E1000 82540EP LOM" },
     { .id = E1000_DEV_ID_82540EP, .name = "E1000 82540EP" },
@@ -370,13 +374,25 @@ struct e1000_id __ids[] = {
 };
 
 
+struct e1000_id *e1000_pci_info(struct PCI_device *pci)
+{
+    unsigned i;
+    for (i = 0; i < sizeof(__e1000_ids)/sizeof(struct e1000_id); ++i) {
+        if (__e1000_ids[i].id == pci->device_id)
+            return &__e1000_ids[i];
+    }
+
+    return NULL;
+}
+
+
 int e1000_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
 {
     unsigned i;
     if (vendor != INTEL_VENDOR || class != ETERNET_CLASS)
         return -1;
-    for (i = 0; i < sizeof(__ids)/sizeof(struct e1000_id); ++i) {
-        if (__ids[i].id == device)
+    for (i = 0; i < sizeof(__e1000_ids)/sizeof(struct e1000_id); ++i) {
+        if (__e1000_ids[i].id == device)
             return 0;
     }
 
@@ -386,13 +402,20 @@ int e1000_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
 void e1000_setup()
 {
     struct PCI_device *pci = NULL;
-    const char *name;
+    char name[48];
 
     for(;;) {
         pci = PCI_search2(e1000_match_pci_device);
         if (pci == NULL)
             break;
-        name = "Intel PRO/1000";
+
+        struct e1000_id *info = e1000_pci_info(pci);
+        strcpy(name, "Intel PRO/1000");
+        if (info) {
+            strcat(name, " ");
+            strcat(name, info->name);
+        }
+        // name = "Intel PRO/1000 ";
         // kprintf(0, "Found %s (PCI.%02d.%02d)\n", name, pci->bus, pci->slot);
         e1000_startup(pci, name);
     }

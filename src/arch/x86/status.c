@@ -195,8 +195,12 @@ void page_fault_x86(size_t address, int code, regs_t *regs)
     irq_enable();
 }
 
+extern unsigned irq_sem;
+
 void sys_irq_x86(int no, regs_t *regs)
 {
+    irq_disable();
+    assert(irq_sem == 1);
     // task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
     // kTSK.regs = regs;
     // kprintf(KLOG_DBG, "[x86 ] IRQ %d\n", no);
@@ -208,6 +212,8 @@ void sys_irq_x86(int no, regs_t *regs)
     }
     // task_signals();
     // task_leave_sys();
+    assert(irq_sem == 1);
+    irq_reset(false);
 }
 
 
