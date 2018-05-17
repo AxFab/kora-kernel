@@ -18,25 +18,10 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/net.h>
+#include <kernel/task.h>
 #include <string.h>
 
 static int net_no = 0;
-
-void net_tasklet(netdev_t *ifnet)
-{
-    int ret;
-    for (;;) {
-        splock_lock(&ifnet->lock);
-        skb_t *skb = ll_dequeue(&ifnet->queue, skb_t, node);
-        splock_unlock(&ifnet->lock);
-        if (skb != NULL) {
-            ret = eth_receive(skb);
-            if (ret != 0)
-                ifnet->rx_errors++;
-            kfree(skb);
-        }
-    }
-}
 
 /* Create a new tx packet */
 skb_t *net_packet(netdev_t *ifnet, unsigned size)
@@ -168,33 +153,54 @@ void net_print(netdev_t *ifnet)
 
 // ------------
 
-int net_tasket(netdev_t *ifnet)
+#define NET_DELAY 1000000 // 1sec
+#define NET_LONG_DELAY 10000000 // 10sec
+
+
+// void net_tasklet(netdev_t *ifnet)
+// {
+//     int ret;
+//     for (;;) {
+//         splock_lock(&ifnet->lock);
+//         skb_t *skb = ll_dequeue(&ifnet->queue, skb_t, node);
+//         splock_unlock(&ifnet->lock);
+//         if (skb != NULL) {
+//             ret = eth_receive(skb);
+//             if (ret != 0)
+//                 ifnet->rx_errors++;
+//             kfree(skb);
+//         }
+//     }
+// }
+
+int net_tasklet(netdev_t *ifnet)
 {
     bool send_arp = false;
     bool send_dhcp = false;
-    time64_t timeout = time64();
-    for (;;) {
-        advent_wait(NULL, NULL, 500000); // 0.5sec
+    time64_t timeout = time64() + NET_DELAY;
+    while ((ifnet->flags & NET_QUIT) == 0)  {
+        advent_wait(NULL, NULL, timeout - time64());
+
         /* Read available packets */
-//         for(;;) {
-//             splock_lock(&ifnet->lock);
-//             skb_t *skb;
-//             while (timeout - time64() > 0) {
-//                 skb = ll_dequeue(&ifnet->queue, skb_t, node);
-//                 if (skb == NULL)
-//                     advent_wait(&ifnet->lock, ..., timeout - time64());
-//             }
-//             if (skb == NULL)
-//                 break;
-//             splock_unlock(&ifnet->lock);
+        // for(;;) {
+        //     splock_lock(&ifnet->lock);
+        //     skb_t *skb;
+        //     while (timeout - time64() > 0) {
+        //         skb = ll_dequeue(&ifnet->queue, skb_t, node);
+        //         if (skb == NULL)
+        //             advent_wait(&ifnet->lock, ..., timeout - time64());
+        //     }
+        //     if (skb == NULL)
+        //         break;
+        //     splock_unlock(&ifnet->lock);
 
-//             int ret = eth_receive(skb);
-//             if (ret != 0)
-//                ifnet->rx_errors++;
-//             kfree(skb);
-//         }
+        //     int ret = eth_receive(skb);
+        //     if (ret != 0)
+        //        ifnet->rx_errors++;
+        //     kfree(skb);
+        // }
 
-//         timeout = time64() + NET_DELAY;
+        timeout = time64() + NET_DELAY;
 
         /* Initialize hardware */
         if (!(ifnet->flags & NET_CONNECTED)) {
@@ -208,6 +214,7 @@ int net_tasket(netdev_t *ifnet)
         if (!send_dhcp) {
             send_dhcp = true;
             dhcp_discovery(ifnet);
+            continue;
         }
 
         if (!send_arp) {
@@ -222,24 +229,24 @@ int net_tasket(netdev_t *ifnet)
         }
 
         kprintf(KLOG_NET, "Net ticks eth%d\n", ifnet->no);
-//         /* check connection - TODO find generic method */
-//         if (!(ifnet->flags & NET_CNX_IP4)) {
-//             dhcp_discovery(ifnet);
-//             continue;
-//         }
+        // /* check connection - TODO find generic method */
+        // if (!(ifnet->flags & NET_CNX_IP4)) {
+        //     dhcp_discovery(ifnet);
+        //     continue;
+        // }
 
-//         if ((ifnet->lease_out - time64()) * 4 < ifnet->lease_full && time64() - ifnet->lease_last > NET_LEASE_25P) {
-//             dhcp_renew(ifnet);
-//             continue;
-//         }
+        // if ((ifnet->lease_out - time64()) * 4 < ifnet->lease_full && time64() - ifnet->lease_last > NET_LEASE_25P) {
+        //     dhcp_renew(ifnet);
+        //     continue;
+        // }
 
-//         if ((ifnet->lease_out - time64()) * 2 < ifnet->lease_full && time64() - ifnet->lease_last > NET_LEASE_50P) {
-//             dhcp_renew(ifnet);
-//             continue;
-//         }
+        // if ((ifnet->lease_out - time64()) * 2 < ifnet->lease_full && time64() - ifnet->lease_last > NET_LEASE_50P) {
+        //     dhcp_renew(ifnet);
+        //     continue;
+        // }
 
-//         /* Longer delay when no imediate requirement */
-//         timeout = time64() + NET_LONG_DELAY;
+        /* Longer delay when no imediate requirement */
+        timeout = time64() + NET_LONG_DELAY;
     }
 }
 
@@ -251,7 +258,7 @@ int net_device(netdev_t *ifnet)
     char tmp[20];
     kprintf(-1, "Network interface (eth%d) - MAC: \e[92m%s\e[0m\n", ifnet->no, net_ethstr(tmp, ifnet->eth_addr));
 
-    kernel_tasklet(&net_tasket, (long)ifnet, "Ethernet eth%d");
+    kernel_tasklet(&net_tasklet, (long)ifnet, "Ethernet eth%d");
     return 0;
 }
 

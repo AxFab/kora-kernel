@@ -87,6 +87,24 @@ _Noreturn void abort()
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+splock_t klog_lock;
+
+void TXT_write(const char *buf, int len);
+void SRL_write(const char *buf, int len);
+
+void kwrite(const char *buf, int len)
+{
+    splock_lock(&klog_lock);
+    TXT_write(buf, len);
+    SRL_write(buf, len);
+
+    // if (tty_syslog == NULL)
+    //     return;
+    // tty_write(tty_syslog, buf, len);
+    splock_unlock(&klog_lock);
+}
+
+
 int no_dbg = 1;
 
 int vfprintf(FILE *fp, const char *str, va_list ap);

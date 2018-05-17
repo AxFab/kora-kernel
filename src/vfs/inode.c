@@ -17,6 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <kernel/files.h>
 #include <kora/mcrs.h>
 #include <assert.h>
 #include <string.h>

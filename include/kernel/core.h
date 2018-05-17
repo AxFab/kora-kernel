@@ -23,9 +23,9 @@
 #include <stdarg.h>
 #include <kora/stddef.h>
 #include <kora/llist.h>
-#include <kernel/asm/mmu.h>
+#include <kernel/mmu.h>
 #include <kernel/types.h>
-#include <kernel/asm/vma.h>
+#include <kernel/vma.h>
 #include <time.h>
 
 typedef const char* CSTR;
@@ -60,6 +60,9 @@ page_t mmu_read(mspace_t *mspace, size_t vaddress);
 void kernel_tasklet(void* start, long arg, CSTR name);
 
 int rand(void);
+uint16_t rand16();
+uint32_t rand32();
+uint64_t rand64();
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 int sprintf(char *str, const char *format, ...);
 int snprintf(char *, int, const char *, ...);
@@ -68,6 +71,15 @@ int vprintf(const char *format, va_list ap);
 
 void *malloc(size_t size);
 void free(void *ptr);
+
+
+const char *ksymbol(void *eip);
+void stackdump(size_t frame);
+void kdump(const void *buf, int len);
+/* Store in a temporary buffer a size in bytes in a human-friendly format. */
+char *sztoa(size_t number);
+uint32_t crc32(const void *buf, size_t len);
+
 
 // page_t mmu_read(size_t vaddress);
 void kdump(const void *buf, int len);

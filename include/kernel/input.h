@@ -20,7 +20,7 @@
 #ifndef _KERNEL_INPUT_H
 #define _KERNEL_INPUT_H 1
 
-#include <kernel/sys/inode.h>
+#include <kernel/vfs.h>
 
 /*
  * Keyboard state flags
@@ -54,7 +54,6 @@ struct kUsr {
     uint16_t key_ticks;
 };
 
-typedef struct event event_t;
 struct event {
     uint32_t tm_sec;
     uint32_t tm_nsec;
@@ -71,15 +70,15 @@ int seat_event(uint8_t type, uint32_t param1, uint16_t param2);
 extern struct kUsr kUSR;
 
 
-void surface_copy(surface_t *dest, surface_t *src, int relx, int rely);
-void surface_fill_rect(surface_t *scr, int x, int y, int width, int height, uint32_t rgb);
-void surface_draw(surface_t *scr, int width, int height, uint32_t *color, uint8_t *px);
-void seat_ticks();
-surface_t *seat_screen(int no);
-inode_t *seat_surface(int width, int height, int format, int features, int events);
-inode_t *seat_framebuf(int width, int height, int format, int pitch, void* mmio);
-void seat_fb0(int width, int height, int format, int pitch, void* mmio);
-inode_t *seat_initscreen();
+// void surface_copy(surface_t *dest, surface_t *src, int relx, int rely);
+// void surface_fill_rect(surface_t *scr, int x, int y, int width, int height, uint32_t rgb);
+// void surface_draw(surface_t *scr, int width, int height, uint32_t *color, uint8_t *px);
+// void seat_ticks();
+// surface_t *seat_screen(int no);
+// inode_t *seat_surface(int width, int height, int format, int features, int events);
+// inode_t *seat_framebuf(int width, int height, int format, int pitch, void* mmio);
+// void seat_fb0(int width, int height, int format, int pitch, void* mmio);
+// inode_t *seat_initscreen();
 
 
 #endif  /* _KERNEL_INPUT_H */

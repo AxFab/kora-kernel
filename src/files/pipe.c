@@ -40,10 +40,6 @@ struct pipe {
     llhead_t wlist;
 };
 
-#define IO_NO_BLOCK  (1 << 0)
-#define IO_ATOMIC  (1 << 1)
-#define IO_CONSUME  (1 << 2)
-
 static int pipe_resize_unlock_(pipe_t *pipe, int size)
 {
     if (size < pipe->avail || size > pipe->max_size)

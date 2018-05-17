@@ -19,7 +19,7 @@
  */
 #include <kernel/memory.h>
 #include <kernel/core.h>
-#include <kernel/asm/mmu.h>
+#include <kernel/mmu.h>
 #include <kora/mcrs.h>
 #include <kora/allocator.h>
 #include <kora/bbtree.h>

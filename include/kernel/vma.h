@@ -19,8 +19,8 @@
  *
  *      Memory managment unit configuration.
  */
-#ifndef _KERNEL_ASM_VMA_H
-#define _KERNEL_ASM_VMA_H 1
+#ifndef _KERNEL_VMA_H
+#define _KERNEL_VMA_H 1
 
 #include <kernel/types.h>
 #include <kora/bbtree.h>
@@ -111,4 +111,4 @@ struct vma {
 };
 #endif
 
-#endif  /* _KERNEL_ASM_VMA_H */
+#endif  /* _KERNEL_VMA_H */

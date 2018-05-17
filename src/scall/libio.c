@@ -1,6 +1,26 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include <kernel/core.h>
 #include <kernel/scall.h>
-#include <kernel/mods/fs.h>
+#include <kernel/files.h>
+#include <kernel/drivers.h>
 #include <kernel/task.h>
 #include <errno.h>
 
@@ -33,23 +53,26 @@ int sys_read(int fd, const struct iovec *vec, unsigned long vlen)
     if (ino == NULL)
         return -1;
     int bytes = 0, ret;
-    // for (unsigned i = 0; i < vlen; ++i) {
-    //     switch (ino->mode & S_IFMT) {
-    //     case S_IFREG:
-    //     case S_IFBLK:
-    //         ret = blk_read(ino, vec[i].buffer, vec[i].length, 0);
-    //         if (ret < 0)
-    //             return -1;
-    //         bytes += ret;
-    //         break;
-    //     case S_IFIFO:
-    //         ret = fifo_out(ino->fifo, vec[i].buffer, vec[i].length, 0);
-    //         break;
-    //     default:
+    for (unsigned i = 0; i < vlen; ++i) {
+        switch (ino->mode & S_IFMT) {
+        case S_IFREG:
+        case S_IFBLK:
+            ret = ioblk_read(ino, vec[i].buffer, vec[i].length, 0);
+            break;
+        case S_IFIFO:
+        case S_IFCHR:
+            // ret = pipe_read(ino, vec[i].buffer, vec[i].length, IO_ATOMIC);
+            // break;
+        default:
             errno = ENOSYS;
             return -1;
-    //     }
-    // }
+        }
+
+        assert((ret >= 0) != (errno != 0));
+        if (ret < 0)
+            return -1;
+        bytes += ret;
+    }
     return bytes;
 }
 
@@ -60,24 +83,25 @@ int sys_write(int fd, const struct iovec *vec, unsigned long vlen)
     if (ino == NULL)
         return -1;
     int bytes = 0, ret;
-    // for (unsigned i = 0; i < vlen; ++i) {
-    //     switch (ino->mode & S_IFMT) {
-    //     case S_IFREG:
-    //     case S_IFBLK:
-    //         ret = -1; //blk_write(ino, vec[i].buffer, vec[i].length, 0);
-    //         break;
-    //     case S_IFIFO:
-    //         ret = fifo_in(ino->fifo, vec[i].buffer, vec[i].length, 0);
-    //         break;
-    //     default:
+    for (unsigned i = 0; i < vlen; ++i) {
+        switch (ino->mode & S_IFMT) {
+        case S_IFREG:
+        case S_IFBLK:
+            ret = ioblk_write(ino, vec[i].buffer, vec[i].length, 0);
+            break;
+        case S_IFIFO:
+            // ret = pipe_write(ino, vec[i].buffer, vec[i].length, IO_ATOMIC);
+            // break;
+        default:
             errno = ENOSYS;
             return -1;
-    //     }
+        }
 
-    //     if (ret < 0)
-    //         return -1;
-    //     bytes += ret;
-    // }
+        assert((ret >= 0) != (errno != 0));
+        if (ret < 0)
+            return -1;
+        bytes += ret;
+    }
     return bytes;
 }
 

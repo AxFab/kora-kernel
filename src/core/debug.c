@@ -1,5 +1,25 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include <kernel/core.h>
 #include <kora/mcrs.h>
+
 
 const char *ksymbol(void *eip)
 {
@@ -36,27 +56,17 @@ void kdump(const void *buf, int len)
         int n = MIN(16, len - i);
         for (j = 0; j < n; ++j)
             kprintf(KLOG_DBG, "%02x ", ptr[i+j]);
+        for (j = n; j < 16; ++j)
+            kprintf(KLOG_DBG, "   ");
+        kprintf(KLOG_DBG, "  ");
+        for (j = 0; j < n; ++j)
+            kprintf(KLOG_DBG, "%c",
+                ptr[i+j] >= 0x20 && ptr[i+j] < 0x7F ? ptr[i+j] : '.');
+        for (j = n; j < 16; ++j)
+            kprintf(KLOG_DBG, " ");
         kprintf(KLOG_DBG, "\n");
     }
 }
-
-void bufdump(const void *buf, int len)
-{
-    int i;
-    const uint8_t *ptr = (const uint8_t *)buf;
-    for (; len > 0; len -= 16, ptr += 16) {
-        kprintf(KLOG_DBG, "0x%08x  ", ptr);
-        for (i = 0; i < 16; ++i) {
-            kprintf(KLOG_DBG, "%02x ", ptr[i]);
-        }
-        kprintf(KLOG_DBG, " ");
-        for (i = 0; i < 16; ++i) {
-            kprintf(KLOG_DBG, "%c", ptr[i] < 0x20 || ptr[i] >= 0x7F ? '.' : ptr[i]);
-        }
-        kprintf(KLOG_DBG, "\n");
-    }
-}
-
 
 
 /* Store in a temporary buffer a size in bytes in a human-friendly format. */

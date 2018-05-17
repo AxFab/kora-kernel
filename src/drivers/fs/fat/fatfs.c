@@ -19,7 +19,7 @@
  *
  *      File system driver FAT12, FAT16, FAT32 and exFAT.
  */
-#include <kernel/mods/fs.h>
+#include <kernel/drivers.h>
 #include <kernel/core.h>
 #include <kora/mcrs.h>
 #include <errno.h>

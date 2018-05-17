@@ -18,8 +18,8 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
-#include <kernel/asm/vma.h>
-#include <kernel/asm/mmu.h>
+#include <kernel/vma.h>
+#include <kernel/mmu.h>
 #include <kernel/memory.h>
 #include <kernel/task.h>
 #include <string.h>

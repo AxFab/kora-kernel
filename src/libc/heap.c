@@ -18,11 +18,10 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <string.h>
-// #include <stdlib.h>
 #include <errno.h>
 #include <kora/allocator.h>
 #include <kora/mcrs.h>
-#include <kernel/asm/mmu.h>
+#include <kernel/mmu.h>
 
 static int __empty_arena = 0;
 static int __arena_option = HEAP_CHECK;

@@ -60,6 +60,8 @@ int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int le
     uint8_t mac [ETH_ALEN];
     if (ip == ip4_broadcast)
         memset(mac, 0xFF, ETH_ALEN);
+    else
+        memset(mac, 0xA5, ETH_ALEN);
     // todo, findac address using ip
     // memcpy(mac, !?, ETH_ALEN);
     if (eth_header(skb, mac, ETH_IP4) != 0)

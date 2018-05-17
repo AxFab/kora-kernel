@@ -25,6 +25,7 @@
 #include <kora/stddef.h>
 #include <kora/iofile.h>
 #include <bits/types.h>
+#include <stdarg.h>
 
 /* Write formated string from a string */
 int _PRT(vfprintf) (FILE *fp, const char *str, va_list ap);

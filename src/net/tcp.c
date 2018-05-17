@@ -75,7 +75,7 @@ int tcp_packet(socket_t *socket)
 
 socket_t *tcp_socket(netdev_t *ifnet, uint8_t *ip, int port)
 {
-    // TODO - does we know the MAC address!
+    // TODO - do we know the MAC address!
     socket_t *socket = (socket_t*)kalloc(sizeof(socket_t));
     socket->ifnet = ifnet;
     socket->sport = net_ephemeral_port(socket);

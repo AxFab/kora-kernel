@@ -46,6 +46,7 @@ int ntp_packet(netdev_t *ifnet)
         return net_trash(skb);
     strncat(skb->log, "ntp:", NET_LOG_SIZE);
     NTP_header_t header;
+    (void)header;
     // ...
     return net_send(skb);
 }

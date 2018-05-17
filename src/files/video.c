@@ -21,17 +21,17 @@
 #include <kora/mcrs.h>
 
 
-static void vds_rect(surface_t *win, int x, int y, int w, int h, uint32_t color)
-{
-    int i, j, dp = win->depth;
-    for (j = 0; j < h; ++j) {
-        for (i = 0; i < w; ++i) {
-            win->pixels[(j+y)*win->pitch+(i+x)* dp + 0] = (color >> 0) & 0xFF;
-            win->pixels[(j+y)*win->pitch+(i+x)* dp + 1] = (color >> 8) & 0xFF;
-            win->pixels[(j+y)*win->pitch+(i+x)* dp + 2] = (color >> 16) & 0xFF;
-        }
-    }
-}
+// static void vds_rect(surface_t *win, int x, int y, int w, int h, uint32_t color)
+// {
+//     int i, j, dp = win->depth;
+//     for (j = 0; j < h; ++j) {
+//         for (i = 0; i < w; ++i) {
+//             win->pixels[(j+y)*win->pitch+(i+x)* dp + 0] = (color >> 0) & 0xFF;
+//             win->pixels[(j+y)*win->pitch+(i+x)* dp + 1] = (color >> 8) & 0xFF;
+//             win->pixels[(j+y)*win->pitch+(i+x)* dp + 2] = (color >> 16) & 0xFF;
+//         }
+//     }
+// }
 
 // void vds_fill(surface_t *win, uint32_t color)
 // {
