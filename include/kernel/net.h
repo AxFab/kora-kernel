@@ -168,6 +168,7 @@ struct socket {
 #define NET_CONNECTED  (1 << 0)
 #define NET_QUIET  (1 << 1)
 #define NET_NO_DHCP  (1 << 2)
+#define NET_QUIT  (1 << 16)
 
 /* Register a network device */
 int net_device(netdev_t *ifnet);

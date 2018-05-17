@@ -1,5 +1,5 @@
 /*
- *      This file is part of the KoraOs project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify

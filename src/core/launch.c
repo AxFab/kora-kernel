@@ -1,6 +1,25 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include <time.h>
 #include <kernel/core.h>
-#include <kernel/mods/fs.h>
+#include <kernel/drivers.h>
 #include <kernel/memory.h>
 #include <kernel/files.h>
 // #include <kernel/input.h>
@@ -44,19 +63,6 @@ uint32_t colors_kora[] = {
 };
 
 tty_t *tty_syslog = NULL;
-splock_t klog_lock;
-
-void kwrite(const char *buf, int len)
-{
-    splock_lock(&klog_lock);
-    TXT_write(buf, len);
-    SRL_write(buf, len);
-
-    // if (tty_syslog == NULL)
-    //     return;
-    // tty_write(tty_syslog, buf, len);
-    splock_unlock(&klog_lock);
-}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -93,7 +99,7 @@ void kernel_start()
     void *p = kalloc(2);
     (void)p;
 
-    tty_syslog = tty_create(NULL, &font_6x10, colors_kora, 0);
+    // tty_syslog = tty_create(NULL, &font_6x10, colors_kora, 0);
 
     kprintf(KLOG_MSG, "\e[98mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
     kprintf (KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");

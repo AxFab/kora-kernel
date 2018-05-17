@@ -20,7 +20,7 @@
  *      Driver for ATA API.
  */
 #include <kernel/core.h>
-#include <kernel/mods/fs.h>
+#include <kernel/drivers.h>
 #include <kernel/cpu.h>
 #include <string.h>
 #include <errno.h>

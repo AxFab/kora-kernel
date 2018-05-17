@@ -21,8 +21,7 @@
 #define _KERNEL_TYPES 1
 
 #include <kora/stddef.h>
-// #include <sys/types.h>
-#include <kernel/asm/mmu.h>
+#include <kernel/mmu.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -45,6 +44,7 @@ typedef struct inode inode_t;
 typedef struct user user_t;
 typedef struct task task_t;
 typedef struct mspace mspace_t;
+typedef struct event event_t;
 typedef struct acl acl_t;
 
 #endif  /* _KERNEL_TYPES */

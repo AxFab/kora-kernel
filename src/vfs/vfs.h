@@ -20,7 +20,7 @@
 #ifndef _SRC_VFS_H
 #define _SRC_VFS_H 1
 
-#include <kernel/mods/fs.h>
+#include <kernel/drivers.h>
 #include <kora/llist.h>
 #include <kora/rwlock.h>
 

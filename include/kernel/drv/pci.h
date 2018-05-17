@@ -43,7 +43,6 @@ struct PCI_device {
 #define PCI_COMMAND              0x04 // 2
 #define PCI_STATUS               0x06 // 2
 #define PCI_REVISION_ID          0x08 // 1
-
 #define PCI_PROG_IF              0x09 // 1
 #define PCI_SUBCLASS             0x0a // 1
 #define PCI_CLASS                0x0b // 1
@@ -57,9 +56,7 @@ struct PCI_device {
 #define PCI_BAR3                 0x1C // 4
 #define PCI_BAR4                 0x20 // 4
 #define PCI_BAR5                 0x24 // 4
-
 #define PCI_INTERRUPT_LINE       0x3C // 1
-
 #define PCI_SECONDARY_BUS        0x19 // 1
 
 #define PCI_HEADER_TYPE_DEVICE  0

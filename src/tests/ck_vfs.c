@@ -17,7 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/mods/fs.h>
+#include <kernel/drivers.h>
 
 KMODULE(imgdk);
 KMODULE(isofs);

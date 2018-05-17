@@ -1,6 +1,26 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include <kernel/net.h>
 #include <kernel/drv/pci.h>
 #include <kernel/cpu.h>
+#include <kernel/task.h>
 #include <kora/mcrs.h>
 #include <string.h>
 #include "e1000_hw.h"
@@ -251,7 +271,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
 // void e1000_start(E1000_inet_t *ifnet)
 // {
 //     e1000_init_hw(ifnet);
-//     // net_tasket(ifnet);
+//     // net_tasklet(ifnet);
 
 //     ifnet->dev.ip4_addr[0] = 192;
 //     ifnet->dev.ip4_addr[1] = 168;

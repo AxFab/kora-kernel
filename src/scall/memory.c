@@ -1,5 +1,5 @@
 /*
- *      This file is part of the KoraOs project.
+ *      This file is part of the KoraOS project.
  *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 #include <kernel/scall.h>
 #include <kernel/memory.h>
 #include <kernel/task.h>
-#include <kernel/sys/inode.h>
+#include <kernel/vfs.h>
 #include <errno.h>
 
 void *sys_mmap(size_t address, size_t length, int fd, off_t offset, unsigned long flags)

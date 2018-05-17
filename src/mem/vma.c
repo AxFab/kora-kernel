@@ -19,6 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/memory.h>
+#include <kernel/files.h>
 #include <kernel/vfs.h>
 #include "mspace.h"
 #include <string.h>
@@ -262,6 +263,7 @@ int vma_copy_on_write(vma_t *vma, size_t address, size_t length)
     while (length > 0) {
         // TODO -- Clear or not ! release or decrement counter!
         page_t pg = mmu_drop(vma->mspace, address, false);
+        (void)pg;
         page_t copy = mmu_read(vma->mspace, (size_t)buf);
         mmu_resolve(vma->mspace, address, copy, vma->flags & VMA_RIGHTS, false);
         address += PAGE_SIZE;

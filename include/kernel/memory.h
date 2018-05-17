@@ -21,7 +21,7 @@
 #define _KERNEL_MEMORY_H 1
 
 #include <kernel/types.h>
-#include <kernel/asm/vma.h>
+#include <kernel/vma.h>
 
 typedef struct vma vma_t;
 

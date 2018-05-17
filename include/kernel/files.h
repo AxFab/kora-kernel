@@ -54,6 +54,12 @@ struct bitmap_font {
 };
 
 
+#define IO_NO_BLOCK  (1 << 0)
+#define IO_ATOMIC  (1 << 1)
+#define IO_CONSUME  (1 << 2)
+
+
+
 void tty_write(tty_t *tty, const char *str, int lg);
 void tty_attach(tty_t *tty, surface_t *win, const font_t *font, const uint32_t *colors, int iv);
 tty_t *tty_create(surface_t *win, const font_t *font, const uint32_t *colors, int iv);
@@ -70,10 +76,11 @@ void vds_destroy(surface_t *srf);
 void vds_mouse(surface_t *scr, int x, int y);
 
 
-desktop_t *wmgr_desktop();
 void wmgr_register_screen(surface_t *screen);
+surface_t *wmgr_surface(desktop_t *desktop, int width, int height, int depth);
 surface_t *wmgr_window(desktop_t *desktop, int width, int height);
-
+void wmgr_event(event_t *ev);
+desktop_t *wmgr_desktop();
 
 
 
@@ -84,5 +91,18 @@ int pipe_erase(pipe_t *pipe, int len);
 int pipe_write(pipe_t *pipe, const char *buf, int len, int flags);
 int pipe_read(pipe_t *pipe, char *buf, int len, int flags);
 
+
+
+
+void ioblk_init(inode_t *ino);
+void ioblk_sweep(inode_t *ino);
+void ioblk_release(inode_t *ino, off_t off);
+/* Find the page mapping the content of a block inode */
+page_t ioblk_page(inode_t *ino, off_t off);
+/* Synchronize a page mapping the content of a block inode */
+int ioblk_sync(inode_t *ino, off_t off);
+void ioblk_dirty(inode_t *ino, off_t off);
+int ioblk_read(inode_t *ino, char *buf, int len, off_t off);
+int ioblk_write(inode_t *ino, const char *buf, int len, off_t off);
 
 #endif /* _KERNEL_FILES_H */

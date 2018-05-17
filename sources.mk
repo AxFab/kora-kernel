@@ -39,7 +39,7 @@ $(eval $(call ccpl,mod))
 
 core_src-y += $(wildcard $(srcdir)/core/*.c)
 core_src-y += $(wildcard $(srcdir)/files/*.c)
-core_src-y += $(wildcard $(srcdir)/io/*.c)
+# core_src-y += $(wildcard $(srcdir)/io/*.c)
 core_src-y += $(wildcard $(srcdir)/task/*.c)
 core_src-y += $(wildcard $(srcdir)/mem/*.c)
 core_src-y += $(wildcard $(srcdir)/vfs/*.c)
@@ -75,6 +75,7 @@ DV_UTILS += $(bindir)/kImg
 
 
 
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # T E S T I N G   U T I L I T I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ckVfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
 ckVfs_src-y += $(srcdir)/libc/bbtree.c $(srcdir)/libc/hmap.c
@@ -101,7 +102,6 @@ DV_UTILS += $(bindir)/ckMem
 
 ckFile_src-y += $(wildcard $(srcdir)/files/*.c)
 ckFile_omit-y += $(srcdir)/files/wmgr.c
-# ckFile_src-y += $(wildcard $(srcdir)/libc/*.c)
 ckFile_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckFile_src-y += $(srcdir)/core/debug.c  $(srcdir)/arch/um2/cpu.c
 # $(srcdir)/arch/um2/mmu.c
@@ -116,11 +116,34 @@ ckTask_src-y += $(wildcard $(srcdir)/task/*.c)
 ckTask_src-y += $(srcdir)/libc/bbtree.c $(srcdir)/libc/setjmp_x86_64.asm
 ckTask_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckTask_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/cpu.c
-# $(srcdir)/arch/um2/mmu.c
 ckTask_src-y += $(srcdir)/tests/ck_task.c
 ckTask_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckTask,std))
 DV_UTILS += $(bindir)/ckTask
+
+# -------------------------
+
+ckNet_src-y += $(wildcard $(srcdir)/net/*.c)
+ckNet_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/libc/random.c
+ckNet_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/irq.c
+# $(srcdir)/arch/um2/cpu.c
+ckNet_src-y += $(srcdir)/tests/ck_net.c
+ckNet_LFLAGS += $(LFLAGS) $(COV_FLAGS)
+ckNet_LIBS += -lpthread
+$(eval $(call link,ckNet,std))
+DV_UTILS += $(bindir)/ckNet
+
+# -------------------------
+
+ckUtils_src-y += $(wildcard $(srcdir)/libc/*.c)
+ckUtils_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
+ckUtils_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
+ckUtils_omit-y += $(srcdir)/libc/format_vfscanf.c $(srcdir)/libc/format_scan.c
+ckUtils_src-y += $(srcdir)/tests/ck_utils.c
+ckUtils_LFLAGS += $(LFLAGS) $(COV_FLAGS)
+ckUtils_LIBS += $(shell pkg-config --libs check)
+$(eval $(call link,ckUtils,std))
+DV_UTILS += $(bindir)/ckUtils
 
 
 

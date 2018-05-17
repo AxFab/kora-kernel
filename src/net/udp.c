@@ -58,13 +58,13 @@ int udp_receive(skb_t *skb, unsigned length)
     if (net_read(skb, &header, sizeof(header)) != 0)
         return -1;
     // TODO check checksum, and length
-    switch (header.dest_port) {
+    switch (htonw(header.dest_port)) {
         case UDP_PORT_NTP:
-            return ntp_receive(skb, header.length);
+            return ntp_receive(skb, htonw(header.length));
         case UDP_PORT_DHCP:
-            return dhcp_receive(skb, header.length);
+            return dhcp_receive(skb, htonw(header.length));
         case UDP_PORT_DNS:
-            return dns_receive(skb, header.length);
+            return dns_receive(skb, htonw(header.length));
         default:
             // socket_t *socket = net_listener("udp", header.dest_port);
             return -1;
@@ -78,7 +78,7 @@ int udp_packet(socket_t *socket)
 
 socket_t *udp_socket(netdev_t *ifnet, uint8_t *ip, int port)
 {
-    // TODO - does we know the MAC address!
+    // TODO - do we know the MAC address!
     socket_t *socket = (socket_t*)kalloc(sizeof(socket_t));
     socket->ifnet = ifnet;
     socket->sport = net_ephemeral_port(socket);

@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _KERNEL_MODS_FS_H
-#define _KERNEL_MODS_FS_H 1
+#ifndef _KERNEL_DRIVERS_H
+#define _KERNEL_DRIVERS_H 1
 
 #include <kernel/vfs.h>
 #include <kora/splock.h>
@@ -122,4 +122,4 @@ int vfs_mountpt(CSTR name, CSTR fsname, mountfs_t *fs, inode_t *ino);
 inode_t *vfs_mount(CSTR dev, CSTR fs);
 int vfs_umount(inode_t *ino);
 
-#endif  /* _KERNEL_MODS_FS_H */
+#endif  /* _KERNEL_DRIVERS_H */

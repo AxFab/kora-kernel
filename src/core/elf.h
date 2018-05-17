@@ -17,9 +17,10 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _KERNEL_SYS_ELF_H
-#define _KERNEL_SYS_ELF_H 1
+#ifndef _SRC_ELF_H
+#define _SRC_ELF_H 1
 
+#include <stdint.h>
 
 enum ELF_Class {
     ELFCLASSNONE = 0,     /// Invalid class
@@ -93,4 +94,4 @@ static uint8_t ELFident[] = {
 
 
 
-#endif  /* _KERNEL_SYS_ELF_H */
+#endif  /* _SRC_ELF_H */

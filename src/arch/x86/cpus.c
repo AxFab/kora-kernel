@@ -21,8 +21,8 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
-#include <kernel/asm/vma.h>
-#include <kernel/asm/mmu.h>
+#include <kernel/vma.h>
+#include <kernel/mmu.h>
 #include <kora/atomic.h>
 #include <string.h>
 #include <assert.h>
