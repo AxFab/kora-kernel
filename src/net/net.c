@@ -153,7 +153,7 @@ void net_print(netdev_t *ifnet)
 
 // ------------
 
-#define NET_DELAY 1000000 // 1sec
+#define NET_DELAY 5000000 // 1sec
 #define NET_LONG_DELAY 10000000 // 10sec
 
 
@@ -173,7 +173,7 @@ void net_print(netdev_t *ifnet)
 //     }
 // }
 
-int net_tasklet(netdev_t *ifnet)
+void net_tasklet(netdev_t *ifnet)
 {
     bool send_arp = false;
     bool send_dhcp = false;
@@ -211,8 +211,8 @@ int net_tasklet(netdev_t *ifnet)
         }
 
 
-        if (!send_dhcp) {
-            send_dhcp = true;
+        if (ifnet->ip4_addr[0] == 0) {
+//            send_dhcp = true;
             dhcp_discovery(ifnet);
             continue;
         }

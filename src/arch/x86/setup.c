@@ -62,6 +62,12 @@ void x86_IRQ13();
 void x86_IRQ14();
 void x86_IRQ15();
 
+void x86_IRQ16();
+void x86_IRQ17();
+void x86_IRQ18();
+void x86_IRQ19();
+void x86_IRQ20();
+
 void x86_interrupt();
 void x86_syscall();
 void x86_syswait();
@@ -149,13 +155,11 @@ _Noreturn void cpu_run_x86(regs_t *);
 // }
 
 
-extern unsigned irq_sem;
-
 _Noreturn void cpu_halt_x86(size_t kstack, struct x86_tss* tss);
 
 _Noreturn void cpu_halt()
 {
-    assert(irq_sem == 0);
+    assert(kCPU.irq_semaphore == 0);
     // int i = cpu_no();
     // TSS_BASE[i].debug_flag = 0x00;
     // TSS_BASE[i].io_map = 0x00;
@@ -235,6 +239,12 @@ void cpu_setup_x86 ()
     IDT(0x40, 0x08, (uint32_t)x86_syscall, TRAPGATE);
     IDT(0x41, 0x08, (uint32_t)x86_syswait, INTGATE_USER);
     IDT(0x42, 0x08, (uint32_t)x86_syssigret, INTGATE_USER);
+
+    IDT(0x60, 0x08, (uint32_t)x86_IRQ16, INTGATE);
+    IDT(0x61, 0x08, (uint32_t)x86_IRQ17, INTGATE);
+    IDT(0x62, 0x08, (uint32_t)x86_IRQ18, INTGATE);
+    IDT(0x63, 0x08, (uint32_t)x86_IRQ19, INTGATE);
+    IDT(0x64, 0x08, (uint32_t)x86_IRQ20, INTGATE);
 
     // PIC - ICW1 Initialization
     outb(0x20, 0x11);

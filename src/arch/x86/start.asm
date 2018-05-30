@@ -72,6 +72,7 @@ GLOBAL x86_exception0C, x86_exception0D, x86_exception0E, x86_exception0F
 GLOBAL x86_IRQ0, x86_IRQ1, x86_IRQ2, x86_IRQ3, x86_IRQ4, x86_IRQ5
 GLOBAL x86_IRQ6, x86_IRQ7, x86_IRQ8, x86_IRQ9, x86_IRQ10, x86_IRQ11
 GLOBAL x86_IRQ12, x86_IRQ13, x86_IRQ14, x86_IRQ15
+GLOBAL x86_IRQ16, x86_IRQ17, x86_IRQ18, x86_IRQ19, x86_IRQ20
 
 GLOBAL outb, outw, outl, inb, inw, inl,
 GLOBAL outsb, outsw, outsl, insb, insw, insl
@@ -446,6 +447,17 @@ x86_IRQ14:
 x86_IRQ15:
     IRQ_HANDLER 15
 
+x86_IRQ16:
+    IRQ_HANDLER 16
+x86_IRQ17:
+    IRQ_HANDLER 17
+x86_IRQ18:
+    IRQ_HANDLER 18
+x86_IRQ19:
+    IRQ_HANDLER 19
+x86_IRQ20:
+    IRQ_HANDLER 20
+
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 %macro IO_OUT 1
@@ -597,6 +609,7 @@ smp_start:
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 align 32
 use32
+extern cpu_on
 smp_stage:
     cli
 
@@ -625,6 +638,7 @@ smp_stage:
     mov esp, eax
 
     ; Set TSS
+    call cpu_on
     call cpu_no
     shl eax, 3 ; cpu_no x 8
     add ax, TSS0 ; TSS

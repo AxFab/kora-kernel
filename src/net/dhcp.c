@@ -35,13 +35,16 @@
 #define DHCP_OPT_SUBNETMASK 1
 #define DHCP_OPT_ROOTER 3
 #define DHCP_OPT_DNSIP 6
-#define DHCP_OPT_DOMAIN 15
 #define DHCP_OPT_HOSTNAME 12
+#define DHCP_OPT_DOMAIN 15
+#define DHCP_OPT_BROADCAST 28
 #define DHCP_OPT_QRYIP 50
 #define DHCP_OPT_LEASETIME 51
 #define DHCP_OPT_MSGTYPE 53
 #define DHCP_OPT_SERVERIP 54
 #define DHCP_OPT_QRYLIST 55
+#define DHCP_OPT_RENEWALTIME 58
+#define DHCP_OPT_REBINDINGTIME 59
 #define DHCP_OPT_VENDOR 60
 #define DHCP_OPT_CLIENTMAC 61
 
@@ -96,7 +99,6 @@ static skb_t *dhcp_packet(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int 
 static int dhcp_handle(skb_t *skb, DHCP_header_t *header, int length)
 {
     uint8_t options[32];
-    strncat(skb->log, "dhcp:", NET_LOG_SIZE);
     while (length > 2) {
         net_read(skb, options, 2);
         length -= 2 + options[1];
@@ -175,6 +177,89 @@ int dhcp_discovery(netdev_t *ifnet)
     return net_send(skb);
 }
 
+
+int dhcp_offer(netdev_t *ifnet)
+{
+    uint8_t option[32];
+    int opts = 3 + 8 + 6 + 6 + 6 + 6 + 11 + 6 + 1 + 6 + 6;
+    skb_t *skb = dhcp_packet(ifnet, ip4_broadcast, rand32(), opts);
+    if (skb == NULL)
+        return -1;
+
+    // Magic
+    uint32_t magic = DHCP_MAGIC;
+    net_write(skb, &magic, 4);
+
+    // Options
+    option[0] = DHCP_OPT_MSGTYPE;
+    option[1] = 1;
+    option[2] = DHCP_OFFER;
+    net_write(skb, option, option[1] + 2);
+
+    option[0] = DHCP_OPT_VENDOR;
+    const char *vendor = "KoraOS";
+    option[1] = strlen(vendor);
+    strncpy((char*)&option[2], vendor, 32-2);
+    net_write(skb, option, option[1] + 2);
+
+    option[0] = DHCP_OPT_SUBNETMASK;
+    option[1] = 4;
+    option[2] = 255;
+    option[3] = 255;
+    option[4] = 255;
+    option[5] = 0;
+    net_write(skb, option, option[1] + 2);
+
+    option[0] = DHCP_OPT_SERVERIP;
+    option[1] = 4;
+    strncpy((char*)&option[2], (char*)ifnet->ip4_addr, 4);
+    net_write(skb, option, option[1] + 2);
+
+    if (ifnet->ip4_addr[0] != 0) {
+        option[0] = DHCP_OPT_ROOTER;
+        option[1] = 4;
+        strncpy((char*)&option[2], (char*)ifnet->ip4_addr, 4);
+        net_write(skb, option, option[1] + 2);
+    }
+
+    if (ifnet->dns_addr[0] != 0) {
+        option[0] = DHCP_OPT_DNSIP;
+        option[1] = 4;
+        strncpy((char*)&option[2], (char*)ifnet->dns_addr, 4);
+        net_write(skb, option, option[1] + 2);
+    }
+
+    // if (ifnet->dns_addr[0] != 0) {
+        option[0] = DHCP_OPT_DOMAIN;
+        const char *domain = "axfab.net";
+        option[1] = strlen(domain);
+        strncpy((char*)&option[2], domain, 32-2);
+        net_write(skb, option, option[1] + 2);
+    // }
+
+    option[0] = DHCP_OPT_LEASETIME;
+    int32_t lease = htonl(3600);
+    option[1] = 4;
+    strncpy((char*)&option[2], (char*)&lease, 4);
+    net_write(skb, option, option[1] + 2);
+
+    option[0] = DHCP_OPT_RENEWALTIME;
+    int32_t renewal = htonl(3600 / 2);
+    option[1] = 4;
+    strncpy((char*)&option[2], (char*)&renewal, 4);
+    net_write(skb, option, option[1] + 2);
+
+    option[0] = DHCP_OPT_REBINDINGTIME;
+    int32_t rebinding = htonl(3600 - 450);
+    option[1] = 4;
+    strncpy((char*)&option[2], (char*)&rebinding, 4);
+    net_write(skb, option, option[1] + 2);
+
+    option[0] = 0xFF;
+    net_write(skb, option, 1);
+    return net_send(skb);
+}
+
 int dhcp_receive(skb_t *skb, unsigned length)
 {
     DHCP_header_t header;
@@ -182,6 +267,14 @@ int dhcp_receive(skb_t *skb, unsigned length)
         return -1;
     if (net_read(skb, &header, sizeof(header)) != 0)
         return -1;
+    strncat(skb->log, "dhcp:", NET_LOG_SIZE);
+    if (header.htype != 1 || header.hlen != 6)
+        return -1;
+
+    uint32_t magic = DHCP_MAGIC;
+    if (net_read(skb, &magic, 4) != 0 || magic != DHCP_MAGIC)
+        return -1;
+
     switch (header.opcode) {
     case BOOT_REQUEST:
         return -1; // We're not a dhcp server

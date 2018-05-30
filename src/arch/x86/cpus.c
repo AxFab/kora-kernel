@@ -223,7 +223,7 @@ uint64_t cpu_elapsed(uint64_t *last)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 bool APIC_ON = false;
-uint32_t *apic;
+volatile uint32_t *apic;
 
 int cpu_no()
 {
@@ -234,6 +234,10 @@ int cpu_no()
     return (apic[APIC_ID] >> 24) & 0xf;
 }
 
+void cpu_on()
+{
+    apic[APIC_SVR] |= 0x800;
+}
 
 /* Request to start other CPUs */
 void cpu_awake()
@@ -262,20 +266,27 @@ void cpu_awake()
 
     // Map APIC
     // kprintf(0, "CPU vendor: %s, all good...\n", cpu.vendor);
-    apic = (uint32_t *)kmap(PAGE_SIZE, NULL, regA & 0xfffff000, VMA_PHYSIQ);
+    apic = (uint32_t *)kmap(PAGE_SIZE, NULL, regA & 0xfffff000, VMA_PHYSIQ | VMA_UNCACHABLE);
     // kprintf(0, "Map APIC \n");
 
-    PIT_set_interval(CLOCK_HZ);
+    // PIT_set_interval(CLOCK_HZ * 10);
 
-    irq_register(0, (irq_handler_t)x86_delayIRQ, NULL);
-    irq_reset(true);
+    // irq_register(0, (irq_handler_t)x86_delayIRQ, NULL);
+    // irq_reset(true);
     // bool irq = irq_enable();
     // assert(irq);
 
+
     // Set the Spourious Interrupt Vector Register bit 8 to start receiving interrupts
-    apic[APIC_SVR] |= 0x800; // Enable the APIC
+    // apic[APIC_SVR] |= 0x800; // Enable the APIC
     APIC_ON = true;
-    apic[APIC_LVT3] = (apic[APIC_LVT3] & ~0xff) | (AE_VECTOR & 0xff);
+
+    cpu_apic();
+
+    kprintf(KLOG_MSG, "Blocked, waiting APIC IRQs\n");
+    irq_reset(true);
+    for (;;);
+    // apic[APIC_LVT3] = (apic[APIC_LVT3] & ~0xff) | (AE_VECTOR & 0xff);
 
     // Broadcast INIT IPI to all APs
     apic[APIC_ICR_LOW] = 0x0C4500;
@@ -353,8 +364,10 @@ void cpu_awake()
     if (x86_FEATURES_OSXSAVE(all_cpu)) strcat(tmp, "OSXSAVE, ");
     if (x86_FEATURES_AVX(all_cpu)) strcat(tmp, "AVX, ");
 
+    cpu_apic();
     kprintf(KLOG_MSG, "CPUs features: %s\n", tmp);
 }
+
 
 
 
@@ -367,74 +380,26 @@ void cpu_setup_core_x86()
 
     kprintf(KLOG_MSG, "Wakeup CPU%d: %s.\n", cpu_no(), cpu.vendor);
     // TODO - Prepare structure - Compute TSS
+    cpu_apic();
 }
 
+
+#define CPU_REBOOT 0xFE
 
 void cpu_reboot()
 {
     while ((inb(0x64) & 2) != 0);
-    outb(0x64, 0xFE); /* Reset */
+    outb(0x64, 0xF4); /* Reset */
     for (;;);
+}
+
+void cpu_shutdown()
+{
+    // outw(0xB004, 0x2000);
 }
 
 #include <kernel/task.h>
 
-
-// int cpu_setjump(task_t *task)
-// {
-//     size_t eip, esp, ebp;
-//     asm volatile ("mov %%esp, %0" : "=r" (esp));
-//     asm volatile ("mov %%ebp, %0" : "=r" (ebp));
-//     kprintf(-1, "Task %d.1 EIP:%x ESP:%x - %x\n", task->pid, eip, esp, &task);
-//     eip = get_eip();
-//     asm volatile ("");
-//     /* Invalid EIP means we're restarting */
-//     if (eip == 0) {
-//         kprintf(-1, "Task %d.2 EIP:%x ESP:%x - %x\n", task->pid, eip, esp, &task);
-//         kprintf(-1, "Real task is %d\n", kCPU.running->pid);
-//         // asm volatile ("sti");
-//         return 1;
-//     }
-
-//     /* Save state of task */
-//     kprintf(-1, "Save task %d, EIP:%x, ESP:%x, EBP:%x\n", task->pid, eip, esp, ebp);
-//     task->state.eip = eip;
-//     task->state.esp = esp;
-//     task->state.ebp = ebp;
-
-//     int cpu = cpu_no();
-//     size_t stack = 0x100000 + cpu * 0x1000;
-//     memcpy((size_t*)stack, task->kstack, PAGE_SIZE);
-//     esp = stack | (esp & (PAGE_SIZE - 1));
-//     ebp = stack | (ebp & (PAGE_SIZE - 1));
-//     asm volatile ("mov %0, %%esp" : "=r" (esp));
-//     asm volatile ("mov %0, %%ebp" : "=r" (ebp));
-
-//     // TODO - FPU State
-//     return 0;
-// }
-
-// void cpu_jump(task_t *task)
-// {
-//     /* Restore state of task */
-//     size_t eip = task->state.eip;
-//     size_t esp = task->state.esp;
-//     size_t ebp = task->state.ebp;
-//     // TODO - FPU State
-
-//     kprintf(-1, "Restore task %d, EIP:%x, ESP:%x, EBP:%x\n", task->pid, eip, esp, ebp);
-//     /* Do Jump */
-//     asm volatile (
-//             "cli\n"
-//             "mov %0, %%ebx\n"
-//             "mov %1, %%esp\n"
-//             "mov %2, %%ebp\n"
-//             "xor %%eax, %%eax\n" /* cpu_setjump will return 0 */
-//             "jmp *%%ebx"
-//             : : "r" (eip), "r" (esp), "r" (ebp)
-//             : "%ebx", "%esp", "%eax");
-
-// }
 
 static void _exit() {
     for (;;) task_switch(TS_ZOMBIE, -42);

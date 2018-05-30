@@ -54,7 +54,7 @@ NM := $(CROSS_COMPILE)nm
 
 LINUX := $(shell uname -sr)
 DATE := $(shell date '+%d %b %Y')
-GIT := $(shell git --git-dir=$(topdir)/.git log -n1 --pretty='%h')$(shell if [ -n "$(git --git-dir=$(topdir)/.git status --short -uno)"]; then echo '+'; fi)
+GIT := $(shell git --git-dir=$(topdir)/.git rev-parse --short HEAD)$(shell if [ -n "$(git --git-dir=$(topdir)/.git status -suno)"]; then echo '+'; fi)
 
 # A V O I D   D E P E N D E N C Y -=-=-=-=-=-=-=-=-=-=-=-
 ifeq ($(shell [ -d $(outdir) ] || echo N ),N)

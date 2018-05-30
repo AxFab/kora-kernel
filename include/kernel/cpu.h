@@ -51,6 +51,7 @@ uint64_t cpu_elapsed(uint64_t *last);
 
 struct kCpu {
     task_t *running;
+    unsigned irq_semaphore;
 
     /* Time statistics */
     uint64_t last;  /* Register to compute elpased time. Unit is platform dependant. */

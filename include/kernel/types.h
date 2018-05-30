@@ -47,4 +47,12 @@ typedef struct mspace mspace_t;
 typedef struct event event_t;
 typedef struct acl acl_t;
 
+typedef struct fault fault_t;
+
+struct fault {
+    int raise;
+    const char *name;
+};
+
+
 #endif  /* _KERNEL_TYPES */

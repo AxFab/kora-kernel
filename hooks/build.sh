@@ -1,14 +1,14 @@
 #!/bin/bash
 
 export PATH="$HOME/opt/bin":$PATH
-export CROSS=i686-elf-
 
 require () {
-    apt-get install -y binutils nasm xorriso
+    apt-get install -y binutils gcc nasm xorriso grub qemu gdb
 }
 
 dbg () {
-    kvm # Use serial, gdb localhost:1234, no screen
+    qemu-system-i368 --cdrom KoraOs.iso --serial /dev/stdout --smp 2 | tee ./serial.txt
+    # Add -s -S To pause and connect using GDB
 }
 
 make_util () {
@@ -21,6 +21,8 @@ make_util () {
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 x86 () {
+    export target=x86-pc-none
+    export CROSS=i686-elf-
     export SRC_KRN=.
     export SRC_UTL=../utilities
     export iso_name=KoraOs.iso
@@ -85,5 +87,5 @@ EOF
 
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-export target=x86-pc-linux-gnu
+
 $1

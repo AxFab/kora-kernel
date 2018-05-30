@@ -21,17 +21,17 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 #include <kernel/core.h>
+#include <kernel/cpu.h>
 
 bool irq_enable();
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 bool irq_active = false;
-unsigned irq_sem = 0;
 
 void irq_reset(bool enable)
 {
     irq_active = true;
-    irq_sem = enable ? 1 : 0;
+    kCPU.irq_semaphore = enable ? 1 : 0;
     asm("cli");
     if (enable) {
         irq_enable();
@@ -41,8 +41,8 @@ void irq_reset(bool enable)
 bool irq_enable()
 {
     if (irq_active) {
-        assert(irq_sem > 0);
-        if (--irq_sem == 0) {
+        assert(kCPU.irq_semaphore > 0);
+        if (--kCPU.irq_semaphore == 0) {
             asm("sti");
             return true;
         }
@@ -54,7 +54,7 @@ void irq_disable()
 {
     if (irq_active) {
         asm("cli");
-        ++irq_sem;
+        ++kCPU.irq_semaphore;
     }
 }
 
@@ -62,8 +62,16 @@ void irq_disable()
 #define PIC2_CMD 0xA0
 #define PIC_EOI 0x20
 
+
+#define APIC_EOI  (0xB0 / 4) // EOI Register
+extern volatile uint32_t *apic;
+
 void irq_ack(int no)
 {
+    if (no >= 16) {
+        apic[APIC_EOI] = 1;
+        return;
+    }
     if (no >= 8)
         outb(PIC2_CMD, PIC_EOI);
     outb(PIC1_CMD, PIC_EOI);
