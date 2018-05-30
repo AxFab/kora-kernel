@@ -71,6 +71,7 @@ struct task {
     int prio;
     int retcode;
     // int rp;
+    char *name;
     cpu_state_t state;
     // regs_t *regs/*[8]*/;
     // regs_t *sig_regs;

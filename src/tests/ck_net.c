@@ -43,7 +43,28 @@ char mac1[ETH_ALEN] = { 0x08, 0x04, 0x06, 0x46, 0xef, 0xc3 };
 netdev_t eth2;
 pthread_t thread2;
 char mac2[ETH_ALEN] = { 0x08, 0x07, 0x02, 0x91, 0xa3, 0x6d };
+char ip2[IP4_ALEN] = { 192, 168, 0, 1 };
 
+
+int cnt = 8;
+splock_t net_lock;
+
+int pack = 0;
+void gateway_stub(netdev_t *ifnet, skb_t *skb)
+{
+    switch (pack++) {
+    case 1:
+        assert(strcmp(skb->log, "eth:ipv4:udp:dhcp") == 0);
+        // Ignore first call
+        break;
+    case 2:
+        assert(strcmp(skb->log, "eth:ipv4:udp:dhcp") == 0);
+        dhcp_offer(ifnet);
+        break;
+
+    }
+
+}
 
 void gateway_tasklet(netdev_t *ifnet)
 {
@@ -51,7 +72,9 @@ void gateway_tasklet(netdev_t *ifnet)
 
         skb_t *skb;
         splock_lock(&ifnet->lock);
-        kprintf(-1, "SRV\n");
+        splock_lock(&net_lock);
+        // kprintf(-1, "SRV\n");
+        splock_unlock(&net_lock);
         // while (timeout - time64() > 0) {
         skb = ll_dequeue(&ifnet->queue, skb_t, node);
         if (skb == NULL) {
@@ -60,8 +83,11 @@ void gateway_tasklet(netdev_t *ifnet)
             continue;
             // advent_wait(&ifnet->lock, ..., timeout - time64());
         } else {
-            kprintf(-1, "RECEIVE\n");
+            splock_lock(&net_lock);
+            // kprintf(-1, "RECEIVE\n");
+            splock_unlock(&net_lock);
             int ret = eth_receive(skb);
+            gateway_stub(ifnet, skb);
             if (ret != 0)
                ifnet->rx_errors++;
             kfree(skb);
@@ -85,7 +111,6 @@ void net_start(netdev_t *ifnet)
     }
 }
 
-int cnt = 8;
 void advent_wait()
 {
     sleep(1);
@@ -106,16 +131,14 @@ void kernel_tasklet(void *start, long arg, CSTR name)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-splock_t net_lock;
-
 int sendUT(netdev_t *ifnet, skb_t *skb)
 {
     splock_lock(&net_lock);
-    kprintf(KLOG_DBG, "REQUEST SEND NETWORK %s (%d)\n", skb->log, skb->length);
+    kprintf(KLOG_DBG, "Packet send by eth%d: %s (%d)\n", ifnet->no, skb->log, skb->length);
     kdump(skb->buf, skb->length);
     kprintf(KLOG_DBG, "\n");
-    net_recv(ifnet == &eth1 ? &eth2 : &eth1, skb->buf, skb->length);
     splock_unlock(&net_lock);
+    net_recv(ifnet == &eth1 ? &eth2 : &eth1, skb->buf, skb->length);
     return 0;
 }
 
@@ -143,6 +166,7 @@ int main()
 
     memset(&eth2, 0, sizeof(eth2));
     memcpy(eth2.eth_addr, mac2, ETH_ALEN);
+    memcpy(eth2.ip4_addr, ip2, ETH_ALEN);
     eth2.mtu = 1500;
     eth2.send = sendUT;
     eth2.link = linkUT;

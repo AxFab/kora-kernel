@@ -87,21 +87,57 @@ void kernel_tasklet(void* start, long arg, CSTR name)
 
 extern int no_dbg;
 
+static void ktsk1()
+{
+    for (;;) {
+        advent_wait(NULL, NULL, 1000000);
+        kprintf(-1, "Task1\n");
+    }
+}
+
+static void ktsk2()
+{
+    for (;;) {
+        advent_wait(NULL, NULL, 1000000);
+        kprintf(-1, "Task2\n");
+    }
+}
+
+static void ktsk3()
+{
+    for (;;) {
+        advent_wait(NULL, NULL, 1000000);
+        kprintf(-1, "Task3\n");
+    }
+}
+
+static void kernel_top(long sec)
+{
+    advent_wait(NULL, NULL, 10000);
+    for (;;) {
+        advent_wait(NULL, NULL, sec * 1000000);
+        task_show_all();
+    }
+}
+
 void kernel_start()
 {
-    irq_reset(false);
-    irq_disable();
-    memory_initialize();
-
     kSYS.cpus[0] = &kCPU0;
 
-    //   // TODO -- Use recursive spinlock unstead.
+    irq_reset(false);
+    irq_disable();
+    assert(kCPU.irq_semaphore == 1);
+
+    memory_initialize();
+
+    // Resolve page fault for allocation --
+    //      circular deps between mspace_map and kalloc
     void *p = kalloc(2);
     (void)p;
 
     // tty_syslog = tty_create(NULL, &font_6x10, colors_kora, 0);
 
-    kprintf(KLOG_MSG, "\e[98mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
+    kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
     kprintf (KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
 
 
@@ -111,6 +147,7 @@ void kernel_start()
     cpu_awake();
     irq_reset(false);
     irq_disable();
+    assert(kCPU.irq_semaphore == 1);
 
     time_t now = cpu_time();
     kprintf(KLOG_MSG, "Startup: %s", asctime(gmtime(&now)));
@@ -148,6 +185,10 @@ void kernel_start()
 #endif
     KSETUP(isofs);
 
+    kernel_tasklet(ktsk1, 1, "Dbg_task1");
+    kernel_tasklet(ktsk2, 2, "Dbg_task2");
+    kernel_tasklet(ktsk3, 3, "Dbg_task3");
+    kernel_tasklet(kernel_top, 5, "Dbg top 5s");
     // desktop_t *dekstop = wmgr_desktop();
 
     // tty_attach(tty_syslog, wmgr_window(dekstop, 600, 600), &font_6x9, colors_kora, 0);
@@ -185,7 +226,16 @@ void kernel_start()
 
 void kernel_ready()
 {
-    for (;;);
+    int no = cpu_no();
+    assert(no != 0);
+    kSYS.cpus[no] = (struct kCpu*)kalloc(sizeof(struct kCpu));
+    irq_reset(false);
+    irq_disable();
+    assert(kCPU.irq_semaphore == 1);
+
+    //PIT_set_interval(CLOCK_HZ);
+    // for (;;);
+    irq_reset(false);
 }
 
 void kernel_sweep()

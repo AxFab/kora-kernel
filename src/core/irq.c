@@ -20,13 +20,18 @@
 #include <kernel/core.h>
 #include <kernel/cpu.h>
 #include <kora/llist.h>
+#include <kernel/task.h>
+#include <bits/signum.h>
 #include <assert.h>
 
+#define IRQ_COUNT 32
+
+#define IRQ_MAX 32
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 typedef struct irq_record irq_record_t;
 struct irq_vector {
     llhead_t list;
-} irqv[16];
+} irqv[IRQ_COUNT];
 
 struct irq_record {
     llnode_t node;
@@ -38,7 +43,7 @@ struct irq_record {
 
 void irq_register(int no, irq_handler_t func, void *data)
 {
-    if (no < 0 || no >= 16) {
+    if (no < 0 || no >= IRQ_COUNT) {
         return;
     }
     kprintf(KLOG_IRQ, "Register IRQ%d <%08x(%08x)> \n", no, func, data);
@@ -50,7 +55,7 @@ void irq_register(int no, irq_handler_t func, void *data)
 
 void irq_unregister(int no, irq_handler_t func, void *data)
 {
-    if (no < 0 || no >= 16) {
+    if (no < 0 || no >= IRQ_COUNT) {
         return;
     }
     irq_record_t *record;
@@ -70,11 +75,11 @@ void irq_ack(int no);
 void sys_irq(int no)
 {
     // irq_disable();
-    assert(no >= 0 && no < 16);
+    assert(no >= 0 && no < IRQ_COUNT);
     irq_record_t *record;
     if (irqv[no].list.count_ == 0) {
         irq_ack(no);
-        kprintf(KLOG_IRQ, "Received IRQ%d, no handlers.\n", no);
+        kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d, no handlers.\n", no, cpu_no());
         return;
     }
     for ll_each(&irqv[no].list, record, irq_record_t, node) {
@@ -117,3 +122,71 @@ void sys_irq(int no)
 //     scheduler_ticks();
 // }
 
+void irq_enter(int no)
+{
+    irq_disable();
+    assert(kCPU.irq_semaphore == 1);
+    task_t *task = kCPU.running;
+    // if (task)
+    //     task->elapsed_user = cpu_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_user = cpu_elapsed(&kCPU->elapsed_last);
+
+    assert(no >= 0 && no < IRQ_MAX);
+    irq_record_t *record;
+    if (irqv[no].list.count_ == 0) {
+        kprintf(KLOG_IRQ, "Received IRQ%d, no handlers.\n", no);
+    }
+    for ll_each(&irqv[no].list, record, irq_record_t, node) {
+        record->func(record->data);
+    }
+    irq_ack(no);
+
+    // if (task)
+    //     task->elapsed_others = cpu_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_io = cpu_elapsed(&kCPU->elapsed_last);
+
+    assert(kCPU.irq_semaphore == 1);
+    irq_reset(false);
+}
+
+void irq_fault(const fault_t *fault)
+{
+    assert(fault != NULL);
+    assert(kCPU.irq_semaphore == 0);
+    assert(kCPU.running != NULL);
+    task_t *task = kCPU.running;
+    // task->elapsed_user = cpu_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_user = cpu_elapsed(&kCPU->elapsed_last);
+    kprintf(KLOG_IRQ, "Task.%d raise exception: %s\n", fault->name);
+    if (fault->raise != 0)
+        task_kill(kCPU.running, fault->raise);
+    if (task->status == TS_ABORTED)
+        task_switch(TS_ZOMBIE, -1);
+    // if (task->signals != 0)
+    //     task_signals();
+    // task->elapsed_system = cpu_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_system = cpu_elapsed(&kCPU->elapsed_last);
+    assert(kCPU.irq_semaphore == 0);
+}
+
+void irq_pagefault(size_t vaddr, int reason)
+{
+    irq_disable();
+    assert(kCPU.irq_semaphore == 1);
+    task_t *task = kCPU.running;
+    // if (task)
+    //     task->elapsed_user = cpu_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_user = cpu_elapsed(&kCPU->elapsed_last);
+
+    if (page_fault(/*task ? task->uspace: */NULL, vaddr, reason) != 0) {
+        task_kill(kCPU.running, SIGSEGV);
+        if (task->status == TS_ABORTED)
+            task_switch(TS_ZOMBIE, -1);
+        // if (task->signals != 0)
+        //     task_signals();
+    }
+
+    // if (task)
+    //     task->elapsed_system = cpu_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_system = cpu_elapsed(&kCPU->elapsed_last);
+}

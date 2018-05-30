@@ -52,6 +52,7 @@
 
 /* VMA options */
 #define VMA_LOCKED  0x1000  /* Lock the VMA */
+#define VMA_UNCACHABLE  0x2000  /* Uncachable */
 #define VMA_MAP_FIXED  0x10000  /* Flags used only for mspace_map(), tell to not use the address as an hint. */
 #define VMA_RESOLVE  0x20000  /* Flags used for kmap(), tell to resolve page if possible */
 

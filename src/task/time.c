@@ -64,6 +64,9 @@ void sys_ticks()
         // Update Wall time
         // Compute global load
         splock_unlock(&xtime_lock);
+    } else {
+        kprintf(-1, "CPU.%d Ticks\n", cpu_no());
+        return;
     }
     advent_timeout();
     task_switch(TS_READY, 0);

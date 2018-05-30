@@ -90,6 +90,8 @@ int mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access, 
     if (vaddress >= MMU_KSPACE_LOWER && vaddress < MMU_KSPACE_UPPER) {
         table = MMU_K_DIR;
         flags = access & VMA_WRITE ? MMU_K_RW : MMU_K_RO;
+        if (access & VMA_UNCACHABLE)
+            flags |= 0x10;
     } else if (vaddress >= MMU_USPACE_LOWER &&
                vaddress < MMU_USPACE_UPPER) {
         table = MMU_U_DIR;
@@ -103,7 +105,7 @@ int mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access, 
     }
 
     if (table[dir] == 0) {
-        table[dir] = page_new() | flags | MMU_WRITE;
+        table[dir] = page_new() | (flags & ~0x10) | MMU_WRITE;
         if (table == MMU_K_DIR) {
             MMU_U_DIR[dir] = MMU_K_DIR[dir];
         }
