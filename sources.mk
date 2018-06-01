@@ -17,8 +17,6 @@
 NAME=kora-kernel
 VERSION=0.0-$(GIT)
 
-include $(srcdir)/drivers/drivers.mk
-
 CFLAGS += -Wall -Wextra -Wno-unused-parameter -fno-builtin
 CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
@@ -26,16 +24,17 @@ CFLAGS += -Wno-multichar -Wno-implicit-fallthrough
 CFLAGS += -ggdb3 -I$(topdir)/include -I$(topdir)/include/cc
 
 COV_FLAGS += --coverage -fprofile-arcs -ftest-coverage
+KRN_FLAGS += -DKORA_STDC
 
+include $(srcdir)/drivers/drivers.mk
+include $(srcdir)/arch/$(target_arch)/make.mk
 
-# We define one mode of compiling `std`
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# We define modes of compiling
 std_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/um $(COV_FLAGS)
-krn_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/x86 -DKORA_STDC
-mod_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/x86 -DKORA_STDC -DK_MODULE
+krn_CFLAGS := $(CFLAGS) -I$(topdir)/include/arch/$(target_arch) $(KRN_FLAGS)
 $(eval $(call ccpl,std))
 $(eval $(call ccpl,krn))
-$(eval $(call ccpl,mod))
-
 
 core_src-y += $(wildcard $(srcdir)/core/*.c)
 core_src-y += $(wildcard $(srcdir)/files/*.c)
@@ -144,16 +143,4 @@ ckUtils_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 ckUtils_LIBS += $(shell pkg-config --libs check)
 $(eval $(call link,ckUtils,std))
 DV_UTILS += $(bindir)/ckUtils
-
-
-
-$(outdir)/krn/%.o: $(srcdir)/%.asm
-	$(S) mkdir -p $(dir $@)
-	$(Q) echo "    ASM "$@
-	$(V) nasm -f elf32 -o $@ $^
-
-$(outdir)/std/%.o: $(srcdir)/%.asm
-	$(S) mkdir -p $(dir $@)
-	$(Q) echo "    ASM "$@
-	$(V) nasm -f elf64 -o $@ $^
 

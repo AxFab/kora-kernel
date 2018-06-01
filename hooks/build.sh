@@ -20,6 +20,12 @@ make_util () {
 }
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+raspberry-pi2 () {
+    export target=arm-raspberry2-none
+    export CROSS=arm-none-eabi-
+    
+}
+
 x86 () {
     export target=x86-pc-none
     export CROSS=i686-elf-
