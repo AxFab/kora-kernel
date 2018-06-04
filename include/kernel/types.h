@@ -46,13 +46,31 @@ typedef struct task task_t;
 typedef struct mspace mspace_t;
 typedef struct event event_t;
 typedef struct acl acl_t;
-
+typedef struct regs regs_t;
 typedef struct fault fault_t;
+
+typedef struct task task_t;
+
+typedef int(*irq_handler_t)(void *);
+
+
+typedef struct netdev netdev_t;
+typedef struct skb skb_t;
+typedef struct socket socket_t;
+
 
 struct fault {
     int raise;
     const char *name;
+    const char *mnemonic;
 };
+
+
+typedef struct blk_ops blk_ops_t;
+typedef struct chr_ops chr_ops_t;
+typedef struct fs_ops fs_ops_t;
+typedef struct vds_ops vds_ops_t;
+typedef struct net_ops net_ops_t;
 
 
 #endif  /* _KERNEL_TYPES */

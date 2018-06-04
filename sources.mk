@@ -63,12 +63,13 @@ DV_UTILS += $(bindir)/kSim
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # We create the `kernel` delivery
-kImg_src-y += $(wildcard $(srcdir)/arch/x86/*.asm)
-kImg_src-y += $(wildcard $(srcdir)/arch/x86/*.c)
+kImg_src-y += $(wildcard $(srcdir)/arch/$(target_arch)/*.asm)
+kImg_src-y += $(wildcard $(srcdir)/arch/$(target_arch)/*.c)
 kImg_src-y += $(wildcard $(srcdir)/libc/*.c)
-kImg_src-y += $(wildcard $(srcdir)/scall/*.c)
-kImg_src-y += $(drv_src-y) $(core_src-y)
-kImg_omit-y += $(srcdir)/io/seat.c $(srcdir)/io/termio.c
+# kImg_src-y += $(wildcard $(srcdir)/scall/*.c)
+kImg_src-y += $(core_src-y)
+# kImg_src-y += $(drv_src-y) $(core_src-y)
+# kImg_omit-y += $(srcdir)/io/seat.c $(srcdir)/io/termio.c
 $(eval $(call kimg,kImg,krn))
 DV_UTILS += $(bindir)/kImg
 

@@ -23,25 +23,13 @@
 #include <stdarg.h>
 #include <kora/stddef.h>
 #include <kora/llist.h>
+#include <kora/mcrs.h>
 #include <kernel/mmu.h>
 #include <kernel/types.h>
 #include <kernel/vma.h>
 #include <time.h>
 
 typedef const char* CSTR;
-
-void outb(int port, uint8_t val);
-void outw(int port, uint16_t val);
-void outl(int port, uint32_t val);
-uint8_t inb(int port);
-uint16_t inw(int port);
-uint32_t inl(int port);
-void outsb(int port, const uint8_t *buf, int count);
-void outsw(int port, const uint16_t *buf, int count);
-void outsl(int port, const uint32_t *buf, int count);
-void insb(int port, uint8_t *buf, int count);
-void insw(int port, uint16_t *buf, int count);
-void insl(int port, uint32_t *buf, int count);
 
 void *kalloc(size_t size);
 void kfree(void *ptr);
@@ -115,10 +103,9 @@ enum license {
     MOD_PRIVATE,
 };
 
-#define MODULE(n,l,s,t) \
+#define MODULE(n,s,t) \
     kmod_t kmod_info_##n = { \
         .name = #n, \
-        .license = l, \
         .setup = s, \
         .teardown = t, \
     }
@@ -129,5 +116,55 @@ enum license {
 #define KMODULE(n) extern kmod_t kmod_info_##n
 #define KSETUP(n) kmod_info_##n.setup();
 #define KTEARDOWN(n) kmod_info_##n.teardown();
+
+
+void irq_reset(bool enable);
+/* - */
+bool irq_enable();
+/* - */
+void irq_disable();
+/* - */
+void irq_register(int no, irq_handler_t func, void *data);
+/* - */
+void irq_unregister(int no, irq_handler_t func, void *data);
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+int cpu_no(); // TODO optimization by writing this one as `pure'.
+/* - */
+time_t cpu_time();
+/* - */
+void cpu_awake();
+
+uint64_t cpu_elapsed(uint64_t *last);
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+struct kCpu {
+    task_t *running;
+    unsigned irq_semaphore;
+
+    /* Time statistics */
+    uint64_t last;  /* Register to compute elpased time. Unit is platform dependant. */
+    uint64_t user_elapsed;  /* Time spend into user space code */
+    uint64_t sys_elapsed;  /* Time spend into kernel space code */
+    uint64_t irq_elapsed;  /* Time spend into IRQ handling */
+    uint64_t io_elapsed;  /* Time spend into IO handling part */
+    uint64_t idle_elapsed;  /* Time spend into idle state */
+    uint64_t wait_elapsed;
+
+    int err_no;
+};
+
+struct kSys {
+    struct kCpu *cpus[32];
+};
+
+extern struct kSys kSYS;
+
+#define kCPU (*kSYS.cpus[cpu_no()])
+
+#define CLOCK_HZ  100 // 10ms
+
 
 #endif  /* _KERNEL_CORE_H */

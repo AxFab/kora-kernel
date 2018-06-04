@@ -1,82 +1,83 @@
 #!/bin/bash
+#      This file is part of the KoraOS project.
+#  Copyright (C) 2015  <Fabien Bavent>
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as
+#  published by the Free Software Foundation, either version 3 of the
+#  License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
+SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
 
 export PATH="$HOME/opt/bin":$PATH
+export SRC_KRN=$SCRIPT_HOME
+export SRC_UTL=`readlink -f $SCRIPT_HOME/../utilities`
+export NODEPS=1
 
-require () {
-    apt-get install -y binutils gcc nasm xorriso grub qemu gdb
+# Here is the commands to run for Debian base setup
+setup_deb() {
+    apt-get update
+    apt-get install -y binutils gcc nasm xorriso grub
+    apt-get install -y qemu gdb
 }
 
-dbg () {
-    qemu-system-i368 --cdrom KoraOs.iso --serial /dev/stdout --smp 2 | tee ./serial.txt
-    # Add -s -S To pause and connect using GDB
+# make_util () {
+#     if [ -f $SRC_UTL/src/$1.c ]; then
+#         ${CROSS}gcc -c -o $SRC_UTL/obj/$1.o $SRC_UTL/src/$1.c -nostdlib
+#         ${CROSS}ld -T $SRC_UTL/arch/x86/app.ld $SRC_UTL/obj/crt0.o $SRC_UTL/obj/$1.o -o $SRC_UTL/bin/$1
+#         cp $SRC_UTL/bin/$1 iso/bin/$1
+#     fi
+# }
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+run_x86 () {
+    x86
+    qemu-system-i368 --cdrom KoraOs.iso --serial stdio --smp 2
 }
 
-make_util () {
-    if [ -f $SRC_UTL/src/$1.c ]; then
-        ${CROSS}gcc -c -o $SRC_UTL/obj/$1.o $SRC_UTL/src/$1.c -nostdlib
-        ${CROSS}ld -T $SRC_UTL/arch/x86/app.ld $SRC_UTL/obj/crt0.o $SRC_UTL/obj/$1.o -o $SRC_UTL/bin/$1
-        cp $SRC_UTL/bin/$1 iso/bin/$1
-    fi
+run_raspberry-pi2 () {
+    raspberry-pi2
+    qemu-system-arm -m 256 -M raspi2 -serial stdio -kernel ./bin/kImg
 }
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 raspberry-pi2 () {
     export target=arm-raspberry2-none
     export CROSS=arm-none-eabi-
-    
+
+    make -f $SRC_KRN/Makefile kImg
 }
 
 x86 () {
-    export target=x86-pc-none
+    export target=i386-pc-none
     export CROSS=i686-elf-
-    export SRC_KRN=.
-    export SRC_UTL=../utilities
     export iso_name=KoraOs.iso
-    # export target=x86-pc-smkos
-    # export VERBOSE=1
-    export NODEPS=1
 
-    # make -f ../skc/Makefile
-    # make -f ../skc/Makefile crt0
-    # make -f ../Makefile
     make -f $SRC_KRN/Makefile kImg
 
     rm -rf iso
-
-    # Import kernel and shell commands
-    mkdir -p iso/{bin,boot,lib}
-    cp $SRC_KRN/bin/kImg iso/boot/kImg
-    # cp iso/kImg.map iso/boot/kImg.map
-    # cp ../lib/* iso/lib/*
-
-    if [ -f $SRC_UTL/arch/x86/crt0.asm ]; then
-        mkdir -p $SRC_UTL/{obj,bin,lib}
-        nasm -f elf32 -o $SRC_UTL/obj/crt0.o $SRC_UTL/arch/x86/crt0.asm
-        make_util init
-    fi
-    size iso/bin/*
-
-    cp -r $SRC_UTL/data iso/data
-
-    # Import apps
+    mkdir -p iso/{etc,bin,boot,lib}
     mkdir -p iso/usr/{bin,include,lib,man}
+    # mkdir -p iso/{dev,mnt,proc,sys,tmp}
 
-    # Empty dirs for mount point
-    mkdir -p iso/{dev,mnt,proc,sys,tmp}
+    # Import files
+    cp $SRC_KRN/bin/kImg iso/boot/kImg
+    # cp ../lib/* iso/lib/*
+    # cp ../bin/* iso/bin/*
+    # size iso/bin/*
 
-    # Create config
-    mkdir -p iso/etc
-    cat > iso/etc/mtab << EOF
-sysfs /sys sysfs rw,nosuid,nodev,noexec
-procfs /proc procfs rw,nosuid,nodev,noexec
-devfs /dev devfs rw,nosuid,noexec
-tmpfs /tmp tmpfs rw,nosuid
-/dev/sda / gpt rw
-/dev/sda1 /mnt/hdd1  rw
-/dev/sdc /mnt/cdrom ro
-EOF
-
-  # Create grub config
+    # Create grub config
     mkdir -p iso/boot/grub
     cat >  iso/boot/grub/grub.cfg << EOF
 set default="0"

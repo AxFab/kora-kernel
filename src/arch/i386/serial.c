@@ -19,6 +19,8 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
+#include <kernel/device.h>
+#include <errno.h>
 
 
 #define PORT_COM1 0x3f8   /* COM1 */
@@ -59,7 +61,7 @@ static void com_init(int port)
 
 static int com_read(int port, inode_t *ino)
 {
-	char byte;
+    char byte;
     if ((inb(port + 5) & 1) != 0) {
         while ((inb(port + 5) & 1) != 0) {
             byte = inb(port);
@@ -81,17 +83,17 @@ void com_early_init()
 }
 
 
-void com_irq(int no)
+void com_irq(int o)
 {
-	com_read(serial_ports[o], serial_inos[o]);
+    com_read(serial_ports[o], serial_inos[o]);
     com_read(serial_ports[o + 2], serial_inos[o + 2]);
 }
 
 int com_write(inode_t *ino, char *buf, int len)
 {
-	int port = serial_ports[ino->no];
-	for (; len-- > 0; buf++) {
-		// Wait transmition is clear
+    int port = serial_ports[ino->no];
+    for (; len-- > 0; buf++) {
+        // Wait transmition is clear
         while ((inb(port + 5) & 0x20) == 0);
         outb(port, *buf);
     }
@@ -101,15 +103,16 @@ int com_write(inode_t *ino, char *buf, int len)
 
 int com_ioctl(inode_t *ino)
 {
-	errno = ENOSYS;
-	return -1;
+    errno = ENOSYS;
+    return -1;
 }
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-chardev_opt com_ops = {
-	.write = (fs_write)com_write;
+chr_ops_t com_ops = {
+    .write = (chr_write)com_write,
+    .ioctl = (dev_ioctl)com_ioctl,
 };
 
 void com_setup()
@@ -117,23 +120,24 @@ void com_setup()
     int i;
     char name[8];
     for (i = 0; i < 4; ++i) {
-    	snprintf(name, 8, "com%d", i);
+        snprintf(name, 8, "com%d", i + 1);
         inode_t *ino = vfs_inode(i, S_IFCHR | 0700, NULL, 0);
         serial_inos[i] = ino;
-        vfs_mkdev(ino, name, NULL, "Serial bus", com_ops);
+        vfs_mkdev(ino, name, NULL, "Serial bus", NULL, &com_ops);
     }
-	irq_register(3, (irq_handler_t)com_irq, (void*)1);
+    irq_register(3, (irq_handler_t)com_irq, (void*)1);
     irq_register(4, (irq_handler_t)com_irq, (void*)0);
 }
 
 void com_teardown()
 {
-	irq_unregister(3, (irq_handler_t)com_irq);
-    irq_unregister(4, (irq_handler_t)com_irq);
+    int i;
+    irq_unregister(3, (irq_handler_t)com_irq, (void*)1);
+    irq_unregister(4, (irq_handler_t)com_irq, (void*)0);
     for (i = 0; i < 4; ++i) {
-    	vfs_close(serial_inos[i]);
+        vfs_close(serial_inos[i]);
     }
 }
 
-MODULE("serial", com_setup, com_teardown);
+MODULE(serial, com_setup, com_teardown);
 

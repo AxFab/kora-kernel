@@ -17,40 +17,24 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _SRC_VFS_H
-#define _SRC_VFS_H 1
+#ifndef _SRC_APIC_H
+#define _SRC_APIC_H 1
 
-#include <kernel/device.h>
-#include <kora/llist.h>
-#include <kora/rwlock.h>
+#include <kernel/core.h>
 
-typedef struct dirent dirent_t;
+#define APIC_ID  (0x20 / 4) // Local APIC ID
+#define APIC_VERS  (0x30 / 4) // Local APIC Version
+#define APIC_TPR  (0x80 / 4) // Task Priority Register
+#define APIC_APR  (0x90 / 4) // Arbitration Priority Register
+#define APIC_PPR  (0xA0 / 4) // Processor Priority Register
+#define APIC_EOI  (0xB0 / 4) // EOI Register
+#define APIC_RRD  (0xC0 / 4) // Remote Read Register
+#define APIC_LDR  (0xD0 / 4) // Logical Destination Register
+#define APIC_DFR  (0xE0 / 4) // Destination Format Register
+#define APIC_SVR  (0xF0 / 4) // Spurious Interrupt Vector Register
 
-struct dirent {
-    inode_t *parent;
-    inode_t *ino;
-    llnode_t node;
-    llnode_t lru;
-    rwlock_t lock;
-    int lg;
-    char key[256 + 4];
-};
+#define APIC_ESR  (0x280 / 4) // Error Status Register
 
+extern volatile uint32_t *apic_mmio;
 
-dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block);
-void vfs_set_dirent_(dirent_t *ent, inode_t *ino);
-void vfs_rm_dirent_(dirent_t *ent);
-void vfs_dev_destroy(inode_t *ino);
-
-
-void vfs_record_(inode_t *dir, inode_t *ino);
-
-dirent_t *vfs_lookup_(inode_t *dir, CSTR name);
-inode_t *vfs_search_(inode_t *top, CSTR path, acl_t *acl, int *links);
-
-void vfs_mountpt_rcu_(mountfs_t *fs);
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-#endif  /* _SRC_VFS_H */
+#endif  /* _SRC_APIC_H */
