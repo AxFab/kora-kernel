@@ -17,7 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/drivers.h>
+#include <kernel/device.h>
 #include <string.h>
 #include <errno.h>
 

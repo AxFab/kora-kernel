@@ -17,6 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <kernel/core.h>
+#include <kernel/device.h>
 #include <assert.h>
 #include <errno.h>
 #include "vfs.h"

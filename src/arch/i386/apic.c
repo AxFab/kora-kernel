@@ -17,40 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _SRC_VFS_H
-#define _SRC_VFS_H 1
+#include <kernel/core.h>
+#include <kernel/cpu.h>
 
-#include <kernel/device.h>
-#include <kora/llist.h>
-#include <kora/rwlock.h>
+volatile uint32_t *apic_mmio = NULL;
 
-typedef struct dirent dirent_t;
-
-struct dirent {
-    inode_t *parent;
-    inode_t *ino;
-    llnode_t node;
-    llnode_t lru;
-    rwlock_t lock;
-    int lg;
-    char key[256 + 4];
-};
-
-
-dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block);
-void vfs_set_dirent_(dirent_t *ent, inode_t *ino);
-void vfs_rm_dirent_(dirent_t *ent);
-void vfs_dev_destroy(inode_t *ino);
-
-
-void vfs_record_(inode_t *dir, inode_t *ino);
-
-dirent_t *vfs_lookup_(inode_t *dir, CSTR name);
-inode_t *vfs_search_(inode_t *top, CSTR path, acl_t *acl, int *links);
-
-void vfs_mountpt_rcu_(mountfs_t *fs);
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-#endif  /* _SRC_VFS_H */

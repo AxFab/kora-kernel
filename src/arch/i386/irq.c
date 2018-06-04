@@ -19,14 +19,48 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
+#include <errno.h>
+#include <bits/signum.h>
+#include "apic.h"
+#include "pic.h"
 
+fault_t x86_exceptions[] = {
+    { .name = "Divide by zero", .mnemonic = "#DE", .raise = SIGFPE }, // 0 - FAULT
+    { .name = "Debug", .mnemonic = "#DB", .raise = SIGTRAP }, // 1 - FAULT / TRAP
+    { .name = "Non-maskable Interrupt", .mnemonic = NULL, .raise = SIGFPE }, // 2 - Interrupt
+    { .name = "Breakpoint", .mnemonic = "#BP", .raise = SIGTRAP }, // 3 - TRAP
+    { .name = "Overflow", .mnemonic = "#OF", .raise = SIGTRAP }, // 4 - TRAP
+    { .name = "Bound Range Exceeded", .mnemonic = "#BR", .raise = SIGABRT }, // 5 - FAULT
+    { .name = "Invalid Opcode", .mnemonic = "#UD", .raise = SIGKILL }, // 6 - FAULT
+    { .name = "Device Not Available", .mnemonic = "#NM", .raise = SIGKILL }, // 7 - FAULT
+    { .name = "Double Fault", .mnemonic = "#DF", .raise = SIGKILL }, // 8 - ABORT, ERR_CODE
+    { .name = "Coprocessor Segment Overrun", .mnemonic = NULL, .raise = SIGABRT }, // 9 - FAULT
+    { .name = "Invalid TSS", .mnemonic = "#TS", .raise = SIGSEGV }, // 10 - FAULT, ERR_CODE
+    { .name = "Segment Not Present", .mnemonic = "#NP", .raise = SIGSEGV }, // 11 - FAULT, ERR_CODE
+    { .name = "Stack-Segment Fault", .mnemonic = "#SS", .raise = SIGSEGV }, // 12 - FAULT, ERR_CODE
+    { .name = "General Protection Fault", .mnemonic = "#GP", .raise = SIGSEGV }, // 13 - FAULT, ERR_CODE
+    { .name = "Page Fault", .mnemonic = "#PF", .raise = SIGSEGV }, // 14 - FAULT, ERR_CODE
+    { .name = "Reserved", .raise = SIGKILL }, // 15 -
+    { .name = "x87 Floating-Point Exception", .mnemonic = "#MF", .raise = SIGFPE }, // 16 - FAULT
+    { .name = "Alignment Check", .mnemonic = "#AC", .raise = SIGABRT }, // 17 - FAULT, ERR_CODE
+    { .name = "Machine Check", .mnemonic = "#MC", .raise = SIGABRT }, // 18 - ABORT
+    { .name = "SIMD Floating-Point Exception", .mnemonic = "#XF", .raise = SIGFPE }, // 19 - FAULT
+    { .name = "Virtualization Exception", .mnemonic = "#VE", .raise = SIGABRT }, // 20 - FAULT
+    { .name = "Security Exception", .mnemonic = "#SX", .raise = SIGFPE }, // 30 - FAULT, ERR_CODE
+    { .name = "Reserved", .raise = SIGKILL }, // 31 -
+    { .name = "Unknown", .raise = SIGKILL }, // 32 -
 
+    /* When the exception is a fault, the saved instruction pointer points to
+     * the instruction which caused the exception. When the exception is a trap,
+     * the saved instruction pointer points to the instruction after the
+     * instruction which caused the exception. */
+};
 
 /* Acknowledge the processor than a IRQ have been handled */
 void irq_ack(int no)
 {
     if (no >= 16) {
-        apic[APIC_EIO] = 0;
+        apic_mmio[APIC_EOI] = 0;
         return;
     }
     if (no >= 8)
@@ -74,16 +108,16 @@ void irq_fault_x86(int no, int code, regs_t *regs)
 {
     char buf[64];
     fault_t fault = x86_exceptions[MIN(0x20, (unsigned)no)];
-    snprint(buf, 64, fault->name, code);
-    fault->name = buf;
+    snprint(buf, 64, fault.name, code);
+    fault.name = buf;
     irq_fault(&fault);
 }
 
 void irq_pgflt_x86(size_t vaddr, int code, regs_t *regs)
 {
     int flags = 0;
-    if (code & 1)
-        flags |= PFLT_PRESENT;
+    // if (code & 1)
+    //     flags |= PFLT_PRESENT;
     irq_pagefault(vaddr, flags);
 }
 
@@ -93,3 +127,4 @@ void irq_syscall_x86(regs_t *regs)
     regs->eax = ret;
     regs->edx = errno;
 }
+

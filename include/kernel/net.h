@@ -24,10 +24,6 @@
 #include <kora/llist.h>
 #include <kora/splock.h>
 
-typedef struct netdev netdev_t;
-typedef struct skb skb_t;
-typedef struct socket socket_t;
-
 #define NET_LOG_SIZE 32
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

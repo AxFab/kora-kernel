@@ -1,4 +1,3 @@
-#!/bin/bash
 #      This file is part of the KoraOS project.
 #  Copyright (C) 2015  <Fabien Bavent>
 #
@@ -16,19 +15,11 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
-SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
 
-SRCDIR='.'
 
-LICENSE=`head $SCRIPT_DIR/license.h -n 18`
-for src in `find $SRCDIR -type f -a -name '*.c' -o -name '*.h'`
-do
-    SRC_HEAD=`head $src -n 18`
-    if [ "$LICENSE" != "$SRC_HEAD" ]
-    then
-        echo "Missing license: $src"
-    # else
-    #     echo "License OK: $src"
-    fi
-done
+$(outdir)/std/%.o: $(srcdir)/%.asm
+$(outdir)/krn/%.o: $(srcdir)/%.asm
+	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    ASM "$@
+	$(V) nasm -f elf32 -o $@ $^
+

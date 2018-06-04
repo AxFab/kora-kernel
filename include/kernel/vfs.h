@@ -89,9 +89,15 @@ struct inode {
 
     atomic_uint rcu;
     atomic_uint links;
-    void *object;
+    union {
+        void *object;
+    };
     llhead_t dlist; // List of dirent_t;
-    mountfs_t *fs;
+    union {
+        blk_ops_t *blk;
+        chr_ops_t *chr;
+        fs_ops_t *fs;
+    };
     device_t *dev;
 };
 

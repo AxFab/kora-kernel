@@ -17,40 +17,17 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _SRC_VFS_H
-#define _SRC_VFS_H 1
+#ifndef _SRC_PIC_H
+#define _SRC_PIC_H 1
 
-#include <kernel/device.h>
-#include <kora/llist.h>
-#include <kora/rwlock.h>
+#include <kernel/core.h>
+#include <kernel/cpu.h>
 
-typedef struct dirent dirent_t;
+#define PIC1_CMD 0x20
+#define PIC1_DATA 0x21
+#define PIC2_CMD 0xA0
+#define PIC2_DATA 0xA1
 
-struct dirent {
-    inode_t *parent;
-    inode_t *ino;
-    llnode_t node;
-    llnode_t lru;
-    rwlock_t lock;
-    int lg;
-    char key[256 + 4];
-};
+#define PIC_EOI 0x20
 
-
-dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block);
-void vfs_set_dirent_(dirent_t *ent, inode_t *ino);
-void vfs_rm_dirent_(dirent_t *ent);
-void vfs_dev_destroy(inode_t *ino);
-
-
-void vfs_record_(inode_t *dir, inode_t *ino);
-
-dirent_t *vfs_lookup_(inode_t *dir, CSTR name);
-inode_t *vfs_search_(inode_t *top, CSTR path, acl_t *acl, int *links);
-
-void vfs_mountpt_rcu_(mountfs_t *fs);
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-#endif  /* _SRC_VFS_H */
+#endif /* _SRC_PIC_H */

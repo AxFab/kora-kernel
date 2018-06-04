@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
-#include <kernel/drivers.h>
+#include <kernel/device.h>
 #include <kernel/task.h>
 #include <kora/rwlock.h>
 #include <errno.h>

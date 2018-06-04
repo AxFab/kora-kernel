@@ -36,9 +36,18 @@ typedef void *(*fs_opendir)(inode_t *ino);
 typedef inode_t *(*fs_readdir)(inode_t *ino, char *name, void *ctx);
 typedef int (*fs_closedir)(inode_t *ino, void *ctx);
 
-typedef int (*fs_read)(inode_t *ino, void *buf, size_t len, off_t off);
-typedef int (*fs_write)(inode_t *ino, const void *buf, size_t len, off_t off);
-typedef int (*fs_ioctl)(inode_t *ino, int cmd, void* params);
+typedef int (*blk_read)(inode_t *ino, void *buf, size_t len, off_t off);
+typedef int (*blk_write)(inode_t *ino, const void *buf, size_t len, off_t off);
+typedef int (*chr_write)(inode_t *ino, const void *buf, size_t len);
+
+typedef int (*dev_rmdev)(inode_t *ino, void *ops);
+typedef int (*dev_ioctl)(inode_t *ino, int cmd, void* params);
+
+typedef int (*net_send)(netdev_t *ifnet, skb_t*skb);
+typedef int (*net_link)(netdev_t *ifnet);
+
+typedef int (*vds_flip)(inode_t *ino);
+typedef int (*vds_resize)(inode_t *ino, int *width, int *height);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -54,8 +63,6 @@ typedef int (*fs_ioctl)(inode_t *ino, int cmd, void* params);
 //     terminal_t *term;
 // };
 
-
-
 struct device
 {
     bool read_only;
@@ -63,11 +70,6 @@ struct device
     int block;
     splock_t lock;
     char *name;
-
-    fs_read read;
-    fs_write write;
-    fs_ioctl ioctl;
-    fs_release_dev release;
 
     CSTR vendor;
     CSTR class;
@@ -77,16 +79,30 @@ struct device
     llnode_t node;
 };
 
-struct mountfs
-{
-    bool read_only;
-    bool is_detached;
-    int block;
-    splock_t lock;
-    char *name;
+// File types and associated devices
+// CHR | FIFO -- object is pipe_t | DEPS NOTHING
+// BLK | REG -- object is block_t | DEPS VOL
+// VOL | DIR -- object is !? | DEPS VOL
+// NET | SOCK -- object is !? | DEPS NET
+// VDS | SRF -- object is surface_t | DESPS DEKSTOP
+//   LNK -- object is `char*`
 
-    fs_read read;
-    fs_write write;
+struct blk_ops {
+    blk_read read;
+    blk_write write;
+
+    dev_ioctl ioctl;
+    dev_rmdev rmdev;
+};
+
+struct chr_ops {
+    chr_write write;
+
+    dev_ioctl ioctl;
+    dev_rmdev rmdev;
+};
+
+struct fs_ops {
 
     int atimes; /* Sepcify the behaviour of atimes handling */
     HMP_map hmap;
@@ -95,6 +111,7 @@ struct mountfs
     inode_t *root;
     llhead_t lru;
 
+
     fs_open open;
     fs_lookup lookup;
     fs_umount umount;
@@ -102,7 +119,56 @@ struct mountfs
     fs_opendir opendir;
     fs_readdir readdir;
     fs_closedir closedir;
+
+    dev_ioctl ioctl;
+    dev_rmdev rmdev;
 };
+
+struct net_ops {
+    llhead_t queue;
+
+    net_send send;
+    net_link link;
+
+    dev_ioctl ioctl;
+    dev_rmdev rmdev;
+};
+
+struct vds_ops {
+    vds_flip flip;
+    vds_resize resize;
+
+    dev_ioctl ioctl;
+    dev_rmdev rmdev;
+};
+
+
+// struct mountfs
+// {
+//     bool read_only;
+//     bool is_detached;
+//     int block;
+//     splock_t lock;
+//     char *name;
+
+//     fs_read read;
+//     fs_write write;
+
+//     int atimes; /* Sepcify the behaviour of atimes handling */
+//     HMP_map hmap;
+//     char *fsname;
+//     atomic_uint rcu;
+//     inode_t *root;
+//     llhead_t lru;
+
+//     fs_open open;
+//     fs_lookup lookup;
+//     fs_umount umount;
+
+//     fs_opendir opendir;
+//     fs_readdir readdir;
+//     fs_closedir closedir;
+// };
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -111,7 +177,9 @@ struct mountfs
 inode_t *vfs_inode(int no, int mode, acl_t *acl, size_t size);
 
 
-int vfs_mkdev(CSTR name, device_t *dev, inode_t *ino);
+int vfs_mkdev(CSTR name, inode_t *ino, CSTR vendor, CSTR class, CSTR devnm, void *ops);
+
+// int vfs_mkdev(CSTR name, device_t *dev, inode_t *ino);
 void vfs_rmdev(CSTR name);
 
 

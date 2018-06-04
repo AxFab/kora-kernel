@@ -19,7 +19,7 @@
  */
 #include <time.h>
 #include <kernel/core.h>
-#include <kernel/drivers.h>
+#include <kernel/device.h>
 #include <kernel/memory.h>
 #include <kernel/files.h>
 // #include <kernel/input.h>

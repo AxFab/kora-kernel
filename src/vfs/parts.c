@@ -17,7 +17,9 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/drivers.h>
+#if 0
+#include <kernel/core.h>
+#include <kernel/device.h>
 #include <string.h>
 #include <errno.h>
 
@@ -148,3 +150,4 @@ void FATFS_setup() {}
 void FATFS_teardown() {}
 
 
+#endif
