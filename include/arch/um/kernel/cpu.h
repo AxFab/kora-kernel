@@ -17,52 +17,17 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <assert.h>
-#include <stdbool.h>
-#include <bits/cdefs.h>
-#include <kora/atomic.h>
+#ifndef _KERNEL_CPU_H
+#define _KERNEL_CPU_H 1
 
-bool irq_enable();
+#include <kernel/types.h>
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-bool irq_active = false;
-
-bool irq_last = false;
-
-
-void irq_reset(bool enable)
+struct regs
 {
-    irq_active = true;
-    kCPU.irq_semaphore = enable ? 1 : 0;
-    irq_last = false;
-    if (enable) {
-        irq_enable();
-    }
-}
+    size_t ax;
+    size_t er;
+    size_t sp;
+};
 
-bool irq_enable()
-{
-    if (irq_active) {
-        assert(kCPU.irq_semaphore > 0);
-        if (--kCPU.irq_semaphore == 0) {
-            irq_last = true;
-            return true;
-        }
-    }
-    return false;
-}
 
-void irq_disable()
-{
-    if (irq_active) {
-        irq_last = false;
-        ++kCPU.irq_semaphore;
-    }
-}
-
-void irq_ack(int no)
-{
-}
-
+#endif /* _KERNEL_CPU_H */

@@ -22,7 +22,7 @@
 
 #include <kernel/core.h>
 #include <kernel/input.h>
-#include <kernel/drivers.h>
+#include <kernel/device.h>
 #include <kernel/cpu.h>
 
 extern inode_t *mouse_ino;

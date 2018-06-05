@@ -19,7 +19,7 @@
  *
  *      Fake driver which simulate IDE ATA using regular files.
  */
-#include <kernel/drivers.h>
+#include <kernel/device.h>
 #include <kora/mcrs.h>
 #include <kora/splock.h>
 #include <string.h>

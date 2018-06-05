@@ -47,7 +47,7 @@ run_x86 () {
 
 run_raspberry-pi2 () {
     raspberry-pi2
-    qemu-system-arm -m 256 -M raspi2 -serial stdio -kernel ./bin/kImg
+    qemu-system-arm -m 256 -M raspi2 -serial stdio -kernel ./bin/kImage
 }
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -56,7 +56,7 @@ raspberry-pi2 () {
     export target=arm-raspberry2-none
     export CROSS=arm-none-eabi-
 
-    make -f $SRC_KRN/Makefile kImg
+    make -f $SRC_KRN/Makefile kImage
 }
 
 x86 () {
@@ -64,7 +64,7 @@ x86 () {
     export CROSS=i686-elf-
     export iso_name=KoraOs.iso
 
-    make -f $SRC_KRN/Makefile kImg
+    make -f $SRC_KRN/Makefile kImage
 
     rm -rf iso
     mkdir -p iso/{etc,bin,boot,lib}
@@ -72,7 +72,7 @@ x86 () {
     # mkdir -p iso/{dev,mnt,proc,sys,tmp}
 
     # Import files
-    cp $SRC_KRN/bin/kImg iso/boot/kImg
+    cp $SRC_KRN/bin/kImage iso/boot/kImage
     # cp ../lib/* iso/lib/*
     # cp ../bin/* iso/bin/*
     # size iso/bin/*
@@ -84,7 +84,7 @@ set default="0"
 set timeout="0"
 
 menuentry "Kora x86" {
-  multiboot /boot/kImg
+  multiboot /boot/kImage
 }
 EOF
 

@@ -48,9 +48,12 @@ void vfs_close(inode_t *ino)
         kfree(ino);
 }
 
-page_t block_page()
+/* Find the page mapping the content of a block inode */
+page_t ioblk_page(inode_t *ino, off_t off)
 {
-    return 0x4000;
+    (void)ino;
+    assert(IS_ALIGNED(off, PAGE_SIZE));
+    return 0x4000 + off;
 }
 
 int vfs_readlink(inode_t *ino, char *buf, int len, int flags)

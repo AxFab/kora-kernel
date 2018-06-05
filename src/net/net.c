@@ -57,9 +57,9 @@ int net_send(skb_t *skb)
         return net_trash(skb);
     skb->ifnet->tx_packets++;
     skb->ifnet->tx_bytes += skb->length;
-    splock_lock(&skb->ifnet->lock);
+    // splock_lock(&skb->ifnet->lock);
     int ret = skb->ifnet->send(skb->ifnet, skb);
-    splock_unlock(&skb->ifnet->lock);
+    // splock_unlock(&skb->ifnet->lock);
     if (ret != 0)
         skb->ifnet->tx_errors++;
     kfree(skb);

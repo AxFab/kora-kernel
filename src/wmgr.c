@@ -154,9 +154,9 @@ void export_bmp(const char* name, surface_t *win)
 
 static void *memcpy32(void *dest, void *src, size_t lg)
 {
-	assert(IS_ALIGN(lg, 4));
-	assert(IS_ALIGN(dest, 4));
-	assert(IS_ALIGN(src, 4));
+	assert(IS_ALIGNED(lg, 4));
+	assert(IS_ALIGNED(dest, 4));
+	assert(IS_ALIGNED(src, 4));
 	register uint32_t *a = (uint32_t*)src;
 	register uint32_t *b = (uint32_t*)dest;
 	while (lg > 16) {
@@ -179,8 +179,8 @@ static void *memcpy32(void *dest, void *src, size_t lg)
 
 static void *memset32(void *dest, uint32_t val, size_t lg)
 {
-	assert(IS_ALIGN(lg, 4));
-	assert(IS_ALIGN(dest, 4));
+	assert(IS_ALIGNED(lg, 4));
+	assert(IS_ALIGNED(dest, 4));
 	register uint32_t *a = (uint32_t*)dest;
 	while (lg > 16) {
 		a[0] = val;

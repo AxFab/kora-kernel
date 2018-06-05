@@ -17,7 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/drivers.h>
+#include <kernel/device.h>
 
 KMODULE(imgdk);
 KMODULE(isofs);

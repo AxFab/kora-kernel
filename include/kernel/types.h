@@ -39,24 +39,38 @@ typedef int pid_t;
 typedef __time64_t time64_t;
 time64_t time64();
 
-
-typedef struct inode inode_t;
-typedef struct user user_t;
+// Tasks
 typedef struct task task_t;
-typedef struct mspace mspace_t;
 typedef struct event event_t;
-typedef struct acl acl_t;
-typedef struct regs regs_t;
-typedef struct fault fault_t;
 
-typedef struct task task_t;
+// Memory
+typedef struct mspace mspace_t;
 
-typedef int(*irq_handler_t)(void *);
+// Files
+typedef struct inode inode_t;
+typedef struct device device_t;
+typedef struct fsvolume fsvolume_t;
+typedef struct blkdev blkdev_t;
+typedef struct chardev chardev_t;
 
-
+// Network
 typedef struct netdev netdev_t;
 typedef struct skb skb_t;
 typedef struct socket socket_t;
+
+
+// Users
+typedef struct user user_t;
+typedef struct acl acl_t;
+
+// System
+typedef struct regs regs_t;
+typedef struct fault fault_t;
+
+
+
+typedef int(*irq_handler_t)(void *);
+
 
 
 struct fault {

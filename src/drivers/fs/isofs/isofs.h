@@ -20,7 +20,7 @@
 #ifndef _SRC_ISOFS_H
 #define _SRC_ISOFS_H 1
 
-#include <kernel/drivers.h>
+#include <kernel/device.h>
 #include <string.h>
 #include <errno.h>
 

@@ -8,6 +8,7 @@
 [Oo]bj/
 [Cc]ov_*/
 [Ii]so/
+[Oo]pt/
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # We use a WHITE-LIST for files
@@ -15,6 +16,7 @@
 # Repository files
 !.git*
 !*.md
+!*.yml
 
 # Building files
 !Makefile

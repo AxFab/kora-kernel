@@ -27,7 +27,10 @@
 
 typedef inode_t *(*fs_mount)(inode_t *dev);
 typedef int (*fs_umount)(inode_t *ino);
-typedef void (*fs_release_dev)(device_t *dev);
+// typedef void (*fs_release_dev)(device_t *dev);
+
+typedef int (*fs_read)(inode_t *ino, void *buf, size_t len, off_t off);
+typedef int (*fs_write)(inode_t *ino, const void *buf, size_t len, off_t off);
 
 typedef inode_t *(*fs_open)(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
 typedef inode_t *(*fs_lookup)(inode_t *dir, CSTR name);
@@ -67,13 +70,9 @@ struct device
 {
     bool read_only;
     bool is_detached;
-    int block;
     splock_t lock;
     char *name;
-
-    CSTR vendor;
-    CSTR class;
-    CSTR dname;
+    char *vendor;
     uint8_t id[16];
     inode_t *ino;
     llnode_t node;
@@ -87,7 +86,13 @@ struct device
 // VDS | SRF -- object is surface_t | DESPS DEKSTOP
 //   LNK -- object is `char*`
 
-struct blk_ops {
+struct blkdev {
+    device_t dev;
+
+    int block;
+    char *class;
+    char *dname;
+
     blk_read read;
     blk_write write;
 
@@ -95,22 +100,31 @@ struct blk_ops {
     dev_rmdev rmdev;
 };
 
-struct chr_ops {
+struct chardev {
+    device_t dev;
+
+    char *class;
+    char *dname;
+
     chr_write write;
 
     dev_ioctl ioctl;
     dev_rmdev rmdev;
 };
 
-struct fs_ops {
+struct fsvolume {
+
+    device_t dev;
+    char *fsname;
+    uint8_t id[16];
 
     int atimes; /* Sepcify the behaviour of atimes handling */
     HMP_map hmap;
-    char *fsname;
     atomic_uint rcu;
-    inode_t *root;
     llhead_t lru;
 
+    fs_read read;
+    fs_write write;
 
     fs_open open;
     fs_lookup lookup;
@@ -123,7 +137,7 @@ struct fs_ops {
     dev_ioctl ioctl;
     dev_rmdev rmdev;
 };
-
+/*
 struct net_ops {
     llhead_t queue;
 
@@ -132,9 +146,11 @@ struct net_ops {
 
     dev_ioctl ioctl;
     dev_rmdev rmdev;
-};
+};*/
 
 struct vds_ops {
+    device_t dev;
+
     vds_flip flip;
     vds_resize resize;
 
@@ -177,15 +193,14 @@ struct vds_ops {
 inode_t *vfs_inode(int no, int mode, acl_t *acl, size_t size);
 
 
-int vfs_mkdev(CSTR name, inode_t *ino, CSTR vendor, CSTR class, CSTR devnm, void *ops);
+// int vfs_mkdev(CSTR name, inode_t *ino, CSTR vendor, CSTR class, CSTR devnm, void *ops);
 
-// int vfs_mkdev(CSTR name, device_t *dev, inode_t *ino);
+int vfs_mkdev(CSTR name, device_t *dev, inode_t *ino);
 void vfs_rmdev(CSTR name);
-
 
 void register_fs(CSTR, fs_mount mount);
 void unregister_fs(CSTR name);
-int vfs_mountpt(CSTR name, CSTR fsname, mountfs_t *fs, inode_t *ino);
+int vfs_mountpt(CSTR name, CSTR fsname, fsvolume_t *fs, inode_t *ino);
 
 inode_t *vfs_mount(CSTR dev, CSTR fs);
 int vfs_umount(inode_t *ino);

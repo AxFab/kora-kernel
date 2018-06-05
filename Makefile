@@ -192,7 +192,7 @@ cov_%: %.lcov
 	$(V) genhtml --rc lcov_branch_coverage=1 -o $@ $< >/dev/null
 
 val_%: $(bindir)/%
-	$(V) CK_FORK=no valgrind --leak-check=full --show-leak-kinds=all $< 2>&1 | tee $@
+	$(V) valgrind --leak-check=full --show-leak-kinds=all $< 2>&1 #| tee $@
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 deps:

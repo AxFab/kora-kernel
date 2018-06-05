@@ -80,7 +80,7 @@ struct task {
     sig_handler_t shandler[32];
 
     uint32_t cpu; /* The cpu which run the task. */
-    int errno;
+    int err_no;
     uint32_t recieved_signal;
     bbnode_t bnode;
 
