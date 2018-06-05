@@ -1,0 +1,19 @@
+image: gcc
+
+build:
+  stage: build
+  before_script: 
+    - apt update && apt install -y binutils make gcc nasm lcov valgrind
+  script:
+    - make clean
+#    - make CROSS=i686-elf- target=x86-pc-none kImage
+#  artifacts:
+#    paths:
+#      - bin/kImage-x86
+
+test:
+  stage: test
+  script:
+    - make clean
+    - make check
+
