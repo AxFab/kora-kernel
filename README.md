@@ -85,7 +85,7 @@ Note that Tty is not a file type on Kora, and video streams have no equivalent i
 
 All those files and devices can be access through an evolved VFS (virtual file system) with good caching facilities.
 
-The network stack support the protocols: Ethernet, ARP, IPv4, ICMP, DHCP, <s>DNS, UDP, TCP and <s>NTP</s>.
+The network stack support the protocols: Ethernet, ARP, IPv4, ICMP, DHCP, <s>DNS, UDP, TCP and NTP</s>.
 However IP config is still lacking which make use of the network still difficult.
 
 ## Drivers

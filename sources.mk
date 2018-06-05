@@ -63,15 +63,15 @@ DV_UTILS += $(bindir)/kSim
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # We create the `kernel` delivery
-kImg_src-y += $(wildcard $(srcdir)/arch/$(target_arch)/*.asm)
-kImg_src-y += $(wildcard $(srcdir)/arch/$(target_arch)/*.c)
-kImg_src-y += $(wildcard $(srcdir)/libc/*.c)
-# kImg_src-y += $(wildcard $(srcdir)/scall/*.c)
-kImg_src-y += $(core_src-y)
-# kImg_src-y += $(drv_src-y) $(core_src-y)
-# kImg_omit-y += $(srcdir)/io/seat.c $(srcdir)/io/termio.c
-$(eval $(call kimg,kImg,krn))
-DV_UTILS += $(bindir)/kImg
+kImage_src-y += $(wildcard $(srcdir)/arch/$(target_arch)/*.asm)
+kImage_src-y += $(wildcard $(srcdir)/arch/$(target_arch)/*.c)
+kImage_src-y += $(wildcard $(srcdir)/libc/*.c)
+# kImage_src-y += $(wildcard $(srcdir)/scall/*.c)
+kImage_src-y += $(core_src-y)
+# kImage_src-y += $(drv_src-y) $(core_src-y)
+# kImage_omit-y += $(srcdir)/io/seat.c $(srcdir)/io/termio.c
+$(eval $(call kimg,kImage,krn))
+DV_UTILS += $(bindir)/kImage
 
 
 
@@ -85,7 +85,7 @@ ckVfs_src-y += $(srcdir)/core/debug.c
 ckVfs_src-y += $(srcdir)/tests/ck_vfs.c
 ckVfs_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckVfs,std))
-DV_UTILS += $(bindir)/ckVfs
+DV_CHECK += $(bindir)/ckVfs
 
 # -------------------------
 
@@ -96,7 +96,7 @@ ckMem_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/mmu.c
 ckMem_src-y += $(srcdir)/tests/ck_mem.c
 ckMem_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckMem,std))
-DV_UTILS += $(bindir)/ckMem
+DV_CHECK += $(bindir)/ckMem
 
 # -------------------------
 
@@ -108,7 +108,7 @@ ckFile_src-y += $(srcdir)/core/debug.c  $(srcdir)/arch/um2/cpu.c
 ckFile_src-y += $(srcdir)/tests/ck_file.c
 ckFile_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckFile,std))
-DV_UTILS += $(bindir)/ckFile
+DV_CHECK += $(bindir)/ckFile
 
 # -------------------------
 
@@ -119,7 +119,7 @@ ckTask_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/cpu.c
 ckTask_src-y += $(srcdir)/tests/ck_task.c
 ckTask_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckTask,std))
-DV_UTILS += $(bindir)/ckTask
+DV_CHECK += $(bindir)/ckTask
 
 # -------------------------
 
@@ -131,7 +131,7 @@ ckNet_src-y += $(srcdir)/tests/ck_net.c
 ckNet_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 ckNet_LIBS += -lpthread
 $(eval $(call link,ckNet,std))
-DV_UTILS += $(bindir)/ckNet
+DV_CHECK += $(bindir)/ckNet
 
 # -------------------------
 
@@ -143,5 +143,5 @@ ckUtils_src-y += $(srcdir)/tests/ck_utils.c
 ckUtils_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 ckUtils_LIBS += $(shell pkg-config --libs check)
 $(eval $(call link,ckUtils,std))
-DV_UTILS += $(bindir)/ckUtils
+# DV_CHECK += $(bindir)/ckUtils
 

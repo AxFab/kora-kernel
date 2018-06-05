@@ -17,7 +17,7 @@
 #  This makefile is more or less generic.
 #  The configuration is on `sources.mk`.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-host ?= x86-pc-linux-gnu
+host ?= $(shell uname -m)-pc-linux-gnu
 host_arch := $(word 1,$(subst -, ,$(host)))
 host_vendor := $(word 2,$(subst -, ,$(host)))
 host_os := $(patsubst $(host_arch)-$(host_vendor)-%,%,$(host))
@@ -32,7 +32,7 @@ S := @
 V := $(shell [ -z $(VERBOSE) ] && echo @)
 Q := $(shell [ -z $(QUIET) ] && echo @ || echo @true)
 
-all: libs utils
+all: libs bins
 
 # D I R E C T O R I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 prefix ?= /usr/local
@@ -150,7 +150,8 @@ include $(topdir)/sources.mk
 
 # C O M M O N   T A R G E T S -=-=-=-=-=-=-=-=-=-=-=-=-=-
 libs: $(DV_LIBS)
-utils: $(DV_UTILS) $(DV_CHECK)
+bins: $(DV_UTILS)
+tests: $(DV_CHECK)
 statics: $(patsubst %,$(gendir)/lib/%.a,$(DV_LIBS))
 # install: install_dev install_runtime install_utils
 # unistall:
@@ -162,20 +163,18 @@ distclean: clean
 	$(V) rm -rf $(bindir)
 config:
 # TODO -- Create/update configuration headers
-check: $(DV_CHECK)
-	$(V) $(DV_CHECK)
+check: | $(patsubst $(bindir)/%,val_%, $(DV_CHECK))
+
 # TODO -- Launch unit tests
 .PHONY: all libs utils install unistall
 .PHONY: clean distclean config check
 
 # P A C K A G I N G -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-release: $(gendir)/$(NAME)-$(target_arch)-$(VERSION).tar
-	$(V) gzip $< -o $<.gz
+release: $(gendir)/$(NAME)-$(target_arch)-$(VERSION).tar.gz
 
-$(gendir)/$(NAME)-$(target_arch)-$(VERSION).tar: $(DV_UTILS) $(DV_LIBS)
+$(gendir)/$(NAME)-$(target_arch)-$(VERSION).tar.gz: $(DV_UTILS) $(DV_LIBS)
 	$(Q) echo "  TAR   $@"
-	$(V) tar cf $@  -C $(topdir) $(topdir)/include
-	$(V) tar af $@ -C $(gendir) $^
+	$(V) tar czf $@  -C $(topdir) $(topdir)/include -C $(gendir) $^
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
