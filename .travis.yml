@@ -1,0 +1,14 @@
+# CI script for KoraOS on Travis
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+language: c
+before_install:
+  - sudo apt-get install -y binutils gcc make nasm lcov valgrind
+
+jobs:
+  include:
+    - stage: build
+      script: make clean
+      # script: make kImage
+    - stage: test
+      script: make clean
+      script: make check

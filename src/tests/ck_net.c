@@ -54,11 +54,11 @@ void gateway_stub(netdev_t *ifnet, skb_t *skb)
 {
     switch (pack++) {
     case 1:
-        assert(strcmp(skb->log, "eth:ipv4:udp:dhcp") == 0);
+        assert(strcmp(skb->log, "eth:ipv4:udp:dhcp:") == 0);
         // Ignore first call
         break;
     case 2:
-        assert(strcmp(skb->log, "eth:ipv4:udp:dhcp") == 0);
+        assert(strcmp(skb->log, "eth:ipv4:udp:dhcp:") == 0);
         dhcp_offer(ifnet);
         break;
 
@@ -71,30 +71,32 @@ void gateway_tasklet(netdev_t *ifnet)
     while ((eth2.flags & NET_QUIT) == 0) {
 
         skb_t *skb;
-        splock_lock(&ifnet->lock);
         splock_lock(&net_lock);
+        splock_lock(&ifnet->lock);
         // kprintf(-1, "SRV\n");
-        splock_unlock(&net_lock);
         // while (timeout - time64() > 0) {
         skb = ll_dequeue(&ifnet->queue, skb_t, node);
+        splock_unlock(&ifnet->lock);
+        splock_unlock(&net_lock);
         if (skb == NULL) {
-            splock_unlock(&ifnet->lock);
+            // splock_unlock(&ifnet->lock);
             sleep(1);
             continue;
             // advent_wait(&ifnet->lock, ..., timeout - time64());
         } else {
-            splock_lock(&net_lock);
+            // splock_lock(&net_lock);
             // kprintf(-1, "RECEIVE\n");
-            splock_unlock(&net_lock);
+            // splock_unlock(&net_lock);
             int ret = eth_receive(skb);
+            // splock_lock(&net_lock);
             gateway_stub(ifnet, skb);
+            // splock_unlock(&net_lock);
             if (ret != 0)
                ifnet->rx_errors++;
             kfree(skb);
         }
 
 
-        splock_unlock(&ifnet->lock);
         sleep(1);
     }
 }
@@ -134,11 +136,13 @@ void kernel_tasklet(void *start, long arg, CSTR name)
 int sendUT(netdev_t *ifnet, skb_t *skb)
 {
     splock_lock(&net_lock);
+    splock_lock(&ifnet->lock);
     kprintf(KLOG_DBG, "Packet send by eth%d: %s (%d)\n", ifnet->no, skb->log, skb->length);
     kdump(skb->buf, skb->length);
     kprintf(KLOG_DBG, "\n");
-    splock_unlock(&net_lock);
+    splock_unlock(&ifnet->lock);
     net_recv(ifnet == &eth1 ? &eth2 : &eth1, skb->buf, skb->length);
+    splock_unlock(&net_lock);
     return 0;
 }
 

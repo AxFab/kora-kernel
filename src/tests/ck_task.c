@@ -60,6 +60,25 @@ void task_2(long arg) {
     }
 }
 
+void sys_ticks_um()
+{
+    irq_disable();
+    assert(kCPU.irq_semaphore == 1);
+    // task_enter_sys(regs, regs->cs == SGM_CODE_KERNEL);
+    // kTSK.regs = regs;
+    // kprintf(KLOG_DBG, "[x86 ] IRQ %d\n", no);
+    // bufdump(regs, 0x60);
+    sys_ticks(0);
+    kCPU.io_elapsed += cpu_elapsed(&kCPU.last);
+    if (kCPU.running) {
+        kCPU.running->other_elapsed += cpu_elapsed(&kCPU.running->last);
+    }
+    // task_signals();
+    // task_leave_sys();
+    assert(kCPU.irq_semaphore == 1);
+    irq_reset(false);
+}
+
 cpu_state_t state;
 void test_01()
 {
@@ -71,10 +90,10 @@ void test_01()
 
     }
 
+    irq_reset(true);
     while (loop-- > 0) {
         printf(".");
-        irq_reset(false);
-        sys_ticks();
+        sys_ticks_um();
     }
 
     task_t *task;
@@ -116,14 +135,14 @@ static void _exit() {
     for (;;) task_switch(TS_ZOMBIE, -42);
 }
 
-int cpu_tasklet(task_t* task, void *entry, void *param)
+void cpu_tasklet(task_t* task, size_t entry, size_t param)
 {
-    void **stack = (void**)task->kstack + (task->kstack_len / sizeof(void*));
-    task->state[7] = (size_t)entry;
+    size_t *stack = (size_t*)task->kstack + (task->kstack_len / sizeof(size_t));
+    task->state[7] = entry;
     task->state[5] = (size_t)task->kstack;
 
     stack--; *stack = param;
-    stack--; *stack = _exit;
+    stack--; *stack = (size_t)_exit;
     task->state[6] = (size_t)stack;
 }
 

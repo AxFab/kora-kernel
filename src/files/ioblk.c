@@ -104,7 +104,7 @@ static void ioblk_close(blkcache_t *cache, blkpage_t *page, bool write_lock)
 static blkpage_t *ioblk_search(inode_t *ino, off_t off)
 {
 	/* Do some checks */
-	assert(off >= 0 && IS_ALIGN(off, PAGE_SIZE));
+	assert(off >= 0 && IS_ALIGNED(off, PAGE_SIZE));
 	assert(S_ISREG(ino->mode) || S_ISBLK(ino->mode));
 	if (off >= ino->length) {
 		errno = EINVAL;

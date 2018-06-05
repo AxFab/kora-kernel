@@ -1,9 +1,11 @@
+# CI script for KoraOS on Gitlab
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 image: gcc
 
 build:
   stage: build
-  before_script: 
-    - apt update && apt install -y binutils make gcc nasm lcov valgrind
+  before_script:
+    - apt update && apt install -y binutils make gcc nasm
   script:
     - make clean
 #    - make CROSS=i686-elf- target=x86-pc-none kImage
@@ -13,7 +15,11 @@ build:
 
 test:
   stage: test
+  before_script:
+    - apt update && apt install -y binutils make gcc nasm lcov valgrind
   script:
+    - ln -s ../`uname -m`/bits/ include/arch/um/bits
     - make clean
     - make check
+    - sh ./hooks/coverage.sh || true
 

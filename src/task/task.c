@@ -231,7 +231,7 @@ static task_t *task_allocat()
     task->status = TS_ZOMBIE;
     task->prio = TASK_DEFAULT_PRIO;
 
-    task->last = cpu_elapsed(NULL);
+    cpu_elapsed(&task->last);
 
     return task;
 }

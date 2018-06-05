@@ -69,6 +69,7 @@ int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int le
 
     strncat(skb->log, "ipv4:", NET_LOG_SIZE);
     IP4_header_t header;
+    memset(&header, 0, sizeof(header));
     header.version = 4;
     header.header_length = 5;
     header.service_type = 0;

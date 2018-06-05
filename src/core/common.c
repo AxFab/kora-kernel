@@ -55,8 +55,8 @@ _Noreturn void __assert_fail(const char *expr, const char *file, int line)
 int *__errno_location()
 {
     if (kCPU.running)
-        return &kCPU.running->errno;
-    return &kCPU.errno;
+        return &kCPU.running->err_no;
+    return &kCPU.err_no;
 }
 
 int isspace(char a)

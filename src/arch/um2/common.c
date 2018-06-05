@@ -136,3 +136,9 @@ void kprintf(int lvl, const char *format, ...)
     va_end(ap);
     splock_unlock(&klog_lock);
 }
+
+struct kCpu kCPU0;
+
+struct kSys kSYS = {
+    .cpus[0] = &kCPU0,
+};

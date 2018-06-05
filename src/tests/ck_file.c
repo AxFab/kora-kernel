@@ -253,13 +253,13 @@ void test_pipe_01()
     memset(buf, 0x0, 1024);
     ret = pipe_read(pipe, buf, 5, 0);
 
-    bufdump(pipe->base, pipe->size);
+    kdump(pipe->base, pipe->size);
     kprintf(KLOG_DBG, "\n");
 
     memset(buf, 0x02, 1024);
     ret = pipe_write(pipe, buf, 7, 0);
 
-    bufdump(pipe->base, pipe->size);
+    kdump(pipe->base, pipe->size);
     kprintf(KLOG_DBG, "\n");
 
     memset(buf, 0x03, 1024);
@@ -269,7 +269,7 @@ void test_pipe_01()
     ret = pipe_write(pipe, buf, 11, 0);
 
 
-    bufdump(pipe->base, pipe->size);
+    kdump(pipe->base, pipe->size);
     kprintf(KLOG_DBG, "\n");
 }
 

@@ -31,7 +31,7 @@
 
 #define ALIGN_UP(v,a)      (((v)+(a-1))&(~(a-1)))
 #define ALIGN_DW(v,a)      ((v)&(~(a-1)))
-#define IS_ALIGN(v,a)      (((v)&((a)-1))==0)
+#define IS_ALIGNED(v,a)      (((v)&((a)-1))==0)
 
 #define MIN(a,b)    ((a)<=(b)?(a):(b))
 #define MAX(a,b)    ((a)>=(b)?(a):(b))

@@ -93,14 +93,14 @@ inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
     } else if (!S_ISDIR(mode) && !S_ISREG(mode)) {
         errno = EINVAL;
         return NULL;
-    } else if (dir->fs->read_only) {
+    } else if (dir->dev->read_only) {
         errno = EROFS;
         return NULL;
     }
 
     /* Can we ask the file-system */
     fs_open open = dir->fs->open;
-    if (dir->fs->is_detached)
+    if (dir->dev->is_detached)
         open = NULL;
     if (open == NULL) {
         errno = ENOSYS;
@@ -209,10 +209,10 @@ int vfs_read(inode_t *ino, void *buf, size_t len, off_t off)
     fs_read read = NULL;
     if (S_ISREG(ino->mode)) {
         read = ino->fs->read;
-        if (ino->fs->is_detached)
+        if (ino->dev->is_detached)
             read = NULL;
     } else if (S_ISBLK(ino->mode)) {
-        read = ino->dev->read;
+        read = ino->blk->read;
         if (ino->dev->is_detached)
             read = NULL;
     } else {
@@ -239,13 +239,13 @@ int vfs_write(inode_t *ino, const void *buf, size_t len, off_t off)
     fs_write write = NULL;
     bool ro = false;
     if (S_ISREG(ino->mode)) {
-        ro = ino->fs->read_only;
+        ro = ino->dev->read_only;
         write = ino->fs->write;
-        if (ino->fs->is_detached)
+        if (ino->dev->is_detached)
             write = NULL;
     } else if (S_ISBLK(ino->mode)) {
         ro = ino->dev->read_only;
-        write = ino->dev->write;
+        write = ino->blk->write;
         if (ino->dev->is_detached)
             write = NULL;
     } else {
@@ -282,11 +282,11 @@ void vfs_close(inode_t *ino)
     unsigned int cnt = atomic_fetch_add(&ino->rcu, -1);
     if (cnt <= 1) {
         // TODO -- Close IO file
-        if (ino->dev != NULL) {
-            vfs_dev_destroy(ino);
-        } else if (ino->fs != NULL) {
-            vfs_mountpt_rcu_(ino->fs);
-        }
+        // if (ino->dev != NULL) {
+        //     vfs_dev_destroy(ino);
+        // } else if (ino->fs != NULL) {
+        //     vfs_mountpt_rcu_(ino->fs);
+        // }
         kfree(ino);
         return;
     }

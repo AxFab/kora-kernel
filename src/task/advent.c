@@ -94,10 +94,11 @@ int advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
         splock_unlock(lock);
     /* Will put task into sleep mode and return here after! */
     task_switch(TS_BLOCKED, 0);
+    int err = advent->err;
     kfree(advent);
     if (lock)
         splock_lock(lock);
-    return advent->err;
+    return err;
 }
 
 int advent_wait_rd(rwlock_t *lock, llhead_t *list, long timeout_us)

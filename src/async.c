@@ -18,7 +18,6 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
-// #include <kernel/cpu.h>
 #include <kernel/task.h>
 #include <kora/llist.h>
 #include <kora/splock.h>
@@ -46,7 +45,7 @@ struct advent {
     int err;
 };
 
-/* -=-=-=-=-=-=-=-=-= */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 static advent_t *async_advent(emitter_t *emitter, long timeout_us)
 {
@@ -56,7 +55,7 @@ static advent_t *async_advent(emitter_t *emitter, long timeout_us)
 	advent->task->advent = advent;
 	advent->timeout = timeout_us >= 0 ? time64() + timeout_us: INT64_MAX;
 	advent->emitter = emitter;
-	
+
 	/* We use a system-wide lock for waiting queues */
 	splock_lock(&async_lock);
 	if (async_timeout > advent->timeout)
@@ -79,7 +78,7 @@ static void async_cancel(advent_t *advent, int err)
 	advent->task->advent = NULL;
 }
 
-/* -=-=-=-=-=-=-=-=-= */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Wait for an event to be emited */
 int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us)
@@ -88,13 +87,13 @@ int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us)
 	assert(kCPU.irq_semaphore == (lock == NULL ? 0 : 1));
 	assert((lock == NULL) == (emitter == NULL));
 	assert(emitter != NULL || timeout_us > 0);
-	
+
 	advent_t *advent = async_advent(emitter, timeout_us);
 	if (lock != NULL)
 	    splock_unlock(lock);
 	/* We have no locks but IRQs are still off, we can switch task */
 	task_switch(TS_BLOCKED, 0);
-	
+
 	/* We have been rescheduled */
 	errno = advent->err;
 	kfree(advent);
@@ -103,7 +102,7 @@ int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us)
 	return lock == NULL || errno == 0 ? 0 : -1;
 }
 
-/* -=-=-=-=-=-=-=-=-= */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void async_cancel(task_t *task)
 {

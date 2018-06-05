@@ -72,9 +72,6 @@
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-typedef struct mountfs mountfs_t;
-typedef struct device device_t;
-
 struct inode {
     long no;
     int mode;
@@ -93,12 +90,14 @@ struct inode {
         void *object;
     };
     llhead_t dlist; // List of dirent_t;
+
     union {
-        blk_ops_t *blk;
-        chr_ops_t *chr;
-        fs_ops_t *fs;
+        device_t *dev;
+        blkdev_t *blk;
+        chardev_t *chr;
+        fsvolume_t *fs;
+        netdev_t *ifnet;
     };
-    device_t *dev;
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

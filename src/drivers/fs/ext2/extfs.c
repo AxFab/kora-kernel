@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
-#include <kernel/drivers.h>
+#include <kernel/device.h>
 #include <errno.h>
 
 #ifdef K_MODULE

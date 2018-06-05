@@ -85,14 +85,15 @@ ckVfs_src-y += $(srcdir)/core/debug.c
 ckVfs_src-y += $(srcdir)/tests/ck_vfs.c
 ckVfs_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckVfs,std))
-DV_CHECK += $(bindir)/ckVfs
+# DV_CHECK += $(bindir)/ckVfs
 
 # -------------------------
 
 ckMem_src-y += $(wildcard $(srcdir)/mem/*.c)
 ckMem_src-y += $(srcdir)/libc/bbtree.c
-ckMem_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
-ckMem_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/mmu.c
+ckMem_src-y += $(wildcard $(srcdir)/arch/um2/*.c)
+# ckMem_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
+ckMem_src-y += $(srcdir)/core/debug.c #$(srcdir)/arch/um2/mmu.c
 ckMem_src-y += $(srcdir)/tests/ck_mem.c
 ckMem_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckMem,std))
@@ -108,7 +109,7 @@ ckFile_src-y += $(srcdir)/core/debug.c  $(srcdir)/arch/um2/cpu.c
 ckFile_src-y += $(srcdir)/tests/ck_file.c
 ckFile_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckFile,std))
-DV_CHECK += $(bindir)/ckFile
+# DV_CHECK += $(bindir)/ckFile
 
 # -------------------------
 
@@ -124,8 +125,10 @@ DV_CHECK += $(bindir)/ckTask
 # -------------------------
 
 ckNet_src-y += $(wildcard $(srcdir)/net/*.c)
-ckNet_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/libc/random.c
-ckNet_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/irq.c
+ckNet_src-y += $(wildcard $(srcdir)/arch/um2/*.c)
+ckNet_omit-y = ${srcdir}/arch/um2/mmu.c
+# ckNet_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
+ckNet_src-y += $(srcdir)/core/debug.c $(srcdir)/libc/random.c
 # $(srcdir)/arch/um2/cpu.c
 ckNet_src-y += $(srcdir)/tests/ck_net.c
 ckNet_LFLAGS += $(LFLAGS) $(COV_FLAGS)
@@ -141,7 +144,7 @@ ckUtils_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
 ckUtils_omit-y += $(srcdir)/libc/format_vfscanf.c $(srcdir)/libc/format_scan.c
 ckUtils_src-y += $(srcdir)/tests/ck_utils.c
 ckUtils_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-ckUtils_LIBS += $(shell pkg-config --libs check)
+# ckUtils_LIBS += $(shell pkg-config --libs check)
 $(eval $(call link,ckUtils,std))
 # DV_CHECK += $(bindir)/ckUtils
 
