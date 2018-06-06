@@ -7,8 +7,11 @@ before_install:
 jobs:
   include:
     - stage: build
+      script: ls -s ../`uname -m`/bits/ include/arch/um/bits
       script: make clean
       # script: make kImage
     - stage: test
+      script: ls -s ../`uname -m`/bits/ include/arch/um/bits
       script: make clean
       script: make check
+      script: sh ./hooks/coverage.sh || true

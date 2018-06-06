@@ -70,9 +70,22 @@ PACK(struct madt_lapic {
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 acpi_rsdp_t *rsdp;
+acpi_rsdt_t *rsdt;
+
+static int acpi_checksum(struct acpi_head *header)
+{
+	uint8_t *ptr = (uint8_t*)header;
+	uint8_t *end = ptr + header->length;
+	uint8_t sum = 0;
+	while (ptr < end)
+	    sum += *(ptr++);
+	return sum;
+}
+
 
 void acpi_setup()
 {
+	// Search for 'RSD PTR ' in hardware space, aligned on 16B.
     char *ptr = (char*)0xE0000;
     for (; ptr < (char*)0x100000; ptr += 16) {
         if (memcmp(ptr, "RSD PTR ", 8) != 0)
@@ -86,6 +99,32 @@ void acpi_setup()
         return;
     }
 
+    // Search RSDP and RSDT
     rsdp = (acpi_rsdp_t*)ptr;
+    // TODO - RSDP have checksum
+    void *rsdt_pg = kmap(PAGE_SIZE, NULL, ALIGN_DW(rsdp->rsdt, PAGE_SIZE), VMA_PHYSIQ);
+    rsdt = (acpi_rsdt_t*)((size_t)rsdt_pg | rsdp->rsdt & (PAGE_SIZE - 1));
+    if (acpi_checksum(&rsdt->head) != 0) {
+    	kprintf(KLOG_ERR, "Invalid ACPI RSDT checksum.\n");
+        return;
+    }
+    
+    int i, n = (rsdt->head.length - sizeof(struct acpi_header)) / sizeof(uint32_t);
+    for (i = 0; i < n; ++i) {
+    	// Read each entry
+    }
+}
 
+void *acpi_scan(CSTR name, int idx)
+{
+    int i, j, n = (rsdt->head.length - sizeof(struct acpi_header)) / sizeof(uint32_t);
+    for (i = 0; i < n; ++i) {
+    	acpi_head_t *head = (acpi_head_t*)rsdt->tables[i];
+        if (memcpy(head->signature, name, 4) != 0)
+            continue;
+    	if (j++ == idx) {
+    	    return head;
+    	}
+    }
+    return NULL;
 }
