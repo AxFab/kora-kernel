@@ -185,7 +185,8 @@ int vma_protect(mspace_t *mspace, vma_t* vma, int flags)
     }
 
     /* Change access flags */
-    mmu_protect(mspace, vma->node.value_, vma->length, flags);
+    for (size_t off = 0; off < vma->length; off += PAGE_SIZE)
+        mmu_protect(vma->node.value_ + off, flags);
     vma->flags &= ~VMA_RIGHTS;
     vma->flags |= flags;
 
@@ -207,7 +208,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     switch (type) {
     case VMA_PHYS:
         while (length > 0) {
-            mmu_resolve(vma->mspace, address, (page_t)offset, vma->flags, false);
+            mmu_resolve(address, (page_t)offset, vma->flags);
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
             offset += PAGE_SIZE;
@@ -218,7 +219,8 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     case VMA_PIPE:
     case VMA_ANON:
         while (length > 0) {
-            mmu_resolve(vma->mspace, address, 0, vma->flags, true);
+            mmu_resolve(address, 0, vma->flags);
+            memset((void*)address, 0, PAGE_SIZE);
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
         }
@@ -232,7 +234,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
             if (pg == 0)
                 return -1;
             // TODO Check we still have a valid VMA !
-            mmu_resolve(vma->mspace, address, pg, vma->flags, false);
+            mmu_resolve(address, pg, vma->flags);
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
             offset += PAGE_SIZE;
@@ -262,10 +264,10 @@ int vma_copy_on_write(vma_t *vma, size_t address, size_t length)
     size_t len = length;
     while (length > 0) {
         // TODO -- Clear or not ! release or decrement counter!
-        page_t pg = mmu_drop(vma->mspace, address, false);
+        page_t pg = mmu_drop(address);
         (void)pg;
-        page_t copy = mmu_read(vma->mspace, (size_t)buf);
-        mmu_resolve(vma->mspace, address, copy, vma->flags, false);
+        page_t copy = mmu_read((size_t)buf);
+        mmu_resolve(address, copy, vma->flags);
         address += PAGE_SIZE;
         length -= PAGE_SIZE;
         buf += PAGE_SIZE;

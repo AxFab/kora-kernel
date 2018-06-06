@@ -37,13 +37,13 @@ void cpu_stack(task_t, void*, void*);
 
 void cpu_shutdown(int cmd) // REBOOT, POWER_OFF, SLEEP, DEEP_SLEEP, HALT
 {
-	switch (cmd) {
-	case REBOOT:
-	    
-	    for(;;);
-	default:
-	    errno = ENOSYS;
-	    return -1;
-	}
+    switch (cmd) {
+    case REBOOT:
+
+        for(;;);
+    default:
+        errno = ENOSYS;
+        return -1;
+    }
 }
 

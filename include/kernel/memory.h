@@ -65,19 +65,21 @@ int page_fault(mspace_t *mspace, size_t address, int reason);
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* - */
 void mmu_enable();
+/* - */
 void mmu_leave();
-
+/* - */
 void mmu_context(mspace_t *mspace);
 /* - */
-int mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access, bool clean);
+int mmu_resolve(size_t vaddr, page_t phys, int falgs);
 /* - */
-page_t mmu_read(mspace_t *mspace, size_t vaddress);
+page_t mmu_read(size_t vaddr);
 /* - */
-page_t mmu_drop(mspace_t *mspace, size_t vaddress, bool clean);
+page_t mmu_drop(size_t vaddr);
 /* - */
-void mmu_protect(mspace_t *mspace, size_t address, size_t length, int access);
-
+int mmu_protect(size_t vaddr, int falgs);
+/* - */
 void mmu_create_uspace(mspace_t *mspace);
+/* - */
 void mmu_destroy_uspace(mspace_t *mspace);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

@@ -134,6 +134,7 @@ void task_start(task_t *task, size_t entry, long args);
 int task_stop(task_t *task, int code);
 int task_kill(task_t *task, unsigned signum);
 int task_resume(task_t *task);
+void task_destroy(task_t *task);
 
 _Noreturn int task_pause(int state);
 void task_signals();
@@ -174,8 +175,6 @@ resx_t *resx_rcu(resx_t *resx, int usage);
 inode_t *resx_get(resx_t *resx, int fd);
 int resx_set(resx_t *resx, inode_t *ino);
 int resx_close(resx_t *resx, int fd);
-
-
 
 
 

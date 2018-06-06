@@ -44,7 +44,9 @@ void kernel_start();
 void kernel_ready();
 void kernel_sweep();
 
-page_t mmu_read(mspace_t *mspace, size_t vaddress);
+/* - */
+page_t mmu_read(size_t vaddr);
+
 void kernel_tasklet(void* start, long arg, CSTR name);
 
 int rand(void);

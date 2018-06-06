@@ -243,7 +243,7 @@ mspace_t *mspace_clone(mspace_t *model)
 {
     mspace_t *mspace = mspace_create();
     splock_lock(&model->lock);
-    assert(mspace->lower_bound == model->lower_bound);
+    assert(mspace->lower_bound = model->lower_bound);
     assert(mspace->upper_bound = model->upper_bound);
 
     vma_t *vma = bbtree_first(&model->tree, vma_t, node);

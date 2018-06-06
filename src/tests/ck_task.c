@@ -22,22 +22,24 @@
 #include <kora/mcrs.h>
 #include <errno.h>
 
-
 struct kSys kSYS;
 struct kCpu kCPU0;
 
 
 void mspace_display(mspace_t *mspace) {}
 void mmu_context(mspace_t *mspace) {}
-mspace_t *mspace_create() {}
-mspace_t *mspace_open(mspace_t *mspace) {}
+mspace_t *mspace_create() { return NULL; }
+mspace_t *mspace_open(mspace_t *mspace) { return NULL; }
 void mspace_close(mspace_t *mspace) {}
 // void mspace_map(mspace_t *mspace) {}
-void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, off_t off, off_t limit, int flags){}
+void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, off_t off, off_t limit, int flags)
+{
+    return NULL;
+}
 
-inode_t *vfs_open(inode_t *ino) {}
+inode_t *vfs_open(inode_t *ino) { return NULL; }
 void vfs_close(inode_t *ino) {}
-int vfs_read(inode_t *ino) {}
+int vfs_read(inode_t *ino) { return -1; }
 // void vfs_close() {}
 
 void kernel_tasklet(void* start, long arg, CSTR name)
@@ -49,14 +51,14 @@ void kernel_tasklet(void* start, long arg, CSTR name)
 void task_1(long arg) {
     for (;;) {
         advent_wait(NULL, NULL, 50000);
-        printf("A\n");
+        kprintf(-1, "A\n");
     }
 }
 
 void task_2(long arg) {
     for (;;) {
         advent_wait(NULL, NULL, 50000);
-        printf("B\n");
+        kprintf(-1, "B\n");
     }
 }
 
@@ -92,7 +94,7 @@ void test_01()
 
     irq_reset(true);
     while (loop-- > 0) {
-        printf(".");
+        kprintf(-1, ".");
         sys_ticks_um();
     }
 
@@ -103,7 +105,7 @@ void test_01()
     task = task_search(2);
     if (task)
         task_destroy(task);
-    printf("Bye!\n");
+    kprintf(-1, "Bye!\n");
 }
 
 void test_02()

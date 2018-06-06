@@ -79,15 +79,18 @@ int csl_ioctl(inode_t *ino, int cmd, void *params)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-chr_ops_t csl_ops = {
+chardev_t csl_dev = {
+    .dev = {
+        .ioctl = (dev_ioctl)csl_ioctl,
+    },
+    .class = "VBA text console",
     .write = (chr_write)csl_write,
-    .ioctl = (dev_ioctl)csl_ioctl,
 };
 
 void csl_setup()
 {
     inode_t *ino = vfs_inode(0, S_IFCHR | 0200, NULL, 0);
-    vfs_mkdev("csl", ino, NULL, "VBA text console", NULL, &csl_ops);
+    vfs_mkdev("csl", &csl_dev.dev, ino);
 }
 
 void csl_teardown()
