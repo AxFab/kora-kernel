@@ -20,6 +20,7 @@
 #ifndef _KERNEL_DRIVERS_H
 #define _KERNEL_DRIVERS_H 1
 
+#include <kernel/core.h>
 #include <kernel/vfs.h>
 #include <kora/splock.h>
 #include <kora/hmap.h>
@@ -76,6 +77,9 @@ struct device
     uint8_t id[16];
     inode_t *ino;
     llnode_t node;
+
+    dev_ioctl ioctl;
+    dev_rmdev rmdev;
 };
 
 // File types and associated devices
@@ -96,8 +100,6 @@ struct blkdev {
     blk_read read;
     blk_write write;
 
-    dev_ioctl ioctl;
-    dev_rmdev rmdev;
 };
 
 struct chardev {
@@ -107,9 +109,6 @@ struct chardev {
     char *dname;
 
     chr_write write;
-
-    dev_ioctl ioctl;
-    dev_rmdev rmdev;
 };
 
 struct fsvolume {
@@ -133,9 +132,6 @@ struct fsvolume {
     fs_opendir opendir;
     fs_readdir readdir;
     fs_closedir closedir;
-
-    dev_ioctl ioctl;
-    dev_rmdev rmdev;
 };
 /*
 struct net_ops {
@@ -144,8 +140,6 @@ struct net_ops {
     net_send send;
     net_link link;
 
-    dev_ioctl ioctl;
-    dev_rmdev rmdev;
 };*/
 
 struct vds_ops {
@@ -153,9 +147,6 @@ struct vds_ops {
 
     vds_flip flip;
     vds_resize resize;
-
-    dev_ioctl ioctl;
-    dev_rmdev rmdev;
 };
 
 

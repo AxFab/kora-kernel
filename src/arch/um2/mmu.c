@@ -21,6 +21,7 @@
 #include <kernel/memory.h>
 #include <kernel/mmu.h>
 #include <kora/mcrs.h>
+#include <sys/mman.h>
 
 
 unsigned char mmu_bmp[MMU_LG] = { 0 };
@@ -38,8 +39,10 @@ struct mmu_dir {
 struct mmu_dir *kdir;
 struct mmu_dir *udir;
 
-#define MMU_KRN_START  (0x10 * PAGE_SIZE)
-#define MMU_USR_START  (0x10000000)
+// #define MMU_KRN_START  (0x10 * PAGE_SIZE)
+// #define MMU_USR_START  (0x10000000)
+
+size_t MMU_USR_START;
 
 /* Request from kernel early code to enable paging */
 void mmu_enable()
@@ -55,15 +58,18 @@ void mmu_enable()
     kdir->cnt = __um_mspace_pages_count;
     kdir->tbl = kalloc(sizeof(page_t) * kdir->cnt);
 
-    kMMU.kspace->lower_bound = MMU_KRN_START;
-    kMMU.kspace->upper_bound = MMU_KRN_START + __um_mspace_pages_count * PAGE_SIZE;
+    kMMU.kspace->lower_bound = (size_t)mmap(NULL, __um_mspace_pages_count * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    kMMU.kspace->upper_bound = kMMU.kspace->lower_bound + __um_mspace_pages_count * PAGE_SIZE;
     kMMU.kspace->directory = (page_t)kdir;
     kMMU.kspace->a_size += PAGE_SIZE;
     // Active change
+    MMU_USR_START = (size_t)mmap(NULL, __um_mspace_pages_count * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 }
 
 void mmu_leave()
 {
+    munmap((void*)kMMU.kspace->lower_bound, __um_mspace_pages_count * PAGE_SIZE);
+    munmap((void*)MMU_USR_START, __um_mspace_pages_count * PAGE_SIZE);
     kfree(kdir->tbl);
     page_release(kdir->dir);
     kfree(kdir);
@@ -96,7 +102,7 @@ void mmu_destroy_uspace(mspace_t *mspace)
 }
 
 
-page_t mmu_read(mspace_t *mspace, size_t address)
+page_t mmu_read(size_t address)
 {
     if (address >= kMMU.kspace->lower_bound && address < kMMU.kspace->upper_bound) {
         int pno = (address - kMMU.kspace->lower_bound) / PAGE_SIZE;
@@ -108,7 +114,7 @@ page_t mmu_read(mspace_t *mspace, size_t address)
     return 0;
 }
 
-page_t mmu_drop(mspace_t *mspace, size_t address, bool clean)
+page_t mmu_drop(size_t address)
 {
     if (address >= kMMU.kspace->lower_bound && address < kMMU.kspace->upper_bound) {
         int pno = (address - kMMU.kspace->lower_bound) / PAGE_SIZE;
@@ -132,17 +138,15 @@ page_t mmu_drop(mspace_t *mspace, size_t address, bool clean)
     return 0;
 }
 
-void mmu_protect(mspace_t *mspace, size_t address, size_t length, int access)
+int mmu_protect(size_t address, int access)
 {
-    length /= PAGE_SIZE;
-    while (length-- > 0) {
-        int pno = (address - kMMU.kspace->lower_bound) / PAGE_SIZE;
-        kdir->tbl[pno] = (kdir->tbl[pno] & (~(PAGE_SIZE - 1))) | access;
-        address += PAGE_SIZE;
-    }
+    int pno = (address - kMMU.kspace->lower_bound) / PAGE_SIZE;
+    kdir->tbl[pno] = (kdir->tbl[pno] & (~(PAGE_SIZE - 1))) | access;
+    address += PAGE_SIZE;
+    return 0;
 }
 
-int mmu_resolve(mspace_t *mspace, size_t address, page_t phys, int access, bool clean)
+int mmu_resolve(size_t address, page_t phys, int access)
 {
     if (phys == 0)
         phys = page_new();

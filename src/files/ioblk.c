@@ -67,7 +67,7 @@ static int ioblk_fetch_(blkpage_t *page)
 	assert((ret == 0) != (errno != 0));
 	kunmap(map, PAGE_SIZE);
 	if (ret == 0)
-	    page->phys = mmu_read(NULL, (size_t)map);
+	    page->phys = mmu_read((size_t)map);
 	return ret;
 }
 

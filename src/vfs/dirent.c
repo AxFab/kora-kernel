@@ -46,9 +46,9 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
     ((int *)key)[0] = dir->no;
     strcpy(&key[4], name);
 
-    mountfs_t *fs = dir->fs;
+    fsvolume_t *fs = dir->fs;
 
-    splock_lock(&fs->lock);
+    splock_lock(&fs->dev.lock);
     dirent_t *ent = (dirent_t*)hmp_get(&fs->hmap, key, lg);
     if (ent) {
         // Remove from LRU
@@ -68,7 +68,7 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
     } else if (ent->ino == NULL) {
         // if (!block) {
             kfree(key);
-            splock_unlock(&fs->lock);
+            splock_unlock(&fs->dev.lock);
             errno = EWOULDBLOCK;
             return NULL;
         // }
@@ -76,7 +76,7 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
         // TODO - Wait until
     }
     kfree(key);
-    splock_unlock(&fs->lock);
+    splock_unlock(&fs->dev.lock);
     return ent;
 }
 
@@ -99,15 +99,15 @@ void vfs_rm_dirent_(dirent_t *ent)
 {
     assert(ent != NULL);
 
-    mountfs_t *fs = ent->parent->fs;
-    splock_lock(&fs->lock);
+    fsvolume_t *fs = ent->parent->fs;
+    splock_lock(&fs->dev.lock);
     hmp_remove(&fs->hmap, ent->key, ent->lg);
     rwlock_rdunlock(&ent->lock);
     // TODO -- Wake up other !
     rwlock_wrlock(&ent->lock);
     kfree(&ent->lock);
 
-    splock_unlock(&fs->lock);
+    splock_unlock(&fs->dev.lock);
 }
 
 void vfs_dirent_rcu_(inode_t *ino)
@@ -116,10 +116,10 @@ void vfs_dirent_rcu_(inode_t *ino)
 }
 
 
-void vfs_sweep(mountfs_t *fs, int max)
+void vfs_sweep(fsvolume_t *fs, int max)
 {
     /* Lock so that nobody can access new dirent_t */
-    splock_lock(&fs->lock);
+    splock_lock(&fs->dev.lock);
     dirent_t *ent = ll_first(&fs->lru, dirent_t, lru);
     while (max > 0 && ent) {
         /* Check nobody is currently using this entry */
@@ -137,7 +137,7 @@ void vfs_sweep(mountfs_t *fs, int max)
         --max;
     }
     if (ent != NULL)
-        splock_unlock(&fs->lock);
+        splock_unlock(&fs->dev.lock);
 }
 
 
@@ -160,7 +160,7 @@ dirent_t *vfs_lookup_(inode_t *dir, CSTR name)
     assert(dir != NULL && S_ISDIR(dir->mode));
 
     fs_lookup lookup = dir->fs->lookup;
-    if (dir->fs->is_detached)
+    if (dir->fs->dev.is_detached)
         lookup = NULL;
     if (lookup == NULL) {
         errno = ENOSYS;
