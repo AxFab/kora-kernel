@@ -146,5 +146,5 @@ ckUtils_src-y += $(srcdir)/tests/ck_utils.c
 ckUtils_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 # ckUtils_LIBS += $(shell pkg-config --libs check)
 $(eval $(call link,ckUtils,std))
-# DV_CHECK += $(bindir)/ckUtils
+DV_CHECK += $(bindir)/ckUtils
 
