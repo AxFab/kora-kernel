@@ -33,9 +33,37 @@
 // #include <check.h>
 
 
+
+
 #define START_TEST(n) void n() {
 #define END_TEST }
-#define RUN_TEST(n) n()
+#define CK_CASE(n) CK_CASE_(#n, n)
+
+void kprintf(int no, const char *fmt, ...);
+
+
+int cases_count = 0;
+
+void CK_END()
+{
+    kprintf(-1, "  Total of %d tests passed with success.\n", cases_count);
+}
+
+void CK_SUITE(const char *name)
+{
+    kprintf(-1, "\033[1;36m%s\033[0m\n", name);
+}
+void CK_FIXTURE(const char *name)
+{
+    kprintf(-1, "  \033[1;37m%s\033[0m\n", name);
+}
+void CK_CASE_(const char *name, void(*func)())
+{
+    cases_count++;
+    func();
+    kprintf(-1, "\033[90m%24s %s%s\033[0m\n", name, "\033[32m", "OK");
+}
+
 #define ck_assert(e) do { if (!(e)) ck_fails(#e, __FILE__, __LINE__); } while(0)
 static inline void ck_fails(const char *expr, const char *file, int line)
 {
@@ -934,12 +962,13 @@ START_TEST(test_time_001)
     test_time_convert(0xbeaf007, "Mon May  3 04:37:27 1976\n");
     test_time_convert(1, "Thu Jan  1 00:00:01 1970\n");
     test_time_convert(790526, "Sat Jan 10 03:35:26 1970\n");
-    test_time_convert(0x80000000, "Fri Dec 13 20:45:52 1901\n");
     test_time_convert(0x7fffffff, "Tue Jan 19 03:14:07 2038\n");
     test_time_convert(1221253494, "Fri Sep 12 21:04:54 2008\n");
     test_time_convert(951876312, "Wed Mar  1 02:05:12 2000\n");
     test_time_convert(951811944, "Tue Feb 29 08:12:24 2000\n");
-
+    if (sizeof(time_t) == 4) {
+        test_time_convert(0x80000000, "Fri Dec 13 20:45:52 1901\n");
+    }
 }
 END_TEST
 
@@ -948,66 +977,57 @@ END_TEST
 
 int main (int argc, char **argv)
 {
-    kprintf(-1, "\033[1;36mBasics\033[0m\n");
+    CK_SUITE("Basics");
+    CK_FIXTURE("Doubly-linked List");
+    CK_CASE(test_llist_001);
+    CK_CASE(test_llist_002);
 
-    kprintf(-1, "\033[1;37mDoulby-linked List\033[0m\n");
-    RUN_TEST(test_llist_001);
-    RUN_TEST(test_llist_002);
+    CK_FIXTURE("Self-Balanced Binary Tree");
+    CK_CASE(test_bbtree_001);
+    CK_CASE(test_bbtree_002);
+    CK_CASE(test_bbtree_003);
+    CK_CASE(test_bbtree_004);
+    CK_CASE(test_bbtree_005);
+    CK_CASE(test_bbtree_006);
+    CK_CASE(test_bbtree_007);
 
-    kprintf(-1, "\033[1;37mSelf-Balanced Binary Tree\033[0m\n");
+    CK_FIXTURE("Spinlocks");
+    CK_CASE(test_splock_001);
+    CK_CASE(test_splock_002);
 
-    RUN_TEST(test_bbtree_001);
-    RUN_TEST(test_bbtree_002);
-    (void)test_bbtree_003;
-    RUN_TEST(test_bbtree_004);
-    RUN_TEST(test_bbtree_005);
-    RUN_TEST(test_bbtree_006);
-    RUN_TEST(test_bbtree_007);
+    CK_FIXTURE("Read-write Locks");
+    CK_CASE(test_rwlock_001);
+    CK_CASE(test_rwlock_002);
+    CK_CASE(test_rwlock_003);
 
-    kprintf(-1, "\033[1;37mSpinlocks\033[0m\n");
+    CK_FIXTURE("Hash-Map");
+    CK_CASE(test_hmap_001);
+    CK_CASE(test_hmap_002);
+    CK_CASE(test_hmap_003);
 
-    RUN_TEST(test_splock_001);
-    RUN_TEST(test_splock_002);
+    CK_SUITE("Standard");
+    CK_FIXTURE("Allocator arena");
+    CK_CASE(test_arena_001);
+    CK_CASE(test_arena_002);
+    CK_CASE(test_arena_003);
 
-    kprintf(-1, "\033[1;37mRead-write Locks\033[0m\n");
-
-    RUN_TEST(test_rwlock_001);
-    RUN_TEST(test_rwlock_002);
-    RUN_TEST(test_rwlock_003);
-
-    kprintf(-1, "\033[1;37mHash-Map\033[0m\n");
-
-    RUN_TEST(test_hmap_001);
-    RUN_TEST(test_hmap_002);
-    RUN_TEST(test_hmap_003);
-
-    kprintf(-1, "\033[1;36mStandard\033[0m\n");
-
-    kprintf(-1, "\033[1;37mAllocator arena\033[0m\n");
-
-    RUN_TEST(test_arena_001);
-    RUN_TEST(test_arena_002);
-    RUN_TEST(test_arena_003);
-
-    kprintf(-1, "\033[1;37mAllocator heap\033[0m\n");
-
-    // RUN_TEST(test_heap_001);
+    // kprintf(-1, "\033[1;37mAllocator heap\033[0m\n");
+    // CK_CASE(test_heap_001);
 
     // kprintf(-1, "\033[1;37mString\033[0m\n");
-    kprintf(-1, "\033[1;37mMemory operations\033[0m\n");
+    CK_FIXTURE("Memory operations");
+    CK_CASE(test_memop_001);
 
-    RUN_TEST(test_memop_001);
+    CK_FIXTURE("Format integer");
+    CK_CASE(test_integer_001);
+    CK_CASE(test_integer_002);
+    CK_CASE(test_integer_003);
 
-    kprintf(-1, "\033[1;37mFormat integer\033[0m\n");
+    kprintf(-1, "\033[1;37mFormat string\033[0m\n");
+    CK_FIXTURE("Time format");
+    CK_CASE(test_time_001);
+    CK_END();
 
-    RUN_TEST(test_integer_001);
-    RUN_TEST(test_integer_002);
-    RUN_TEST(test_integer_003);
-
-    // kprintf(-1, "\033[1;37mFormat string\033[0m\n");
-    kprintf(-1, "\033[1;37mTime format\033[0m\n");
-
-    // RUN_TEST(test_time_001);
 
 //     // Create suites
 //     int errors;

@@ -108,7 +108,7 @@ void irq_fault_x86(int no, int code, regs_t *regs)
 {
     char buf[64];
     fault_t fault = x86_exceptions[MIN(0x20, (unsigned)no)];
-    snprint(buf, 64, fault.name, code);
+    snprintf(buf, 64, fault.name, code);
     fault.name = buf;
     irq_fault(&fault);
 }

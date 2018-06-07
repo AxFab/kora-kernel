@@ -176,7 +176,6 @@ void net_print(netdev_t *ifnet)
 void net_tasklet(netdev_t *ifnet)
 {
     bool send_arp = false;
-    bool send_dhcp = false;
     time64_t timeout = time64() + NET_DELAY;
     while ((ifnet->flags & NET_QUIT) == 0)  {
         advent_wait(NULL, NULL, timeout - time64());
@@ -190,9 +189,9 @@ void net_tasklet(netdev_t *ifnet)
         //         if (skb == NULL)
         //             advent_wait(&ifnet->lock, ..., timeout - time64());
         //     }
+        //     splock_unlock(&ifnet->lock);
         //     if (skb == NULL)
         //         break;
-        //     splock_unlock(&ifnet->lock);
 
         //     int ret = eth_receive(skb);
         //     if (ret != 0)
@@ -212,7 +211,6 @@ void net_tasklet(netdev_t *ifnet)
 
 
         if (ifnet->ip4_addr[0] == 0) {
-//            send_dhcp = true;
             dhcp_discovery(ifnet);
             continue;
         }

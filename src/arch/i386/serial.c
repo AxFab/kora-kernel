@@ -77,9 +77,8 @@ static int com_read(int port, inode_t *ino)
 void com_early_init()
 {
     int i;
-    for (i = 0; i < 4; ++i) {
-        serial_init(serial_ports[i]);
-    }
+    for (i = 0; i < 4; ++i)
+        com_init(serial_ports[i]);
 }
 
 

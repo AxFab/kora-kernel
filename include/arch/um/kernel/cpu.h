@@ -22,6 +22,10 @@
 
 #include <kernel/types.h>
 
+#define IRQ_ON   ((void)0)
+#define IRQ_OFF  ((void)0)
+
+
 struct regs
 {
     size_t ax;

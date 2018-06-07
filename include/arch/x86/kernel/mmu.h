@@ -22,6 +22,8 @@
 #ifndef _KERNEL_ASM_MMU_H
 #define _KERNEL_ASM_MMU_H 1
 
+#include <kora/mcrs.h>
+
 #define PAGE_SIZE 4096
 typedef unsigned long page_t;
 /* Larger page in order to support 36bits physical address.
@@ -31,6 +33,12 @@ typedef unsigned long long page_t; */
 #define MMU_USPACE_UPPER  (512 * _Mib_)
 #define MMU_KSPACE_LOWER  (3072U * _Mib_)
 #define MMU_KSPACE_UPPER  (4088U * _Mib_)
+
+
+#define MMU_UTBL_LOW  (MMU_USPACE_LOWER / (4 * _Mib_))
+#define MMU_UTBL_HIGH  (MMU_USPACE_UPPER / (4 * _Mib_))
+#define MMU_KTBL_LOW  (MMU_KSPACE_LOWER / (4 * _Mib_))
+#define MMU_KTBL_HIGH  (MMU_KSPACE_UPPER / (4 * _Mib_))
 
 
 #define MMU_BMP  ((uint8_t*)0x120000)

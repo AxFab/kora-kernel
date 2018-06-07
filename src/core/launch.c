@@ -172,18 +172,18 @@ void kernel_start()
     // bool irq = irq_enable();
     // assert(irq);
 
-#if 1
-    // KSETUP(ps2);
-    KSETUP(ide_ata);
-    KSETUP(pci);
-    KSETUP(e1000);
-    KSETUP(vbox);
-    KSETUP(ac97);
-    // KSETUP(vga);
-#else
-    KSETUP(imgdk);
-#endif
-    KSETUP(isofs);
+// #if 1
+//     // KSETUP(ps2);
+//     KSETUP(ide_ata);
+//     KSETUP(pci);
+//     KSETUP(e1000);
+//     KSETUP(vbox);
+//     KSETUP(ac97);
+//     // KSETUP(vga);
+// #else
+//     KSETUP(imgdk);
+// #endif
+//     KSETUP(isofs);
 
     kernel_tasklet(ktsk1, 1, "Dbg_task1");
     kernel_tasklet(ktsk2, 2, "Dbg_task2");

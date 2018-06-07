@@ -16,20 +16,20 @@
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 drvdir = $(srcdir)/drivers
 
-drv_src-y += $(wildcard $(drvdir)/disk/ata/*.c)
-drv_src-y += $(wildcard $(drvdir)/disk/gpt/*.c)
-# drv_src-y += $(wildcard $(drvdir)/disk/imgdk/*.c)
+# drv_src-y += $(wildcard $(drvdir)/disk/ata/*.c)
+# drv_src-y += $(wildcard $(drvdir)/disk/gpt/*.c)
+# # drv_src-y += $(wildcard $(drvdir)/disk/imgdk/*.c)
 
-# drv_src-y += $(wildcard $(drvdir)/fs/ext2/*.c)
-drv_src-y += $(wildcard $(drvdir)/fs/fat/*.c)
-drv_src-y += $(wildcard $(drvdir)/fs/isofs/*.c)
+# # drv_src-y += $(wildcard $(drvdir)/fs/ext2/*.c)
+# drv_src-y += $(wildcard $(drvdir)/fs/fat/*.c)
+# drv_src-y += $(wildcard $(drvdir)/fs/isofs/*.c)
 
-drv_src-y += $(wildcard $(drvdir)/input/ps2/*.c)
+# drv_src-y += $(wildcard $(drvdir)/input/ps2/*.c)
 
-drv_src-y += $(wildcard $(drvdir)/media/ac97/*.c)
-drv_src-y += $(wildcard $(drvdir)/media/vga/*.c)
+# drv_src-y += $(wildcard $(drvdir)/media/ac97/*.c)
+# drv_src-y += $(wildcard $(drvdir)/media/vga/*.c)
 
-drv_src-y += $(wildcard $(drvdir)/misc/pci/*.c)
-drv_src-y += $(wildcard $(drvdir)/misc/vbox/*.c)
+# drv_src-y += $(wildcard $(drvdir)/misc/pci/*.c)
+# drv_src-y += $(wildcard $(drvdir)/misc/vbox/*.c)
 
-drv_src-y += $(wildcard $(drvdir)/net/e1000/*.c)
+# drv_src-y += $(wildcard $(drvdir)/net/e1000/*.c)

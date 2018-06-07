@@ -20,6 +20,22 @@
 #include <kernel/core.h>
 #include <kernel/cpu.h>
 
+#define CMOS_CMD 0x70
+#define CMOS_DATA 0x71
+
+#define BCD2DEC(v) (((v)&0xf)+(((v)>>4)&0xf)*10))
+
+static inline uint8_t cmos_rd(uint8_t idx)
+{
+	outb(CMOS_CMD, idx);
+	return inb(CMOS_DATA);
+}
+
+static inline void cmos_wr(uint8_t idx, uint8_t val)
+{
+	outb(CMOS_CMD, idx);
+	outb(CMOS_DATA, val);
+}
 
 time_t rtc_time()
 {

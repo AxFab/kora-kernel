@@ -114,6 +114,7 @@ struct chardev {
 struct fsvolume {
 
     device_t dev;
+    char *name;
     char *fsname;
     uint8_t id[16];
 
