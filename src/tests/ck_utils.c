@@ -30,7 +30,18 @@
 #include <string.h>
 #include <time.h>
 #include <errno.h>
-#include <check.h>
+// #include <check.h>
+
+
+#define START_TEST(n) void n() {
+#define END_TEST }
+#define RUN_TEST(n) n()
+#define ck_assert(e) do { if (!(e)) ck_fails(#e, __FILE__, __LINE__); } while(0)
+static inline void ck_fails(const char *expr, const char *file, int line)
+{
+    kprintf(-1, "Check fails at %s l.%d: %s\n", file, line, expr);
+    abort();
+}
 
 
 
@@ -198,21 +209,6 @@ START_TEST(test_heap_001)
     free(ptr);
 }
 END_TEST
-
-void fixture_allocator(Suite *s)
-{
-    TCase *tc;
-
-    tc = tcase_create("Allocator arena");
-    tcase_add_test(tc, test_arena_001);
-    tcase_add_test(tc, test_arena_002);
-    tcase_add_test(tc, test_arena_003);
-    suite_add_tcase(s, tc);
-
-    tc = tcase_create("Allocator heap");
-    tcase_add_test(tc, test_heap_001);
-    suite_add_tcase(s, tc);
-}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -479,19 +475,6 @@ START_TEST(test_bbtree_007)
 }
 END_TEST
 
-void fixture_bbtree(Suite *s)
-{
-    TCase *tc = tcase_create("Self-Balanced Binary Tree");
-    tcase_add_test(tc, test_bbtree_001);
-    tcase_add_test(tc, test_bbtree_002);
-    (void)test_bbtree_003; // tcase_add_test(tc, test_bbtree_003);
-    tcase_add_test(tc, test_bbtree_004);
-    tcase_add_test(tc, test_bbtree_005);
-    tcase_add_test(tc, test_bbtree_006);
-    tcase_add_test(tc, test_bbtree_007);
-    suite_add_tcase(s, tc);
-}
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -636,14 +619,7 @@ START_TEST(test_hmap_003)
 }
 END_TEST
 
-void fixture_hmap(Suite *s)
-{
-    TCase *tc = tcase_create("Hash-Map");
-    tcase_add_test(tc, test_hmap_001);
-    tcase_add_test(tc, test_hmap_002);
-    tcase_add_test(tc, test_hmap_003);
-    suite_add_tcase(s, tc);
-}
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -738,17 +714,6 @@ START_TEST(test_integer_003)
 }
 END_TEST
 
-void fixture_integer(Suite *s)
-{
-    TCase *tc;
-
-    tc = tcase_create("Format integer");
-    tcase_add_test(tc, test_integer_001);
-    tcase_add_test(tc, test_integer_002);
-    tcase_add_test(tc, test_integer_003);
-    suite_add_tcase(s, tc);
-}
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -829,13 +794,6 @@ START_TEST(test_llist_002)
 }
 END_TEST
 
-void fixture_llist(Suite *s)
-{
-    TCase *tc = tcase_create("Doulby-linked List");
-    tcase_add_test(tc, test_llist_001);
-    tcase_add_test(tc, test_llist_002);
-    suite_add_tcase(s, tc);
-}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -864,14 +822,6 @@ START_TEST(test_splock_002)
 
 }
 END_TEST
-
-void fixture_splock(Suite *s)
-{
-    TCase *tc = tcase_create("Spinlocks");
-    tcase_add_test(tc, test_splock_001);
-    tcase_add_test(tc, test_splock_002);
-    suite_add_tcase(s, tc);
-}
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -940,15 +890,6 @@ START_TEST(test_rwlock_003)
 }
 END_TEST
 
-void fixture_rwlock(Suite *s)
-{
-    TCase *tc = tcase_create("Read-write Locks");
-    tcase_add_test(tc, test_rwlock_001);
-    tcase_add_test(tc, test_rwlock_002);
-    tcase_add_test(tc, test_rwlock_003);
-    suite_add_tcase(s, tc);
-}
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -971,14 +912,8 @@ START_TEST(test_memop_001)
 }
 END_TEST
 
-void fixture_string(Suite *s)
-{
-    TCase *tc;
 
-    tc = tcase_create("Memory operations");
-    tcase_add_test(tc, test_memop_001);
-    suite_add_tcase(s, tc);
-}
+
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -1008,56 +943,86 @@ START_TEST(test_time_001)
 }
 END_TEST
 
-void fixture_time(Suite *s)
-{
-    TCase *tc;
-
-    tc = tcase_create("Time format");
-    tcase_add_test(tc, test_time_001);
-    suite_add_tcase(s, tc);
-}
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-Suite *suite_basics(void)
-{
-    Suite *s;
-    s = suite_create("Basics");
-    fixture_llist(s);
-    fixture_bbtree(s);
-    fixture_splock(s);
-    fixture_rwlock(s);
-    fixture_hmap(s);
-    return s;
-}
-
-Suite *suite_standard(void)
-{
-    Suite *s;
-    s = suite_create("Standard");
-    fixture_allocator(s);
-    fixture_string(s);
-    fixture_integer(s);
-    // fixture_format(s);
-    fixture_time(s);
-    return s;
-}
 
 int main (int argc, char **argv)
 {
-    // Create suites
-    int errors;
-    SRunner *sr = srunner_create(NULL);
-    srunner_add_suite (sr, suite_basics());
-    srunner_add_suite (sr, suite_standard());
+    kprintf(-1, "\033[1;36mBasics\033[0m\n");
 
-    // Run test-suites
-    srunner_run_all(sr, CK_NORMAL);
-    errors = srunner_ntests_failed(sr);
-    srunner_free(sr);
-    return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+    kprintf(-1, "\033[1;37mDoulby-linked List\033[0m\n");
+    RUN_TEST(test_llist_001);
+    RUN_TEST(test_llist_002);
+
+    kprintf(-1, "\033[1;37mSelf-Balanced Binary Tree\033[0m\n");
+
+    RUN_TEST(test_bbtree_001);
+    RUN_TEST(test_bbtree_002);
+    (void)test_bbtree_003;
+    RUN_TEST(test_bbtree_004);
+    RUN_TEST(test_bbtree_005);
+    RUN_TEST(test_bbtree_006);
+    RUN_TEST(test_bbtree_007);
+
+    kprintf(-1, "\033[1;37mSpinlocks\033[0m\n");
+
+    RUN_TEST(test_splock_001);
+    RUN_TEST(test_splock_002);
+
+    kprintf(-1, "\033[1;37mRead-write Locks\033[0m\n");
+
+    RUN_TEST(test_rwlock_001);
+    RUN_TEST(test_rwlock_002);
+    RUN_TEST(test_rwlock_003);
+
+    kprintf(-1, "\033[1;37mHash-Map\033[0m\n");
+
+    RUN_TEST(test_hmap_001);
+    RUN_TEST(test_hmap_002);
+    RUN_TEST(test_hmap_003);
+
+    kprintf(-1, "\033[1;36mStandard\033[0m\n");
+
+    kprintf(-1, "\033[1;37mAllocator arena\033[0m\n");
+
+    RUN_TEST(test_arena_001);
+    RUN_TEST(test_arena_002);
+    RUN_TEST(test_arena_003);
+
+    kprintf(-1, "\033[1;37mAllocator heap\033[0m\n");
+
+    // RUN_TEST(test_heap_001);
+
+    // kprintf(-1, "\033[1;37mString\033[0m\n");
+    kprintf(-1, "\033[1;37mMemory operations\033[0m\n");
+
+    RUN_TEST(test_memop_001);
+
+    kprintf(-1, "\033[1;37mFormat integer\033[0m\n");
+
+    RUN_TEST(test_integer_001);
+    RUN_TEST(test_integer_002);
+    RUN_TEST(test_integer_003);
+
+    // kprintf(-1, "\033[1;37mFormat string\033[0m\n");
+    kprintf(-1, "\033[1;37mTime format\033[0m\n");
+
+    // RUN_TEST(test_time_001);
+
+//     // Create suites
+//     int errors;
+//     SRunner *sr = srunner_create(NULL);
+//     srunner_add_suite (sr, suite_basics());
+//     srunner_add_suite (sr, suite_standard());
+
+//     // Run test-suites
+//     srunner_run_all(sr, CK_NORMAL);
+//     errors = srunner_ntests_failed(sr);
+//     srunner_free(sr);
+//     return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 void *heap_map(size_t length) { return NULL; }
 void *heap_unmap(void *address, size_t length) { return NULL; }
 void vfs_read() {}
+int cpu_no() { return 0; }

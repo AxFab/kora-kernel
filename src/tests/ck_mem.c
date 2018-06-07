@@ -72,6 +72,7 @@ void vfs_read(inode_t *ino, char *buf, size_t len, off_t off)
 static inline void ck_fails(CSTR expr, CSTR file, int line)
 {
     kprintf(-1, "Check fails at %s l.%d: %s\n", file, line, expr);
+    abort();
 }
 
 
