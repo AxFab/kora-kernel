@@ -22,6 +22,10 @@
 
 #include <kernel/types.h>
 
+#define IRQ_ON   asm("sti")
+#define IRQ_OFF  asm("cli")
+
+
 struct regs
 {
     uint16_t gs, unused_g1, unused_g2, unused_g3;

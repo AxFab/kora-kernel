@@ -40,9 +40,7 @@ static bbnode_t *bbtree_skew(bbnode_t *node)
     parent = node->parent_;
     temp = node->left_;
     node->left_ = temp->right_;
-    if (node->left_) {
-        node->left_->parent_ = node;
-    }
+    node->left_->parent_ = node;
     temp->right_ = node;
     node->parent_ = temp;
     temp->parent_ = parent;
@@ -68,9 +66,7 @@ static bbnode_t *bbtree_split(bbnode_t *node)
     parent = node->parent_;
     temp = node->right_;
     node->right_ = temp->left_;
-    if (node->right_) {
-        node->right_->parent_ = node;
-    }
+    node->right_->parent_ = node;
     temp->left_ = node;
     node->parent_ = temp;
     temp->level_++;
@@ -164,8 +160,7 @@ static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, int *ok)
     bbnode_t *parent = __bb_deleted->parent_;
     bbnode_t *left = __bb_deleted->left_;
     bbnode_t *right = __bb_deleted->right_;
-    assert(__bb_last->left_ == __NIL);
-    assert(__bb_last != __NIL);
+    assert(__bb_last->left_ == __NIL && __bb_last != __NIL);
 
     __bb_last->level_ = __bb_deleted->level_;
     __bb_last->parent_ = parent;

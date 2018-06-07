@@ -68,7 +68,7 @@ kImage_src-y += $(wildcard $(srcdir)/arch/$(target_arch)/*.c)
 kImage_src-y += $(wildcard $(srcdir)/libc/*.c)
 # kImage_src-y += $(wildcard $(srcdir)/scall/*.c)
 kImage_src-y += $(core_src-y)
-# kImage_src-y += $(drv_src-y) $(core_src-y)
+kImage_src-y += $(drv_src-y)
 # kImage_omit-y += $(srcdir)/io/seat.c $(srcdir)/io/termio.c
 $(eval $(call kimg,kImage,krn))
 DV_UTILS += $(bindir)/kImage

@@ -126,10 +126,6 @@ struct task {
 #define TSK_USER_SPACE  0x001
 
 
-void task_enter_sys(regs_t *regs, bool kernel);
-void task_leave_sys();
-
-
 void task_start(task_t *task, size_t entry, long args);
 int task_stop(task_t *task, int code);
 int task_kill(task_t *task, unsigned signum);
@@ -143,14 +139,13 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name);
 task_t *task_clone(task_t *model, int clone, int flags);
 task_t *task_search(pid_t pid);
 void task_switch(int status, int retcode);
+void task_show_all();
 
 _Noreturn void cpu_halt();
-_Noreturn void cpu_run(task_t *task);
 
 void scheduler_add(task_t *item);
 void scheduler_rm(task_t *item);
 task_t *scheduler_next();
-// void scheduler_ticks();
 
 
 void advent_awake(llhead_t *list, int err);

@@ -105,7 +105,7 @@ void acpi_setup()
     rsdp = (acpi_rsdp_t*)ptr;
     // TODO - RSDP have checksum
     void *rsdt_pg = kmap(PAGE_SIZE, NULL, ALIGN_DW(rsdp->rsdt, PAGE_SIZE), VMA_PHYSIQ);
-    rsdt = (acpi_rsdt_t*)((size_t)rsdt_pg | rsdp->rsdt & (PAGE_SIZE - 1));
+    rsdt = (acpi_rsdt_t*)((size_t)rsdt_pg | (rsdp->rsdt & (PAGE_SIZE - 1)));
     if (acpi_checksum(&rsdt->header) != 0) {
         kprintf(KLOG_ERR, "Invalid ACPI RSDT checksum.\n");
         return;
@@ -119,7 +119,8 @@ void acpi_setup()
 
 acpi_head_t *acpi_scan(CSTR name, int idx)
 {
-    int i, j, n = (rsdt->header.length - sizeof(acpi_head_t)) / sizeof(uint32_t);
+    int i, j = 0;
+    int n = (rsdt->header.length - sizeof(acpi_head_t)) / sizeof(uint32_t);
     for (i = 0; i < n; ++i) {
         acpi_head_t *head = (acpi_head_t*)rsdt->tables[i];
         if (memcpy(head->signature, name, 4) != 0)

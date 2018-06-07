@@ -19,31 +19,30 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
+#include <kernel/task.h>
+#include <errno.h>
 
-_Noreturn void cpu_halt_x86(size_t stack, void *tss);
-
-int cpu_no();
-int cpu_save(cpu_state_t*);
-void cpu_restore();
-
-
-_Noreturn void cpu_halt()
+void cpu_stack(task_t *task, size_t entry, size_t param)
 {
-    assert(kCPU.irq_semaphore == 0);
-    cpu_halt_x86();
-}
+	size_t *stack = task->kstack + (task->kstack_len / sizeof(size_t));
+	task->state[5] = entry;
+	task->state[3] = (size_t)stack;
 
-void cpu_stack(task_t, void*, void*);
+	stack--; *stack = param;
+	stack--; *stack = (size_t)kexit;
+	task->state[4] = (size_t)stack;
+}
 
 void cpu_shutdown(int cmd) // REBOOT, POWER_OFF, SLEEP, DEEP_SLEEP, HALT
 {
     switch (cmd) {
-    case REBOOT:
-
-        for(;;);
+    // case REBOOT:
+    //     while ((inb(0x64) & 2));
+    //     outb(0x64, 0xF4);
+    //     for(;;);
     default:
         errno = ENOSYS;
-        return -1;
+        return;
     }
 }
 

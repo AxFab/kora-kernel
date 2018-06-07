@@ -17,7 +17,7 @@
 ; C P U   R O U T I N E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use32
 
-global cpu_no, cpu_save, cpu_restore
+global cpu_no, cpu_save, cpu_restore, cpu_halt
 extern apic_mmio
 
 cpu_no:
@@ -56,3 +56,7 @@ cpu_restore:
     sti
     jmp ecx
 
+cpu_halt:
+    sti
+    hlt
+    jmp $

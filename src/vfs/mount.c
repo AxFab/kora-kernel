@@ -50,26 +50,25 @@ void unregister_fs(CSTR name)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int vfs_mountpt(CSTR name, CSTR fsname, mountfs_t *fs, inode_t *ino)
+int vfs_mountpt(CSTR name, CSTR fsname, fsvolume_t *fs, inode_t *ino)
 {
     fs->name = strdup(name);
     fs->fsname = strdup(fsname);
     fs->rcu = 2; // ROOT + DRIVER
     ino->fs = fs;
-    fs->root = vfs_open(ino);
+    fs->dev.ino = vfs_open(ino);
     hmp_init(&fs->hmap, 16);
-    splock_init(&fs->lock);
+    splock_init(&fs->dev.lock);
     return 0;
 }
 
-void vfs_mountpt_rcu_(mountfs_t *fs)
+void vfs_mountpt_rcu_(fsvolume_t *fs)
 {
     if (atomic_fetch_add(&fs->rcu, -1) > 1)
         return;
     kfree(fs->name);
     kfree(fs->fsname);
     hmp_destroy(&fs->hmap, 0);
-    splock_init(&fs->lock);
     kfree(fs);
 }
 
@@ -110,16 +109,16 @@ inode_t *vfs_mount(CSTR dev, CSTR fs)
 
 int vfs_umount(inode_t *ino)
 {
-    mountfs_t *fs = ino->fs;
-    if (fs->root != ino) {
+    fsvolume_t *fs = ino->fs;
+    if (fs->dev.ino != ino) {
         errno = EINVAL;
         return -1;
     }
 
     if (fs->umount)
         fs->umount(ino);
-    vfs_close(fs->root);
-    fs->is_detached = true;
+    vfs_close(fs->dev.ino);
+    fs->dev.is_detached = true;
     vfs_mountpt_rcu_(fs);
     return 0;
 }

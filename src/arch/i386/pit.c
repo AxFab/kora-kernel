@@ -42,6 +42,7 @@ void pit_interval(unsigned freq_hz)
 
 void pit_stop()
 {
-
+    outb(PIT_CMD, 0x30);
+    outb(PIT_CH0, 0xFF);
 }
 

@@ -22,6 +22,10 @@
 
 #include <kernel/types.h>
 
+#define IRQ_ON   asm("sti")
+#define IRQ_OFF  asm("cli")
+
+
 struct regs
 {
     uint16_t gs, unused_g;
@@ -44,68 +48,75 @@ struct regs
     uint32_t ss;
 };
 
-static inline void outb(unsigned short port, unsigned char val)
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+void x86_enable_mmu();
+void x86_set_cr3(page_t dir);
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+static inline void outb(uint16_t port, uint8_t val)
 {
     asm volatile ("outb %1, %0" : : "dN" (port), "a" (val));
 }
 
-static inline void outw(int port, uint16_t val)
+static inline void outw(uint16_t port, uint16_t val)
 {
     asm volatile ("outw %1, %0" : : "dN" (port), "a" (val));
 }
 
-static inline void outl(int port, uint32_t val)
+static inline void outl(uint16_t port, uint32_t val)
 {
     asm volatile ("outl %1, %0" : : "dN" (port), "a" (val));
 }
 
-static inline uint8_t inb(int port)
+static inline uint8_t inb(uint16_t port)
 {
-    unsigned char val;
-    asm volatile ("inb %%dx, %%eax" : "=a" (val) : "dN" (port));
+    uint8_t val;
+    asm volatile ("inb %%dx, %%al" : "=a" (val) : "dN" (port));
     return val;
 }
 
-static inline uint16_t inw(int port)
+static inline uint16_t inw(uint16_t port)
 {
-    unsigned short val;
-    asm volatile ("inw %%dx, %%eax" : "=a" (val) : "dN" (port));
+    uint16_t val;
+    asm volatile ("inw %%dx, %%ax" : "=a" (val) : "dN" (port));
     return val;
 }
 
-static inline uint32_t inl(int port)
+static inline uint32_t inl(uint16_t port)
 {
-    unsigned int val;
+    uint32_t val;
     asm volatile ("inl %%dx, %%eax" : "=a" (val) : "dN" (port));
     return val;
 }
 
-static inline void outsb(int port, const uint8_t *buf, int count)
+static inline void outsb(uint16_t port, const uint8_t *buf, int count)
 {
     asm volatile ("rep outsb" : "+S" (buf), "+c" (count) : "d" (port));
 }
 
-static inline void outsw(int port, const uint16_t *buf, int count)
+static inline void outsw(uint16_t port, const uint16_t *buf, int count)
 {
     asm volatile ("rep outsw" : "+S" (buf), "+c" (count) : "d" (port));
 }
 
-static inline void outsl(int port, const uint32_t *buf, int count)
+static inline void outsl(uint16_t port, const uint32_t *buf, int count)
 {
     asm volatile ("rep outsl" : "+S" (buf), "+c" (count) : "d" (port));
 }
 
-static inline void insb(int port, uint8_t *buf, int count)
+static inline void insb(uint16_t port, uint8_t *buf, int count)
 {
     asm volatile ("rep insb" : "+D" (buf), "+c" (count) : "d" (port) : "memory");
 }
 
-static inline void insw(int port, uint16_t *buf, int count)
+static inline void insw(uint16_t port, uint16_t *buf, int count)
 {
     asm volatile ("rep insw" : "+D" (buf), "+c" (count) : "d" (port) : "memory");
 }
 
-static inline void insl(int port, uint32_t *buf, int count)
+static inline void insl(uint16_t port, uint32_t *buf, int count)
 {
     asm volatile ("rep insl" : "+D" (buf), "+c" (count) : "d" (port) : "memory");
 }
