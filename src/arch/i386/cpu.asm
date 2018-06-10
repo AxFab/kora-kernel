@@ -21,7 +21,7 @@ global cpu_no, cpu_save, cpu_restore, cpu_halt
 extern apic_mmio
 
 cpu_no:
-    mov eax, apic_mmio
+    mov eax, [apic_mmio]
     test eax, eax
     jnz .n
     ret

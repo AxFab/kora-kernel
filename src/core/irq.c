@@ -138,7 +138,7 @@ void sys_irq(int no)
 // void ticks_init()
 // {
 //     splock_init(&xtime_lock);
-//     cpu_elapsed(&ticks_last);
+//     time_elapsed(&ticks_last);
 // }
 
 // void sys_ticks()
@@ -146,7 +146,7 @@ void sys_irq(int no)
 //     if (timer_cpu == cpu_no()) {
 //         splock_lock(&xtime_lock);
 //         ticks += TICKS_PER_SEC / HZ;
-//         ticks_elapsed += cpu_elapsed(&ticks_last);
+//         ticks_elapsed += time_elapsed(&ticks_last);
 //         jiffies++;
 //         // Update Wall time
 //         // Compute global load
@@ -163,8 +163,8 @@ void irq_enter(int no)
     assert(kCPU.irq_semaphore == 1);
     task_t *task = kCPU.running;
     // if (task)
-    //     task->elapsed_user = cpu_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_user = cpu_elapsed(&kCPU->elapsed_last);
+    //     task->elapsed_user = time_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_user = time_elapsed(&kCPU->elapsed_last);
 
     assert(no >= 0 && no < IRQ_MAX);
     irq_record_t *record;
@@ -177,8 +177,8 @@ void irq_enter(int no)
     irq_ack(no);
 
     // if (task)
-    //     task->elapsed_others = cpu_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_io = cpu_elapsed(&kCPU->elapsed_last);
+    //     task->elapsed_others = time_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_io = time_elapsed(&kCPU->elapsed_last);
 
     assert(kCPU.irq_semaphore == 1);
     irq_reset(false);
@@ -190,8 +190,8 @@ void irq_fault(const fault_t *fault)
     assert(kCPU.irq_semaphore == 0);
     assert(kCPU.running != NULL);
     task_t *task = kCPU.running;
-    // task->elapsed_user = cpu_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_user = cpu_elapsed(&kCPU->elapsed_last);
+    // task->elapsed_user = time_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_user = time_elapsed(&kCPU->elapsed_last);
     kprintf(KLOG_IRQ, "Task.%d raise exception: %s\n", fault->name);
     if (fault->raise != 0)
         task_kill(kCPU.running, fault->raise);
@@ -199,8 +199,8 @@ void irq_fault(const fault_t *fault)
         task_switch(TS_ZOMBIE, -1);
     // if (task->signals != 0)
     //     task_signals();
-    // task->elapsed_system = cpu_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_system = cpu_elapsed(&kCPU->elapsed_last);
+    // task->elapsed_system = time_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_system = time_elapsed(&kCPU->elapsed_last);
     assert(kCPU.irq_semaphore == 0);
 }
 
@@ -210,8 +210,8 @@ void irq_pagefault(size_t vaddr, int reason)
     assert(kCPU.irq_semaphore == 1);
     task_t *task = kCPU.running;
     // if (task)
-    //     task->elapsed_user = cpu_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_user = cpu_elapsed(&kCPU->elapsed_last);
+    //     task->elapsed_user = time_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_user = time_elapsed(&kCPU->elapsed_last);
 
     if (page_fault(/*task ? task->uspace: */NULL, vaddr, reason) != 0) {
         task_kill(kCPU.running, SIGSEGV);
@@ -222,6 +222,6 @@ void irq_pagefault(size_t vaddr, int reason)
     }
 
     // if (task)
-    //     task->elapsed_system = cpu_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_system = cpu_elapsed(&kCPU->elapsed_last);
+    //     task->elapsed_system = time_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_system = time_elapsed(&kCPU->elapsed_last);
 }

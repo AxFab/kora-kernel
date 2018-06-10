@@ -47,26 +47,26 @@ void task_core(task_t *task)
 //         task->regs/*[++task->rp]*/ = regs;
 //         splock_unlock(&task->lock);
 //         if (kernel) {
-//             task->sys_elapsed += cpu_elapsed(&task->last);
-//             kCPU.sys_elapsed += cpu_elapsed(&kCPU.last);
+//             task->sys_elapsed += time_elapsed(&task->last);
+//             kCPU.sys_elapsed += time_elapsed(&kCPU.last);
 //         } else {
-//             task->user_elapsed += cpu_elapsed(&task->last);
-//             kCPU.user_elapsed += cpu_elapsed(&kCPU.last);
+//             task->user_elapsed += time_elapsed(&task->last);
+//             kCPU.user_elapsed += time_elapsed(&kCPU.last);
 //         }
 //     } else {
-//         kCPU.sys_elapsed += cpu_elapsed(&kCPU.last);
+//         kCPU.sys_elapsed += time_elapsed(&kCPU.last);
 //     }
 // }
 
 // void task_leave_sys()
 // {
 //     task_t *task = kCPU.running;
-//     kCPU.sys_elapsed += cpu_elapsed(&kCPU.last);
+//     kCPU.sys_elapsed += time_elapsed(&kCPU.last);
 //     if (task) {
 //         splock_lock(&task->lock);
 //         // --task->rp;
 //         splock_unlock(&task->lock);
-//         task->sys_elapsed += cpu_elapsed(&task->last);
+//         task->sys_elapsed += time_elapsed(&task->last);
 //     }
 // }
 
@@ -87,7 +87,7 @@ void task_start(task_t *task, size_t entry, long args)
                                   0, VMA_STACK_RW);
     }
 
-    cpu_tasklet(task, entry, args);
+    cpu_stack(task, entry, args);
     scheduler_add(task);
 }
 
@@ -124,22 +124,22 @@ void task_start(task_t *task, size_t entry, long args)
 // }
 
 
-// int task_kill(task_t *task, unsigned signum)
-// {
-//     if (signum > 31) {
-//         errno = EINVAL;
-//         return -1;
-//     }
+int task_kill(task_t *task, unsigned signum)
+{
+    if (signum > 31) {
+        errno = EINVAL;
+        return -1;
+    }
 
-//     splock_lock(&task->lock);
-//     task->recieved_signal |= 1 << signum;
+    splock_lock(&task->lock);
+    task->recieved_signal |= 1 << signum;
 //     if (task->status == TS_INTERRUPTIBLE) {
 //         task->status = TS_READY;
 //         scheduler_add(task);
 //     }
-//     splock_unlock(&task->lock);
-//     return 0;
-// }
+    splock_unlock(&task->lock);
+    return 0;
+}
 
 
 // _Noreturn int task_pause(int status)
@@ -231,7 +231,7 @@ static task_t *task_allocat()
     task->status = TS_ZOMBIE;
     task->prio = TASK_DEFAULT_PRIO;
 
-    cpu_elapsed(&task->last);
+    time_elapsed(&task->last);
 
     return task;
 }

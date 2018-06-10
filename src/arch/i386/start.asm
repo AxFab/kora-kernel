@@ -19,7 +19,7 @@ use32
 
 global _start, start
 extern code, bss, end
-extern grub_init, cpu_early_init
+extern grub_init, cpu_early_init, kernel_start
 
 ; Define some constant values
 %define GRUB_MAGIC1     0x1BADB002
@@ -28,6 +28,15 @@ extern grub_init, cpu_early_init
 
 %define KSTACK0         0x4000
 %define KSTACK_LEN      0x1000
+
+; Segments values
+%define KCS  0x08
+%define KDS  0x10
+%define KSS  0x18
+%define UCS  0x23
+%define UDS  0x2d
+%define USS  0x33
+%define TSS0  0x38
 
 %macro PUTC 3
     mov byte [0xB8000 + 154], %2
@@ -68,17 +77,17 @@ start:
     jmp .grubLoader
 
 .unknowLoader:
-    PUTC 0x57, 'U', 'n'
+    PUTC 0x47, 'U', 'n'
     jmp .failed
 .errorLoader:
-    PUTC 0x57, 'E', 'r'
+    PUTC 0x47, 'E', 'r'
     jmp .failed
 .failed:
     hlt
     jmp $
 
 .grubLoader:
-    PUTC 0x57, 'G', 'r'
+    PUTC 0x17, 'G', 'r'
     push ebx
     call grub_init
     pop ebx
@@ -93,5 +102,34 @@ startup:
     mov ecx, 2048
     rep stosd
 
-    PUTC 0x37, 'G', '0'
+    PUTC 0x17, 'S', 't'
+    cli
+    call cpu_early_init
+
+    lgdt [.gdt_regs] ; GDT
+    jmp KCS:.reloadCS
+
+  .reloadCS:
+    mov ax, KDS
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+
+    ;lidt [.idt_regs] ; IDT
+    ;mov ax, TSS0 ; TSS
+    ;ltr ax
+
+    PUTC 0x27, 'G', 'o'
+    call kernel_start
+    PUTC 0x27, 'E', 'd'
+    ;sti
     jmp $
+
+align 4
+  .gdt_regs:
+    dw 0xF8, 0, 0, 0
+  .idt_regs:
+    dw 0x7F8, 0x800, 0, 0

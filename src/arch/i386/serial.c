@@ -65,7 +65,7 @@ static int com_read(int port, inode_t *ino)
     if ((inb(port + 5) & 1) != 0) {
         while ((inb(port + 5) & 1) != 0) {
             byte = inb(port);
-            chardev_push(ino, &byte, 1);
+            // chardev_push(ino, &byte, 1);
         }
         return 0;
     }
