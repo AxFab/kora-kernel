@@ -139,7 +139,7 @@ time_t cpu_time();
 /* - */
 void cpu_awake();
 
-uint64_t cpu_elapsed(uint64_t *last);
+uint64_t time_elapsed(uint64_t *last);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

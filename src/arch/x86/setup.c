@@ -267,3 +267,18 @@ void cpu_setup_x86 ()
     outb(0xA1, 0x0);
 
 }
+
+
+void TXT_write(const char *buf, int len);
+void SRL_write(const char *buf, int len);
+
+void kwrite(const char *buf, int len)
+{
+    TXT_write(buf, len);
+    SRL_write(buf, len);
+
+    // if (tty_syslog == NULL)
+    //     return;
+    // tty_write(tty_syslog, buf, len);
+}
+

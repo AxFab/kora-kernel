@@ -25,13 +25,10 @@ void cpu_awake()
     kprintf(KLOG_MSG, "CPU: %s, Single CPU\n", "HostSimulatedCPU");
 }
 
-uint64_t cpu_elapsed(uint64_t *last)
+uint64_t cpu_clock()
 {
     static uint64_t ticks = 0;
-    ticks++;
-    uint64_t elapsed = ticks - *last;
-    *last =  ticks;
-    return elapsed;
+    return ++ticks;
 }
 
 int cpu_no()

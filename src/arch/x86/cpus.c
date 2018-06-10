@@ -209,7 +209,7 @@ time_t cpu_time()
     return mktime(&datetime);
 }
 
-uint64_t cpu_elapsed(uint64_t *last)
+uint64_t time_elapsed(uint64_t *last)
 {
     uint64_t ticks = cpu_ticks();
     if (last == NULL) {

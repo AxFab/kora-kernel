@@ -42,12 +42,22 @@ time64_t time64()
     return time_us;
 }
 
+
+uint64_t time_elapsed(uint64_t *last)
+{
+    uint64_t ticks = cpu_clock();
+    uint64_t elapsed = ticks - *last;
+    *last =  ticks;
+    return elapsed;
+}
+
+
 void clock_init()
 {
     time_us = cpu_time() * 1000000LL;
     timer_cpu = cpu_no();
     splock_init(&xtime_lock);
-    cpu_elapsed(&ticks_last);
+    time_elapsed(&ticks_last);
 }
 
 
@@ -59,7 +69,7 @@ void sys_ticks()
     if (timer_cpu == cpu_no()) {
         splock_lock(&xtime_lock);
         time_us += TICKS_PER_SEC;
-        ticks_elapsed += cpu_elapsed(&ticks_last);
+        ticks_elapsed += time_elapsed(&ticks_last);
         jiffies++;
         // Update Wall time
         // Compute global load

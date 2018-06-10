@@ -205,9 +205,9 @@ void sys_irq_x86(int no, regs_t *regs)
     kprintf(KLOG_DBG, "[x86 ] IRQ %d\n", no);
     // bufdump(regs, 0x60);
     sys_irq(no);
-    kCPU.io_elapsed += cpu_elapsed(&kCPU.last);
+    kCPU.io_elapsed += time_elapsed(&kCPU.last);
     if (kCPU.running) {
-        kCPU.running->other_elapsed += cpu_elapsed(&kCPU.running->last);
+        kCPU.running->other_elapsed += time_elapsed(&kCPU.running->last);
     }
     // task_signals();
     // task_leave_sys();

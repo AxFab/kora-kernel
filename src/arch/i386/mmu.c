@@ -53,7 +53,7 @@ void mmu_enable()
     setup_allocator((void *)(1024 * _Kib_), 1024 * _Kib_);
 
     // Record physical available memory
-
+    grub_memory();
 
     // Prepare kernel PGD
     page_t *dir = MMU_KRN_DIR_PG;
@@ -148,7 +148,7 @@ void mmu_protect(size_t vaddr, int flags)
         :: "r"(vaddr) : "%eax");
 }
 
-void mmu_open_uspace(mspace_t *mspace)
+void mmu_create_uspace(mspace_t *mspace)
 {
 	page_t dir_pg = page_new();
     page_t *dir = (page_t*)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
@@ -164,7 +164,7 @@ void mmu_open_uspace(mspace_t *mspace)
     mspace->directory = dir_pg;
 }
 
-void mmu_close_uspace(mspace_t *mspace)
+void mmu_destroy_uspace(mspace_t *mspace)
 {
 	unsigned i;
 	page_t dir_pg = mspace->directory;

@@ -89,24 +89,8 @@ _Noreturn void abort()
 
 splock_t klog_lock;
 
-void TXT_write(const char *buf, int len);
-void SRL_write(const char *buf, int len);
-
-void kwrite(const char *buf, int len)
-{
-    splock_lock(&klog_lock);
-    TXT_write(buf, len);
-    SRL_write(buf, len);
-
-    // if (tty_syslog == NULL)
-    //     return;
-    // tty_write(tty_syslog, buf, len);
-    splock_unlock(&klog_lock);
-}
-
-
 int no_dbg = 1;
-
+void kwrite(const char *buf, int len);
 int vfprintf(FILE *fp, const char *str, va_list ap);
 
 char buf[1024];
@@ -121,7 +105,9 @@ void kprintf(int log, const char *msg, ...)
     // char *buf = kalloc(256);
     int len = vsnprintf(buf, 1024, msg, ap);
     va_end(ap);
+    splock_lock(&klog_lock);
     kwrite(buf, len);
+    splock_unlock(&klog_lock);
     // kfree(buf);
     splock_unlock(&bf_lock);
 }
@@ -165,3 +151,12 @@ void kclock(struct timespec *ts)
     ts->tv_sec = 0;
     ts->tv_nsec = 0;
 }
+
+void kexit()
+{
+}
+
+void irq_syscall()
+{
+}
+

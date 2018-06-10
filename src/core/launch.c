@@ -129,6 +129,7 @@ void kernel_start()
     assert(kCPU.irq_semaphore == 1);
 
     memory_initialize();
+    assert(kCPU.irq_semaphore == 1);
 
     // Resolve page fault for allocation --
     //      circular deps between mspace_map and kalloc
@@ -140,17 +141,17 @@ void kernel_start()
     kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
     kprintf (KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
 
-
     kprintf (KLOG_MSG, "Memory available %s over ", sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
     kprintf (KLOG_MSG, "%s\n", sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
+    memory_info();
 
-    cpu_awake();
-    irq_reset(false);
-    irq_disable();
-    assert(kCPU.irq_semaphore == 1);
+    // // cpu_awake();
+    // irq_reset(false);
+    // irq_disable();
+    // assert(kCPU.irq_semaphore == 1);
 
-    time_t now = cpu_time();
-    kprintf(KLOG_MSG, "Startup: %s", asctime(gmtime(&now)));
+    // time_t now = cpu_time();
+    // kprintf(KLOG_MSG, "Startup: %s", asctime(gmtime(&now)));
 
     // seat_initscreen(); // Return an inode to close !
     // surface_t *src0 = seat_screen(0);
@@ -185,10 +186,10 @@ void kernel_start()
 // #endif
 //     KSETUP(isofs);
 
-    kernel_tasklet(ktsk1, 1, "Dbg_task1");
-    kernel_tasklet(ktsk2, 2, "Dbg_task2");
-    kernel_tasklet(ktsk3, 3, "Dbg_task3");
-    kernel_tasklet(kernel_top, 5, "Dbg top 5s");
+    // kernel_tasklet(ktsk1, 1, "Dbg_task1");
+    // kernel_tasklet(ktsk2, 2, "Dbg_task2");
+    // kernel_tasklet(ktsk3, 3, "Dbg_task3");
+    // kernel_tasklet(kernel_top, 5, "Dbg top 5s");
     // desktop_t *dekstop = wmgr_desktop();
 
     // tty_attach(tty_syslog, wmgr_window(dekstop, 600, 600), &font_6x9, colors_kora, 0);
@@ -217,10 +218,10 @@ void kernel_start()
 
     // vfs_close(root);
     // vfs_close(ino);
-    irq_reset(false);
-    clock_init();
-    no_dbg = 0;
-    irq_register(0, (irq_handler_t)sys_ticks, NULL);
+    // irq_reset(false);
+    // clock_init();
+    // no_dbg = 0;
+    // irq_register(0, (irq_handler_t)sys_ticks, NULL);
     // PS2_reset();
 }
 

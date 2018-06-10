@@ -161,7 +161,7 @@ void cpu_return_signal(task_t *task, regs_t *regs);
 
 bool cpu_task_return_uspace(task_t *task);
 
-void cpu_tasklet(task_t* task, size_t entry, size_t param);
+void cpu_stack(task_t *task, size_t entry, size_t param);
 int cpu_save(cpu_state_t state);
 void cpu_restore(cpu_state_t state, int no);
 

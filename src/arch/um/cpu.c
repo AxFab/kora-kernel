@@ -40,7 +40,7 @@ int cpu_no()
     return 0;
 }
 
-uint64_t cpu_elapsed(uint64_t *last)
+uint64_t time_elapsed(uint64_t *last)
 {
     return 1;
 }
