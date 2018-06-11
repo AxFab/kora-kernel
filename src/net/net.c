@@ -108,6 +108,23 @@ int net_write(skb_t *skb, const void *buf, unsigned len)
     return 0;
 }
 
+/* Get pointer on data from a packet and move cursor */
+void *net_pointer(skb_t *skb, unsigned len)
+{
+	if (skb->err)
+        return NULL;
+    if (skb->pen + len > skb->ifnet->mtu) {
+        skb->err |= NET_ERR_OVERFILL;
+        return NULL;
+    }
+
+    void *ptr = &skb->buf[skb->pen];
+    skb->pen += len;
+    if (skb->pen > skb->length)
+        skb->length = skb->pen;
+    return ptr;
+}
+
 char *net_ethstr(char *buf, uint8_t *mac)
 {
     snprintf(buf, 18, "%02X:%02X:%02X:%02X:%02X:%02X",
