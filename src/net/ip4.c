@@ -99,13 +99,13 @@ int ip4_receive(skb_t *skb)
     // REGROUP SOCKET
     switch (header.protocol) {
     case IP4_TCP:
-        return tcp_receive(skb, header.length - sizeof(header));
+        return tcp_receive(skb, htonw(header.length) - sizeof(header));
     case IP4_UDP:
-        return udp_receive(skb, header.length - sizeof(header));
+        return udp_receive(skb, htonw(header.length) - sizeof(header));
     case IP4_ICMP:
         if (header.offset != 0)
             return -1;
-        return icmp_receive(skb, header.length - sizeof(header));
+        return icmp_receive(skb, htonw(header.length) - sizeof(header));
     default:
         return -1;
     }
