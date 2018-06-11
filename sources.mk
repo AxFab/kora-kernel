@@ -114,13 +114,13 @@ $(eval $(call link,ckFile,std))
 # -------------------------
 
 ckTask_src-y += $(wildcard $(srcdir)/task/*.c)
-ckTask_src-y += $(srcdir)/libc/bbtree.c $(srcdir)/libc/setjmp_x86_64.asm
+ckTask_src-y += $(srcdir)/libc/bbtree.c $(srcdir)/libc/setjmp_$(target_arch).asm
 ckTask_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
 ckTask_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/cpu.c
 ckTask_src-y += $(srcdir)/tests/ck_task.c
 ckTask_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckTask,std))
-DV_CHECK += $(bindir)/ckTask
+# DV_CHECK += $(bindir)/ckTask
 
 # -------------------------
 
