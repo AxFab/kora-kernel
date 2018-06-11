@@ -137,7 +137,7 @@ static void _exit() {
     for (;;) task_switch(TS_ZOMBIE, -42);
 }
 
-void cpu_tasklet(task_t* task, size_t entry, size_t param)
+void cpu_stack(task_t* task, size_t entry, size_t param)
 {
     size_t *stack = (size_t*)task->kstack + (task->kstack_len / sizeof(size_t));
     task->state[7] = entry;

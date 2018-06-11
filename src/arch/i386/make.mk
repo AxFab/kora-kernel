@@ -17,6 +17,9 @@
 
 
 $(outdir)/std/%.o: $(srcdir)/%.asm
+	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    ASM "$@
+	$(V) nasm -f elf32 -o $@ $^
 
 $(outdir)/krn/%.o: $(srcdir)/%.asm
 	$(S) mkdir -p $(dir $@)

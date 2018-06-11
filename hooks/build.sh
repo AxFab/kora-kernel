@@ -61,7 +61,7 @@ raspberry-pi2 () {
 
 x86 () {
     export target=i386-pc-none
-    export CROSS=i686-elf-
+#    export CROSS=i686-elf-
     export iso_name=KoraOs.iso
 
     make -f $SRC_KRN/Makefile kImage
