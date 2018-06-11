@@ -50,6 +50,7 @@ int arp_receive(skb_t *skb);
 #define IP4_TCP 0x06
 #define IP4_UDP 0x11
 
+uint16_t ip4_checksum(skb_t *skb, size_t len);
 int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, int length, int protocol);
 int ip4_receive(skb_t *skb);
 
@@ -181,6 +182,9 @@ int net_trash(skb_t *skb);
 int net_read(skb_t *skb, void *buf, unsigned len);
 /* Write data on a packet */
 int net_write(skb_t *skb, const void *buf, unsigned len);
+/* Get pointer on data from a packet and move cursor */
+void *net_pointer(skb_t *skb, unsigned len);
+
 
 char *net_ethstr(char *buf, uint8_t *mac);
 char *net_ip4str(char *buf, uint8_t *ip);

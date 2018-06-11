@@ -30,41 +30,43 @@ PACK(struct UDP_header {
 });
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-static int udp_checksum(skb_t *skb, UDP_header_t *header)
-{
-    return 0;
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
 
 int udp_header(skb_t *skb, const uint8_t *ip, int length, int port, int src)
 {
     if (ip4_header(skb, ip, 0, 0, length + sizeof(UDP_header_t), IP4_UDP) != 0)
         return -1;
     strncat(skb->log, "udp:", NET_LOG_SIZE);
-    UDP_header_t header;
-    header.src_port = htonw(src > 0 ? src: net_rand_port());
-    header.dest_port = htonw(port);
-    header.length = htonw(length);
-    header.checksum = udp_checksum(skb, &header);
-    return net_write(skb, &header, sizeof(header));
+    UDP_header_t *header = net_pointer(skb, sizeof(UDP_header_t));
+    if (header == NULL)
+        return -1;
+    header->src_port = htonw(src > 0 ? src: net_rand_port());
+    header->dest_port = htonw(port);
+    header->length = htonw(length);
+    header->checksum = 0;
+    header->checksum = ip4_checksum(skb, sizeof(UDP_header_t) + 8); /* TODO - ip options */
+    return 0;
 }
 
 int udp_receive(skb_t *skb, unsigned length)
 {
-    UDP_header_t header;
     strncat(skb->log, "udp:", NET_LOG_SIZE);
-    if (net_read(skb, &header, sizeof(header)) != 0)
+    UDP_header_t *header = net_pointer(skb, sizeof(UDP_header_t));
+    if (header == NULL)
         return -1;
-    // TODO check checksum, and length
-    switch (htonw(header.dest_port)) {
+    uint16_t checksum = header->checksum;
+    header->checksum = 0;
+    if (checksum != ip4_checksum(skb, sizeof(UDP_header_t) + 8)) /* TODO - ip options */
+        return -1;
+    if (length != htonw(header->length))
+        return -1;
+    length -= sizeof(UDP_header_t);
+    switch (htonw(header->dest_port)) {
         case UDP_PORT_NTP:
-            return ntp_receive(skb, htonw(header.length));
+            return ntp_receive(skb, length);
         case UDP_PORT_DHCP:
-            return dhcp_receive(skb, htonw(header.length));
+            return dhcp_receive(skb, length);
         case UDP_PORT_DNS:
-            return dns_receive(skb, htonw(header.length));
+            return dns_receive(skb, length);
         default:
             // socket_t *socket = net_listener("udp", header.dest_port);
             return -1;
