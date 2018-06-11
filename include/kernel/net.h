@@ -122,6 +122,7 @@ struct netdev {
     uint8_t subnet_bits;
 
     llhead_t queue;
+    llhead_t waiters;
     splock_t lock;
 
     long rx_packets;
