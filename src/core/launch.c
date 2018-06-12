@@ -123,11 +123,10 @@ static void kernel_top(long sec)
 void kernel_start()
 {
     kSYS.cpus[0] = &kCPU0;
-
     irq_reset(false);
     irq_disable();
-    assert(kCPU.irq_semaphore == 1);
 
+    assert(kCPU.irq_semaphore == 1);
     memory_initialize();
     assert(kCPU.irq_semaphore == 1);
 
@@ -145,6 +144,10 @@ void kernel_start()
     kprintf (KLOG_MSG, "%s\n", sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
     memory_info();
 
+    assert(kCPU.irq_semaphore == 1);
+    cpu_setup();
+    assert(kCPU.irq_semaphore == 1);
+    for (;;);
     // // cpu_awake();
     // irq_reset(false);
     // irq_disable();

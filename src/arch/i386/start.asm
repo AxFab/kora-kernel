@@ -118,7 +118,7 @@ startup:
     mov ss, ax
 
 
-    ;lidt [.idt_regs] ; IDT
+    lidt [.idt_regs] ; IDT
     ;mov ax, TSS0 ; TSS
     ;ltr ax
 

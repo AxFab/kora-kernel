@@ -19,6 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
+#include <kernel/task.h>
 #include <errno.h>
 #include <bits/signum.h>
 #include "apic.h"
@@ -92,19 +93,22 @@ void irq_unmask(int no)
     }
 }
 
-/* x86 entry after an IRQ */
-void irq_x86(int no, regs_t *regs) // -> irq_enter()
-{
-    irq_enter(no);
-}
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#define x86_PFEC_PRST  (1 << 0)
+#define x86_PFEC_WR  (1 << 1)
+#define x86_PFEC_USR  (1 << 2)
+#define x86_PFEC_RSVD  (1 << 3)
+#define x86_PFEC_INSTR  (1 << 4)
+#define x86_PFEC_PK  (1 << 5)
 
 
-void irq_trap_x86(int no, regs_t *regs)
+void x86_fault(int no, regs_t *regs)
 {
     irq_fault(&x86_exceptions[MIN(0x20, (unsigned)no)]);
 }
 
-void irq_fault_x86(int no, int code, regs_t *regs)
+void x86_error(int no, int code, regs_t *regs)
 {
     char buf[64];
     fault_t fault = x86_exceptions[MIN(0x20, (unsigned)no)];
@@ -113,15 +117,18 @@ void irq_fault_x86(int no, int code, regs_t *regs)
     irq_fault(&fault);
 }
 
-void irq_pgflt_x86(size_t vaddr, int code, regs_t *regs)
+void x86_pgflt(size_t vaddr, int code, regs_t *regs)
 {
-    int flags = 0;
-    // if (code & 1)
-    //     flags |= PFLT_PRESENT;
-    irq_pagefault(vaddr, flags);
+    int reason = 0;
+    task_t *task = kCPU.running;
+    if ((code & x86_PFEC_PRST) == 0)
+        reason |= PGFLT_MISSING;
+    if (code & x86_PFEC_WR)
+        reason |= PGFLT_WRITE;
+    page_fault(task ? task->usmem : NULL, vaddr, reason);
 }
 
-void irq_syscall_x86(regs_t *regs)
+void x86_syscall(regs_t *regs)
 {
     int ret = irq_syscall(regs->eax, regs->ecx, regs->edx, regs->ebx, regs->esi, regs->edi);
     regs->eax = ret;

@@ -27,6 +27,54 @@
 #define INTGATE_USER  0xEE00     /* used for special system calls */
 #define TRAPGATE  0xEF00     /* used for system calls */
 
+void int_default();
+void int_syscall();
+
+void int_exDV();
+void int_exDB();
+void int_exNMI();
+void int_exBP();
+void int_exOF();
+void int_exBR();
+void int_exUD();
+void int_exNM();
+void int_exDF();
+void int_exCO();
+void int_exTS();
+void int_exNP();
+void int_exSS();
+void int_exGP();
+void int_exPF();
+void int_exMF();
+void int_exAC();
+void int_exMC();
+void int_exXF();
+void int_exVE();
+void int_exSX();
+
+void int_irq0();
+void int_irq1();
+void int_irq2();
+void int_irq3();
+void int_irq4();
+void int_irq5();
+void int_irq6();
+void int_irq7();
+void int_irq8();
+void int_irq9();
+void int_irq10();
+void int_irq11();
+void int_irq12();
+void int_irq13();
+void int_irq14();
+void int_irq15();
+void int_irq16();
+void int_irq17();
+void int_irq18();
+void int_irq19();
+void int_irq20();
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 PACK(struct x86_gdt {
     uint16_t lim0_15;
@@ -79,7 +127,9 @@ void cpu_setup()
 {
     // call for one, reach by all
     // setup pic (BSP only)
+    pic_setup();
     // look for ACPI (BSP)
+    acpi_setup();
     //   save prepare cpus
     //   prepare io_apic, overwrite
     // TSS
@@ -96,6 +146,7 @@ void cpu_setup()
 
 void cpu_early_init() // GDT & IDT
 {
+    int i;
     // GDT - Global Descriptor Table
     GDT(0, 0, 0, 0, 0); // Empty
     GDT(1, 0x0, 0xfffff, 0x9B, 0x0D); // Kernel code
@@ -115,55 +166,60 @@ void cpu_early_init() // GDT & IDT
     // }
 
     // IDT - Interupt Descriptor Table
-    for (i = 0; i < 256; ++i) {
-        IDT(i, 0x08, (uint32_t)x86_interrupt, TRAPGATE);
-    }
+    for (i = 0; i < 256; ++i)
+        IDT(i, 0x08, (uint32_t)int_default, TRAPGATE);
 
     // Hardware Exception
-    // IDT(0x0, 0x08, (uint32_t)x86_exception00, INTGATE);
-    // IDT(0x1, 0x08, (uint32_t)x86_exception01, INTGATE);
-    // IDT(0x2, 0x08, (uint32_t)x86_exception02, TRAPGATE);
-    // IDT(0x3, 0x08, (uint32_t)x86_exception03, TRAPGATE);
-    // IDT(0x4, 0x08, (uint32_t)x86_exception04, TRAPGATE);
-    // IDT(0x5, 0x08, (uint32_t)x86_exception05, INTGATE);
-    // IDT(0x6, 0x08, (uint32_t)x86_exception06, INTGATE);
-    // IDT(0x7, 0x08, (uint32_t)x86_exception07, INTGATE);
-    // IDT(0x8, 0x08, (uint32_t)x86_exception08, INTGATE);
-    // IDT(0x9, 0x08, (uint32_t)x86_exception09, INTGATE);
-    // IDT(0xA, 0x08, (uint32_t)x86_exception0A, INTGATE);
-    // IDT(0xB, 0x08, (uint32_t)x86_exception0B, INTGATE);
-    // IDT(0xC, 0x08, (uint32_t)x86_exception0C, INTGATE);
-    // IDT(0xD, 0x08, (uint32_t)x86_exception0D, INTGATE);
-    // IDT(0xE, 0x08, (uint32_t)x86_exception0E, INTGATE);
-    // IDT(0xF, 0x08, (uint32_t)x86_exception0F, INTGATE);
+    IDT(0x0, 0x08, (uint32_t)int_exDV, INTGATE);
+    IDT(0x1, 0x08, (uint32_t)int_exDB, INTGATE);
+    IDT(0x2, 0x08, (uint32_t)int_exNMI, TRAPGATE);
+    IDT(0x3, 0x08, (uint32_t)int_exBP, TRAPGATE);
+    IDT(0x4, 0x08, (uint32_t)int_exOF, TRAPGATE);
+    IDT(0x5, 0x08, (uint32_t)int_exBR, INTGATE);
+    IDT(0x6, 0x08, (uint32_t)int_exUD, INTGATE);
+    IDT(0x7, 0x08, (uint32_t)int_exNM, INTGATE);
+    IDT(0x8, 0x08, (uint32_t)int_exDF, INTGATE);
+    IDT(0x9, 0x08, (uint32_t)int_exCO, INTGATE);
+    IDT(0xA, 0x08, (uint32_t)int_exTS, INTGATE);
+    IDT(0xB, 0x08, (uint32_t)int_exNP, INTGATE);
+    IDT(0xC, 0x08, (uint32_t)int_exSS, INTGATE);
+    IDT(0xD, 0x08, (uint32_t)int_exGP, INTGATE);
+    IDT(0xE, 0x08, (uint32_t)int_exPF, INTGATE);
+
+    IDT(0x10, 0x08, (uint32_t)int_exMF, INTGATE);
+    IDT(0x11, 0x08, (uint32_t)int_exAC, INTGATE);
+    IDT(0x12, 0x08, (uint32_t)int_exMC, INTGATE);
+    IDT(0x13, 0x08, (uint32_t)int_exXF, INTGATE);
+    IDT(0x14, 0x08, (uint32_t)int_exVE, INTGATE);
+    IDT(0x15, 0x08, (uint32_t)int_exSX, INTGATE);
+
 
     // // Hardware Interrupt Request - Master
-    // IDT(0x20, 0x08, (uint32_t)x86_IRQ0, INTGATE);
-    // IDT(0x21, 0x08, (uint32_t)x86_IRQ1, INTGATE);
-    // IDT(0x22, 0x08, (uint32_t)x86_IRQ2, INTGATE);
-    // IDT(0x23, 0x08, (uint32_t)x86_IRQ3, INTGATE);
-    // IDT(0x24, 0x08, (uint32_t)x86_IRQ4, INTGATE);
-    // IDT(0x25, 0x08, (uint32_t)x86_IRQ5, INTGATE);
-    // IDT(0x26, 0x08, (uint32_t)x86_IRQ6, INTGATE);
-    // IDT(0x27, 0x08, (uint32_t)x86_IRQ7, INTGATE);
+    IDT(0x20, 0x08, (uint32_t)int_irq0, INTGATE);
+    IDT(0x21, 0x08, (uint32_t)int_irq1, INTGATE);
+    IDT(0x22, 0x08, (uint32_t)int_irq2, INTGATE);
+    IDT(0x23, 0x08, (uint32_t)int_irq3, INTGATE);
+    IDT(0x24, 0x08, (uint32_t)int_irq4, INTGATE);
+    IDT(0x25, 0x08, (uint32_t)int_irq5, INTGATE);
+    IDT(0x26, 0x08, (uint32_t)int_irq6, INTGATE);
+    IDT(0x27, 0x08, (uint32_t)int_irq7, INTGATE);
 
     // // Hardware Interrupt Request - Slave
-    // IDT(0x28, 0x08, (uint32_t)x86_IRQ8, INTGATE);
-    // IDT(0x29, 0x08, (uint32_t)x86_IRQ9, INTGATE);
-    // IDT(0x2A, 0x08, (uint32_t)x86_IRQ10, INTGATE);
-    // IDT(0x2B, 0x08, (uint32_t)x86_IRQ11, INTGATE);
-    // IDT(0x2C, 0x08, (uint32_t)x86_IRQ12, INTGATE);
-    // IDT(0x2D, 0x08, (uint32_t)x86_IRQ13, INTGATE);
-    // IDT(0x2E, 0x08, (uint32_t)x86_IRQ14, INTGATE);
-    // IDT(0x2F, 0x08, (uint32_t)x86_IRQ15, INTGATE);
+    IDT(0x28, 0x08, (uint32_t)int_irq8, INTGATE);
+    IDT(0x29, 0x08, (uint32_t)int_irq9, INTGATE);
+    IDT(0x2A, 0x08, (uint32_t)int_irq10, INTGATE);
+    IDT(0x2B, 0x08, (uint32_t)int_irq11, INTGATE);
+    IDT(0x2C, 0x08, (uint32_t)int_irq12, INTGATE);
+    IDT(0x2D, 0x08, (uint32_t)int_irq13, INTGATE);
+    IDT(0x2E, 0x08, (uint32_t)int_irq14, INTGATE);
+    IDT(0x2F, 0x08, (uint32_t)int_irq15, INTGATE);
 
-    // // Hardware Interrupt Request - IO APIC
-    // IDT(0x30, 0x08, (uint32_t)x86_IRQ16, INTGATE);
-    // IDT(0x31, 0x08, (uint32_t)x86_IRQ17, INTGATE);
-    // IDT(0x32, 0x08, (uint32_t)x86_IRQ18, INTGATE);
-    // IDT(0x33, 0x08, (uint32_t)x86_IRQ19, INTGATE);
-    // IDT(0x34, 0x08, (uint32_t)x86_IRQ20, INTGATE);
+    // Hardware Interrupt Request - IO APIC
+    IDT(0x30, 0x08, (uint32_t)int_irq16, INTGATE);
+    IDT(0x31, 0x08, (uint32_t)int_irq17, INTGATE);
+    IDT(0x32, 0x08, (uint32_t)int_irq18, INTGATE);
+    IDT(0x33, 0x08, (uint32_t)int_irq19, INTGATE);
 
-    // IDT(0x40, 0x08, (uint32_t)x86_syscall, TRAPGATE);
+    IDT(0x40, 0x08, (uint32_t)int_syscall, TRAPGATE);
 }
 
