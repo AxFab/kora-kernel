@@ -29,7 +29,7 @@ void pic_setup()
 
     /* PIC - ICW2 Initialization */
     outb(PIC1_DATA, 0x20); /* vector IRQ master */
-    outb(PIC2_DATA, 0x30); /* vector IRQ slave */
+    outb(PIC2_DATA, 0x28); /* vector IRQ slave */
 
     /* PIC - ICW3 Initialization */
     outb(PIC1_DATA, 0x04);

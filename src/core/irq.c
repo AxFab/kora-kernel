@@ -187,7 +187,7 @@ void irq_enter(int no)
 void irq_fault(const fault_t *fault)
 {
     assert(fault != NULL);
-    assert(kCPU.irq_semaphore == 0);
+    // assert(kCPU.irq_semaphore == 0);
     assert(kCPU.running != NULL);
     task_t *task = kCPU.running;
     // task->elapsed_user = time_elapsed(&task->elapsed_last);
@@ -201,7 +201,7 @@ void irq_fault(const fault_t *fault)
     //     task_signals();
     // task->elapsed_system = time_elapsed(&task->elapsed_last);
     // kCPU.elapsed_system = time_elapsed(&kCPU->elapsed_last);
-    assert(kCPU.irq_semaphore == 0);
+    // assert(kCPU.irq_semaphore == 0);
 }
 
 void irq_pagefault(size_t vaddr, int reason)

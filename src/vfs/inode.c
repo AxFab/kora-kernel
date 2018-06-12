@@ -269,7 +269,8 @@ int vfs_write(inode_t *ino, const void *buf, size_t len, off_t off)
 /* Open an inode - increment usage as concerned to RCU mechanism. */
 inode_t *vfs_open(inode_t *ino)
 {
-    atomic_inc(&ino->rcu);
+    if (ino)
+        atomic_inc(&ino->rcu);
     return ino;
 }
 
