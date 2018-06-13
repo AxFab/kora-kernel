@@ -142,6 +142,8 @@ void cpu_setup()
     // upgrade PIC to APIC
     // activate interval timer
     //  - no irq yet
+    kprintf(KLOG_ERR, "End of CPU setup.\n");
+    for(;;);
 }
 
 void cpu_early_init() // GDT & IDT

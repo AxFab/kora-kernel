@@ -19,7 +19,15 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
+#include "acpi.h"
 
 
 int hpet_interval(int freq_hz);
 int hpet_stop();
+
+void hpet_setup(acpi_hpet_t *hpet)
+{
+    kprintf(KLOG_ERR, "HPET mmio map physique %x\n", (size_t)hpet->base.base);
+    // kdump(rstb, rstb->length);
+}
+

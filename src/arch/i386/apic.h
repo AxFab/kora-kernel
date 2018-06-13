@@ -37,4 +37,7 @@
 
 extern volatile uint32_t *apic_mmio;
 
+
+void apic_setup(uint32_t address);
+
 #endif  /* _SRC_APIC_H */
