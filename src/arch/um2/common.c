@@ -140,5 +140,5 @@ void kprintf(int lvl, const char *format, ...)
 struct kCpu kCPU0;
 
 struct kSys kSYS = {
-    .cpus[0] = &kCPU0,
+    .cpus = &kCPU0,
 };

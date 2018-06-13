@@ -20,7 +20,7 @@
 #include <kernel/core.h>
 
 void csl_early_init();
-int csl_write(inode_t *ino, const char *buf, int len);
+void com_early_init();
 
 PACK(struct grub_info {
     uint32_t flags;
@@ -67,6 +67,7 @@ int grub_init(void *table)
 {
     grub_table = (struct grub_info*)table;
     csl_early_init();
+    com_early_init();
 
     if (grub_table->flags & GRUB_BOOT_LOADER) {
         kprintf(KLOG_MSG, "Boot Loader: %s\n", grub_table->boot_loader);

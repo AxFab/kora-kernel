@@ -115,7 +115,7 @@ void test_02()
 int main ()
 {
     kprintf(-1, "\e[1;97mKora TASK check - " __ARCH " - v" _VTAG_ "\e[0m\n");
-    kSYS.cpus[0] = &kCPU0;
+    kSYS.cpus = &kCPU0;
 
     test_01();
     test_02();

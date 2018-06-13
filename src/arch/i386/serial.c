@@ -72,6 +72,18 @@ static int com_read(int port, inode_t *ino)
     return -1;
 }
 
+int com_output(int no, char *buf, int len)
+{
+    int port = serial_ports[no];
+    for (; len-- > 0; buf++) {
+        // Wait transmition is clear
+        while ((inb(port + 5) & 0x20) == 0);
+        outb(port, *buf);
+    }
+    errno = 0;
+    return 0;
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void com_early_init()
@@ -90,14 +102,7 @@ void com_irq(int o)
 
 int com_write(inode_t *ino, char *buf, int len)
 {
-    int port = serial_ports[ino->no];
-    for (; len-- > 0; buf++) {
-        // Wait transmition is clear
-        while ((inb(port + 5) & 0x20) == 0);
-        outb(port, *buf);
-    }
-    errno = 0;
-    return 0;
+    return com_output(ino->no, buf, len);
 }
 
 int com_ioctl(inode_t *ino)

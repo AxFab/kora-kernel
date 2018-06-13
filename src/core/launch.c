@@ -125,49 +125,28 @@ void kernel_start()
     kSYS.cpus[0] = &kCPU0;
     irq_reset(false);
     irq_disable();
+    kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
 
     assert(kCPU.irq_semaphore == 1);
     memory_initialize();
-    assert(kCPU.irq_semaphore == 1);
-
-    // Resolve page fault for allocation --
-    //      circular deps between mspace_map and kalloc
-    void *p = kalloc(2);
-    (void)p;
-
-    // tty_syslog = tty_create(NULL, &font_6x10, colors_kora, 0);
-
-    kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
-    kprintf (KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
-
+    // Resolve page fault for allocation -- circular deps between mspace_map and kalloc
+    kalloc(2);
     kprintf (KLOG_MSG, "Memory available %s over ", sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
     kprintf (KLOG_MSG, "%s\n", sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
     memory_info();
+    assert(kCPU.irq_semaphore == 1);
+
 
     assert(kCPU.irq_semaphore == 1);
     cpu_setup();
     assert(kCPU.irq_semaphore == 1);
+
+    kprintf (KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
+
     for (;;);
-    // // cpu_awake();
-    // irq_reset(false);
-    // irq_disable();
-    // assert(kCPU.irq_semaphore == 1);
 
     // time_t now = cpu_time();
     // kprintf(KLOG_MSG, "Startup: %s", asctime(gmtime(&now)));
-
-    // seat_initscreen(); // Return an inode to close !
-    // surface_t *src0 = seat_screen(0);
-    // if (src0 != NULL)
-    //     surface_fill_rect(src0, 0, 0, 65000, 65000, 0xd8d8d8);
-        // surface_draw(seat_screen(0), splash_width, splash_height, splash_colors, splash_pixels);
-        // seat_surface(120, 120, 4, 0, 0);
-
-    // term_syslog = term_create(seat_screen(0));
-    // slog.lbuf_ = EOF;
-    // slog.lock_ = -1;
-    // slog.write = syslog_write;
-    // klogs = &slog;
 
     /* Drivers startup */
     // kernel_module("tmpfs", TMPFS_setup, TMPFS_teardown);
@@ -230,15 +209,16 @@ void kernel_start()
 
 void kernel_ready()
 {
+    /*
     int no = cpu_no();
     assert(no != 0);
-    kSYS.cpus[no] = (struct kCpu*)kalloc(sizeof(struct kCpu));
+    // kSYS.cpus[no] = (struct kCpu*)kalloc(sizeof(struct kCpu));
     irq_reset(false);
     irq_disable();
     assert(kCPU.irq_semaphore == 1);
-
+    */
     //PIT_set_interval(CLOCK_HZ);
-    // for (;;);
+    for (;;);
     irq_reset(false);
 }
 
