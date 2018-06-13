@@ -22,6 +22,7 @@ SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
 export PREFIX="$SCRIPT_HOME/opt"
 export SOURCES="$PREFIX/src"
 export TARGET=i686-elf
+# export TARGET=arm-none-eabi
 export PATH="$PREFIX/bin:$PATH"
 
 # Versions of packages
@@ -35,6 +36,12 @@ export ISL='isl-0.16.1'
 download()
 {
     cd $SOURCES
+    wget "https://ftp.gnu.org/gnu/binutils/$BUTILS.tar.xz"
+    wget "https://ftp.gnu.org/gnu/gcc/$GCC/$GCC.tar.xz"
+    wget "https://ftp.gnu.org/gnu/gmp/$GMP.tar.xz"
+    wget "https://ftp.gnu.org/gnu/mpc/$MPC.tar.gz"
+    wget "https://ftp.gnu.org/gnu/mpfr/$MPFR.tar.xz"
+    wget "http://isl.gforge.inria.fr/$ISL.tar.xz"
 }
 
 # Extract sources
@@ -42,16 +49,17 @@ extract()
 {
     cd $SOURCES
 
-    tar xzf "$BUTILS.tar.gz"
-    tar xzf "$GCC.tar.gz"
-    tar xjf "$GMP.tar.bz2"
-    tar xzf "$MPC.tar.gz"
-    tar xzf "$MPFR.tar.gz"
+    tar xvf "$BUTILS.tar.xz"
+    tar xvf "$GCC.tar.xz"
+    tar xvf "$GMP.tar.xz"
+    tar xvf "$MPC.tar.gz"
+    tar xvf "$MPFR.tar.xz"
+    tar xvf "$ISL.tar.xz"
 
-    ln -s "../$GMP" "$GCC/gmp"
-    ln -s "../$MPC" "$GCC/mpc"
-    ln -s "../$MPFR" "$GCC/mpfr"
-    ln -s "../$ISL" "$GCC/isl"
+    ln -vs "../$GMP" "$GCC/gmp"
+    ln -vs "../$MPC" "$GCC/mpc"
+    ln -vs "../$MPFR" "$GCC/mpfr"
+    ln -vs "../$ISL" "$GCC/isl"
 }
 
 build_binutils()
