@@ -20,7 +20,7 @@
 #include <kernel/core.h>
 #include <kernel/cpu.h>
 #include "acpi.h"
-
+#include "hpet.h"
 
 int hpet_interval(int freq_hz);
 int hpet_stop();
@@ -29,5 +29,37 @@ void hpet_setup(acpi_hpet_t *hpet)
 {
     kprintf(KLOG_ERR, "HPET mmio map physique %x\n", (size_t)hpet->base.base);
     // kdump(rstb, rstb->length);
+    hpet_regs_t *regs = kmap(PAGE_SIZE, NULL, hpet->base.base, VMA_PHYSIQ);
+    uint32_t period = regs->capacity >> 32;
+    if (period == 0 || period > 0x5F5E100)
+        return -1;
+
+    // reset
+    regs->config = 0;
+    regs->counter = 0;
+    int timers = (regs->capacities >> 8) & 0x1F;
+    kprintf(KLOG_ERR, "HPET, found %d timers\n", timers);
+    int i, idx = -1;
+    for (i = 0; i < timers; ++i) {
+    	if (regs->timers[i].config & HPET_TM_PERIODIC) {
+    	    idx = i;
+            break;
+        }
+    }
+    if (idx < 0)
+        return -1;
+    
+    // setup periodic timer
+    uint64_t config = regs->timers[idx].config;
+    config &= ~0x4004;
+    config |= 0x150;
+    regs->timers[idx].config = config;
+    
+
+    int irq = 0;
+    
+    config &= ~(0x1F << 9);
+    config |= irq << 9;
+    regs->timers[idx].config = config;
 }
 
