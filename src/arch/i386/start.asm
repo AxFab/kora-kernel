@@ -38,6 +38,10 @@ extern grub_init, cpu_early_init, kernel_start
 %define USS  0x33
 %define TSS0  0x38
 
+%define SMP_GDT_REG  0x7e8
+%define SMP_CPU_LOCK  0x7f0
+%define SMP_CPU_COUNT  0x7f8
+
 %macro PUTC 3
     mov byte [0xB8000 + 154], %2
     mov byte [0xB8001 + 154], %1
@@ -94,7 +98,7 @@ start:
     test eax, eax
     jnz .errorLoader
 
-; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 startup:
     ; Clear the first 4 Kb
     xor eax, eax
@@ -134,3 +138,77 @@ align 4
     dw 0xF8, 0, 0, 0
   .idt_regs:
     dw 0x7F8, 0x800, 0, 0
+
+
+
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+section .text
+
+global ap_start
+
+use16
+align 4096
+ap_start:
+    cli
+    ; Reset data segments
+    mov ax, 0x0
+    mov ds, ax
+    mov es, ax
+
+    ; Activate GDT
+    mov di, SMP_GDT_REG
+    mov word [di], 0xF8
+    lgdt [di] ; GDT
+
+    ; Mode protected
+    mov eax, cr0
+    or ax, 1
+    mov cr0, eax ; PE flags set
+
+    lock inc word [SMP_CPU_COUNT]
+    jmp .next
+
+.next:
+    ; Reset segments
+    mov ax, KDS
+    mov ds, ax
+    mov fs, ax
+    mov gs, ax
+    mov es, ax
+    mov ss, ax
+
+    jmp dword KCS:ap_boot    ; code segment
+
+use32
+align 32
+ap_boot:
+    cli
+
+    lidt [startup.idt_regs] ; IDT
+
+    ; Lock CPU Initialization Spin-Lock
+.spinlock:
+    cmp dword [SMP_CPU_LOCK], 0    ; Check if lock is free
+    je .getlock
+    pause
+    jmp .spinlock
+.getlock:
+    mov eax, 1
+    xchg eax, [SMP_CPU_LOCK]  ; Try to get lock
+    cmp eax, 0            ; Test is successful
+    jne .spinlock
+.criticalsection:
+
+    ; Compute stack
+
+
+    ; ...
+
+    ; Unlock the spinlock
+    xor eax, eax
+    mov [SMP_CPU_LOCK], eax
+
+    ; ...
+
+    jmp $

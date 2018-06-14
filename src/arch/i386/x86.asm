@@ -16,11 +16,33 @@
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use32
 
+global x86_cpuid
 global x86_enable_mmu
 global x86_set_cr3
+global x86_delay
 
 %define KERNEL_PAGE_DIR 0x2000
 
+
+x86_cpuid:
+    push ebp
+    mov ebp, esp
+    push ebx
+    push ecx
+    push edx
+    mov eax, [ebp + 8]
+    mov ecx, [ebp + 12]
+    cpuid
+    mov edi, [ebp + 16]
+    mov [edi], eax
+    mov [edi + 4], ebx
+    mov [edi + 8], edx
+    mov [edi + 12], ecx
+    pop edx
+    pop ecx
+    pop ebx
+    leave
+    ret
 
 x86_enable_mmu:
     mov eax, KERNEL_PAGE_DIR
@@ -34,3 +56,14 @@ x86_set_cr3:
     mov eax, [esp + 4]
     mov cr3, eax
     ret
+
+x86_delay:
+    push ecx
+    push edx
+    mov ecx, [esp + 12]
+    mov dx, 0x1fc
+.loop:
+    in al, dx
+    loopnz .loop
+    pop edx
+    pop ecx

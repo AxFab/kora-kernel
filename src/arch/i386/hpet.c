@@ -25,16 +25,19 @@
 int hpet_interval(int freq_hz);
 int hpet_stop();
 
-void hpet_setup(acpi_hpet_t *hpet)
+size_t hpet_mmio;
+
+int hpet_setup(acpi_hpet_t *hpet)
 {
-    kprintf(KLOG_ERR, "HPET mmio map physique %x\n", (size_t)hpet->base.base);
+    kprintf(KLOG_ERR, "HPET mmio at %x\n", hpet_mmio);
     // kdump(rstb, rstb->length);
     hpet_regs_t *regs = kmap(PAGE_SIZE, NULL, hpet->base.base, VMA_PHYSIQ);
-    uint32_t period = regs->capacity >> 32;
+    uint32_t period = regs->capacities >> 32;
     if (period == 0 || period > 0x5F5E100)
         return -1;
 
     // reset
+    kprintf(KLOG_ERR, "HPET, period of %d ns\n", period / 1000);
     regs->config = 0;
     regs->counter = 0;
     int timers = (regs->capacities >> 8) & 0x1F;
@@ -48,18 +51,18 @@ void hpet_setup(acpi_hpet_t *hpet)
     }
     if (idx < 0)
         return -1;
-    
+
     // setup periodic timer
     uint64_t config = regs->timers[idx].config;
     config &= ~0x4004;
     config |= 0x150;
     regs->timers[idx].config = config;
-    
 
-    int irq = 0;
-    
-    config &= ~(0x1F << 9);
-    config |= irq << 9;
-    regs->timers[idx].config = config;
+
+    // int irq = 0;
+
+    // config &= ~(0x1F << 9);
+    // config |= irq << 9;
+    // regs->timers[idx].config = config;
 }
 

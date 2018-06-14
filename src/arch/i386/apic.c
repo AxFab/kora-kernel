@@ -22,7 +22,8 @@
 #include "acpi.h"
 #include "apic.h"
 
-volatile uint32_t *apic_mmio = NULL;
+size_t apic_mmio;
+volatile uint32_t *apic_regs = NULL;
 
 void lapic_register(madt_lapic_t *info)
 {
@@ -88,10 +89,10 @@ void ioapic_register(madt_ioapic_t *info)
 
     int i;
     for (i = 0; i < irq_count; ++i) {
-        // ioapic_write_irq(info->apic_id, ioapic, i);
+        ioapic_write_irq(info->apic_id, ioapic, i);
     }
 
-    kunmap(ioapic, PAGE_SIZE);
+    // kunmap(ioapic, PAGE_SIZE);
 }
 
 
@@ -103,23 +104,39 @@ void apic_override_register(madt_override_t *info)
         info->irq, info->bus, info->gsi,
         info->flags & 8 ? "level" : "edge",
         info->flags & 2 ? "low" : "high");
+
+
+
 }
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
+void ap_start();
 
-void apic_setup(uint32_t address)
+
+void apic_setup()
 {
-    if (apic_mmio != NULL)
+    if (apic_regs != NULL)
         return;
-    kprintf(KLOG_ERR, "Local APIC at %x\n", address);
-    apic_mmio = kmap(PAGE_SIZE, NULL, address, VMA_PHYSIQ);
+
+    kprintf(KLOG_ERR, "Local APIC at %x\n", apic_mmio);
+    volatile uint32_t *apic_regs = kmap(PAGE_SIZE, NULL, apic_mmio, VMA_PHYSIQ);
 
 
+    // INIT IPI to all APs
+    apic_regs[APIC_ICR_LOW] = 0x0C4500;
+    x86_delay(100/*00*/); // 10-millisecond delay loop.
 
-    kunmap(apic_mmio, PAGE_SIZE);
+    // Load ICR encoding for broadcast SIPI IP (x2)
+    apic_regs[APIC_ICR_LOW] = 0x000C4600 | ((size_t)ap_start >> 12);
+    x86_delay(2); // 200-microsecond delay loop.
+    apic_regs[APIC_ICR_LOW] = 0x000C4600 | ((size_t)ap_start >> 12);
+    x86_delay(2); // 200-microsecond delay loop.
+
+
+    // kunmap(apic_mmio, PAGE_SIZE);
 }
 
 

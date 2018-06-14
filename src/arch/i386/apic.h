@@ -34,10 +34,13 @@
 #define APIC_SVR  (0xF0 / 4) // Spurious Interrupt Vector Register
 
 #define APIC_ESR  (0x280 / 4) // Error Status Register
+#define APIC_ICR_LOW  (0x300 / 4)
+#define APIC_ICR_HIGH  (0x310 / 4)
+#define APIC_LVT3  (0x370 / 4) // LVT Error register
 
-extern volatile uint32_t *apic_mmio;
 
 
-void apic_setup(uint32_t address);
+extern size_t apic_mmio;
+void apic_setup();
 
 #endif  /* _SRC_APIC_H */

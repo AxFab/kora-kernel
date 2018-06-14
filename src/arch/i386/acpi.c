@@ -27,6 +27,7 @@
 
 acpi_rsdp_t *rsdp;
 acpi_rsdt_t *rsdt;
+extern size_t hpet_mmio;
 
 static int acpi_checksum(acpi_head_t *header)
 {
@@ -40,12 +41,14 @@ static int acpi_checksum(acpi_head_t *header)
 
 void acpi_fadt_setup(acpi_fadt_t *fadt)
 {
-    // kdump(rstb, rstb->length);
+    kprintf(KLOG_DBG, "FADT Table at %p\n", fadt);
 }
 
 void acpi_madt_setup(acpi_madt_t *madt)
 {
-    apic_setup(madt->local_apic);
+    kprintf(KLOG_DBG, "MADT Table at %p\n", madt);
+    apic_mmio = (void*)madt->local_apic;
+    kprintf(KLOG_DBG, "Local APIC at %p\n", apic_mmio);
 
     int cpus = 0;
     uint8_t *ptr = madt->records;
@@ -132,7 +135,7 @@ void acpi_setup()
             acpi_madt_setup((acpi_madt_t*)rstb);
             break;
         case 0x54455048: // HPET
-            hpet_setup((acpi_hpet_t*)rstb);
+            hpet_mmio = ((acpi_hpet_t*)rstb)->base.base;
             break;
         default:
             kprintf(KLOG_ERR, "ACPI RSDT entry unknown.\n");

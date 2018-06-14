@@ -169,7 +169,7 @@ void irq_enter(int no)
     assert(no >= 0 && no < IRQ_MAX);
     irq_record_t *record;
     if (irqv[no].list.count_ == 0) {
-        kprintf(KLOG_IRQ, "Received IRQ%d, no handlers.\n", no);
+        kprintf(KLOG_IRQ, "Received IRQ%d, on CPU%d: no handlers.\n", no, cpu_no());
     }
     for ll_each(&irqv[no].list, record, irq_record_t, node) {
         record->func(record->data);
