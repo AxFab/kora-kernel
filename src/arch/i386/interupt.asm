@@ -26,7 +26,10 @@ global int_exXF, int_exVE, int_exSX
 global int_irq0, int_irq1, int_irq2, int_irq3, int_irq4, int_irq5
 global int_irq6, int_irq7, int_irq8, int_irq9, int_irq10, int_irq11
 global int_irq12, int_irq13, int_irq14, int_irq15, int_irq16, int_irq17
-global int_irq18, int_irq19
+global int_irq18, int_irq19, int_irq20, int_irq21, int_irq22, int_irq23
+global int_irq24, int_irq25, int_irq26, int_irq27, int_irq28, int_irq29
+global int_irq30, int_irq31
+
 
 extern x86_fault, x86_error, irq_enter, x86_syscall, x86_pgflt
 
@@ -189,4 +192,28 @@ int_irq18:
     IRQ_HANDLER  18
 int_irq19:
     IRQ_HANDLER  19
+int_irq20:
+    IRQ_HANDLER  20
+int_irq21:
+    IRQ_HANDLER  21
+int_irq22:
+    IRQ_HANDLER  22
+int_irq23:
+    IRQ_HANDLER  23
+int_irq24:
+    IRQ_HANDLER  24
+int_irq25:
+    IRQ_HANDLER  25
+int_irq26:
+    IRQ_HANDLER  26
+int_irq27:
+    IRQ_HANDLER  27
+int_irq28:
+    IRQ_HANDLER  28
+int_irq29:
+    IRQ_HANDLER  29
+int_irq30:
+    IRQ_HANDLER  30
+int_irq31:
+    IRQ_HANDLER  31
 

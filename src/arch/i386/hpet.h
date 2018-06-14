@@ -51,4 +51,4 @@ struct hpet_mmio_regs {
 };
 
 
-#define  /* _SRC_HPET_H */
+#endif  /* _SRC_HPET_H */

@@ -60,10 +60,10 @@ fault_t x86_exceptions[] = {
 /* Acknowledge the processor than a IRQ have been handled */
 void irq_ack(int no)
 {
-    if (no >= 16) {
-        apic_mmio[APIC_EOI] = 0;
-        return;
-    }
+    // if (no >= 16) {
+    //     apic_regs[APIC_EOI] = 0;
+    //     return;
+    // }
     if (no >= 8)
         outb(PIC2_CMD, PIC_EOI);
     outb(PIC1_CMD, PIC_EOI);
