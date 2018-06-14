@@ -20,6 +20,13 @@
 #include <kora/bbtree.h>
 #include <assert.h>
 
+typedef struct bbrm bbrm_t;
+
+struct bbrm {
+	bbnode_t *last;
+	bbnode_t *deleted;
+};
+
 bbnode_t _NIL = {
     &_NIL, &_NIL, &_NIL, 0, 0
 };
@@ -118,10 +125,7 @@ static bbnode_t *bbtree_rebalance(bbnode_t *root)
     return root;
 }
 
-static bbnode_t *__bb_last;
-static bbnode_t *__bb_deleted;
-
-static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, int *ok)
+static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, bbrm_t *del, int *ok)
 {
     *ok = 0;
     if (root == __NIL) {
@@ -129,19 +133,19 @@ static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, int *ok)
     }
 
     // Search down the tree and set pointers last and deleted
-    __bb_last = root;
+    del->last = root;
     if (value < root->value_) {
-        root->left_ = bbtree_remove_(root->left_, value, ok);
+        root->left_ = bbtree_remove_(root->left_, value, del, ok);
         root->left_->parent_ = root;
     } else {
-        __bb_deleted = root;
-        root->right_ = bbtree_remove_(root->right_, value, ok);
+        del->deleted = root;
+        root->right_ = bbtree_remove_(root->right_, value, del, ok);
         root->right_->parent_ = root;
     }
 
     // At the bottom of the tree we remove the element (if present)
-    if (__bb_last == root && __bb_deleted != __NIL &&
-            __bb_deleted->value_ == value) {
+    if (del->last == root && del->deleted != __NIL &&
+            del->deleted->value_ == value) {
         *ok = 1;
         root->right_->parent_ = root->parent_;
         return root->right_;
@@ -152,31 +156,31 @@ static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, int *ok)
     root = bbtree_rebalance(root);
     bbtree_check(root);
 
-    if (node != __bb_deleted) {
+    if (node != del->deleted) {
         return root;
     }
 
     // To remove internal nodes, we swap position with last node
-    bbnode_t *parent = __bb_deleted->parent_;
-    bbnode_t *left = __bb_deleted->left_;
-    bbnode_t *right = __bb_deleted->right_;
-    assert(__bb_last->left_ == __NIL && __bb_last != __NIL);
+    bbnode_t *parent = del->deleted->parent_;
+    bbnode_t *left = del->deleted->left_;
+    bbnode_t *right = del->deleted->right_;
+    assert(del->last->left_ == __NIL && del->last != __NIL);
 
-    __bb_last->level_ = __bb_deleted->level_;
-    __bb_last->parent_ = parent;
-    __bb_last->left_ = left;
-    __bb_last->right_ = right;
-    __bb_last->left_->parent_ = __bb_last;
-    __bb_last->right_->parent_ = __bb_last;
+    del->last->level_ = del->deleted->level_;
+    del->last->parent_ = parent;
+    del->last->left_ = left;
+    del->last->right_ = right;
+    del->last->left_->parent_ = del->last;
+    del->last->right_->parent_ = del->last;
     if (parent != __NIL) {
-        if (parent->left_ == __bb_deleted) {
-            parent->left_ = __bb_last;
+        if (parent->left_ == del->deleted) {
+            parent->left_ = del->last;
         } else {
-            parent->right_ = __bb_last;
+            parent->right_ = del->last;
         }
     }
-    if (root == __bb_deleted) {
-        root = __bb_last;
+    if (root == del->deleted) {
+        root = del->last;
     }
     bbtree_check(root);
     return root;
@@ -196,8 +200,9 @@ int bbtree_insert(bbtree_t *tree, bbnode_t *node)
 int bbtree_remove(bbtree_t *tree, size_t value)
 {
     int ok;
-    __bb_deleted = __NIL;
-    tree->root_ = bbtree_remove_(tree->root_, value, &ok);
+    bbrm_t del;
+    del.deleted = __NIL;
+    tree->root_ = bbtree_remove_(tree->root_, value, del, &ok);
     if (ok) {
         tree->count_--;
         return 0;
