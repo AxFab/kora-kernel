@@ -20,6 +20,8 @@
 #ifndef _ASSERT_H
 #define _ASSERT_H 1
 
+#include <bits/cdefs.h>
+
 #if 0
 #define assert(n) ((void)(n))
 #else

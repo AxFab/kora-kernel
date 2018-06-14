@@ -34,10 +34,12 @@ int eth_header(skb_t *skb, const uint8_t *target, uint16_t type)
 int eth_receive(skb_t *skb)
 {
     uint16_t type = 0;
-    uint8_t mac[ETH_ALEN];
+    uint8_t *mac;
 
     strncat(skb->log, "eth:", NET_LOG_SIZE);
-    net_read(skb, mac, ETH_ALEN);
+    mac = net_pointer(skb, ETH_ALEN);
+    if (mac == NULL)
+        return -1;
     if (memcmp(mac, skb->ifnet->eth_addr, ETH_ALEN) != 0 &&
             memcmp(mac, eth_broadcast, ETH_ALEN) != 0)
         return -1;

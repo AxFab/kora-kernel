@@ -195,26 +195,26 @@ void net_tasklet(netdev_t *ifnet)
     bool send_arp = false;
     time64_t timeout = time64() + NET_DELAY;
     while ((ifnet->flags & NET_QUIT) == 0)  {
-        advent_wait(NULL, NULL, timeout - time64());
 
         /* Read available packets */
-        // for(;;) {
-        //     splock_lock(&ifnet->lock);
-        //     skb_t *skb;
-        //     while (timeout - time64() > 0) {
-        //         skb = ll_dequeue(&ifnet->queue, skb_t, node);
-        //         if (skb == NULL)
-        //             advent_wait(&ifnet->lock, ..., timeout - time64());
-        //     }
-        //     splock_unlock(&ifnet->lock);
-        //     if (skb == NULL)
-        //         break;
+        for(;;) {
+            splock_lock(&ifnet->lock);
+            skb_t *skb;
+            while (timeout - time64() > 0) {
+                skb = ll_dequeue(&ifnet->queue, skb_t, node);
+                if (skb != NULL)
+                    break;
+                advent_wait(&ifnet->lock, &ifnet->waiters, 1000); // timeout - time64());
+            }
+            splock_unlock(&ifnet->lock);
+            if (skb == NULL)
+                break;
 
-        //     int ret = eth_receive(skb);
-        //     if (ret != 0)
-        //        ifnet->rx_errors++;
-        //     kfree(skb);
-        // }
+            int ret = eth_receive(skb);
+            if (ret != 0)
+               ifnet->rx_errors++;
+            kfree(skb);
+        }
 
         timeout = time64() + NET_DELAY;
 
@@ -227,19 +227,8 @@ void net_tasklet(netdev_t *ifnet)
         }
 
 
-        if (ifnet->ip4_addr[0] == 0) {
+        if (ip4_null(ifnet->ip4_addr)) {
             dhcp_discovery(ifnet);
-            continue;
-        }
-
-        if (!send_arp) {
-            send_arp = true;
-            ifnet->ip4_addr[0] = 192;
-            ifnet->ip4_addr[1] = 168;
-            ifnet->ip4_addr[2] = 1;
-            ifnet->ip4_addr[3] = 9;
-            uint32_t ip = 0x0101a8c0;
-            arp_query(ifnet, (uint8_t*)&ip);
             continue;
         }
 

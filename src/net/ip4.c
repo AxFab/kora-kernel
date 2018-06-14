@@ -39,6 +39,11 @@ PACK(struct IP4_header {
 
 const uint8_t ip4_broadcast[IP4_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF };
 
+static int ip_via_gateway(const uint8_t *ip, const uint8_t *gateway, int bits)
+{
+    return -1;
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 uint16_t ip4_checksum(skb_t *skb, size_t len)
@@ -55,13 +60,17 @@ uint16_t ip4_checksum(skb_t *skb, size_t len)
 
 int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int length, int protocol)
 {
-    uint8_t mac [ETH_ALEN];
+	const uint8_t *mac;
+    uint8_t mac_buf [ETH_ALEN];
     if (ip == ip4_broadcast)
-        memset(mac, 0xFF, ETH_ALEN);
+        mac = eth_broadcast;
+    else if (ip_via_gateway(ip, skb->ifnet->gateway_ip, skb->ifnet->subnet_bits) == 0)
+        mac = skb->ifnet->gateway_mac;
+    else if (host_mac_for_ip(mac_buf, ip, HOST_TEMPORARY)== 0)
+        mac = mac_buf;
     else
-        memset(mac, 0xA5, ETH_ALEN);
-    // todo, find mac address using ip
-    // memcpy(mac, !?, ETH_ALEN);
+        return -1;
+       
     if (eth_header(skb, mac, ETH_IP4) != 0)
         return -1;
 
