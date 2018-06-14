@@ -202,7 +202,7 @@ int bbtree_remove(bbtree_t *tree, size_t value)
     int ok;
     bbrm_t del;
     del.deleted = __NIL;
-    tree->root_ = bbtree_remove_(tree->root_, value, del, &ok);
+    tree->root_ = bbtree_remove_(tree->root_, value, &del, &ok);
     if (ok) {
         tree->count_--;
         return 0;
