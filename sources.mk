@@ -128,7 +128,7 @@ ckNet_src-y += $(wildcard $(srcdir)/net/*.c)
 ckNet_src-y += $(wildcard $(srcdir)/arch/um2/*.c)
 ckNet_omit-y = ${srcdir}/arch/um2/mmu.c
 # ckNet_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
-ckNet_src-y += $(srcdir)/core/debug.c $(srcdir)/libc/random.c
+ckNet_src-y += $(srcdir)/core/debug.c $(srcdir)/libc/random.c $(srcdir)/libc/hmap.c
 # $(srcdir)/arch/um2/cpu.c
 ckNet_src-y += $(srcdir)/tests/ck_net.c
 ckNet_LFLAGS += $(LFLAGS) $(COV_FLAGS)

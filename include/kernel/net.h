@@ -36,6 +36,8 @@
 int eth_header(skb_t *skb, const uint8_t *target, uint16_t type);
 int eth_receive(skb_t *skb);
 
+#define eth_null(n) (((uint16_t*)(n))[0]==0&&((uint16_t*)(n))[1]==0&&((uint16_t*)(n))[2])
+#define eth_eq(a,b) (((uint16_t*)(a))[0]==((uint16_t*)(b))[0]&&((uint16_t*)(a))[1]==((uint16_t*)(b))[1]&&((uint16_t*)(a))[2]==((uint16_t*)(b))[2])
 extern const uint8_t eth_broadcast[ETH_ALEN];
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -50,9 +52,12 @@ int arp_receive(skb_t *skb);
 #define IP4_TCP 0x06
 #define IP4_UDP 0x11
 
+uint16_t ip4_checksum(skb_t *skb, size_t len);
 int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, int length, int protocol);
 int ip4_receive(skb_t *skb);
 
+#define ip4_null(n) (*((uint32_t*)(n))==0)
+#define ip4_eq(a,b) (*((uint32_t*)(a))==*((uint32_t*)(b)))
 extern const uint8_t ip4_broadcast[IP4_ALEN];
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -87,9 +92,11 @@ socket_t *tcp_socket(netdev_t *ifnet, uint8_t *ip, int port);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* DHCP */
+typedef struct dhcp_server dhcp_server_t;
 
 int dhcp_discovery(netdev_t *ifnet);
 int dhcp_receive(skb_t *skb, unsigned length);
+dhcp_server_t *dhcp_create_server(uint8_t *ip_rooter, int netsz);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* DNS */
@@ -115,14 +122,28 @@ struct netdev {
     int(*send)(netdev_t*,skb_t*);
     int(*link)(netdev_t*);
 
+    llhead_t queue;
+    llhead_t waiters;
+    splock_t lock;
 
-    uint8_t dhcp_addr[IP4_ALEN];
-    uint8_t gateway_addr[IP4_ALEN];
-    uint8_t dns_addr[IP4_ALEN];
+    char *hostname;
+    char *domain;
+
+    // IP ------------
+    uint8_t gateway_ip[IP4_ALEN];
+    uint8_t gateway_mac[ETH_ALEN];
     uint8_t subnet_bits;
 
-    llhead_t queue;
-    splock_t lock;
+    // DHCP ------------
+    dhcp_server_t *dhcp_srv;
+    uint8_t dhcp_ip[IP4_ALEN];
+    uint32_t dhcp_transaction;
+    uint64_t dhcp_lastsend;
+    uint8_t dhcp_mode;
+
+    // DNS ------------
+    uint8_t dns_ip[IP4_ALEN];
+
 
     long rx_packets;
     long rx_bytes;
@@ -166,6 +187,8 @@ struct socket {
 #define NET_NO_DHCP  (1 << 2)
 #define NET_QUIT  (1 << 16)
 
+#define HOST_TEMPORARY 1
+
 /* Register a network device */
 int net_device(netdev_t *ifnet);
 /* Create a new tx packet */
@@ -180,12 +203,18 @@ int net_trash(skb_t *skb);
 int net_read(skb_t *skb, void *buf, unsigned len);
 /* Write data on a packet */
 int net_write(skb_t *skb, const void *buf, unsigned len);
+/* Get pointer on data from a packet and move cursor */
+void *net_pointer(skb_t *skb, unsigned len);
+
 
 char *net_ethstr(char *buf, uint8_t *mac);
 char *net_ip4str(char *buf, uint8_t *ip);
 
 uint16_t net_rand_port();
 uint16_t net_ephemeral_port(socket_t *socket);
+
+void host_register(uint8_t *mac, uint8_t *ip, const char *hostname, const char *domain, int trust);
+int host_mac_for_ip(uint8_t *mac, const uint8_t *ip, int trust);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

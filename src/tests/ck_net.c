@@ -32,7 +32,12 @@ time64_t time64()
 
 void vfs_read() {}
 
-
+#define ck_assert(e) do { if (!(e)) ck_fail(#e,__AT__); } while(0)
+void ck_fail(const char *expr, const char *at)
+{
+	kprintf(-1, "Assert at %s: %s\n", at, expr);
+	abort();
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -46,80 +51,37 @@ char mac2[ETH_ALEN] = { 0x08, 0x07, 0x02, 0x91, 0xa3, 0x6d };
 char ip2[IP4_ALEN] = { 192, 168, 0, 1 };
 
 
-int cnt = 8;
+atomic_int cnt = 30000;
 splock_t net_lock;
 
 int pack = 0;
-void gateway_stub(netdev_t *ifnet, skb_t *skb)
-{
-    switch (pack++) {
-    case 1:
-        assert(strcmp(skb->log, "eth:ipv4:udp:dhcp:") == 0);
-        // Ignore first call
-        break;
-    case 2:
-        assert(strcmp(skb->log, "eth:ipv4:udp:dhcp:") == 0);
-        dhcp_offer(ifnet);
-        break;
 
-    }
-
-}
-
-void gateway_tasklet(netdev_t *ifnet)
-{
-    while ((eth2.flags & NET_QUIT) == 0) {
-
-        skb_t *skb;
-        splock_lock(&net_lock);
-        splock_lock(&ifnet->lock);
-        // kprintf(-1, "SRV\n");
-        // while (timeout - time64() > 0) {
-        skb = ll_dequeue(&ifnet->queue, skb_t, node);
-        splock_unlock(&ifnet->lock);
-        splock_unlock(&net_lock);
-        if (skb == NULL) {
-            // splock_unlock(&ifnet->lock);
-            sleep(1);
-            continue;
-            // advent_wait(&ifnet->lock, ..., timeout - time64());
-        } else {
-            // splock_lock(&net_lock);
-            // kprintf(-1, "RECEIVE\n");
-            // splock_unlock(&net_lock);
-            int ret = eth_receive(skb);
-            // splock_lock(&net_lock);
-            gateway_stub(ifnet, skb);
-            // splock_unlock(&net_lock);
-            if (ret != 0)
-               ifnet->rx_errors++;
-            kfree(skb);
-        }
-
-
-        sleep(1);
-    }
-}
-
-
+void net_tasklet(netdev_t*);
 void net_start(netdev_t *ifnet)
 {
-    if (ifnet == &eth1) {
-        net_tasklet(ifnet);
-        pthread_exit(NULL);
-    } else {
-        gateway_tasklet(ifnet);
-        pthread_exit(NULL);
-    }
+	net_tasklet(ifnet);
+    pthread_exit(NULL);
 }
 
-void advent_wait()
+void advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
 {
-    sleep(1);
-    if (cnt-- <= 0) {
+	struct timespec req;
+	req.tv_sec = timeout_us / USEC_PER_SEC;
+	req.tv_nsec = (timeout_us % USEC_PER_SEC) * 1000LL;
+	if (lock != NULL)
+	    assert(splock_locked(lock));
+	// TODO -- Push on the list
+	if (lock != NULL)
+	    splock_unlock(lock);
+    nanosleep(&req, NULL);
+    atomic_dec(&cnt);
+    if (cnt <= 0) {
         eth1.flags |= NET_QUIT;
         eth2.flags |= NET_QUIT;
     }
+
+    if (lock != NULL)
+        splock_lock(lock);
 }
 
 
@@ -135,14 +97,15 @@ void kernel_tasklet(void *start, long arg, CSTR name)
 
 int sendUT(netdev_t *ifnet, skb_t *skb)
 {
-    splock_lock(&net_lock);
     splock_lock(&ifnet->lock);
+    splock_lock(&net_lock);
     kprintf(KLOG_DBG, "Packet send by eth%d: %s (%d)\n", ifnet->no, skb->log, skb->length);
-    kdump(skb->buf, skb->length);
-    kprintf(KLOG_DBG, "\n");
+    // dump(skb->buf, skb->length);
+    // kprintf(KLOG_DBG, "\n");
+    // check packets
+    splock_unlock(&net_lock);
     splock_unlock(&ifnet->lock);
     net_recv(ifnet == &eth1 ? &eth2 : &eth1, skb->buf, skb->length);
-    splock_unlock(&net_lock);
     return 0;
 }
 
@@ -160,6 +123,8 @@ int linkUT(netdev_t *ifnet)
 
 int main()
 {
+	host_init();
+
     memset(&eth1, 0, sizeof(eth1));
     memcpy(eth1.eth_addr, mac1, ETH_ALEN);
     eth1.mtu = 1500;
@@ -172,12 +137,14 @@ int main()
     memcpy(eth2.eth_addr, mac2, ETH_ALEN);
     memcpy(eth2.ip4_addr, ip2, ETH_ALEN);
     eth2.mtu = 1500;
+    eth2.flags |= NET_CONNECTED;
+    eth2.domain = strdup("axfab.net");
     eth2.send = sendUT;
     eth2.link = linkUT;
+    eth2.dhcp_srv = dhcp_create_server(ip2, 8);
     net_device(&eth2);
 
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);
-
     return 0;
 }

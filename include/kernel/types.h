@@ -38,6 +38,7 @@ typedef int pid_t;
 
 typedef __time64_t time64_t;
 time64_t time64();
+#define USEC_PER_SEC  1000000ULL
 
 // Tasks
 typedef struct task task_t;
