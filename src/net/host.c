@@ -72,7 +72,7 @@ void host_register(uint8_t *mac, uint8_t *ip, const char *hostname, const char *
 
 int host_mac_for_ip(uint8_t *mac, const uint8_t *ip, int trust)
 {
-	host_t *host = hmp_get(&host_ip, ip, IP4_ALEN);
+	host_t *host = hmp_get(&host_ip, (char*)ip, IP4_ALEN);
 	if (host == NULL || host->trust_mac < trust)
 	    return -1;
 	memcpy(mac, host->mac, ETH_ALEN);

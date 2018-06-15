@@ -213,6 +213,7 @@ char *net_ip4str(char *buf, uint8_t *ip);
 uint16_t net_rand_port();
 uint16_t net_ephemeral_port(socket_t *socket);
 
+void host_init();
 void host_register(uint8_t *mac, uint8_t *ip, const char *hostname, const char *domain, int trust);
 int host_mac_for_ip(uint8_t *mac, const uint8_t *ip, int trust);
 

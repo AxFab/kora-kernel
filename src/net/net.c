@@ -192,7 +192,6 @@ void net_print(netdev_t *ifnet)
 
 void net_tasklet(netdev_t *ifnet)
 {
-    bool send_arp = false;
     time64_t timeout = time64() + NET_DELAY;
     while ((ifnet->flags & NET_QUIT) == 0)  {
 

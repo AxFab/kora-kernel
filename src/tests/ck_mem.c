@@ -20,7 +20,7 @@
 #include <kernel/core.h>
 #include <kora/mcrs.h>
 #include <kernel/memory.h>
-#include <errno.h>
+#include "check.h"
 
 extern size_t __um_mspace_pages_count;
 extern size_t __um_pages_available;
@@ -68,16 +68,9 @@ void vfs_read(inode_t *ino, char *buf, size_t len, off_t off)
 
 }
 
-#define ck_assert(e) do { if (!(e)) ck_fails(#e, __FILE__, __LINE__); } while(0)
-static inline void ck_fails(CSTR expr, CSTR file, int line)
-{
-    kprintf(-1, "Check fails at %s l.%d: %s\n", file, line, expr);
-    abort();
-}
-
 
 /* Various dummy tests with kernel space only */
-void test_01()
+START_TEST(test_01)
 {
     inode_t *ino = 0;// vfs_inode(0, )
     __um_mspace_pages_count = 32; // Each memory space will be 32 pages
@@ -144,9 +137,10 @@ void test_01()
     memory_sweep();
     ck_assert(kMMU.free_pages == __um_pages_available);
 }
+END_TEST
 
 /* Dummy test with several user spaces */
-void test_02()
+START_TEST(test_02)
 {
     __um_mspace_pages_count = 32; // Each memory space will be 32 pages
     __um_pages_available = 64; // We have a total of 64 pages available
@@ -178,14 +172,16 @@ void test_02()
     memory_sweep();
     ck_assert(kMMU.free_pages == __um_pages_available);
 }
+END_TEST
 
 /* Copy-on-write advanced tests */
-void test_03()
+START_TEST(test_03)
 {
     // kprintf (-1, "\n\e[94m  MEM #1 - <<<>>>\e[0m\n");
 }
+END_TEST
 
-void test_page_01()
+START_TEST(test_page_01)
 {
     __um_mspace_pages_count = 32; // Each memory space will be 32 pages
     __um_pages_available = 32; // We have a total of 64 pages available
@@ -212,15 +208,16 @@ void test_page_01()
     memory_sweep();
     // ck_assert(kMMU.free_pages == __um_pages_available);
 }
-
+END_TEST
 
 int main ()
 {
     kprintf(-1, "\e[1;97mKora MEM check - " __ARCH " - v" _VTAG_ "\e[0m\n");
 
-    test_page_01();
-    test_01();
-    test_02();
+    ck_case(test_page_01);
+    ck_case(test_01);
+    ck_case(test_02);
+    ck_end();
     return 0;
 }
 

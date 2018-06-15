@@ -71,6 +71,7 @@ char *ctime(const time_t *timep);
 double difftime(time_t time1, time_t time0);
 /* Transform date and time to broken-down time */
 struct tm *gmtime(const time_t *timep);
+struct tm *gmtime_r(const time_t *timep, struct tm *tm);
 /* Transform date and time to broken-down time */
 struct tm *localtime(const time_t *timep);
 /* Transform broken-down time to timestamp */
@@ -82,5 +83,6 @@ clock_t clock(void);
 /* Get time in seconds  */
 time_t time(time_t *p);
 
+void nanosleep(struct timespec *req, struct timespec *rest);
 
 #endif  /* _TIME_H */

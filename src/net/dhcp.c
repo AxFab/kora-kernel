@@ -481,12 +481,12 @@ static int dhcp_on_discover(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 {
 	int idx;
 	splock_lock(&srv->lock);
-	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, info->client_mac, ETH_ALEN);
+	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, (char*)info->client_mac, ETH_ALEN);
 	if (lease == NULL) {
 		lease = (dhcp_lease_t*)kalloc(sizeof(dhcp_lease_t));
 		memcpy(lease->mac, info->client_mac, ETH_ALEN);
 		lease->flags = 0;
-		hmp_put(&srv->leases, info->client_mac, ETH_ALEN, lease);
+		hmp_put(&srv->leases, (char*)info->client_mac, ETH_ALEN, lease);
 	}
 	splock_lock(&lease->lock);
 	splock_unlock(&srv->lock);
@@ -534,7 +534,7 @@ static int dhcp_on_discover(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 static int dhcp_on_request(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 {
 	splock_lock(&srv->lock);
-	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, info->client_mac, ETH_ALEN);
+	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, (char*)info->client_mac, ETH_ALEN);
 	if (lease == NULL) {
 		dhcp_packet(skb->ifnet, info->client_ip, info->uid, DHCP_PNACK, info, NULL);
 		splock_unlock(&srv->lock);
@@ -554,7 +554,7 @@ static int dhcp_on_request(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 static int dhcp_on_decline(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 {
 	splock_lock(&srv->lock);
-	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, info->client_mac, ETH_ALEN);
+	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, (char*)info->client_mac, ETH_ALEN);
 	if (lease == NULL) {
 		// TODO -- Ack ?
 		splock_unlock(&srv->lock);
@@ -569,7 +569,7 @@ static int dhcp_on_decline(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 static int dhcp_on_release(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 {
 	splock_lock(&srv->lock);
-	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, info->client_mac, ETH_ALEN);
+	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, (char*)info->client_mac, ETH_ALEN);
 	if (lease == NULL) {
 		dhcp_packet(skb->ifnet, info->client_ip, info->uid, DHCP_PNACK, info, NULL);
 		splock_unlock(&srv->lock);

@@ -29,9 +29,10 @@ time64_t time64()
     return time(NULL) * 1000000L;
 }
 
-
+void abort();
 void vfs_read() {}
 
+typedef void*(*pfunc_t)(void*);
 #define ck_assert(e) do { if (!(e)) ck_fail(#e,__AT__); } while(0)
 void ck_fail(const char *expr, const char *at)
 {
@@ -43,12 +44,12 @@ void ck_fail(const char *expr, const char *at)
 
 netdev_t eth1;
 pthread_t thread1;
-char mac1[ETH_ALEN] = { 0x08, 0x04, 0x06, 0x46, 0xef, 0xc3 };
+uint8_t mac1[ETH_ALEN] = { 0x08, 0x04, 0x06, 0x46, 0xef, 0xc3 };
 
 netdev_t eth2;
 pthread_t thread2;
-char mac2[ETH_ALEN] = { 0x08, 0x07, 0x02, 0x91, 0xa3, 0x6d };
-char ip2[IP4_ALEN] = { 192, 168, 0, 1 };
+uint8_t mac2[ETH_ALEN] = { 0x08, 0x07, 0x02, 0x91, 0xa3, 0x6d };
+uint8_t ip2[IP4_ALEN] = { 192, 168, 0, 1 };
 
 
 atomic_int cnt = 30000;
@@ -88,9 +89,9 @@ void advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
 void kernel_tasklet(void *start, long arg, CSTR name)
 {
     if ((void*)arg == &eth1)
-        pthread_create(&thread1, NULL, net_start, (void*)arg);
+        pthread_create(&thread1, NULL, (pfunc_t)net_start, (void*)arg);
     else if ((void*)arg == &eth2)
-        pthread_create(&thread2, NULL, net_start, (void*)arg);
+        pthread_create(&thread2, NULL, (pfunc_t)net_start, (void*)arg);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
