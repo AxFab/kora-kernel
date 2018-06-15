@@ -211,6 +211,7 @@ void net_tasklet(netdev_t *ifnet)
                 break;
 
             int ret = eth_receive(skb);
+            kprintf(KLOG_DBG, "Packet received %s (%d) : %d \n", skb->log, skb->length, ret);
             if (ret != 0)
                ifnet->rx_errors++;
             kfree(skb);

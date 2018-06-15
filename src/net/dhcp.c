@@ -126,10 +126,10 @@ int dhcp_packet(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int mode, cons
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static void dhcp_readstr(skb_t *skb, uint8_t options, char **buf)
+static void dhcp_readstr(skb_t *skb, uint8_t *options, char **buf)
 {
 	net_read(skb, &options[2], options[1]);
-	options[2 + option[1]] = '\0';
+	options[2 + options[1]] = '\0';
 	if (*buf)
 	    kfree(*buf);
 	*buf = strdup((char*)&options[2]);
@@ -224,7 +224,7 @@ static int dhcp_parse(skb_t *skb, dhcp_info_t *info, int length)
 	return 0;
 }
 
-static skb_t *dhcp_header(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int options_len)
+static skb_t *dhcp_header(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int opcode, int options_len)
 {
     skb_t *skb = net_packet(ifnet, 576);
     if (skb == NULL)
@@ -252,7 +252,7 @@ static skb_t *dhcp_header(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int 
         memcpy(header->siaddr, opcode == BOOT_REQUEST ? ip : ifnet->ip4_addr, IP4_ALEN);
     // gateway
     memcpy(&header->chaddr, opcode == BOOT_REQUEST ? ifnet->eth_addr : skb->eth_addr, ETH_ALEN);
-    
+
     // Magic
     uint32_t magic = DHCP_MAGIC;
     net_write(skb, &magic, 4);
@@ -264,7 +264,7 @@ static skb_t *dhcp_header(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int 
 static int dhcp_count_options_request(netdev_t *ifnet, const uint8_t *ip, const dhcp_info_t *info)
 {
 	int opts = 0;
-	if ((info != NULL && !ip4_null(info->query_ip) || !ip4_null(ifnet->ip4_addr))
+	if ((info != NULL && !ip4_null(info->query_ip)) || !ip4_null(ifnet->ip4_addr))
 	    opts += 6;
 	if (ip != ip4_broadcast)
 	    opts += 6;
@@ -287,9 +287,9 @@ static void dhcp_write_options_request(netdev_t *ifnet, skb_t *skb, uint8_t opti
         option[0] = DHCP_OPT_QRYIP;
 	    option[1] = IP4_ALEN;
 	    memcpy(&option[2], ifnet->ip4_addr, IP4_ALEN);
-	    net_write(skb, option, option[1] + 2);	
+	    net_write(skb, option, option[1] + 2);
     }
-    
+
 	if (ip != ip4_broadcast) {
 		option[0] = DHCP_OPT_SERVERIP;
 	    option[1] = IP4_ALEN;
@@ -308,7 +308,7 @@ static void dhcp_write_options_request(netdev_t *ifnet, skb_t *skb, uint8_t opti
 	    memcpy(&option[2], ifnet->hostname, MIN(32, option[1]) - 2);
 	    net_write(skb, option, option[1] + 2);
 	}
-	
+
 	option[0] = DHCP_OPT_QRYLIST;
 	option[1] = 5;
 	option[2] = DHCP_OPT_SUBNETMASK;
@@ -335,26 +335,26 @@ static void dhcp_write_options_reply(netdev_t *ifnet, skb_t *skb, uint8_t option
 	option[1] = IP4_ALEN;
     memcpy(&option[2], ifnet->ip4_addr, IP4_ALEN);
 	net_write(skb, option, option[1] + 2);
-    
+
     option[0] = DHCP_OPT_SUBNETMASK;
 	option[1] = IP4_ALEN;
 	uint32_t submask = htonl(~((1 << ifnet->dhcp_srv->netsz) - 1));
     memcpy(&option[2], submask, IP4_ALEN);
 	net_write(skb, option, option[1] + 2);
-    
+
     option[0] = DHCP_OPT_ROOTER;
 	option[1] = IP4_ALEN;
     memcpy(&option[2], ifnet->dhcp_srv->ip_rooter, IP4_ALEN);
 	net_write(skb, option, option[1] + 2);
-    
+
     if (lease != NULL) {
     	option[0] = DHCP_OPT_LEASETIME;
-        uint32_t leasetime = htonl((time->lease_timeout) / USEC_PER_SEC);
+        uint32_t leasetime = htonl((lease->lease_timeout) / USEC_PER_SEC);
         option[1] = sizeof(uint32_t);
         memcpy(&option[2], &leasetime, sizeof(uint32_t));
         net_write(skb, option, option[1] + 2);
     }
-    
+
     if (info->domain) {
     	option[0] = DHCP_OPT_DOMAIN;
         option[1] = (uint8_t)strlen(info->domain);
@@ -371,35 +371,35 @@ static int dhcp_on_offer(skb_t *skb, dhcp_info_t *info)
 	netdev_t *ifnet = skb->ifnet;
 	splock_lock(&ifnet->lock);
 	/* Ignore unsolicited packets */
-	if (ifnet->dhcp_transaction != info->uid || (ifnet->dhcp_mode != DHCP_DISCOVERY && ifnet->dhcp_mode != DHCP_REQUEST)) {
+	if (ifnet->dhcp_transaction != info->uid || (ifnet->dhcp_mode != DHCP_DISCOVER && ifnet->dhcp_mode != DHCP_REQUEST)) {
 		splock_unlock(&ifnet->lock);
 		return -1;
 	}
-	
+
 	/* Check proposal validity */
 	bool valid = true;
 	if (memcmp(skb->ip4_addr, info->dhcp_ip, IP4_ALEN) != 0)
 	    valid = false;
-	
+
 	if (!valid) {
 		splock_unlock(&ifnet->lock);
 		return -1;
 	}
-	
+
 	host_register(skb->eth_addr, info->dhcp_ip, NULL, info->domain, HOST_TEMPORARY);
 	// If not interested, decline ASAP
-	/* 
+	/*
 	if (ifnet->dhcp_mode == DHCP_REQUEST) {
 		// Store as backup plan, refuse later!
 		splock_unlock(ifnet->lock);
 		return 0;
     }*/
-    
+
     ifnet->dhcp_mode = DHCP_REQUEST;
     ifnet->dhcp_lastsend = time64();
     assert(ifnet->dhcp_transaction != 0);
     memcpy(info->query_ip, info->client_ip, IP4_ALEN);
-    // STORE INFO AS IN PROPATION 
+    // STORE INFO AS IN PROPATION
     splock_unlock(&ifnet->lock);
     int ret = dhcp_packet(ifnet, info->dhcp_ip, info->uid, DHCP_REQUEST, info, NULL);
     if (ret != 0) {
@@ -419,17 +419,17 @@ static int dhcp_on_ack(skb_t *skb, dhcp_info_t *info)
 		splock_unlock(&ifnet->lock);
 		return -1;
 	}
-	
+
 	/* Check proposal validity */
 	bool valid = true;
 	if (memcmp(skb->ip4_addr, info->dhcp_ip, IP4_ALEN) != 0)
 	    valid = false;
-	
+
 	if (!valid) {
 		splock_unlock(&ifnet->lock);
 		return -1;
 	}
-	
+
 	/* We did request this IP, so take it */
 	ifnet->dhcp_mode = 0;
 	ifnet->dhcp_transaction = 0;
@@ -437,7 +437,7 @@ static int dhcp_on_ack(skb_t *skb, dhcp_info_t *info)
 	memcpy(ifnet->ip4_addr, info->client_ip, IP4_ALEN);
 	memcpy(ifnet->gateway_ip, info->rooter_ip, IP4_ALEN);
 	ifnet->subnet_bits = 8; // TODO - info->submask_ip
-	
+
 	splock_unlock(&ifnet->lock);
 	arp_query(ifnet, ifnet->gateway_ip);
 	return 0;
@@ -452,7 +452,7 @@ static int dhcp_on_nack(skb_t *skb, dhcp_info_t *info)
 		splock_unlock(&ifnet->lock);
 		return -1;
 	}
-	
+
 	// TODO -- Drop this one and request something else
 	splock_unlock(&ifnet->lock);
 	return 0;
@@ -477,20 +477,20 @@ static int dhcp_handle(skb_t *skb, dhcp_info_t *info)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static int dhcp_on_discovery(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
+static int dhcp_on_discover(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 {
 	int idx;
 	splock_lock(&srv->lock);
 	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, info->client_mac, ETH_ALEN);
 	if (lease == NULL) {
 		lease = (dhcp_lease_t*)kalloc(sizeof(dhcp_lease_t));
-		memcpy(lease->mac, info->client->mac, ETH_ALEN);
+		memcpy(lease->mac, info->client_mac, ETH_ALEN);
 		lease->flags = 0;
 		hmp_put(&srv->leases, info->client_mac, ETH_ALEN, lease);
 	}
 	splock_lock(&lease->lock);
 	splock_unlock(&srv->lock);
-	
+
 	if (!(lease->flags & DHCP_LEASE_IP)) {
 		// We need to find an IP...
 		idx = -1;
@@ -499,7 +499,7 @@ static int dhcp_on_discovery(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 			memcpy(lease->ip, info->query_ip, IP4_ALEN);
 			idx = 0; // CHECK IS AVAILABLE
 		}
-		
+
 		if (idx < 0) {
 			for (idx = 0; idx < srv->ip_count; ++idx) {
 				if (srv->ip_table[idx] == NULL || srv->ip_table[idx]->flags & DHCP_LEASE_FREE) {
@@ -517,16 +517,16 @@ static int dhcp_on_discovery(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 		srv->ip_table[idx] = lease;
 		lease->flags |= DHCP_LEASE_IP;
 	}
-	
+
 	if (!(lease->flags & DHCP_LEASE_HOSTNAME) && info->hostname) {
 		lease->flags |= DHCP_LEASE_HOSTNAME;
 		lease->hostname = strdup(info->hostname);
 	}
-	
+
 	lease->timeout = time64() + info->lease_time * USEC_PER_SEC;
-	
-	host_register(lease->mac, lease->ip, lease->hostname, ifnet->domain, HOST_TEMPORARY);
-	dhcp_packet(ifnet, info->client_ip, info->uid, DHCP_OFFER, info, lease);
+
+	host_register(lease->mac, lease->ip, lease->hostname, skb->ifnet->domain, HOST_TEMPORARY);
+	dhcp_packet(skb->ifnet, info->client_ip, info->uid, DHCP_OFFER, info, lease);
 	splock_unlock(&lease->lock);
 	return 0;
 }
@@ -536,17 +536,17 @@ static int dhcp_on_request(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 	splock_lock(&srv->lock);
 	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, info->client_mac, ETH_ALEN);
 	if (lease == NULL) {
-		dhcp_packet(ifnet, info->client_ip, info->uid, DHCP_PNACK, info, NULL);
+		dhcp_packet(skb->ifnet, info->client_ip, info->uid, DHCP_PNACK, info, NULL);
 		splock_unlock(&srv->lock);
 		return 0;
 	}
 	splock_lock(&lease->lock);
 	splock_unlock(&srv->lock);
-	
+
 	// CHECK
 	lease->timeout = time64() + info->lease_time * USEC_PER_SEC;
 	memcpy(info->client_ip, info->query_ip, IP4_ALEN);
-	dhcp_packet(ifnet, info->client_ip, info->uid, DHCP_PACK, info, lease);
+	dhcp_packet(skb->ifnet, info->client_ip, info->uid, DHCP_PACK, info, lease);
 	splock_unlock(&lease->lock);
 	return 0;
 }
@@ -560,7 +560,7 @@ static int dhcp_on_decline(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 		splock_unlock(&srv->lock);
 		return 0;
 	}
-	
+
 	// TODO - Is this been proposed to someone, ack ?
 	splock_unlock(&srv->lock);
 	return 0;
@@ -571,13 +571,13 @@ static int dhcp_on_release(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 	splock_lock(&srv->lock);
 	dhcp_lease_t *lease = (dhcp_lease_t*)hmp_get(&srv->leases, info->client_mac, ETH_ALEN);
 	if (lease == NULL) {
-		dhcp_packet(ifnet, info->client_ip, info->uid, DHCP_PNACK, info, NULL);
+		dhcp_packet(skb->ifnet, info->client_ip, info->uid, DHCP_PNACK, info, NULL);
 		splock_unlock(&srv->lock);
 		return 0;
 	}
 	splock_lock(&lease->lock);
 	splock_unlock(&srv->lock);
-	
+
 	// CHECK - IP
 	lease->timeout = 0;
 	lease->flags |= DHCP_LEASE_FREE; // UNLESS RESERVED
@@ -624,13 +624,13 @@ int dhcp_packet(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int mode, cons
 {
     uint8_t option[32];
     int bt_mode = dhcp2boot[mode];
-    
+
     int opts = 3 + 9 + 8 + 1;
     if (bt_mode == BOOT_REQUEST)
         opts += dhcp_count_options_request(ifnet, ip, info);
     else
         opts += dhcp_count_options_reply(ifnet, ip, info, lease);
-    
+
     skb_t *skb = dhcp_header(ifnet, ip, uid, bt_mode, opts);
     if (skb == NULL)
         return -1;
@@ -654,9 +654,9 @@ int dhcp_packet(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int mode, cons
     net_write(skb, option, option[1] + 2);
 
     if (bt_mode == BOOT_REQUEST)
-        opts += dhcp_write_options_request(ifnet, skb, options, ip, info);
+        dhcp_write_options_request(ifnet, skb, option, ip, info);
     else
-        opts += dhcp_write_options_reply(ifnet, skb, options, ip, info, lease);
+        dhcp_write_options_reply(ifnet, skb, option, ip, info, lease);
 
     // End of options
     option[0] = 0xFF;
@@ -684,7 +684,7 @@ int dhcp_receive(skb_t *skb, unsigned length)
     DHCP_header_t *header = net_pointer(skb, sizeof(DHCP_header_t));
     if (header == NULL || length < sizeof(DHCP_header_t))
         return -1;
-    if (header.htype != 1 || header.hlen != 6)
+    if (header->htype != 1 || header->hlen != 6)
         return -1;
 
     uint32_t magic = DHCP_MAGIC;
@@ -722,7 +722,7 @@ int dhcp_receive(skb_t *skb, unsigned length)
 
 dhcp_server_t *dhcp_create_server(uint8_t *ip_rooter, int netsz)
 {
-	dhcp_server_t *srv = (dhcp_seever_t*)kalloc(sizeof(dhcp_server_t));
+	dhcp_server_t *srv = (dhcp_server_t*)kalloc(sizeof(dhcp_server_t));
 	splock_lock(&srv->lock);
 	hmp_init(&srv->leases, 16);
 	srv->ip_count = (1 << netsz);
@@ -732,7 +732,7 @@ dhcp_server_t *dhcp_create_server(uint8_t *ip_rooter, int netsz)
 	*((uint32_t*)srv->ip_network) &= ~subnet_mask;
 	srv->netsz = netsz;
 	srv->ip_table = (dhcp_lease_t**)kalloc(srv->ip_count * sizeof(dhcp_lease_t*));
-	
+
 	srv->ip_table[0] = (dhcp_lease_t*)kalloc(sizeof(dhcp_lease_t));
 	// TODO -- not part of IPs range
 	srv->ip_table[1] = (dhcp_lease_t*)kalloc(sizeof(dhcp_lease_t));
