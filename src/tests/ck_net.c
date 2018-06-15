@@ -79,7 +79,7 @@ void advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
         eth1.flags |= NET_QUIT;
         eth2.flags |= NET_QUIT;
     }
-    
+
     if (lock != NULL)
         splock_lock(lock);
 }
@@ -100,8 +100,8 @@ int sendUT(netdev_t *ifnet, skb_t *skb)
     splock_lock(&ifnet->lock);
     splock_lock(&net_lock);
     kprintf(KLOG_DBG, "Packet send by eth%d: %s (%d)\n", ifnet->no, skb->log, skb->length);
-    kdump(skb->buf, skb->length);
-    kprintf(KLOG_DBG, "\n");
+    // dump(skb->buf, skb->length);
+    // kprintf(KLOG_DBG, "\n");
     // check packets
     splock_unlock(&net_lock);
     splock_unlock(&ifnet->lock);
@@ -124,7 +124,7 @@ int linkUT(netdev_t *ifnet)
 int main()
 {
 	host_init();
-	
+
     memset(&eth1, 0, sizeof(eth1));
     memcpy(eth1.eth_addr, mac1, ETH_ALEN);
     eth1.mtu = 1500;
@@ -137,6 +137,7 @@ int main()
     memcpy(eth2.eth_addr, mac2, ETH_ALEN);
     memcpy(eth2.ip4_addr, ip2, ETH_ALEN);
     eth2.mtu = 1500;
+    eth2.flags |= NET_CONNECTED;
     eth2.domain = strdup("axfab.net");
     eth2.send = sendUT;
     eth2.link = linkUT;

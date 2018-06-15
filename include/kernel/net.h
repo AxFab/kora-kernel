@@ -56,8 +56,8 @@ uint16_t ip4_checksum(skb_t *skb, size_t len);
 int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, int length, int protocol);
 int ip4_receive(skb_t *skb);
 
-#ip4_null(n) (*((uint32_t*)(n))==0)
-#ip4_eq(a,b) (*((uint32_t*)(a))==*((uint32_t*)(b)))
+#define ip4_null(n) (*((uint32_t*)(n))==0)
+#define ip4_eq(a,b) (*((uint32_t*)(a))==*((uint32_t*)(b)))
 extern const uint8_t ip4_broadcast[IP4_ALEN];
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -128,7 +128,7 @@ struct netdev {
 
     char *hostname;
     char *domain;
-    
+
     // IP ------------
     uint8_t gateway_ip[IP4_ALEN];
     uint8_t gateway_mac[ETH_ALEN];
@@ -140,11 +140,11 @@ struct netdev {
     uint32_t dhcp_transaction;
     uint64_t dhcp_lastsend;
     uint8_t dhcp_mode;
-    
+
     // DNS ------------
     uint8_t dns_ip[IP4_ALEN];
-    
-    
+
+
     long rx_packets;
     long rx_bytes;
     long rx_broadcast;
@@ -213,8 +213,8 @@ char *net_ip4str(char *buf, uint8_t *ip);
 uint16_t net_rand_port();
 uint16_t net_ephemeral_port(socket_t *socket);
 
-void host_register(uint8_t *mac, uint8_t *ip, const char *hostname, const char *domain);
-int host_mac_for_ip(uint_t *mac, const uint8_t *ip, int trust);
+void host_register(uint8_t *mac, uint8_t *ip, const char *hostname, const char *domain, int trust);
+int host_mac_for_ip(uint8_t *mac, const uint8_t *ip, int trust);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

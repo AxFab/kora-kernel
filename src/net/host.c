@@ -55,22 +55,22 @@ void host_register(uint8_t *mac, uint8_t *ip, const char *hostname, const char *
 	char bufi[16];
 	host_t *host = NULL;
 	kprintf(KLOG_DBG, "HOST.%d: %s, %s, %s.%s\n", trust, net_ethstr(bufm, mac), net_ip4str(bufi, ip), hostname, domain);
-	
+
 	host = (host_t*)kalloc(sizeof(host_t));
 	memcpy(host->mac, mac, ETH_ALEN);
-	memcpy(host->ip, ip, UP4_ALEN);
+	memcpy(host->ip, ip, IP4_ALEN);
 	host->hostname = strdup(hostname);
 	host->domain = strdup(domain);
 	host->trust_mac = trust;
 	host->trust_ip = trust;
 	host->trust_fqdn = trust;
-	
-	hmp_put(&host_mac, mac, ETH_ALEN);
-	hmp_put(&host_ip, ip, IP4_ALEN);
-	
+
+	hmp_put(&host_mac, mac, ETH_ALEN, host);
+	hmp_put(&host_ip, ip, IP4_ALEN, host);
+
 }
 
-int host_mac_for_ip(uint_t *mac, const uint8_t *ip, int trust)
+int host_mac_for_ip(uint8_t *mac, const uint8_t *ip, int trust)
 {
 	host_t *host = hmp_get(&host_ip, ip, IP4_ALEN);
 	if (host == NULL || host->trust_mac < trust)

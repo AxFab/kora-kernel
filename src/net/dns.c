@@ -38,7 +38,7 @@ int dns_packet(netdev_t *ifnet)
     if (skb == NULL)
         return -1;
     int length = 0;
-    if (udp_header(skb, ifnet->dns_addr, length, UDP_PORT_DNS, 0) != 0)
+    if (udp_header(skb, ifnet->dns_ip, length, UDP_PORT_DNS, 0) != 0)
         return net_trash(skb);
     strncat(skb->log, "dns:", NET_LOG_SIZE);
     DNS_header_t header;
