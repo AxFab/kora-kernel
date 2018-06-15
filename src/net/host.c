@@ -59,15 +59,15 @@ void host_register(uint8_t *mac, uint8_t *ip, const char *hostname, const char *
 	host = (host_t*)kalloc(sizeof(host_t));
 	memcpy(host->mac, mac, ETH_ALEN);
 	memcpy(host->ip, ip, IP4_ALEN);
-	host->hostname = strdup(hostname);
-	host->domain = strdup(domain);
+	host->hostname = hostname ? strdup(hostname) : NULL;
+	host->domain = domain ? strdup(domain) : NULL;
 	host->trust_mac = trust;
 	host->trust_ip = trust;
 	host->trust_fqdn = trust;
 
-	hmp_put(&host_mac, mac, ETH_ALEN, host);
-	hmp_put(&host_ip, ip, IP4_ALEN, host);
-
+	hmp_put(&host_mac, (char*)mac, ETH_ALEN, host);
+	hmp_put(&host_ip, (char*)ip, IP4_ALEN, host);
+	host_update(host);
 }
 
 int host_mac_for_ip(uint8_t *mac, const uint8_t *ip, int trust)

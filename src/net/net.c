@@ -199,7 +199,7 @@ void net_tasklet(netdev_t *ifnet)
         /* Read available packets */
         for(;;) {
             splock_lock(&ifnet->lock);
-            skb_t *skb;
+            skb_t *skb = NULL;
             while (timeout - time64() > 0) {
                 skb = ll_dequeue(&ifnet->queue, skb_t, node);
                 if (skb != NULL)
