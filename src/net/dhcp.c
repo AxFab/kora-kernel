@@ -240,7 +240,7 @@ static skb_t *dhcp_header(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int 
         return NULL;
     }
     memset(header, 0, sizeof(DHCP_header_t));
-    header->opcode = BOOT_REQUEST;
+    header->opcode = opcode;
     header->htype = 1;
     header->hlen = 6;
     header->xid = uid;
@@ -339,7 +339,7 @@ static void dhcp_write_options_reply(netdev_t *ifnet, skb_t *skb, uint8_t option
     option[0] = DHCP_OPT_SUBNETMASK;
 	option[1] = IP4_ALEN;
 	uint32_t submask = htonl(~((1 << ifnet->dhcp_srv->netsz) - 1));
-    memcpy(&option[2], submask, IP4_ALEN);
+    memcpy(&option[2], &submask, IP4_ALEN);
 	net_write(skb, option, option[1] + 2);
 
     option[0] = DHCP_OPT_ROOTER;
@@ -526,7 +526,7 @@ static int dhcp_on_discover(skb_t *skb, dhcp_server_t* srv, dhcp_info_t *info)
 	lease->timeout = time64() + info->lease_time * USEC_PER_SEC;
 
 	host_register(lease->mac, lease->ip, lease->hostname, skb->ifnet->domain, HOST_TEMPORARY);
-	dhcp_packet(skb->ifnet, info->client_ip, info->uid, DHCP_OFFER, info, lease);
+	dhcp_packet(skb->ifnet, lease->ip, info->uid, DHCP_OFFER, info, lease);
 	splock_unlock(&lease->lock);
 	return 0;
 }
@@ -649,7 +649,7 @@ int dhcp_packet(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int mode, cons
 
     option[0] = DHCP_OPT_VENDOR;
     const char *vendor = "KoraOS";
-    option[1] = strlen(vendor);
+    option[1] = (uint8_t)strlen(vendor);
     strncpy((char*)&option[2], vendor, 32-2);
     net_write(skb, option, option[1] + 2);
 
@@ -693,7 +693,7 @@ int dhcp_receive(skb_t *skb, unsigned length)
 
     dhcp_info_t info;
     memset(&info, 0, sizeof(info));
-    memset(info.client_mac, header->chaddr, ETH_ALEN);
+    memcpy(info.client_mac, header->chaddr, ETH_ALEN);
     info.uid = header->xid;
     memcpy(info.client_ip, header->yiaddr, IP4_ALEN);
     memcpy(info.dhcp_ip, header->siaddr, IP4_ALEN);
@@ -705,7 +705,7 @@ int dhcp_receive(skb_t *skb, unsigned length)
     if (header->opcode == BOOT_REPLY)
         ret = dhcp_handle(skb, &info);
     else if (header->opcode == BOOT_REQUEST && skb->ifnet->dhcp_srv != NULL)
-        ret = dhcp_serve(skb->ifnet, skb->ifnet->dhcp_srv, &info);
+        ret = dhcp_serve(skb, skb->ifnet->dhcp_srv, &info);
     else
         ret = -1;
 
@@ -723,7 +723,7 @@ int dhcp_receive(skb_t *skb, unsigned length)
 dhcp_server_t *dhcp_create_server(uint8_t *ip_rooter, int netsz)
 {
 	dhcp_server_t *srv = (dhcp_server_t*)kalloc(sizeof(dhcp_server_t));
-	splock_lock(&srv->lock);
+	splock_init(&srv->lock);
 	hmp_init(&srv->leases, 16);
 	srv->ip_count = (1 << netsz);
 	memcpy(srv->ip_rooter, ip_rooter, IP4_ALEN);
