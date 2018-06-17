@@ -53,8 +53,8 @@ run_raspberry-pi2 () {
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 raspberry-pi2 () {
-    export target=arm-raspberry2-none
-    export CROSS=arm-none-eabi-
+    export target=arm-raspberry2-none
+    export CROSS=arm-none-eabi-
 
     make -f $SRC_KRN/Makefile kImage
 }

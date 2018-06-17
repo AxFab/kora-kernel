@@ -37,10 +37,23 @@
 #define APIC_ICR_LOW  (0x300 / 4)
 #define APIC_ICR_HIGH  (0x310 / 4)
 #define APIC_LVT3  (0x370 / 4) // LVT Error register
+#define APIC_TM_INC (0x380 / 4) // Timer initial counter
+#define APIC_TM_CUC (0x390 / 4) // Timer current counter
+#define APIC_TM_DIV (0x3E0 / 4) // Timer divide
 
+typedef struct cpu_x86 cpu_x86_t;
+struct cpu_x86
+{
+    int id;
+    char *vendor;
+    char *family;
+    size_t stack;
+    int features[4];
+};
 
-
+extern cpu_x86_t *cpu_table;
 extern size_t apic_mmio;
 void apic_setup();
+void cpuid_setup(); // in setup.c
 
 #endif  /* _SRC_APIC_H */

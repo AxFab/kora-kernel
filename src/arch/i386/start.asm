@@ -20,6 +20,7 @@ use32
 global _start, start
 extern code, bss, end
 extern grub_init, cpu_early_init, kernel_start
+extern apic_regs, cpu_table, ap_setup
 
 ; Define some constant values
 %define GRUB_MAGIC1     0x1BADB002
@@ -41,6 +42,8 @@ extern grub_init, cpu_early_init, kernel_start
 %define SMP_GDT_REG  0x7e8
 %define SMP_CPU_LOCK  0x7f0
 %define SMP_CPU_COUNT  0x7f8
+
+%define KERNEL_PAGE_DIR 0x2000
 
 %macro PUTC 3
     mov byte [0xB8000 + 154], %2
@@ -184,31 +187,53 @@ use32
 align 32
 ap_boot:
     cli
+    PUTC 0x17, 'O', 'n'
 
     lidt [startup.idt_regs] ; IDT
 
     ; Lock CPU Initialization Spin-Lock
-.spinlock:
-    cmp dword [SMP_CPU_LOCK], 0    ; Check if lock is free
-    je .getlock
-    pause
-    jmp .spinlock
-.getlock:
-    mov eax, 1
-    xchg eax, [SMP_CPU_LOCK]  ; Try to get lock
-    cmp eax, 0            ; Test is successful
-    jne .spinlock
-.criticalsection:
+;.spinlock:
+;    cmp dword [SMP_CPU_LOCK], 0    ; Check if lock is free
+;    je .getlock
+;    pause
+;    jmp .spinlock
+;.getlock:
+;    mov eax, 1
+;    xchg eax, [SMP_CPU_LOCK]  ; Try to get lock
+;    cmp eax, 0            ; Test is successful
+;    jne .spinlock
+;.criticalsection:
+
+    ; Active paging
+    mov eax, KERNEL_PAGE_DIR
+    mov cr3, eax
+    mov eax, cr0
+    or eax, (1 << 31) ; CR0 31b to activate mmu
+    mov cr0, eax
+
+    ; Get APIC Id
+    mov edi, [apic_regs]
+    mov ecx, [edi + 0x20] ; Read APIC ID
+    shr ecx, 24
+    and ecx, 0xf
 
     ; Compute stack
-
+    mov ebx, [cpu_table]
+    mov edx, ecx
+    shl edx, 5
+    add ebx, edx
+    add ebx, 12
+    mov eax, [ebx]
+    add eax, 0xFFC
+    mov esp, eax
 
     ; ...
 
     ; Unlock the spinlock
-    xor eax, eax
-    mov [SMP_CPU_LOCK], eax
+;    xor eax, eax
+;    mov [SMP_CPU_LOCK], eax
 
     ; ...
+    call ap_setup
 
     jmp $

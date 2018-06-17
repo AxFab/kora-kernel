@@ -122,7 +122,7 @@ static void kernel_top(long sec)
 
 void kernel_start()
 {
-    kSYS.cpus[0] = &kCPU0;
+    kSYS.cpus = &kCPU0;
     irq_reset(false);
     irq_disable();
     kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");

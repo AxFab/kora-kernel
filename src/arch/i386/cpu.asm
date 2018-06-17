@@ -27,6 +27,8 @@ cpu_no:
     ret
 .n:
     mov eax, [eax + 0x20] ; Read APIC ID
+    shr eax, 24
+    and eax, 0xf
     ret
 
 cpu_save:

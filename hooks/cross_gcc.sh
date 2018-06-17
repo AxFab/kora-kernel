@@ -28,39 +28,21 @@ export PATH="$PREFIX/bin:$PATH"
 # Versions of packages
 export BUTILS='binutils-2.30'
 export GCC='gcc-7.3.0'
-export GMP='gmp-6.1.2'
-export MPC='mpc-1.0.2'
-export MPFR='mpfr-4.0.1'
-export ISL='isl-0.16.1'
+
 
 download()
 {
     cd $SOURCES
     wget "https://ftp.gnu.org/gnu/binutils/$BUTILS.tar.xz"
     wget "https://ftp.gnu.org/gnu/gcc/$GCC/$GCC.tar.xz"
-    wget "https://ftp.gnu.org/gnu/gmp/$GMP.tar.xz"
-    wget "https://ftp.gnu.org/gnu/mpc/$MPC.tar.gz"
-    wget "https://ftp.gnu.org/gnu/mpfr/$MPFR.tar.xz"
-    wget "http://isl.gforge.inria.fr/$ISL.tar.xz"
-}
-
-# Extract sources
-extract()
-{
-    cd $SOURCES
 
     tar xvf "$BUTILS.tar.xz"
     tar xvf "$GCC.tar.xz"
-    tar xvf "$GMP.tar.xz"
-    tar xvf "$MPC.tar.gz"
-    tar xvf "$MPFR.tar.xz"
-    tar xvf "$ISL.tar.xz"
 
-    ln -vs "../$GMP" "$GCC/gmp"
-    ln -vs "../$MPC" "$GCC/mpc"
-    ln -vs "../$MPFR" "$GCC/mpfr"
-    ln -vs "../$ISL" "$GCC/isl"
+    cd "$GCC"
+    ./contrib/download_prerequisites
 }
+
 
 build_binutils()
 {
@@ -93,7 +75,6 @@ build_gcc()
 mkdir -p $PREFIX/{bin,lib,src}
 
 download
-extract
 build_binutils
 build_gcc
 
