@@ -20,10 +20,21 @@ static inline void delay(int32_t count)
          : "=r"(count): [count]"0"(count) : "cc");
 }
 
+// #define PBASE  0x20000000 // Raspberry-pi 1
+#define PBASE  0x3F000000 // Raspberry-pi 2 & 3
+
+
+// The GPIO registers base address.
+#define GPIO_BASE  (PBASE + 0x200000)
+
+
+#define UART0_BASE  (PBASE + 0x201000)
+
 enum
 {
-    // The GPIO registers base address.
-    GPIO_BASE = 0x3F200000, // for raspi2 & 3, 0x20200000 for raspi1
+    // PBASE = 0x3F000000,
+
+    // GPIO_BASE = PBASE + 0x200000, // for raspi2 & 3, 0x20200000 for raspi1
 
     // The offsets for reach register.
 
@@ -34,7 +45,7 @@ enum
     GPPUDCLK0 = (GPIO_BASE + 0x98),
 
     // The base address for UART.
-    UART0_BASE = 0x3F201000, // for raspi2 & 3, 0x20201000 for raspi1
+    // UART0_BASE = PBASE + 0x201000, // for raspi2 & 3, 0x20201000 for raspi1
 
     // The offsets for reach register for the UART.
     UART0_DR     = (UART0_BASE + 0x00),

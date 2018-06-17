@@ -25,17 +25,27 @@
 size_t apic_mmio;
 volatile uint32_t *apic_regs = NULL;
 
+
+cpu_x86_t *cpu_table = NULL;
+
 void lapic_register(madt_lapic_t *info)
 {
-    kprintf(KLOG_ERR, " - lapic: acpi:%d apic:%d\n",
-        info->acpi_id, info->apic_id);
+    kprintf(KLOG_ERR, " - lapic: acpi:%d apic:%d, flags %x\n",
+        info->acpi_id, info->apic_id, info->flags);
+    cpu_table[info->acpi_id].id = info->apic_id;
+    if (info->acpi_id == 0)
+        cpu_table[info->acpi_id].stack = 0x4000;
+    else
+        cpu_table[info->acpi_id].stack = (size_t)kmap(PAGE_SIZE, NULL, 0, VMA_STACK_RW | VMA_RESOLVE);
 }
 
 void lapic_setup(int cpus)
 {
-    // kalloc(sizeof(struct kCpu) * cpus);
-    // CHANGE CPU !
-
+    cpu_table = (cpu_x86_t*)kalloc(sizeof(cpu_x86_t) * cpus);
+    struct kCpu* cpu0 = kSYS.cpus;
+    kSYS.cpus = (struct kCpu*)kalloc(sizeof(struct kCpu) * cpus);
+    kSYS.cpus[0] = *cpu0;
+    // TODO - kCPU !
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -105,8 +115,6 @@ void apic_override_register(madt_override_t *info)
         info->flags & 8 ? "level" : "edge",
         info->flags & 2 ? "low" : "high");
 
-
-
 }
 
 
@@ -116,28 +124,47 @@ void apic_override_register(madt_override_t *info)
 void ap_start();
 
 
+void apic_init()
+{
+    apic_regs[APIC_TPR] = 0;
+    apic_regs[APIC_SVR] = 0x1FF;
+    apic_regs[APIC_DFR] = 0xFFFFFFFF;
+    apic_regs[APIC_LDR] = 0xFF000000;
+    apic_regs[APIC_EOI] = 0;
+
+    kprintf(-1, "CPU%d - at %p \n", cpu_no(), &kCPU);
+    kprintf(-1, "CPU%d IRQ sem%d \n", cpu_no(), kCPU.irq_semaphore);
+}
+
 void apic_setup()
 {
-    if (apic_regs != NULL)
+    if (apic_regs != NULL || apic_mmio == NULL)
         return;
 
     kprintf(KLOG_ERR, "Local APIC at %x\n", apic_mmio);
-    volatile uint32_t *apic_regs = kmap(PAGE_SIZE, NULL, apic_mmio, VMA_PHYSIQ);
+    apic_regs = kmap(PAGE_SIZE, NULL, apic_mmio, VMA_PHYSIQ);
 
-
+    kprintf(KLOG_DBG, "Send INIT IPI to all APs\n");
     // INIT IPI to all APs
     apic_regs[APIC_ICR_LOW] = 0x0C4500;
     x86_delay(100/*00*/); // 10-millisecond delay loop.
 
+    kprintf(KLOG_DBG, "Broadcast SIPI IP to APs (x2)\n");
     // Load ICR encoding for broadcast SIPI IP (x2)
     apic_regs[APIC_ICR_LOW] = 0x000C4600 | ((size_t)ap_start >> 12);
     x86_delay(2); // 200-microsecond delay loop.
     apic_regs[APIC_ICR_LOW] = 0x000C4600 | ((size_t)ap_start >> 12);
     x86_delay(2); // 200-microsecond delay loop.
 
+    apic_init();
 
     // kunmap(apic_mmio, PAGE_SIZE);
 }
 
 
-
+void ap_setup()
+{
+    kprintf(KLOG_DBG, "CPU%d is awake !\n", cpu_no());
+    cpuid_setup();
+    apic_init();
+}

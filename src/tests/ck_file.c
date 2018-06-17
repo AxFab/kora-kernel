@@ -275,7 +275,7 @@ void test_pipe_01()
 
 int main ()
 {
-    // kSYS.cpus[0] = &kCPU0;
+    // kSYS.cpus = &kCPU0;
     kprintf(-1, "Kora FILE check - " __ARCH " - v" _VTAG_ "\n");
 
     test_VDS();

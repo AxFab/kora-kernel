@@ -15,14 +15,20 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-ifeq($(target_vendor),raspberry2)
+# ifeq($(target_vendor),raspberry2)
 ARM_CPU = -mcpu=arm1176jzf-s
-endif
+# endif
 
-KRN_FLAGS += $(ARM_CPU) -mgeneral-regs-only
+KRN_FLAGS += $(ARM_CPU)
+# -mgeneral-regs-only
 
 $(outdir)/krn/%.o: $(srcdir)/%.s
+	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    ASM "$@
+	$(V) $(CC) $(ARM_CPU) -fpic -ffreestanding -o $@ $^
+
 $(outdir)/std/%.o: $(srcdir)/%.s
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    ASM "$@
 	$(V) $(CC) $(ARM_CPU) -fpic -ffreestanding -o $@ $^
+

@@ -11,6 +11,7 @@
 // r2 -> 0x00000100 - start of ATAGS
 // preserve these registers as argument for kernel_main
 _start:
+start:
     // Setup the stack.
     mov sp, #0x8000
 

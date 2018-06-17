@@ -160,12 +160,12 @@ struct kCpu {
 };
 
 struct kSys {
-    struct kCpu *cpus[32];
+    struct kCpu *cpus;
 };
 
 extern struct kSys kSYS;
 
-#define kCPU (*kSYS.cpus[cpu_no()])
+#define kCPU (kSYS.cpus[cpu_no()])
 
 #define CLOCK_HZ  100 // 10ms
 

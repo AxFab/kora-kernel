@@ -19,6 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
+#include <string.h>
 #include "apic.h"
 
 
@@ -205,18 +206,22 @@ static void rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
 
 int all_features[4] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 
-static void cpuid_setup()
+void cpuid_setup()
 {
     int cpu_name[5];
-    int cpu_features[4];
+    if (cpu_table == NULL) {
+
+        for (;;);
+    }
 
     // Get CPU Vendor name
     x86_cpuid(0, 0, cpu_name);
     cpu_name[4] = 0;
+    cpu_table[cpu_no()].vendor = strdup((char*)&cpu_name[1]);
     kprintf(KLOG_DBG, "CPU%d :: %s\n", cpu_no(), &cpu_name[1]);
 
     // Get CPU features
-    x86_cpuid(1, 0, cpu_features);
+    x86_cpuid(1, 0, cpu_table[cpu_no()].features);
 
     /*
     if (x86_FEATURES_FPU(*cpu)) {
@@ -226,10 +231,10 @@ static void cpuid_setup()
         x86_enable_SSE();
     } */
 
-    all_features[0] &= cpu_features[0];
-    all_features[1] &= cpu_features[1];
-    all_features[2] &= cpu_features[2];
-    all_features[3] &= cpu_features[3];
+    all_features[0] &= cpu_table[cpu_no()].features[0];
+    all_features[1] &= cpu_table[cpu_no()].features[1];
+    all_features[2] &= cpu_table[cpu_no()].features[2];
+    all_features[3] &= cpu_table[cpu_no()].features[3];
 
 
     char *tmp = kalloc(1024);
@@ -293,27 +298,28 @@ static void cpuid_setup()
     kprintf(KLOG_DBG, "Features: %s\n", tmp);
     kfree(tmp);
 
-    if (!x86_FEATURES_MSR(cpu_features)) {
+    if (!x86_FEATURES_MSR(cpu_table[cpu_no()].features)) {
         kprintf(KLOG_MSG, "CPU%d: No MSR capability\n", cpu_no());
         return;
-    } else if (!x86_FEATURES_APIC(cpu_features)) {
+    } else if (!x86_FEATURES_APIC(cpu_table[cpu_no()].features)) {
         kprintf(KLOG_MSG, "CPU%d: No APIC capability\n", cpu_no());
         return;
     }
 
+    if (cpu_no() == 0) {
+        uint32_t regA, regB;
+        rdmsr(IA32_APIC_BASE_MSR, &regA, &regB);
+        if ((regA & (1 << 11)) == 0) {
+            kprintf(KLOG_MSG, "CPU%d: APIC disabled\n", cpu_no());
+            return;
+        } else if ((regA & (1 << 8)) == 0) {
+            kprintf(KLOG_MSG, "CPU%d: Unfound BSP\n", cpu_no());
+            return;
+        }
 
-    uint32_t regA, regB;
-    rdmsr(IA32_APIC_BASE_MSR, &regA, &regB);
-    if ((regA & (1 << 11)) == 0) {
-        kprintf(KLOG_MSG, "CPU%d: APIC disabled\n", cpu_no());
-        return;
-    } else if ((regA & (1 << 8)) == 0) {
-        kprintf(KLOG_MSG, "CPU%d: Unfound BSP\n", cpu_no());
-        return;
+        apic_mmio = regA & ~(PAGE_SIZE - 1);
+        kprintf(KLOG_MSG, "CPU%d: APIC at %p\n", cpu_no(), apic_mmio);
     }
-
-    apic_mmio = regA & ~(PAGE_SIZE - 1);
-    kprintf(KLOG_MSG, "CPU%d: APIC at %p\n", cpu_no(), apic_mmio);
 }
 
 // create cpufeatures structs
