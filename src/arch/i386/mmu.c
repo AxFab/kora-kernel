@@ -75,11 +75,11 @@ void mmu_enable()
 void mmu_leave()
 {
     unsigned i;
-	page_t *dir = MMU_KRN_DIR_PG;
-	for (i = MMU_KTBL_LOW ; i < MMU_KTBL_HIGH; ++i) {
-		if (dir[i])
-		    page_release(dir[i] & (PAGE_SIZE - 1));
-	}
+    page_t *dir = MMU_KRN_DIR_PG;
+    for (i = MMU_KTBL_LOW ; i < MMU_KTBL_HIGH; ++i) {
+        if (dir[i])
+            page_release(dir[i] & (PAGE_SIZE - 1));
+    }
 }
 
 /* Resolve a single missing virtual page */
@@ -91,20 +91,18 @@ void mmu_resolve(size_t vaddr, page_t phys, int flags)
         if (vaddr >= MMU_KSPACE_LOWER) {
             page_t *krn = MMU_KRN(vaddr);
             if (*krn == 0)
-            	*krn = page_new() | MMU_K_RW;
+                *krn = page_new() | MMU_K_RW;
             *dir = *krn;
-        } else {
-        	*dir = page_new() | MMU_U_RW;
-        }
+        } else
+            *dir = page_new() | MMU_U_RW;
     }
 
     if (*tbl == 0) {
-    	if (phys == 0)
+        if (phys == 0)
             phys = page_new();
-    	*tbl = phys | mmu_flags(vaddr, flags);
-    } else {
-    	assert(vaddr >= MMU_KSPACE_LOWER);
-    }
+        *tbl = phys | mmu_flags(vaddr, flags);
+    } else
+        assert(vaddr >= MMU_KSPACE_LOWER);
 }
 
 /* Get physical address for virtual provided one */
@@ -126,7 +124,7 @@ page_t mmu_drop(size_t vaddr)
         return 0;
     page_t pg = *tbl & ~(PAGE_SIZE - 1);
     *tbl = 0;
-    asm volatile (
+    asm volatile(
         "movl %0,%%eax\n"
         "invlpg (%%eax)\n"
         :: "r"(vaddr) : "%eax");
@@ -142,7 +140,7 @@ void mmu_protect(size_t vaddr, int flags)
         return;
     page_t pg = *tbl & ~(PAGE_SIZE - 1);
     *tbl = pg | mmu_flags(vaddr, flags);
-    asm volatile (
+    asm volatile(
         "movl %0,%%eax\n"
         "invlpg (%%eax)\n"
         :: "r"(vaddr) : "%eax");
@@ -150,8 +148,8 @@ void mmu_protect(size_t vaddr, int flags)
 
 void mmu_create_uspace(mspace_t *mspace)
 {
-	page_t dir_pg = page_new();
-    page_t *dir = (page_t*)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
+    page_t dir_pg = page_new();
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
     memset(dir, 0,  PAGE_SIZE);
     dir[1023] = dir_pg | MMU_K_RW;
     dir[1022] = (page_t)MMU_KRN_DIR_PG | MMU_K_RW;
@@ -166,22 +164,22 @@ void mmu_create_uspace(mspace_t *mspace)
 
 void mmu_destroy_uspace(mspace_t *mspace)
 {
-	unsigned i;
-	page_t dir_pg = mspace->directory;
-	page_t *dir = (page_t*)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
+    unsigned i;
+    page_t dir_pg = mspace->directory;
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
 
     for (i = MMU_UTBL_LOW ; i < MMU_UTBL_HIGH; ++i) {
-		if (dir[i])
-		    page_release(dir[i] & (PAGE_SIZE - 1));
-	}
-	kunmap(dir, PAGE_SIZE);
-	page_release(dir_pg);
+        if (dir[i])
+            page_release(dir[i] & (PAGE_SIZE - 1));
+    }
+    kunmap(dir, PAGE_SIZE);
+    page_release(dir_pg);
 }
 
 void mmu_context(mspace_t *mspace)
 {
-	page_t dir = mspace->directory;
-	x86_set_cr3(dir);
+    page_t dir = mspace->directory;
+    x86_set_cr3(dir);
 }
 
 void mmu_explain(size_t vaddr)
@@ -189,7 +187,8 @@ void mmu_explain(size_t vaddr)
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if (*dir)
-        kprintf(KLOG_DBG, " @"FPTR" -> {"FPTR":"FPTR"} / {"FPTR":"FPTR"}\n", vaddr, dir, *dir, tbl, *tbl);
+        kprintf(KLOG_DBG, " @"FPTR" -> {"FPTR":"FPTR"} / {"FPTR":"FPTR"}\n", vaddr, dir,
+                *dir, tbl, *tbl);
     else
         kprintf(KLOG_DBG, " @"FPTR" -> {"FPTR":"FPTR"}\n", vaddr, dir, *dir);
 }

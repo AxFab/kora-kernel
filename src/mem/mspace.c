@@ -28,23 +28,19 @@
 static bool mspace_is_available(mspace_t *mspace, size_t address, size_t length)
 {
     assert(splock_locked(&mspace->lock));
-    if (address < mspace->lower_bound || address + length > mspace->upper_bound) {
+    if (address < mspace->lower_bound || address + length > mspace->upper_bound)
         return false;
-    }
     vma_t *vma = bbtree_search_le(&mspace->tree, address, vma_t, node);
     if (vma == NULL) {
         vma = bbtree_first(&mspace->tree, vma_t, node);
-        if (vma != NULL && address + length > vma->node.value_) {
+        if (vma != NULL && address + length > vma->node.value_)
             return false;
-        }
     } else {
-        if (vma->node.value_ + vma->length > address) {
+        if (vma->node.value_ + vma->length > address)
             return false;
-        }
         vma = bbtree_next(&vma->node, vma_t, node);
-        if (vma != NULL && address + length > vma->node.value_) {
+        if (vma != NULL && address + length > vma->node.value_)
             return false;
-        }
     }
     return true;
 }
@@ -60,11 +56,13 @@ static size_t mspace_find_free(mspace_t *mspace, size_t length)
 
     for (;;) {
         next = bbtree_next(&vma->node, vma_t, node);
-        if (next == NULL || vma->node.value_ + vma->length + length <= next->node.value_)
+        if (next == NULL
+            || vma->node.value_ + vma->length + length <= next->node.value_)
             break;
         vma = next;
     }
-    if (next == NULL && vma->node.value_ + vma->length + length > mspace->upper_bound)
+    if (next == NULL
+        && vma->node.value_ + vma->length + length > mspace->upper_bound)
         return 0;
     return vma->node.value_ + vma->length;
 }
@@ -123,10 +121,12 @@ static int mspace_set_flags(int flags, bool is_kernel)
  * the interval. Note that every addresses on the interval need to be
  * accessible or the function will stoy mid-way and return an error.
  */
-static int mspace_interval(mspace_t *mspace, size_t address, size_t length, int(*action)(mspace_t *, vma_t*, int), int arg)
+static int mspace_interval(mspace_t *mspace, size_t address, size_t length,
+                           int(*action)(mspace_t *, vma_t *, int), int arg)
 {
     vma_t *vma;
-    assert(address >= mspace->lower_bound && address + length <= mspace->upper_bound);
+    assert(address >= mspace->lower_bound
+           && address + length <= mspace->upper_bound);
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
     if (address < mspace->lower_bound || address >= mspace->upper_bound ||
@@ -157,7 +157,7 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length, int(
         address += vma->length;
         length -= vma->length;
         if (action(mspace, vma, arg)) {
-            assert (errno != 0);
+            assert(errno != 0);
             splock_unlock(&mspace->lock);
             return -1;
         }
@@ -301,7 +301,8 @@ vma_t *mspace_search_vma(mspace_t *mspace, size_t address)
     if (address >= kMMU.kspace->lower_bound && address < kMMU.kspace->upper_bound) {
         splock_lock(&kMMU.kspace->lock);
         vma = bbtree_search_le(&kMMU.kspace->tree, address, vma_t, node);
-    } else if (mspace != NULL && address >= mspace->lower_bound && address < mspace->upper_bound) {
+    } else if (mspace != NULL && address >= mspace->lower_bound
+               && address < mspace->upper_bound) {
         splock_lock(&mspace->lock);
         vma = bbtree_search_le(&mspace->tree, address, vma_t, node);
     }
@@ -320,7 +321,8 @@ vma_t *mspace_search_vma(mspace_t *mspace, size_t address)
 void mspace_display(mspace_t *mspace)
 {
     splock_lock(&mspace->lock);
-    kprintf(KLOG_DBG, ""FPTR"-"FPTR" mapped: %d KB   physical: %d KB   shared: %d KB   used: %d KB\n",
+    kprintf(KLOG_DBG,
+            ""FPTR"-"FPTR" mapped: %d KB   physical: %d KB   shared: %d KB   used: %d KB\n",
             mspace->lower_bound, mspace->upper_bound,
             mspace->v_size / 1024, mspace->p_size / 1024,
             mspace->s_size / 1024, mspace->a_size / 1024);

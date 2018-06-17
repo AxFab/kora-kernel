@@ -24,7 +24,8 @@
 #include <kernel/vfs.h>
 #include <errno.h>
 
-void *sys_mmap(size_t address, size_t length, int fd, off_t offset, unsigned long flags)
+void *sys_mmap(size_t address, size_t length, int fd, off_t offset,
+               unsigned long flags)
 {
     task_t *task = kCPU.running;
     inode_t *ino = NULL;
@@ -32,15 +33,15 @@ void *sys_mmap(size_t address, size_t length, int fd, off_t offset, unsigned lon
         // ino = task_getfile(task, fd);
         if (ino == NULL) {
             errno = EBADF;
-            return (void*)-1;
+            return (void *) - 1;
         }
     }
     int vmaflags = flags & VMA_RIGHTS;
-    if (ino != NULL) {
+    if (ino != NULL)
         vmaflags |= VMA_FILE;
-    } else {
+
+    else
         vmaflags |= VMA_ANON;
-    }
     return mspace_map(task->usmem, address, length, ino, offset, 0, vmaflags);
 }
 

@@ -82,9 +82,8 @@ static void test_filename(inode_t *dir, const char *name, int err)
     if (err == 0) {
         ck_assert(ino != NULL);
         vfs_close(ino);
-    } else {
+    } else
         ck_assert(ino == NULL);
-    }
     vfs_rmdir(dir, name);
     ck_assert(errno == err);
 
@@ -93,9 +92,8 @@ static void test_filename(inode_t *dir, const char *name, int err)
     if (err == 0) {
         ck_assert(ino != NULL);
         vfs_close(ino);
-    } else {
+    } else
         ck_assert(ino == NULL);
-    }
     vfs_unlink(dir, name);
     ck_assert(errno == err);
 }

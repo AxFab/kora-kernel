@@ -23,7 +23,7 @@
 #include <assert.h>
 
 void *malloc(size_t);
-void free(void*);
+void free(void *);
 
 #undef POW2
 #define POW2(v)  (((v)&((v)-1))==0)
@@ -101,7 +101,7 @@ void *memdup(const char *buf, int lg)
 
 void hmp_init(HMP_map *map, int lg)
 {
-    assert (POW2(lg));
+    assert(POW2(lg));
     map->mask_ = lg - 1;
     map->hashes_ = (HMP_entry **)malloc(sizeof(HMP_entry *) * lg);
     memset(map->hashes_, 0, sizeof(HMP_entry *) * lg);
@@ -125,7 +125,7 @@ void hmp_destroy(HMP_map *map, int all)
     memset(map, 0, sizeof(*map));
 }
 
-void hmp_put (HMP_map *map, const char *key, int lg, void *value)
+void hmp_put(HMP_map *map, const char *key, int lg, void *value)
 {
     uint32_t hash = murmur3_32(key, lg, map->seed_);
     HMP_entry *entry = map->hashes_[hash & map->mask_];
@@ -136,9 +136,8 @@ void hmp_put (HMP_map *map, const char *key, int lg, void *value)
         }
         entry = entry->next_;
     }
-    if (map->count_ > HMAP_FULL_RATIO * (map->mask_ + 1)) {
+    if (map->count_ > HMAP_FULL_RATIO * (map->mask_ + 1))
         hmap_grow(map);
-    }
     entry = (HMP_entry *)malloc(sizeof(HMP_entry));
     entry->key_ = memdup(key, lg);
     entry->lg_ = lg;
@@ -154,9 +153,8 @@ void *hmp_get(HMP_map *map, const char *key, int lg)
     uint32_t hash = murmur3_32(key, lg, map->seed_);
     HMP_entry *entry = map->hashes_[hash & map->mask_];
     while (entry != NULL) {
-        if (entry->lg_ == lg && memcmp(entry->key_, key, lg) == 0) {
+        if (entry->lg_ == lg && memcmp(entry->key_, key, lg) == 0)
             return entry->value_;
-        }
         entry = entry->next_;
     }
     return NULL;
@@ -166,9 +164,8 @@ void hmp_remove(HMP_map *map, const char *key, int lg)
 {
     uint32_t hash = murmur3_32(key, lg, map->seed_);
     HMP_entry *entry = map->hashes_[hash & map->mask_];
-    if (entry == NULL) {
+    if (entry == NULL)
         return;
-    }
     if (entry->lg_ == lg && memcmp(entry->key_, key, lg) == 0) {
         map->hashes_[hash & map->mask_] = entry->next_;
         --map->count_;

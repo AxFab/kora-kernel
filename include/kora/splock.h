@@ -56,9 +56,8 @@ static inline void splock_lock(splock_t *lock)
 {
     irq_disable();
     unsigned short ticket = atomic16_xadd(&lock->users, 1);
-    while (lock->ticket != ticket) {
+    while (lock->ticket != ticket)
         cpu_relax();
-    }
 }
 
 /* Release a lock */
@@ -76,9 +75,8 @@ static inline bool splock_trylock(splock_t *lock)
     unsigned short ticket = lock->users;
     unsigned cmp1 = ((unsigned)ticket << 16) + ticket;
     unsigned cmp2 = ((unsigned)(ticket + 1) << 16) + ticket;
-    if (atomic32_cmpxchg(lock->val, cmp, cmp2)) {
+    if (atomic32_cmpxchg(lock->val, cmp, cmp2))
         return true;
-    }
     irq_enable();
     return false;
 }
@@ -108,12 +106,10 @@ static inline void splock_lock(splock_t *lock)
 {
     irq_disable();
     for (;;) {
-        if (atomic_exchange(lock, 1) == 0) {
+        if (atomic_exchange(lock, 1) == 0)
             return;
-        }
-        while (*lock != 0) {
+        while (*lock != 0)
             cpu_relax();
-        }
     }
 }
 
@@ -129,9 +125,8 @@ static inline void splock_unlock(splock_t *lock)
 static inline bool splock_trylock(splock_t *lock)
 {
     irq_disable();
-    if (atomic_exchange(lock, 1) == 0) {
+    if (atomic_exchange(lock, 1) == 0)
         return true;
-    }
     irq_enable();
     return false;
 }

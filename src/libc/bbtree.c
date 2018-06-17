@@ -23,8 +23,8 @@
 typedef struct bbrm bbrm_t;
 
 struct bbrm {
-	bbnode_t *last;
-	bbnode_t *deleted;
+    bbnode_t *last;
+    bbnode_t *deleted;
 };
 
 bbnode_t _NIL = {
@@ -40,9 +40,8 @@ bbnode_t _NIL = {
 static bbnode_t *bbtree_skew(bbnode_t *node)
 {
     bbnode_t *temp, *parent;
-    if (node == __NIL || node->left_->level_ != node->level_) {
+    if (node == __NIL || node->left_->level_ != node->level_)
         return node;
-    }
 
     parent = node->parent_;
     temp = node->left_;
@@ -66,9 +65,8 @@ static bbnode_t *bbtree_skew(bbnode_t *node)
 static bbnode_t *bbtree_split(bbnode_t *node)
 {
     bbnode_t *temp, *parent;
-    if (node == __NIL || node->right_->right_->level_ != node->level_) {
+    if (node == __NIL || node->right_->right_->level_ != node->level_)
         return node;
-    }
 
     parent = node->parent_;
     temp = node->right_;
@@ -111,11 +109,10 @@ static bbnode_t *bbtree_insert_(bbnode_t *root, bbnode_t *node, int *ok)
 static bbnode_t *bbtree_rebalance(bbnode_t *root)
 {
     if (root->left_->level_ < root->level_ - 1 ||
-            root->right_->level_ < root->level_ - 1) {
+        root->right_->level_ < root->level_ - 1) {
         root->level_--;
-        if (root->right_->level_ > root->level_) {
+        if (root->right_->level_ > root->level_)
             root->right_->level_ = root->level_;
-        }
         root = bbtree_skew(root);
         root->right_ = bbtree_skew(root->right_);
         root->right_->right_ = bbtree_skew(root->right_->right_);
@@ -125,12 +122,12 @@ static bbnode_t *bbtree_rebalance(bbnode_t *root)
     return root;
 }
 
-static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, bbrm_t *del, int *ok)
+static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, bbrm_t *del,
+                                int *ok)
 {
     *ok = 0;
-    if (root == __NIL) {
+    if (root == __NIL)
         return __NIL;
-    }
 
     // Search down the tree and set pointers last and deleted
     del->last = root;
@@ -145,7 +142,7 @@ static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, bbrm_t *del, int *
 
     // At the bottom of the tree we remove the element (if present)
     if (del->last == root && del->deleted != __NIL &&
-            del->deleted->value_ == value) {
+        del->deleted->value_ == value) {
         *ok = 1;
         root->right_->parent_ = root->parent_;
         return root->right_;
@@ -156,9 +153,8 @@ static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, bbrm_t *del, int *
     root = bbtree_rebalance(root);
     bbtree_check(root);
 
-    if (node != del->deleted) {
+    if (node != del->deleted)
         return root;
-    }
 
     // To remove internal nodes, we swap position with last node
     bbnode_t *parent = del->deleted->parent_;
@@ -173,15 +169,14 @@ static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, bbrm_t *del, int *
     del->last->left_->parent_ = del->last;
     del->last->right_->parent_ = del->last;
     if (parent != __NIL) {
-        if (parent->left_ == del->deleted) {
+        if (parent->left_ == del->deleted)
             parent->left_ = del->last;
-        } else {
+
+        else
             parent->right_ = del->last;
-        }
     }
-    if (root == del->deleted) {
+    if (root == del->deleted)
         root = del->last;
-    }
     bbtree_check(root);
     return root;
 }
@@ -213,13 +208,11 @@ int bbtree_remove(bbtree_t *tree, size_t value)
 /* Find the node on extreme left side  */
 bbnode_t *bbtree_left_(bbnode_t *node)
 {
-    if (node == __NIL) {
+    if (node == __NIL)
         return NULL;
-    }
 
-    while (node->left_ != __NIL) {
+    while (node->left_ != __NIL)
         node = node->left_;
-    }
 
     return node;
 }
@@ -227,27 +220,23 @@ bbnode_t *bbtree_left_(bbnode_t *node)
 /* Find the node on extreme right side  */
 bbnode_t *bbtree_right_(bbnode_t *node)
 {
-    if (node == __NIL) {
+    if (node == __NIL)
         return NULL;
-    }
 
-    while (node->right_ != __NIL) {
+    while (node->right_ != __NIL)
         node = node->right_;
-    }
 
     return node;
 }
 
 bbnode_t *bbtree_next_(bbnode_t *root)
 {
-    if (root->right_ != __NIL) {
+    if (root->right_ != __NIL)
         return bbtree_left_(root->right_);
-    }
 
     for (; root->parent_ != __NIL; root = root->parent_) {
-        if (root->parent_->right_ != root) {
+        if (root->parent_->right_ != root)
             return root->parent_;
-        }
     }
 
     return NULL;
@@ -255,14 +244,12 @@ bbnode_t *bbtree_next_(bbnode_t *root)
 
 bbnode_t *bbtree_previous_(bbnode_t *root)
 {
-    if (root->left_ != __NIL) {
+    if (root->left_ != __NIL)
         return bbtree_right_(root->left_);
-    }
 
     for (; root->parent_ != __NIL; root = root->parent_) {
-        if (root->parent_->left_ != root) {
+        if (root->parent_->left_ != root)
             return root->parent_;
-        }
     }
 
     return NULL;
@@ -272,23 +259,21 @@ bbnode_t *bbtree_previous_(bbnode_t *root)
 bbnode_t *bbtree_search_(bbnode_t *root, size_t value, int accept)
 {
     bbnode_t *best;
-    if (root == __NIL) {
+    if (root == __NIL)
         return NULL;
-    } else if (root->value_ == value) {
+
+    else if (root->value_ == value)
         return root;
-    }
 
     if (root->value_ > value) {
         best = bbtree_search_(root->left_, value, accept);
-        if (accept <= 0 || (best != NULL && root->value_ > best->value_)) {
+        if (accept <= 0 || (best != NULL && root->value_ > best->value_))
             return best;
-        }
         return root;
     } else {
         best = bbtree_search_(root->right_, value, accept);
-        if (accept >= 0 || (best != NULL && root->value_ < best->value_)) {
+        if (accept >= 0 || (best != NULL && root->value_ < best->value_))
             return best;
-        }
         return root;
     }
 }
@@ -302,9 +287,8 @@ int bbtree_check(bbnode_t *node)
             return -1;
         }
         ret = bbtree_check(node->left_);
-        if (ret < 0) {
+        if (ret < 0)
             return -1;
-        }
         count += ret;
     }
     if (node->right_ != __NIL) {
@@ -313,9 +297,8 @@ int bbtree_check(bbnode_t *node)
             return -1;
         }
         ret = bbtree_check(node->right_);
-        if (ret < 0) {
+        if (ret < 0)
             return -1;
-        }
         count += ret;
     }
     if (node->left_ != __NIL && node->right_ != __NIL) {

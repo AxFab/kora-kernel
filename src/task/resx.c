@@ -23,15 +23,13 @@
 #include <kora/rwlock.h>
 #include <errno.h>
 
-struct stream
-{
+struct stream {
     inode_t *ino;
     bbnode_t node; // TODO -- Is BBTree the best data structure !?
     rwlock_t lock; // TODO -- Usage
 };
 
-struct resx
-{
+struct resx {
     bbtree_t tree; // TODO -- Is BBTree the best data structure !?
     rwlock_t lock;
     atomic_uint users;
@@ -40,7 +38,7 @@ struct resx
 
 resx_t *resx_create()
 {
-    resx_t *resx = (resx_t*)kalloc(sizeof(resx_t));
+    resx_t *resx = (resx_t *)kalloc(sizeof(resx_t));
     bbtree_init(&resx->tree);
     rwlock_init(&resx->lock);
     atomic_inc(&resx->users);
@@ -77,13 +75,15 @@ inode_t *resx_get(resx_t *resx, int fd)
 int resx_set(resx_t *resx, inode_t *ino)
 {
     rwlock_wrlock(&resx->lock);
-    stream_t *stm = (stream_t*)kalloc(sizeof(stream_t));
+    stream_t *stm = (stream_t *)kalloc(sizeof(stream_t));
     stm->ino = vfs_open(ino);
     rwlock_init(&stm->lock);
-    if (resx->tree.count_ == 0) {
+    if (resx->tree.count_ == 0)
         stm->node.value_ = 0;
-    } else {
-        stm->node.value_ = (size_t)(bbtree_last(&resx->tree, stream_t, node)->node.value_ + 1);
+
+    else {
+        stm->node.value_ = (size_t)(bbtree_last(&resx->tree, stream_t,
+                                                node)->node.value_ + 1);
         if ((long)stm->node.value_ < 0) {
             rwlock_wrunlock(&resx->lock);
             kfree(stm);

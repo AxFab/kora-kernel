@@ -61,8 +61,8 @@ int sys_read(int fd, const struct iovec *vec, unsigned long vlen)
             break;
         case S_IFIFO:
         case S_IFCHR:
-            // ret = pipe_read(ino, vec[i].buffer, vec[i].length, IO_ATOMIC);
-            // break;
+        // ret = pipe_read(ino, vec[i].buffer, vec[i].length, IO_ATOMIC);
+        // break;
         default:
             errno = ENOSYS;
             return -1;
@@ -90,8 +90,8 @@ int sys_write(int fd, const struct iovec *vec, unsigned long vlen)
             ret = ioblk_write(ino, vec[i].buffer, vec[i].length, 0);
             break;
         case S_IFIFO:
-            // ret = pipe_write(ino, vec[i].buffer, vec[i].length, IO_ATOMIC);
-            // break;
+        // ret = pipe_write(ino, vec[i].buffer, vec[i].length, IO_ATOMIC);
+        // break;
         default:
             errno = ENOSYS;
             return -1;
@@ -123,7 +123,8 @@ int sys_pipe(int *fd, size_t size)
     return 0;
 }
 
-int sys_window(void *img, int fd, void *info, unsigned long features, unsigned long events)
+int sys_window(void *img, int fd, void *info, unsigned long features,
+               unsigned long events)
 {
     // int width = ALIGN_UP(img->width, 16);
     // int height = ALIGN_UP(img->height, 16);

@@ -31,23 +31,23 @@
 typedef struct hpet_mmio_regs hpet_regs_t;
 
 struct hpet_mmio_timer {
-	volatile uint64_t config;
-	volatile uint64_t counter;
-	volatile uint64_t interupt;
-	volatile uint64_t unused;
+    volatile uint64_t config;
+    volatile uint64_t counter;
+    volatile uint64_t interupt;
+    volatile uint64_t unused;
 };
 
 struct hpet_mmio_regs {
-	volatile uint64_t capacities;
-	uint64_t unused0;
-	volatile uint64_t config;
-	uint64_t unused1;
-	volatile uint64_t interupt;
-	uint64_t unused2;
-	uint64_t reserved1[(0xF0-0x30)/8];
-	volatile uint64_t counter;
-	uint64_t unusedF;
-	struct hpet_mmio_timer timers[0];
+    volatile uint64_t capacities;
+    uint64_t unused0;
+    volatile uint64_t config;
+    uint64_t unused1;
+    volatile uint64_t interupt;
+    uint64_t unused2;
+    uint64_t reserved1[(0xF0 - 0x30) / 8];
+    volatile uint64_t counter;
+    uint64_t unusedF;
+    struct hpet_mmio_timer timers[0];
 };
 
 

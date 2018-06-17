@@ -29,7 +29,7 @@
 #include <kernel/vma.h>
 #include <time.h>
 
-typedef const char* CSTR;
+typedef const char *CSTR;
 
 void *kalloc(size_t size);
 void kfree(void *ptr);
@@ -47,7 +47,7 @@ void kernel_sweep();
 /* - */
 page_t mmu_read(size_t vaddr);
 
-void kernel_tasklet(void* start, long arg, CSTR name);
+void kernel_tasklet(void *start, long arg, CSTR name);
 void kexit();
 
 int rand(void);

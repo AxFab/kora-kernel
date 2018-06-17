@@ -24,8 +24,8 @@
 typedef struct IP4_header IP4_header_t;
 
 PACK(struct IP4_header {
-    uint8_t header_length:4;
-    uint8_t version:4;
+    uint8_t header_length: 4;
+    uint8_t version: 4;
     uint8_t service_type;
     uint16_t length;
     uint16_t identifier;
@@ -50,7 +50,7 @@ uint16_t ip4_checksum(skb_t *skb, size_t len)
 {
     int i, sum = 0;
     assert(skb->pen >= len / 2);
-    uint16_t *ptr = (uint16_t*)&skb->buf[skb->pen];
+    uint16_t *ptr = (uint16_t *)&skb->buf[skb->pen];
     for (i = -(int)(len / 2); i < 0; ++i)
         sum += ntohw(ptr[i]);
     if (sum > 0xFFFF)
@@ -58,19 +58,21 @@ uint16_t ip4_checksum(skb_t *skb, size_t len)
     return htonw(~(sum & 0xFFFF) & 0xFFFF);
 }
 
-int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset, int length, int protocol)
+int ip4_header(skb_t *skb, const uint8_t *ip, int identifier, int offset,
+               int length, int protocol)
 {
-	const uint8_t *mac;
+    const uint8_t *mac;
     uint8_t mac_buf [ETH_ALEN];
     if (ip == ip4_broadcast)
         mac = eth_broadcast;
-    else if (ip_via_gateway(ip, skb->ifnet->gateway_ip, skb->ifnet->subnet_bits) == 0)
+    else if (ip_via_gateway(ip, skb->ifnet->gateway_ip,
+                            skb->ifnet->subnet_bits) == 0)
         mac = skb->ifnet->gateway_mac;
-    else if (host_mac_for_ip(mac_buf, ip, HOST_TEMPORARY)== 0)
+    else if (host_mac_for_ip(mac_buf, ip, HOST_TEMPORARY) == 0)
         mac = mac_buf;
     else
         return -1;
-       
+
     if (eth_header(skb, mac, ETH_IP4) != 0)
         return -1;
 

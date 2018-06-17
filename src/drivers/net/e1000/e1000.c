@@ -111,23 +111,24 @@ int e1000_irq_handler(E1000_inet_t *ifnet)
     } else if (status & 0x10) {
         kprintf(KLOG_DBG, "%s - Min thresohold RX hit \n", ifnet->name);
         // Send ICMP command 3 !?
-    } else if (status & 0x40) {
+    } else if (status & 0x40)
         kprintf(KLOG_DBG, "%s - Receive buffers overrun\n", ifnet->name);
-    } else if (status & 0x80) {
+
+    else if (status & 0x80) {
         kprintf(KLOG_DBG, "%s - Receive ticks \n", ifnet->name);
         // uint16_t old_idx;
         // while (ifnet->rx_descs[ifnet->rx_index].status & 1) {
-            // uint8_t *buffer =
-            //     ifnet->rx_bufs[card->rx_cur]; // (uint8_t*)card->rx_descs[card->rx_cur].address;
-            // uint16_t length = card->rx_descs[card->rx_cur].length;
+        // uint8_t *buffer =
+        //     ifnet->rx_bufs[card->rx_cur]; // (uint8_t*)card->rx_descs[card->rx_cur].address;
+        // uint16_t length = card->rx_descs[card->rx_cur].length;
 
-            // kprintf(KLOG_DBG, "E1000] Received packet (%d bytes)\n", length);
-            // net_receive(ndev, buffer, length); // Inject new packet on network stack
+        // kprintf(KLOG_DBG, "E1000] Received packet (%d bytes)\n", length);
+        // net_receive(ndev, buffer, length); // Inject new packet on network stack
 
-            // card->rx_descs[card->rx_cur].status = 0;
-            // old_cur = card->rx_cur;
-            // card->rx_cur = (card->rx_cur + 1) % card->rx_count;
-            // PCI_write(card->pci, REG_RDT, old_cur);
+        // card->rx_descs[card->rx_cur].status = 0;
+        // old_cur = card->rx_cur;
+        // card->rx_cur = (card->rx_cur + 1) % card->rx_count;
+        // PCI_write(card->pci, REG_RDT, old_cur);
         // }
     }
     return 0;
@@ -228,7 +229,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
 
     // Descriptor must be 16bits aligned, length must be 128b aligned! Min is 8 descriptor!
     PCI_wr32(pci, 0, REG_RDBAL, (uint32_t)((uint64_t)ifnet->rx_phys & 0xFFFFFFFF));
-    PCI_wr32(pci, 0, REG_RDBAH, (uint32_t)((uint64_t)ifnet->rx_phys >> 32) );
+    PCI_wr32(pci, 0, REG_RDBAH, (uint32_t)((uint64_t)ifnet->rx_phys >> 32));
     PCI_wr32(pci, 0, REG_RDLEN, NUM_RX_DESC * 16);
     PCI_wr32(pci, 0, REG_RDH, 0);
     PCI_wr32(pci, 0, REG_RDT, NUM_RX_DESC - 1);
@@ -236,11 +237,11 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     //           | RCTL_SBP | RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE
     //           | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048);
     PCI_wr32(pci, 0, REG_RCTL, RCTL_EN |
-        (PCI_rd32(pci, 0, REG_RCTL) & (~((1 << 17) | (1 << 16)))));
+             (PCI_rd32(pci, 0, REG_RCTL) & (~((1 << 17) | (1 << 16)))));
 
 
     PCI_wr32(pci, 0, REG_TDBAL, (uint32_t)((uint64_t)ifnet->tx_phys & 0xFFFFFFFF));
-    PCI_wr32(pci, 0, REG_TDBAH, (uint32_t)((uint64_t)ifnet->tx_phys >> 32) );
+    PCI_wr32(pci, 0, REG_TDBAH, (uint32_t)((uint64_t)ifnet->tx_phys >> 32));
     PCI_wr32(pci, 0, REG_TDLEN, NUM_TX_DESC * 16);
     PCI_wr32(pci, 0, REG_TDH, 0);
     PCI_wr32(pci, 0, REG_TDT, 0);
@@ -298,14 +299,15 @@ void e1000_init_hw(E1000_inet_t *ifnet)
 void e1000_startup(struct PCI_device *pci, const char *name)
 {
     int i;
-    E1000_inet_t *ifnet = (E1000_inet_t*)kalloc(sizeof(E1000_inet_t));
+    E1000_inet_t *ifnet = (E1000_inet_t *)kalloc(sizeof(E1000_inet_t));
 
     ifnet->pci = pci;
     ifnet->name = strdup(name);
     ifnet->dev.mtu = 1500;
     splock_init(&ifnet->lock);
 
-    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VMA_PHYSIQ);
+    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7,
+                                      VMA_PHYSIQ);
     // kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
 
     ifnet->rx_base = kmap(4096, NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
@@ -346,8 +348,8 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     /* initialize */
     PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
 
-    ifnet->dev.send = (void*)e1000_send;
-    ifnet->dev.link = (void*)e1000_init_hw;
+    ifnet->dev.send = (void *)e1000_send;
+    ifnet->dev.link = (void *)e1000_init_hw;
 
     net_device(&ifnet->dev);
 }
@@ -404,7 +406,7 @@ struct e1000_id __e1000_ids[] = {
 struct e1000_id *e1000_pci_info(struct PCI_device *pci)
 {
     unsigned i;
-    for (i = 0; i < sizeof(__e1000_ids)/sizeof(struct e1000_id); ++i) {
+    for (i = 0; i < sizeof(__e1000_ids) / sizeof(struct e1000_id); ++i) {
         if (__e1000_ids[i].id == pci->device_id)
             return &__e1000_ids[i];
     }
@@ -418,7 +420,7 @@ int e1000_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
     unsigned i;
     if (vendor != INTEL_VENDOR || class != ETERNET_CLASS)
         return -1;
-    for (i = 0; i < sizeof(__e1000_ids)/sizeof(struct e1000_id); ++i) {
+    for (i = 0; i < sizeof(__e1000_ids) / sizeof(struct e1000_id); ++i) {
         if (__e1000_ids[i].id == device)
             return 0;
     }
@@ -431,7 +433,7 @@ void e1000_setup()
     struct PCI_device *pci = NULL;
     char name[48];
 
-    for(;;) {
+    for (;;) {
         pci = PCI_search2(e1000_match_pci_device);
         if (pci == NULL)
             break;

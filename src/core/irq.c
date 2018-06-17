@@ -43,9 +43,8 @@ struct irq_record {
 
 void irq_register(int no, irq_handler_t func, void *data)
 {
-    if (no < 0 || no >= IRQ_COUNT) {
+    if (no < 0 || no >= IRQ_COUNT)
         return;
-    }
     kprintf(KLOG_IRQ, "Register IRQ%d <%08x(%08x)> \n", no, func, data);
     irq_record_t *record = (irq_record_t *)kalloc(sizeof(irq_record_t));
     record->func = func;
@@ -55,9 +54,8 @@ void irq_register(int no, irq_handler_t func, void *data)
 
 void irq_unregister(int no, irq_handler_t func, void *data)
 {
-    if (no < 0 || no >= IRQ_COUNT) {
+    if (no < 0 || no >= IRQ_COUNT)
         return;
-    }
     irq_record_t *record;
     for ll_each(&irqv[no].list, record, irq_record_t, node) {
         if (record->func == func || record->data == data) {
@@ -117,9 +115,8 @@ void sys_irq(int no)
         kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d, no handlers.\n", no, cpu_no());
         return;
     }
-    for ll_each(&irqv[no].list, record, irq_record_t, node) {
+    for ll_each(&irqv[no].list, record, irq_record_t, node)
         record->func(record->data);
-    }
     irq_ack(no);
     // irq_enable();
 }
@@ -168,12 +165,10 @@ void irq_enter(int no)
 
     assert(no >= 0 && no < IRQ_MAX);
     irq_record_t *record;
-    if (irqv[no].list.count_ == 0) {
+    if (irqv[no].list.count_ == 0)
         kprintf(KLOG_IRQ, "Received IRQ%d, on CPU%d: no handlers.\n", no, cpu_no());
-    }
-    for ll_each(&irqv[no].list, record, irq_record_t, node) {
+    for ll_each(&irqv[no].list, record, irq_record_t, node)
         record->func(record->data);
-    }
     irq_ack(no);
 
     // if (task)

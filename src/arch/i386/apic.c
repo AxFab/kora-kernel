@@ -31,19 +31,20 @@ cpu_x86_t *cpu_table = NULL;
 void lapic_register(madt_lapic_t *info)
 {
     kprintf(KLOG_ERR, " - lapic: acpi:%d apic:%d, flags %x\n",
-        info->acpi_id, info->apic_id, info->flags);
+            info->acpi_id, info->apic_id, info->flags);
     cpu_table[info->acpi_id].id = info->apic_id;
     if (info->acpi_id == 0)
         cpu_table[info->acpi_id].stack = 0x4000;
     else
-        cpu_table[info->acpi_id].stack = (size_t)kmap(PAGE_SIZE, NULL, 0, VMA_STACK_RW | VMA_RESOLVE);
+        cpu_table[info->acpi_id].stack = (size_t)kmap(PAGE_SIZE, NULL, 0,
+                                         VMA_STACK_RW | VMA_RESOLVE);
 }
 
 void lapic_setup(int cpus)
 {
-    cpu_table = (cpu_x86_t*)kalloc(sizeof(cpu_x86_t) * cpus);
-    struct kCpu* cpu0 = kSYS.cpus;
-    kSYS.cpus = (struct kCpu*)kalloc(sizeof(struct kCpu) * cpus);
+    cpu_table = (cpu_x86_t *)kalloc(sizeof(cpu_x86_t) * cpus);
+    struct kCpu *cpu0 = kSYS.cpus;
+    kSYS.cpus = (struct kCpu *)kalloc(sizeof(struct kCpu) * cpus);
     kSYS.cpus[0] = *cpu0;
     // TODO - kCPU !
 }
@@ -57,16 +58,17 @@ void lapic_setup(int cpus)
 
 static uint32_t ioapic_read(int no, uint8_t *ioapic, uint32_t index)
 {
-    volatile uint32_t *select = (uint32_t*)ioapic;
-    volatile uint32_t *data = (uint32_t*)(ioapic + 16);
+    volatile uint32_t *select = (uint32_t *)ioapic;
+    volatile uint32_t *data = (uint32_t *)(ioapic + 16);
     select[0] = index;
     return data[0];
 }
 
-static void ioapic_write(int no, uint8_t *ioapic, uint32_t index, uint32_t value)
+static void ioapic_write(int no, uint8_t *ioapic, uint32_t index,
+                         uint32_t value)
 {
-    volatile uint32_t *select = (uint32_t*)ioapic;
-    volatile uint32_t *data = (uint32_t*)(ioapic + 16);
+    volatile uint32_t *select = (uint32_t *)ioapic;
+    volatile uint32_t *data = (uint32_t *)(ioapic + 16);
     select[0] = index;
     data[0] = value;
 }
@@ -92,15 +94,15 @@ void ioapic_register(madt_ioapic_t *info)
 {
     uint8_t *ioapic = kmap(PAGE_SIZE, NULL, info->base, VMA_PHYSIQ);
 
-    int irq_count = (ioapic_read(info->apic_id, ioapic, IOAPIC_VERSION) >> 16) & 0xFF;
+    int irq_count = (ioapic_read(info->apic_id, ioapic,
+                                 IOAPIC_VERSION) >> 16) & 0xFF;
 
     kprintf(KLOG_ERR, " - ioapic: apic:%d, base:%x, GSIs:%d, IRQs %d\n",
-        info->apic_id, info->base, info->gsi, irq_count);
+            info->apic_id, info->base, info->gsi, irq_count);
 
     int i;
-    for (i = 0; i < irq_count; ++i) {
+    for (i = 0; i < irq_count; ++i)
         ioapic_write_irq(info->apic_id, ioapic, i);
-    }
 
     // kunmap(ioapic, PAGE_SIZE);
 }
@@ -111,9 +113,9 @@ void ioapic_register(madt_ioapic_t *info)
 void apic_override_register(madt_override_t *info)
 {
     kprintf(KLOG_ERR, " - override IRQ %d on bus %d, GSIs %d, %s %s.\n",
-        info->irq, info->bus, info->gsi,
-        info->flags & 8 ? "level" : "edge",
-        info->flags & 2 ? "low" : "high");
+            info->irq, info->bus, info->gsi,
+            info->flags & 8 ? "level" : "edge",
+            info->flags & 2 ? "low" : "high");
 
 }
 

@@ -56,12 +56,12 @@ int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
     uint32_t *dir;
     int page_no;
     if (vaddress >= kMMU.kspace->lower_bound &&
-            vaddress < kMMU.kspace->upper_bound) {
+        vaddress < kMMU.kspace->upper_bound) {
         dir = ktable;
         page_no = (vaddress - kMMU.kspace->lower_bound) / PAGE_SIZE;
     } else if (vaddress >= user_space->lower_bound &&
                vaddress < user_space->upper_bound) {
-        dir = (uint32_t*)user_space->directory;
+        dir = (uint32_t *)user_space->directory;
         page_no = (vaddress - user_space->lower_bound) / PAGE_SIZE;
     }
 
@@ -77,19 +77,18 @@ page_t mmu_read_(size_t vaddress, bool drop, bool clean)
     uint32_t *dir;
     int page_no;
     if (vaddress >= kMMU.kspace->lower_bound &&
-            vaddress < kMMU.kspace->upper_bound) {
+        vaddress < kMMU.kspace->upper_bound) {
         dir = ktable;
         page_no = (vaddress - kMMU.kspace->lower_bound) / PAGE_SIZE;
     } else if (vaddress >= user_space->lower_bound &&
                vaddress < user_space->upper_bound) {
-        dir = (uint32_t*)user_space->directory;
+        dir = (uint32_t *)user_space->directory;
         page_no = (vaddress - user_space->lower_bound) / PAGE_SIZE;
     }
 
     page_t pg = dir[page_no] & ~(PAGE_SIZE - 1);
-    if (drop) {
+    if (drop)
         dir[page_no] = 0;
-    }
     return pg;
 }
 
@@ -116,8 +115,8 @@ void mmu_create_uspace(mspace_t *mspace)
 
 void mmu_destroy_uspace(mspace_t *mspace)
 {
-    free((void*)mspace->lower_bound);
-    kfree((void*)mspace->directory);
+    free((void *)mspace->lower_bound);
+    kfree((void *)mspace->directory);
 }
 
 

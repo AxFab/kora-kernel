@@ -41,7 +41,7 @@ int eth_receive(skb_t *skb)
     if (mac == NULL)
         return -1;
     if (memcmp(mac, skb->ifnet->eth_addr, ETH_ALEN) != 0 &&
-            memcmp(mac, eth_broadcast, ETH_ALEN) != 0)
+        memcmp(mac, eth_broadcast, ETH_ALEN) != 0)
         return -1;
     net_read(skb, skb->eth_addr, ETH_ALEN);
     if (net_read(skb, &type, 2))

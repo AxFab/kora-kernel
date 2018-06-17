@@ -78,14 +78,14 @@ Suite *suite_core(void)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
     // Create suites
     int errors;
     SRunner *sr = srunner_create(NULL);
-    srunner_add_suite (sr, suite_core());
-    srunner_add_suite (sr, suite_basics());
-    srunner_add_suite (sr, suite_standard());
+    srunner_add_suite(sr, suite_core());
+    srunner_add_suite(sr, suite_basics());
+    srunner_add_suite(sr, suite_standard());
 
     // Run test-suites
     srunner_run_all(sr, CK_NORMAL);

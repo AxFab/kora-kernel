@@ -50,7 +50,7 @@ void ac97_setup()
 {
     struct PCI_device *pci = NULL;
 
-    for(;;) {
+    for (;;) {
         pci = PCI_search2(ac97_match_pci_device);
         if (pci == NULL)
             break;

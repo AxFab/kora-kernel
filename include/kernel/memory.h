@@ -53,7 +53,7 @@ void page_initialize();
 /* - */
 void page_range(long long base, long long length);
 /* Allocat a single page for the system and return it's physical address */
-page_t page_new ();
+page_t page_new();
 /* Mark a physique page, returned by `mmu_new_page`, as available again */
 void page_release(page_t paddress);
 /* Free all used pages into a range of virtual addresses */

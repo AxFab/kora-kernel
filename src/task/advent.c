@@ -72,7 +72,7 @@ void advent_awake(llhead_t *list, int err)
 int advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
 {
     assert(kCPU.running != NULL);
-    advent_t *advent = (advent_t*)kalloc(sizeof(advent_t));
+    advent_t *advent = (advent_t *)kalloc(sizeof(advent_t));
     advent->lock = lock;
     advent->list = list;
     advent->task = kCPU.running;
@@ -104,7 +104,7 @@ int advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
 int advent_wait_rd(rwlock_t *lock, llhead_t *list, long timeout_us)
 {
     assert(kCPU.running != NULL);
-    advent_t *advent = (advent_t*)kalloc(sizeof(advent_t));
+    advent_t *advent = (advent_t *)kalloc(sizeof(advent_t));
     // advent->lock = lock;
     advent->list = list;
     advent->task = kCPU.running;
@@ -151,9 +151,8 @@ void advent_timeout()
         if (now >= advent->timeout) {
             /* Wakup task and mark as timeout */
             advent_wakeup(advent, EAGAIN);
-        } else if (later > advent->timeout) {
+        } else if (later > advent->timeout)
             later = advent->timeout;
-        }
         advent = next;
     }
 

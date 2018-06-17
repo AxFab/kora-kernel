@@ -26,8 +26,7 @@
 #define IRQ_OFF  ((void)0)
 
 
-struct regs
-{
+struct regs {
     size_t ax;
     size_t er;
     size_t sp;

@@ -28,7 +28,7 @@
 #include <stdarg.h>
 
 /* Write formated string from a string */
-int _PRT(vfprintf) (FILE *fp, const char *str, va_list ap);
+int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap);
 int _PRT(sprintf)(char *str, const char *format, ...);
 int _PRT(snprintf)(char *str, size_t lg, const char *format, ...);
 int _PRT(vsprintf)(char *str, const char *format, va_list ap);

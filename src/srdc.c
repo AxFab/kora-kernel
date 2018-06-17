@@ -40,32 +40,32 @@ int putenv(char *);
 
 // -------------------
 
-int mblen(const char *s, size_t n) 
+int mblen(const char *s, size_t n)
 {
-	if (*s > 0) 
+    if (*s > 0)
         return 1;
     int m;
-	if ((unsigned)*s >= 0xFE)
-	    return -1;
-	else if ((unsigned)*s >= 0xFC)
-	    m = 6;
-	else if ((unsigned)*s >= 0xF8)
-	    m = 5;
-	else if ((unsigned)*s >= 0xF0)
-	    m = 4;
-	else if ((unsigned)*s >= 0xE0)
-	    m = 3;
-	else if ((unsigned)*s >= 0xC0)
-	    m = 2;
-	
-	if (m > n)
-	    return -1;
-	int i = m;
-	while (i-- > 1) {
-		if ((unsigned)s[i] < 0x80 || (unsigned)s[i] >= 0xC0)
-		    return -1;
-	}
-	return m;
+    if ((unsigned)*s >= 0xFE)
+        return -1;
+    else if ((unsigned)*s >= 0xFC)
+        m = 6;
+    else if ((unsigned)*s >= 0xF8)
+        m = 5;
+    else if ((unsigned)*s >= 0xF0)
+        m = 4;
+    else if ((unsigned)*s >= 0xE0)
+        m = 3;
+    else if ((unsigned)*s >= 0xC0)
+        m = 2;
+
+    if (m > n)
+        return -1;
+    int i = m;
+    while (i-- > 1) {
+        if ((unsigned)s[i] < 0x80 || (unsigned)s[i] >= 0xC0)
+            return -1;
+    }
+    return m;
 }
 
 // -------------------
@@ -82,35 +82,34 @@ size_t strftime(char *buf, size_t len, const char *format, const struct tm *tm);
 
 char *tmpnam(char *s)
 {
-	if (s == NULL) {
-		s = s_tmpnam;
-	}
-	strcpy(s, P_tmpdir "tmp.");
-	for (i = L_tmpnam_pfx; i < L_tmpnam - 1; ++i)
-	    s[i] = ""[rand() % 36];
-	s[L_tmpnam - 1] = '\0';
-	return s;
+    if (s == NULL)
+        s = s_tmpnam;
+    strcpy(s, P_tmpdir "tmp.");
+    for (i = L_tmpnam_pfx; i < L_tmpnam - 1; ++i)
+        s[i] = ""[rand() % 36];
+    s[L_tmpnam - 1] = '\0';
+    return s;
 }
 
 FILE *tmpfile()
 {
-	char buf[L_tmpnam];
-	FILE *fp;
-	int retry = 3;
-	while (retry-- > 0) {
-		fp = fopen(tmpnam(buf), "w+");
-		if (fp)
-		    return fp;
-	}
-	return NULL;
+    char buf[L_tmpnam];
+    FILE *fp;
+    int retry = 3;
+    while (retry-- > 0) {
+        fp = fopen(tmpnam(buf), "w+");
+        if (fp)
+            return fp;
+    }
+    return NULL;
 }
 
 void system(const char *cmd)
 {
-	const char *bin = getenv("SHELL");
-	const char *args[] = {
-		"-c", cmd
-	};
-	pid_t pid = execv(bin, 2, args);
-	waitpid(pid, &status, W_EXITED);
+    const char *bin = getenv("SHELL");
+    const char *args[] = {
+        "-c", cmd
+    };
+    pid_t pid = execv(bin, 2, args);
+    waitpid(pid, &status, W_EXITED);
 }

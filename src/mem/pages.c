@@ -36,9 +36,8 @@ void page_range(long long base, long long length)
     int count = length / PAGE_SIZE;
     int start = base / PAGE_SIZE;
 
-    if (kMMU.upper_physical_page < (unsigned)start + count) {
+    if (kMMU.upper_physical_page < (unsigned)start + count)
         kMMU.upper_physical_page = (unsigned)start + count;
-    }
 
     kMMU.pages_amount += count;
     kMMU.free_pages += count;
@@ -66,12 +65,10 @@ void page_range(long long base, long long length)
 page_t page_new()
 {
     int i = 0, j = 0;
-    while (i < MMU_LG && MMU_BMP[i] == 0xff) {
+    while (i < MMU_LG && MMU_BMP[i] == 0xff)
         ++i;
-    }
-    if (i == MMU_LG) {
+    if (i == MMU_LG)
         kpanic("No page available");
-    }
     uint8_t page_byte = MMU_BMP[i];
     while (page_byte & 1) {
         ++j;
@@ -89,9 +86,8 @@ page_t page_get(int zone, int count)
     count = ALIGN_UP(count, 8) / 8;
     int i = 0, j = 0;
     while (i < MMU_LG) {
-        while (i < MMU_LG && MMU_BMP[i] != 0) {
+        while (i < MMU_LG && MMU_BMP[i] != 0)
             ++i;
-        }
         if (i + count >= MMU_LG)
             return 0;
         j = 0;
@@ -125,7 +121,7 @@ void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean)
     assert((length & (PAGE_SIZE - 1)) == 0);
     while (length) {
         if (clean)
-            memset((void*)address, 0, PAGE_SIZE);
+            memset((void *)address, 0, PAGE_SIZE);
         page_t pg = mmu_drop(address);
         if (pg != 0)
             page_release(pg);
@@ -144,8 +140,10 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
         return -1;
     }
 
-    if (reason & PGFLT_WRITE && !(vma->flags & VMA_WRITE) && !(vma->flags & VMA_COPY_ON_WRITE)) {
-        kprintf(KLOG_PF, "\e[91m#PF\e[31m Forbidden writing at "FPTR"!\e[0m\n", address);
+    if (reason & PGFLT_WRITE && !(vma->flags & VMA_WRITE)
+        && !(vma->flags & VMA_COPY_ON_WRITE)) {
+        kprintf(KLOG_PF, "\e[91m#PF\e[31m Forbidden writing at "FPTR"!\e[0m\n",
+                address);
         splock_unlock(&vma->mspace->lock);
         return -1; // Writing is forbidden
     }
@@ -155,14 +153,16 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
         ret = vma_resolve(vma, address, PAGE_SIZE);
     }
     if (ret != 0) {
-        kprintf(KLOG_PF, "\e[91m#PF\e[31m Unable to resolve page at "FPTR"!\e[0m\n", address);
+        kprintf(KLOG_PF, "\e[91m#PF\e[31m Unable to resolve page at "FPTR"!\e[0m\n",
+                address);
         splock_unlock(&vma->mspace->lock);
         return -1;
     }
     if (reason & PGFLT_WRITE && (vma->flags & VMA_COPY_ON_WRITE))
         ret = vma_copy_on_write(vma, address, PAGE_SIZE);
     if (ret != 0)
-        kprintf(KLOG_PF, "\e[91m#PF\e[31m Error on copy and write at "FPTR"!\e[0m\n", address);
+        kprintf(KLOG_PF, "\e[91m#PF\e[31m Error on copy and write at "FPTR"!\e[0m\n",
+                address);
     kprintf(KLOG_PF, "\e[91m#PF\e[0m Page at "FPTR"!\e[0m\n", address);
     splock_unlock(&vma->mspace->lock);
     return 0;

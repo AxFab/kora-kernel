@@ -24,13 +24,15 @@
 
 void cpu_stack(task_t *task, size_t entry, size_t param)
 {
-	size_t *stack = task->kstack + (task->kstack_len / sizeof(size_t));
-	task->state[5] = entry;
-	task->state[3] = (size_t)stack;
+    size_t *stack = task->kstack + (task->kstack_len / sizeof(size_t));
+    task->state[5] = entry;
+    task->state[3] = (size_t)stack;
 
-	stack--; *stack = param;
-	stack--; *stack = (size_t)kexit;
-	task->state[4] = (size_t)stack;
+    stack--;
+    *stack = param;
+    stack--;
+    *stack = (size_t)kexit;
+    task->state[4] = (size_t)stack;
 }
 
 void cpu_shutdown(int cmd) // REBOOT, POWER_OFF, SLEEP, DEEP_SLEEP, HALT

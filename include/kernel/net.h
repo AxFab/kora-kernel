@@ -53,7 +53,8 @@ int arp_receive(skb_t *skb);
 #define IP4_UDP 0x11
 
 uint16_t ip4_checksum(skb_t *skb, size_t len);
-int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset, int length, int protocol);
+int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset,
+               int length, int protocol);
 int ip4_receive(skb_t *skb);
 
 #define ip4_null(n) (*((uint32_t*)(n))==0)
@@ -119,8 +120,8 @@ struct netdev {
     int flags;
     uint8_t eth_addr[ETH_ALEN];
     uint8_t ip4_addr[IP4_ALEN];
-    int(*send)(netdev_t*,skb_t*);
-    int(*link)(netdev_t*);
+    int(*send)(netdev_t *, skb_t *);
+    int(*link)(netdev_t *);
 
     llhead_t queue;
     llhead_t waiters;
@@ -214,7 +215,8 @@ uint16_t net_rand_port();
 uint16_t net_ephemeral_port(socket_t *socket);
 
 void host_init();
-void host_register(uint8_t *mac, uint8_t *ip, const char *hostname, const char *domain, int trust);
+void host_register(uint8_t *mac, uint8_t *ip, const char *hostname,
+                   const char *domain, int trust);
 int host_mac_for_ip(uint8_t *mac, const uint8_t *ip, int trust);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

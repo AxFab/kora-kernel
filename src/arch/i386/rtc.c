@@ -27,14 +27,14 @@
 
 static inline uint8_t cmos_rd(uint8_t idx)
 {
-	outb(CMOS_CMD, idx);
-	return inb(CMOS_DATA);
+    outb(CMOS_CMD, idx);
+    return inb(CMOS_DATA);
 }
 
 static inline void cmos_wr(uint8_t idx, uint8_t val)
 {
-	outb(CMOS_CMD, idx);
-	outb(CMOS_DATA, val);
+    outb(CMOS_CMD, idx);
+    outb(CMOS_DATA, val);
 }
 
 time_t rtc_time()

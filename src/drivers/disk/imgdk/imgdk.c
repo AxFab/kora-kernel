@@ -151,17 +151,15 @@ void imgdk_release_dev(struct IMGDK_Drive *dev)
 void imgdk_setup()
 {
     int i;
-    for (i = 0; i < 4; ++i) {
+    for (i = 0; i < 4; ++i)
         imgdk_open(i);
-    }
 }
 
 void imgdk_teardown()
 {
     int i;
-    for (i = 0; i < 4; ++i) {
+    for (i = 0; i < 4; ++i)
         imgdk_exit(i);
-    }
 }
 
 MODULE(imgdk, MOD_AGPL, imgdk_setup, imgdk_teardown);

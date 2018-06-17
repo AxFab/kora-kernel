@@ -90,20 +90,19 @@ void serial_write(int port, char a)
 
 int SRL_irq(int o)
 {
-    if (serial_read_all(serial_ports[o], NULL) == 0) {
+    if (serial_read_all(serial_ports[o], NULL) == 0)
         return 0;
-    } else if (serial_read_all(serial_ports[o + 2], NULL) == 0) {
+
+    else if (serial_read_all(serial_ports[o + 2], NULL) == 0)
         return 0;
-    }
     return -1;
 }
 
 int SRL_setup()
 {
     int i;
-    for (i = 0; i < 4; ++i) {
+    for (i = 0; i < 4; ++i)
         serial_init(serial_ports[i]);
-    }
 
     // irq_register(3, (irq_handler_t)SRL_irq, (void*)1);
     // irq_register(4, (irq_handler_t)SRL_irq, (void*)0);
@@ -124,15 +123,16 @@ void SRL_write(const char *msg, size_t lg)
 {
     const char *st = msg;
     for (; msg - st < (int)lg; ++msg) {
-        if (*msg == '\r' || *msg == '\n' || *msg == '\t') {
+        if (*msg == '\r' || *msg == '\n' || *msg == '\t')
             serial_write(PORT_COM1, *msg);
-        } else if (*msg == '\e' && msg[1] == '[') {
+
+        else if (*msg == '\e' && msg[1] == '[')
             msg += TXT_ansi_escape(msg);
-        } else if (*msg < 0x20) {
+
+        else if (*msg < 0x20) {
             // Ignore
-        } else {
+        } else
             serial_write(PORT_COM1, *msg);
-        }
     }
 }
 

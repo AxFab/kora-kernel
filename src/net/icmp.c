@@ -31,12 +31,13 @@ PACK(struct ICMP_header {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static uint16_t icmp_checksum (ICMP_header_t *header)
+static uint16_t icmp_checksum(ICMP_header_t *header)
 {
     return 0;
 }
 
-static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type, uint8_t code, uint32_t data, void*extra, int len)
+static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type,
+                       uint8_t code, uint32_t data, void *extra, int len)
 {
     skb_t *skb = net_packet(ifnet, 128);
     if (skb == NULL)
@@ -61,7 +62,8 @@ int icmp_ping(netdev_t *ifnet, const uint8_t *ip)
 {
     short id = rand();
     short seq = 1;
-    return icmp_packet(ifnet, ip, ICMP_PING, 0, id | (seq << 16), "abcdefghijklmnop", 16);
+    return icmp_packet(ifnet, ip, ICMP_PING, 0, id | (seq << 16),
+                       "abcdefghijklmnop", 16);
 }
 
 int icmp_receive(skb_t *skb, unsigned len)
@@ -83,7 +85,8 @@ int icmp_receive(skb_t *skb, unsigned len)
         // get last request clock
         break;
     case ICMP_PING:
-        ret = icmp_packet(skb->ifnet, skb->ip4_addr, ICMP_PONG, 0, header.data, payload, len);
+        ret = icmp_packet(skb->ifnet, skb->ip4_addr, ICMP_PONG, 0, header.data, payload,
+                          len);
         break;
     // case ICMP_TIMESTAMP:
     default:

@@ -35,7 +35,7 @@ int sys_sigraise(unsigned long signum, long pid)
     // return task_kill(task, signum);
 }
 
-int sys_sigaction(unsigned long signum, void* sigaction)
+int sys_sigaction(unsigned long signum, void *sigaction)
 {
     if (signum >= 32) {
         errno = EINVAL;

@@ -33,7 +33,8 @@ typedef int (*fs_umount)(inode_t *ino);
 typedef int (*fs_read)(inode_t *ino, void *buf, size_t len, off_t off);
 typedef int (*fs_write)(inode_t *ino, const void *buf, size_t len, off_t off);
 
-typedef inode_t *(*fs_open)(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
+typedef inode_t *(*fs_open)(inode_t *dir, CSTR name, int mode, acl_t *acl,
+                            int flags);
 typedef inode_t *(*fs_lookup)(inode_t *dir, CSTR name);
 
 typedef void *(*fs_opendir)(inode_t *ino);
@@ -45,9 +46,9 @@ typedef int (*blk_write)(inode_t *ino, const void *buf, size_t len, off_t off);
 typedef int (*chr_write)(inode_t *ino, const void *buf, size_t len);
 
 typedef int (*dev_rmdev)(inode_t *ino, void *ops);
-typedef int (*dev_ioctl)(inode_t *ino, int cmd, void* params);
+typedef int (*dev_ioctl)(inode_t *ino, int cmd, void *params);
 
-typedef int (*net_send)(netdev_t *ifnet, skb_t*skb);
+typedef int (*net_send)(netdev_t *ifnet, skb_t *skb);
 typedef int (*net_link)(netdev_t *ifnet);
 
 typedef int (*vds_flip)(inode_t *ino);
@@ -67,8 +68,7 @@ typedef int (*vds_resize)(inode_t *ino, int *width, int *height);
 //     terminal_t *term;
 // };
 
-struct device
-{
+struct device {
     bool read_only;
     bool is_detached;
     splock_t lock;

@@ -64,11 +64,11 @@ static inline void ll_push_front(llhead_t *list, llnode_t *node)
     assert(node->next_ == NULL);
 
     node->next_ = list->first_;
-    if (list->first_ != NULL) {
+    if (list->first_ != NULL)
         list->first_->prev_ = node;
-    } else {
+
+    else
         list->last_ = node;
-    }
 
     node->prev_ = NULL;
     list->first_ = node;
@@ -82,11 +82,11 @@ static inline void ll_push_back(llhead_t *list, llnode_t *node)
     assert(node->next_ == NULL);
 
     node->prev_ = list->last_;
-    if (list->last_ != NULL) {
+    if (list->last_ != NULL)
         list->last_->next_ = node;
-    } else {
+
+    else
         list->first_ = node;
-    }
 
     node->next_ = NULL;
     list->last_ = node;
@@ -99,11 +99,13 @@ static inline llnode_t *ll_pop_front(llhead_t *list)
     llnode_t *first = list->first_;
 
     assert(first == NULL || first->prev_ == NULL);
-    if (first == NULL) {
+    if (first == NULL)
         return NULL;
-    } else if (first->next_) {
+
+    else if (first->next_)
         first->next_->prev_ = NULL;
-    } else {
+
+    else {
         assert(list->last_ == first);
         assert(first->next_ == NULL);
         list->last_ = NULL;
@@ -122,11 +124,13 @@ static inline llnode_t *ll_pop_back(llhead_t *list)
     llnode_t *last = list->last_;
 
     assert(last == NULL || last->next_ == NULL);
-    if (last == NULL) {
+    if (last == NULL)
         return NULL;
-    } else if (last->prev_) {
+
+    else if (last->prev_)
         last->prev_->next_ = NULL;
-    } else {
+
+    else {
         assert(list->first_ == last);
         assert(last->prev_ == NULL);
         list->first_ = NULL;
@@ -144,27 +148,27 @@ static inline void ll_remove(llhead_t *list, llnode_t *node)
 {
 #if !defined(NDEBUG)
     struct llnode *w = node;
-    while (w->prev_) {
+    while (w->prev_)
         w = w->prev_;
-    }
     assert(w == list->first_);
     w = node;
-    while (w->next_) {
+    while (w->next_)
         w = w->next_;
-    }
     assert(w == list->last_);
 #endif
 
-    if (node->prev_) {
+    if (node->prev_)
         node->prev_->next_ = node->next_;
-    } else {
+
+    else {
         assert(list->first_ == node);
         list->first_ = node->next_;
     }
 
-    if (node->next_) {
+    if (node->next_)
         node->next_->prev_ = node->prev_;
-    } else {
+
+    else {
         assert(list->last_ == node);
         list->last_ = node->prev_;
     }

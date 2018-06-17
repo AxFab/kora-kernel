@@ -62,12 +62,10 @@ static long long __yeartosecs(long long year, int *is_leap)
         if (!((y - 68) & 3)) {
             leaps--;
 
-            if (is_leap) {
+            if (is_leap)
                 *is_leap = 1;
-            }
-        } else if (is_leap) {
+        } else if (is_leap)
             *is_leap = 0;
-        }
 
         return 31536000 * (y - 70) + 86400 * leaps;
     }
@@ -94,17 +92,17 @@ static long long __yeartosecs(long long year, int *is_leap)
         leaps = 0;
     } else {
         if (rem >= 200) {
-            if (rem >= 300) {
+            if (rem >= 300)
                 centuries = 3, rem -= 300;
-            } else {
+
+            else
                 centuries = 2, rem -= 200;
-            }
         } else {
-            if (rem >= 100) {
+            if (rem >= 100)
                 centuries = 1, rem -= 100;
-            } else {
+
+            else
                 centuries = 0;
-            }
         }
 
         if (!rem) {
@@ -132,9 +130,8 @@ static int __monthtosecs(int month, int is_leap)
     };
     int t = secs_through_month[month];
 
-    if (is_leap && month >= 2) {
+    if (is_leap && month >= 2)
         t += 86400;
-    }
 
     return t;
 }
@@ -177,9 +174,8 @@ static int __secstotm(long long t, struct tm *tm)
     static const char days_in_month[] = {31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 31, 29};
 
     /* Reject time_t values whose year would overflow int */
-    if (t < INT_MIN * 31622400LL || t > INT_MAX * 31622400LL) {
+    if (t < INT_MIN * 31622400LL || t > INT_MAX * 31622400LL)
         return -1;
-    }
 
     secs = t - LEAPOCH;
     days = secs / 86400;
@@ -192,9 +188,8 @@ static int __secstotm(long long t, struct tm *tm)
 
     wday = (3 + days) % 7;
 
-    if (wday < 0) {
+    if (wday < 0)
         wday += 7;
-    }
 
     qc_cycles = days / DAYS_PER_400Y;
     remdays = days % DAYS_PER_400Y;
@@ -206,44 +201,38 @@ static int __secstotm(long long t, struct tm *tm)
 
     c_cycles = remdays / DAYS_PER_100Y;
 
-    if (c_cycles == 4) {
+    if (c_cycles == 4)
         c_cycles--;
-    }
 
     remdays -= c_cycles * DAYS_PER_100Y;
 
     q_cycles = remdays / DAYS_PER_4Y;
 
-    if (q_cycles == 25) {
+    if (q_cycles == 25)
         q_cycles--;
-    }
 
     remdays -= q_cycles * DAYS_PER_4Y;
 
     remyears = remdays / 365;
 
-    if (remyears == 4) {
+    if (remyears == 4)
         remyears--;
-    }
 
     remdays -= remyears * 365;
 
     leap = !remyears && (q_cycles || !c_cycles);
     yday = remdays + 31 + 28 + leap;
 
-    if (yday >= 365 + leap) {
+    if (yday >= 365 + leap)
         yday -= 365 + leap;
-    }
 
     years = remyears + 4 * q_cycles + 100 * c_cycles + 400 * qc_cycles;
 
-    for (months = 0; days_in_month[months] <= remdays; months++) {
+    for (months = 0; days_in_month[months] <= remdays; months++)
         remdays -= days_in_month[months];
-    }
 
-    if (years + 100 > INT_MAX || years + 100 < INT_MIN) {
+    if (years + 100 > INT_MAX || years + 100 < INT_MIN)
         return -1;
-    }
 
     tm->tm_year = years + 100;
     tm->tm_mon = months + 2;
@@ -306,7 +295,7 @@ time_t mktime(struct tm *tm)
 }
 
 
-struct tm *gmtime_r (const time_t *time, struct tm *tm)
+struct tm *gmtime_r(const time_t *time, struct tm *tm)
 {
     if (__secstotm(*time, tm) < 0) {
         errno = EOVERFLOW;

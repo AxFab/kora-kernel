@@ -160,18 +160,17 @@ void com_setup()
         serial_inos[i] = ino;
         vfs_mkdev(name, &com_devs[i].dev, ino);
     }
-    irq_register(3, (irq_handler_t)com_irq, (void*)1);
-    irq_register(4, (irq_handler_t)com_irq, (void*)0);
+    irq_register(3, (irq_handler_t)com_irq, (void *)1);
+    irq_register(4, (irq_handler_t)com_irq, (void *)0);
 }
 
 void com_teardown()
 {
     int i;
-    irq_unregister(3, (irq_handler_t)com_irq, (void*)1);
-    irq_unregister(4, (irq_handler_t)com_irq, (void*)0);
-    for (i = 0; i < 4; ++i) {
+    irq_unregister(3, (irq_handler_t)com_irq, (void *)1);
+    irq_unregister(4, (irq_handler_t)com_irq, (void *)0);
+    for (i = 0; i < 4; ++i)
         vfs_close(serial_inos[i]);
-    }
 }
 
 MODULE(serial, com_setup, com_teardown);

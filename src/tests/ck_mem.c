@@ -30,8 +30,9 @@ struct inode {
     int rcu;
 };
 
-inode_t *vfs_inode() {
-    inode_t *ino = (inode_t*)kalloc(sizeof(inode_t));
+inode_t *vfs_inode()
+{
+    inode_t *ino = (inode_t *)kalloc(sizeof(inode_t));
     ino->rcu = 1;
     return ino;
 }
@@ -87,7 +88,8 @@ START_TEST(test_01)
 
     // Map RO arena
 
-    void *ad1 = mspace_map(kMMU.kspace, 0, 2 * PAGE_SIZE, ino, PAGE_SIZE, 0, VMA_FILE_RO);
+    void *ad1 = mspace_map(kMMU.kspace, 0, 2 * PAGE_SIZE, ino, PAGE_SIZE, 0,
+                           VMA_FILE_RO);
     ck_assert(ad1 != NULL && errno == 0);
     ck_assert(mmu_read((size_t)ad1) == 0);
 
@@ -101,7 +103,8 @@ START_TEST(test_01)
 
     // Map physical memory, and resolve alls pages
     size_t avail = kMMU.free_pages;
-    void *ad3 = mspace_map(kMMU.kspace, 0, 8 * PAGE_SIZE, NULL, 0xFC00000, 0, VMA_PHYSIQ);
+    void *ad3 = mspace_map(kMMU.kspace, 0, 8 * PAGE_SIZE, NULL, 0xFC00000, 0,
+                           VMA_PHYSIQ);
     ck_assert(ad3 != NULL && errno == 0);
     ck_assert(mmu_read((size_t)ad3) != 0);
     ck_assert(avail == kMMU.free_pages); // Only true as we don't have tables
@@ -121,7 +124,8 @@ START_TEST(test_01)
     ck_assert(mmu_read((size_t)ad1 + PAGE_SIZE) != 0);
     mspace_unmap(kMMU.kspace, (size_t)ad1 + PAGE_SIZE, PAGE_SIZE);
 
-    ad1 = mspace_map(kMMU.kspace, (size_t)ad1, PAGE_SIZE, NULL, 0, 0, VMA_ANON | VMA_RX);
+    ad1 = mspace_map(kMMU.kspace, (size_t)ad1, PAGE_SIZE, NULL, 0, 0,
+                     VMA_ANON | VMA_RX);
     ck_assert(ad1 != NULL && errno == 0);
 
 

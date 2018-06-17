@@ -590,12 +590,12 @@ inode_t *fatfs_mount(inode_t *dev)
     info->FATSz = (bpb->BPB_FATSz16 != 0 ? bpb->BPB_FATSz16 : bpb32->BPB_FATSz32);
     info->FirstDataSector = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs *
                             info->FATSz) + info->RootDirSectors;
-    info->TotSec =  (bpb->BPB_TotSec16 != 0 ? bpb->BPB_TotSec16 :
-                     bpb->BPB_TotSec32);
+    info->TotSec = (bpb->BPB_TotSec16 != 0 ? bpb->BPB_TotSec16 :
+                    bpb->BPB_TotSec32);
     info->DataSec = info->TotSec - (bpb->BPB_ResvdSecCnt +
                                     (bpb->BPB_NumFATs * info->FATSz) + info->RootDirSectors);
     if (info->FATSz == 0 || bpb->BPB_SecPerClus == 0 ||
-            info->TotSec <= info->DataSec) {
+        info->TotSec <= info->DataSec) {
         kfree(info);
         kunmap(ptr, PAGE_SIZE);
         errno = EBADF;
@@ -621,16 +621,18 @@ inode_t *fatfs_mount(inode_t *dev)
     info->usedSpace = 0;
     info->freeSpace = 0;
 
-    const char *fsName = info->FATType == FAT32 ? "fat32" : (info->FATType == FAT16 ?
-                    "fat16" : "fat12");
-    FAT_inode_t *ino = (FAT_inode_t*)vfs_inode(info->RootEntry, S_IFDIR | 0755, NULL, sizeof(FAT_inode_t));
+    const char *fsName = info->FATType == FAT32 ? "fat32" :
+                         (info->FATType == FAT16 ?
+                          "fat16" : "fat12");
+    FAT_inode_t *ino = (FAT_inode_t *)vfs_inode(info->RootEntry, S_IFDIR | 0755,
+                       NULL, sizeof(FAT_inode_t));
     ino->ino.length = 0;
     // ino->ino.block = /*mount->SecPerClus */ mount->BytsPerSec;
     ino->ino.lba = info->RootEntry;
     ino->vol = info;
     // ino->vol->dev = vfs_open(dev);
 
-    mountfs_t *fs = (mountfs_t*)kalloc(sizeof(mountfs_t));
+    mountfs_t *fs = (mountfs_t *)kalloc(sizeof(mountfs_t));
     // fs->lookup = (fs_lookup)isofs_lookup;
     // fs->read = (fs_read)isofs_read;
     fs->umount = (fs_umount)fatfs_umount;
@@ -639,7 +641,7 @@ inode_t *fatfs_mount(inode_t *dev)
     // fs->closedir = (fs_closedir)isofs_closedir;
     // fs->read_only = true;
 
-    vfs_mountpt(info->name, fsName, fs, (inode_t*)ino);
+    vfs_mountpt(info->name, fsName, fs, (inode_t *)ino);
     kunmap(ptr, PAGE_SIZE);
     return &ino->ino;
 }

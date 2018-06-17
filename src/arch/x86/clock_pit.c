@@ -34,7 +34,7 @@ void PIT_set_interval(unsigned frequency)
 {
 
     unsigned divisor = 1193180 / frequency; /* Calculate our divisor */
-    divisor = MIN (65536, MAX(1, divisor));
+    divisor = MIN(65536, MAX(1, divisor));
 
     PIT_frequency = 1193180 / divisor;
     PIT_period = MICROSEC_IN_SEC / PIT_frequency;
@@ -43,7 +43,7 @@ void PIT_set_interval(unsigned frequency)
     outb(PIT_CH0, divisor & 0xff);   /* Set low byte of divisor */
     outb(PIT_CH0, (divisor >> 8) & 0xff);     /* Set high byte of divisor */
 
-    kprintf (KLOG_MSG, "Set cpu ticks frequency: %d Hz\n", PIT_frequency);
+    kprintf(KLOG_MSG, "Set cpu ticks frequency: %d Hz\n", PIT_frequency);
 }
 
 

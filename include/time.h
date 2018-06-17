@@ -28,38 +28,36 @@ typedef __clock_t clock_t;
 
 #define CLOCKS_PER_SEC  1000000L
 
-struct timespec
-{
-  time_t tv_sec;    /* Seconds.  */
-  long int tv_nsec;   /* Nanoseconds.  */
+struct timespec {
+    time_t tv_sec;    /* Seconds.  */
+    long int tv_nsec;   /* Nanoseconds.  */
 };
 
 
 /* Used by other time functions.  */
-struct tm
-{
-  /* Seconds. [0-60] (1 leap second) */
-  int tm_sec;
-  /* Minutes. [0-59] */
-  int tm_min;
-  /* Hours. [0-23] */
-  int tm_hour;
-  /* Day.   [1-31] */
-  int tm_mday;
-  /* Month. [0-11] */
-  int tm_mon;
-  /* Year - 1900.  */
-  int tm_year;
-  /* Day of week. [0-6] */
-  int tm_wday;
-  /* Days in year.[0-365] */
-  int tm_yday;
-  /* DST.   [-1/0/1]*/
-  int tm_isdst;
-  /* Seconds east of UTC.  */
-  long int tm_gmtoff;
-  /* Timezone abbreviation.  */
-  const char *tm_zone;
+struct tm {
+    /* Seconds. [0-60] (1 leap second) */
+    int tm_sec;
+    /* Minutes. [0-59] */
+    int tm_min;
+    /* Hours. [0-23] */
+    int tm_hour;
+    /* Day.   [1-31] */
+    int tm_mday;
+    /* Month. [0-11] */
+    int tm_mon;
+    /* Year - 1900.  */
+    int tm_year;
+    /* Day of week. [0-6] */
+    int tm_wday;
+    /* Days in year.[0-365] */
+    int tm_yday;
+    /* DST.   [-1/0/1]*/
+    int tm_isdst;
+    /* Seconds east of UTC.  */
+    long int tm_gmtoff;
+    /* Timezone abbreviation.  */
+    const char *tm_zone;
 };
 
 

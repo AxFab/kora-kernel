@@ -81,7 +81,7 @@ inode_t *vfs_search(inode_t *root, inode_t *pwd, CSTR path, acl_t *acl)
 /* Create an empty inode (DIR or REG) */
 inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
 {
-    inode_t* ino;
+    inode_t *ino;
     assert(name != NULL && strnlen(name, VFS_MAXNAME) < VFS_MAXNAME);
     assert(dir->fs != NULL);
     if (dir == NULL || !S_ISDIR(dir->mode)) {
@@ -110,7 +110,7 @@ inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
     /* Reserve a cache directory entry */
     dirent_t *ent = vfs_dirent_(dir, name, !(flags & VFS_BLOCK));
     if (ent == NULL) {
-        assert (errno != 0);
+        assert(errno != 0);
         return NULL;
     }
 
@@ -141,7 +141,7 @@ inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
     /* Request send to the file system */
     ino = open(dir, name, mode, acl, flags | VFS_CREAT);
     if (ino == NULL) {
-        assert (errno != 0);
+        assert(errno != 0);
         return NULL;
     }
 

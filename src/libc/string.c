@@ -23,16 +23,15 @@ void *malloc(size_t);
 // #include <stdlib.h>
 
 /* Scans s1 for the first token not contained in s2. */
-char *strtok_r (register char *s, const char *delim, char **lasts )
+char *strtok_r(register char *s, const char *delim, char **lasts)
 {
     int skip_leading_delim = 1;
     register char *spanp;
     register int c, sc;
     char *tok;
 
-    if ( s == NULL && ( s = *lasts ) == NULL ) {
+    if (s == NULL && (s = *lasts) == NULL)
         return NULL;
-    }
 
     /*
      * Skip (span) leading delimiters (s += strspn(s, delim), sort of).
@@ -40,19 +39,20 @@ char *strtok_r (register char *s, const char *delim, char **lasts )
 cont:
     c = *s++;
 
-    for ( spanp = ( char *) delim; ( sc = *spanp++ ) != 0; ) {
-        if ( c == sc ) {
-            if ( skip_leading_delim ) {
+    for (spanp = (char *) delim; (sc = *spanp++) != 0;) {
+        if (c == sc) {
+            if (skip_leading_delim)
                 goto cont;
-            } else {
+
+            else {
                 *lasts = s;
                 s[-1] = 0;
-                return ( s - 1 );
+                return (s - 1);
             }
         }
     }
 
-    if ( c == 0 ) {      /* no non-delimiter characters */
+    if (c == 0) {        /* no non-delimiter characters */
         *lasts = NULL;
         return NULL;
     }
@@ -63,22 +63,22 @@ cont:
      * Scan token (scan for delimiters: s += strcspn(s, delim), sort of).
      * Note that delim must have one NUL; we stop if we see that, too.
      */
-    for ( ;; ) {
+    for (;;) {
         c = *s++;
-        spanp = ( char *) delim;
+        spanp = (char *) delim;
 
         do {
-            if ( ( sc = *spanp++ ) == c ) {
-                if ( c == 0 ) {
+            if ((sc = *spanp++) == c) {
+                if (c == 0)
                     s = NULL;
-                } else {
+
+                else
                     s[-1] = 0;
-                }
 
                 *lasts = s;
-                return ( tok );
+                return (tok);
             }
-        } while ( sc != 0 );
+        } while (sc != 0);
     }
 }
 
@@ -95,7 +95,7 @@ void *memchr(const void *str, int c, size_t len)
         --len;
     }
 
-    return (void *)(len ? ptr0 : 0 );
+    return (void *)(len ? ptr0 : 0);
 }
 
 /* Compares two blocks of signed chars. */
@@ -118,9 +118,8 @@ void *memcpy(void *dest, const void *src, size_t len)
     register char *ptr1 = (char *)dest;
     register const char *ptr2 = (const char *)src;
 
-    while (len-- > 0) {
+    while (len-- > 0)
         *ptr1++ = *ptr2++;
-    }
 
     return dest;
 }
@@ -132,16 +131,14 @@ void *memmove(void *dest, const void *src, size_t len)
     register const char *ptr2 = (const char *)src;
 
     if (ptr1 >= ptr2 || ptr1 >= ptr2 + len) {
-        while (len--) {
+        while (len--)
             *ptr1++ = *ptr2++;
-        }
     } else {
         ptr1 += len - 1;
         ptr2 += len - 1;
 
-        while (len-- > 0) {
+        while (len-- > 0)
             *ptr1-- = *ptr2--;
-        }
     }
 
     return dest;
@@ -151,9 +148,8 @@ void *memmove(void *dest, const void *src, size_t len)
 void *memset(void *buffer, int c, size_t num)
 {
     register char *org = (char *)buffer;
-    while (num--) {
+    while (num--)
         *org++ = (char)c;
-    }
 
     return buffer;
 }
@@ -167,9 +163,8 @@ char *strcat(char *dest, const char *src)
     register char *ptr1 = (char *)dest;
     register const char *ptr2 = (const char *)src;
 
-    while (*ptr1) {
+    while (*ptr1)
         ++ptr1;
-    }
 
     while ((*ptr1++ = *ptr2++));
     return dest;
@@ -179,9 +174,8 @@ char *strcat(char *dest, const char *src)
 char *strchr(const char *str, int c)
 {
     while (*str) {
-        if (*str == (char)c) {
+        if (*str == (char)c)
             return (char *)str;
-        }
 
         str++;
     }
@@ -220,9 +214,8 @@ int stricmp(const char *s1, const char *s2);
 size_t strlen(const char *str)
 {
     register const char *end = str;
-    while (*end) {
+    while (*end)
         ++end;
-    }
 
     return end - str;
 }
@@ -231,9 +224,8 @@ size_t strlen(const char *str)
 size_t strnlen(const char *str, size_t maxlen)
 {
     register const char *end = str;
-    while (*end && --maxlen) {
+    while (*end && --maxlen)
         ++end;
-    }
 
     return end - str;
 }
@@ -244,9 +236,8 @@ char *strncat(char *dest, const char *src, size_t maxlen)
     register char *ptr1 = (char *)dest;
     register const char *ptr2 = (const char *)src;
 
-    while (*ptr1) {
+    while (*ptr1)
         ++ptr1;
-    }
 
     while (maxlen-- > 0 && (*ptr1++ = *ptr2++));
     return dest;
@@ -281,9 +272,8 @@ char *strrchr(const char *str, int c)
 {
     int lg = strlen(str) - 1;
     for (; lg >= 0; --lg) {
-        if (str[lg] == (char)c) {
+        if (str[lg] == (char)c)
             return (char *)str;
-        }
     }
 
     return NULL;
@@ -338,9 +328,8 @@ char *strrev(char *string);
 char *strset(char *str, int c)
 {
     char *svg = str;
-    while (*str) {
+    while (*str)
         *str++ = c;
-    }
     return svg;
 }
 
@@ -348,9 +337,8 @@ char *strset(char *str, int c)
 char *strnset(char *str, int c, size_t maxlen)
 {
     char *svg = str;
-    while (*str && maxlen-- > 0) {
+    while (*str && maxlen-- > 0)
         *str++ = c;
-    }
     return svg;
 }
 

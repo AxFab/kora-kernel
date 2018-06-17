@@ -37,7 +37,7 @@ void pit_interval(unsigned freq_hz)
     outb(PIT_CH0, divisor & 0xff);   /* Set low byte of divisor */
     outb(PIT_CH0, (divisor >> 8) & 0xff);     /* Set high byte of divisor */
 
-    kprintf (KLOG_MSG, "Set cpu ticks frequency: %d Hz\n", pit_frequency);
+    kprintf(KLOG_MSG, "Set cpu ticks frequency: %d Hz\n", pit_frequency);
 }
 
 void pit_stop()

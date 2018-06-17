@@ -42,7 +42,7 @@ struct device_id __vga_ids[] = {
 struct device_id *vga_pci_info(struct PCI_device *pci)
 {
     unsigned i;
-    for (i = 0; i < sizeof(__vga_ids)/sizeof(struct device_id); ++i) {
+    for (i = 0; i < sizeof(__vga_ids) / sizeof(struct device_id); ++i) {
         if (__vga_ids[i].id == pci->device_id || __vga_ids[i].vendor == pci->vendor_id)
             return &__vga_ids[i];
     }
@@ -53,7 +53,7 @@ struct device_id *vga_pci_info(struct PCI_device *pci)
 int vga_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
 {
     unsigned i;
-    for (i = 0; i < sizeof(__vga_ids)/sizeof(struct device_id); ++i) {
+    for (i = 0; i < sizeof(__vga_ids) / sizeof(struct device_id); ++i) {
         if (__vga_ids[i].id == device || __vga_ids[i].vendor == vendor)
             return 0;
     }
@@ -65,7 +65,7 @@ void vga_setup()
 {
     struct PCI_device *pci = NULL;
 
-    for(;;) {
+    for (;;) {
         pci = PCI_search2(vga_match_pci_device);
         if (pci == NULL)
             break;

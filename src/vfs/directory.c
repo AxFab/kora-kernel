@@ -32,8 +32,8 @@ void *vfs_opendir(inode_t *dir, acl_t *acl)
         assert(errno == EACCES);
         return NULL;
     } else if (dir->fs->opendir == NULL ||
-        dir->fs->readdir == NULL ||
-        dir->fs->closedir == NULL) {
+               dir->fs->readdir == NULL ||
+               dir->fs->closedir == NULL) {
         errno = ENOSYS;
         return NULL;
     }
@@ -53,9 +53,8 @@ inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx)
     }
 
     inode_t *ino = dir->fs->readdir(dir, name, ctx);
-    if (ino == NULL) {
+    if (ino == NULL)
         return NULL;
-    }
 
     vfs_record_(dir, ino);
     dirent_t *ent = vfs_dirent_(dir, name, false);
@@ -64,9 +63,8 @@ inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx)
         if (ent->ino != NULL) {
             vfs_close(ino);
             ino = ent->ino;
-        } else {
+        } else
             vfs_set_dirent_(ent, ino);
-        }
         rwlock_rdunlock(&ent->lock);
     }
     return ino;

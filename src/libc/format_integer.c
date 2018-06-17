@@ -51,25 +51,23 @@ __ulong _strtox(const char *str, char **endptr, int base, char *sign)
     __ulong value = 0;
     __ulong bkp = 0;
 
-    if (endptr) {
+    if (endptr)
         (*endptr) = (char *)str;
-    }
 
-    while (isspace(*str)) {
+    while (isspace(*str))
         str++;
-    }
 
     (*sign) = *str == '-' ?  '-' : '+';
 
-    if (*str == '-' || *str == '+') {
+    if (*str == '-' || *str == '+')
         str++;
-    }
 
     if (base == 0) {
-        if (str[0] != '0') {
+        if (str[0] != '0')
             base = 10;
 
-        } else if ((str[1] | LOWER) == 'x') {
+
+        else if ((str[1] | LOWER) == 'x') {
             base = 16;
             str += 2;
 
@@ -95,9 +93,8 @@ __ulong _strtox(const char *str, char **endptr, int base, char *sign)
             v = (pst == NULL) ? 65 : pst - _utoa_digits;
         }
 
-        if (v >= base) {
+        if (v >= base)
             break;
-        }
 
         bkp = value * base;
         if (value != 0 && bkp / base != value) {
@@ -108,9 +105,8 @@ __ulong _strtox(const char *str, char **endptr, int base, char *sign)
         value += v;
     }
 
-    if (endptr) {
+    if (endptr)
         (*endptr) = (char *)str;
-    }
 
     return value;
 }
@@ -136,18 +132,16 @@ long strtol(const char *nptr, char **endptr, int base)
 
     if (sign == 'o') {
         errno = EOVERFLOW;
-        if (endptr) {
+        if (endptr)
             (*endptr) = (char *)nptr;
-        }
         return 0;
     }
 
     if (sign == '+') {
         if (value > LONG_MAX) {
             errno = EOVERFLOW;
-            if (endptr) {
+            if (endptr)
                 (*endptr) = (char *)nptr;
-            }
             return 0;
         }
 
@@ -157,9 +151,8 @@ long strtol(const char *nptr, char **endptr, int base)
 
         if (value > (-(__ulong)LONG_MIN)) {
             errno = EOVERFLOW;
-            if (endptr) {
+            if (endptr)
                 (*endptr) = (char *)nptr;
-            }
             return 0;
         }
 
@@ -180,12 +173,10 @@ unsigned long strtoul(const char *nptr, char **endptr, int base)
     }
 
     // Handle '-' sign
-    if (endptr) {
+    if (endptr)
         (*endptr) = (char *)nptr;
-    }
-    while (isspace(*nptr)) {
+    while (isspace(*nptr))
         nptr++;
-    }
     if (*nptr == '-') {
         errno = EINVAL;
         return 0;
@@ -195,17 +186,15 @@ unsigned long strtoul(const char *nptr, char **endptr, int base)
 
     if (sign == 'o') {
         errno = EOVERFLOW;
-        if (endptr) {
+        if (endptr)
             (*endptr) = (char *)nptr;
-        }
         return 0;
     }
 
     if (value > ULONG_MAX) {
         errno = EOVERFLOW;
-        if (endptr) {
+        if (endptr)
             (*endptr) = (char *)nptr;
-        }
         return 0;
     }
 
@@ -221,7 +210,7 @@ int atoi(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
-    return (int) (sign == '+') ? value : -value;
+    return (int)(sign == '+') ? value : -value;
 }
 
 /* Convert a string to an integer */
@@ -229,7 +218,7 @@ long atol(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
-    return (long) (sign == '+') ? value : -value;
+    return (long)(sign == '+') ? value : -value;
 }
 
 #ifdef __USE_C99
@@ -238,7 +227,7 @@ long long atoll(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
-    return (long long) (sign == '+') ? value : -value;
+    return (long long)(sign == '+') ? value : -value;
 }
 
 /* Convert a string to an integer */
@@ -246,7 +235,7 @@ long long atoq(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
-    return (long long) (sign == '+') ? value : -value;
+    return (long long)(sign == '+') ? value : -value;
 }
 
 long long strtoll(const char *nptr, char **endptr, int base)
@@ -265,9 +254,8 @@ long long strtoll(const char *nptr, char **endptr, int base)
     if (sign == 'o') {
         errno = EOVERFLOW;
 
-        if (endptr) {
+        if (endptr)
             (*endptr) = (char *)nptr;
-        }
 
         return 0;
     }
@@ -276,9 +264,8 @@ long long strtoll(const char *nptr, char **endptr, int base)
         if (value > LLONG_MAX) {
             errno = EOVERFLOW;
 
-            if (endptr) {
+            if (endptr)
                 (*endptr) = (char *)nptr;
-            }
 
             return 0;
         }
@@ -290,9 +277,8 @@ long long strtoll(const char *nptr, char **endptr, int base)
         if (value > (-(__ulong)LLONG_MIN)) {
             errno = EOVERFLOW;
 
-            if (endptr) {
+            if (endptr)
                 (*endptr) = (char *)nptr;
-            }
 
             return 0;
         }
@@ -317,9 +303,8 @@ unsigned long long strtoull(const char *nptr, char **endptr, int base)
     if (sign == 'o') {
         errno = EOVERFLOW;
 
-        if (endptr) {
+        if (endptr)
             (*endptr) = (char *)nptr;
-        }
 
         return 0;
     }
@@ -327,14 +312,13 @@ unsigned long long strtoull(const char *nptr, char **endptr, int base)
     if (value > ULLONG_MAX) {
         errno = EOVERFLOW;
 
-        if (endptr) {
+        if (endptr)
             (*endptr) = (char *)nptr;
-        }
 
         return 0;
     }
 
-    return (unsigned long long) (sign == '+' ? value : -value);
+    return (unsigned long long)(sign == '+' ? value : -value);
 }
 
 #endif
@@ -377,15 +361,14 @@ char *_utoa(__ulong value, char *str, int base, const char *digits)
 char *itoa(int value, char *str, int base)
 {
     char *ptr = str;
-    if (base < 2 || base > 36) {
+    if (base < 2 || base > 36)
         return NULL;
-    }
 
     if (base == 10 && value < 0) {
         *(str++) = '-';
         value = -value;
     }
 
-    _utoa (value, str, base, _utoa_digits);
+    _utoa(value, str, base, _utoa_digits);
     return ptr;
 }

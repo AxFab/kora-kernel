@@ -28,7 +28,7 @@ skb_t *net_packet(netdev_t *ifnet, unsigned size)
 {
     if (size > ifnet->mtu)
         size = ifnet->mtu;
-    skb_t *skb = (skb_t*)kalloc(sizeof(skb_t) + size);
+    skb_t *skb = (skb_t *)kalloc(sizeof(skb_t) + size);
     skb->ifnet = ifnet;
     skb->size = size;
     return skb;
@@ -37,7 +37,7 @@ skb_t *net_packet(netdev_t *ifnet, unsigned size)
 /* Create a new rx packet and push it into received queue */
 void net_recv(netdev_t *ifnet, uint8_t *buf, unsigned len)
 {
-    skb_t *skb = (skb_t*)kalloc(sizeof(skb_t) + len);
+    skb_t *skb = (skb_t *)kalloc(sizeof(skb_t) + len);
     skb->ifnet = ifnet;
     memcpy(skb->buf, buf, len);
     skb->length = len;
@@ -111,7 +111,7 @@ int net_write(skb_t *skb, const void *buf, unsigned len)
 /* Get pointer on data from a packet and move cursor */
 void *net_pointer(skb_t *skb, unsigned len)
 {
-	if (skb->err)
+    if (skb->err)
         return NULL;
     if (skb->pen + len > skb->ifnet->mtu) {
         skb->err |= NET_ERR_OVERFILL;
@@ -128,7 +128,7 @@ void *net_pointer(skb_t *skb, unsigned len)
 char *net_ethstr(char *buf, uint8_t *mac)
 {
     snprintf(buf, 18, "%02X:%02X:%02X:%02X:%02X:%02X",
-        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     return buf;
 }
 
@@ -155,15 +155,19 @@ void net_print(netdev_t *ifnet)
 {
     char buf[20];
     kprintf(KLOG_DBG, "eth%d:  flags < %s%s>  mtu %d\n", ifnet->no,
-        ifnet->flags & NET_CONNECTED ? "UP " : "",
-        ifnet->flags & NET_QUIET ? "QUIET " : "",
-        ifnet->mtu);
+            ifnet->flags & NET_CONNECTED ? "UP " : "",
+            ifnet->flags & NET_QUIET ? "QUIET " : "",
+            ifnet->mtu);
     kprintf(KLOG_DBG, "    MAC address %s\n", net_ethstr(buf, ifnet->eth_addr));
     kprintf(KLOG_DBG, "    IP address %s\n", net_ip4str(buf, ifnet->ip4_addr));
-    kprintf(KLOG_DBG, "    RX packets %d   bytes %d (%s)\n", ifnet->rx_packets, ifnet->rx_bytes, sztoa(ifnet->rx_bytes));
-    kprintf(KLOG_DBG, "    RX errors %d   dropped %d\n", ifnet->rx_errors, ifnet->rx_dropped);
-    kprintf(KLOG_DBG, "    TX packets %d   bytes %d (%s)\n", ifnet->tx_packets, ifnet->tx_bytes, sztoa(ifnet->tx_bytes));
-    kprintf(KLOG_DBG, "    TX errors %d   dropped %d\n", ifnet->tx_errors, ifnet->tx_dropped);
+    kprintf(KLOG_DBG, "    RX packets %d   bytes %d (%s)\n", ifnet->rx_packets,
+            ifnet->rx_bytes, sztoa(ifnet->rx_bytes));
+    kprintf(KLOG_DBG, "    RX errors %d   dropped %d\n", ifnet->rx_errors,
+            ifnet->rx_dropped);
+    kprintf(KLOG_DBG, "    TX packets %d   bytes %d (%s)\n", ifnet->tx_packets,
+            ifnet->tx_bytes, sztoa(ifnet->tx_bytes));
+    kprintf(KLOG_DBG, "    TX errors %d   dropped %d\n", ifnet->tx_errors,
+            ifnet->tx_dropped);
 }
 
 
@@ -196,7 +200,7 @@ void net_tasklet(netdev_t *ifnet)
     while ((ifnet->flags & NET_QUIT) == 0)  {
 
         /* Read available packets */
-        for(;;) {
+        for (;;) {
             splock_lock(&ifnet->lock);
             skb_t *skb = NULL;
             while (timeout - time64() > 0) {
@@ -210,9 +214,10 @@ void net_tasklet(netdev_t *ifnet)
                 break;
 
             int ret = eth_receive(skb);
-            kprintf(KLOG_DBG, "Packet received %s (%d) : %d \n", skb->log, skb->length, ret);
+            kprintf(KLOG_DBG, "Packet received %s (%d) : %d \n", skb->log, skb->length,
+                    ret);
             if (ret != 0)
-               ifnet->rx_errors++;
+                ifnet->rx_errors++;
             kfree(skb);
         }
 
@@ -260,7 +265,8 @@ int net_device(netdev_t *ifnet)
     ifnet->no = ++net_no;
     splock_init(&ifnet->lock);
     char tmp[20];
-    kprintf(-1, "Network interface (eth%d) - MAC: \e[92m%s\e[0m\n", ifnet->no, net_ethstr(tmp, ifnet->eth_addr));
+    kprintf(-1, "Network interface (eth%d) - MAC: \e[92m%s\e[0m\n", ifnet->no,
+            net_ethstr(tmp, ifnet->eth_addr));
 
     kernel_tasklet(&net_tasklet, (long)ifnet, "Ethernet eth%d");
     return 0;

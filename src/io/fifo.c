@@ -73,20 +73,17 @@ size_t fifo_indexof(fifo_t *fifo, char ch)
 
     cap = MIN(max, fifo->avail_);
     for (i = 0; i < cap; ++i)
-        if (address[i] == ch) {
+        if (address[i] == ch)
             return i + 1;
-        }
 
-    if (max > fifo->avail_) {
+    if (max > fifo->avail_)
         return 0;
-    }
 
     address = (char *)fifo->buf_;
     cap = (size_t)MAX(0, (int)fifo->avail_ - (int)max);
     for (i = 0; i < cap; ++i)
-        if (address[i] == ch) {
+        if (address[i] == ch)
             return i + 1;
-        }
 
     return 0;
 }
@@ -101,21 +98,18 @@ size_t fifo_out(fifo_t *fifo, void *buf, size_t lg, int flags)
 
     fifo_lock(fifo);
     while (lg > 0) {
-        if (fifo->rpen_ >= fifo->size_) {
+        if (fifo->rpen_ >= fifo->size_)
             fifo->rpen_ = 0;
-        }
 
         address = (void *)(fifo->buf_ + fifo->rpen_);
         cap = fifo->size_ - fifo->rpen_;
         cap = MIN(cap, fifo->avail_);
-        if (flags & FP_EOL) {
+        if (flags & FP_EOL)
             cap = MIN(cap, fifo_indexof(fifo, '\n'));
-        }
         cap = MIN(cap, lg);
         if (cap == 0) {
-            if (flags & FP_NOBLOCK || bytes != 0) {
+            if (flags & FP_NOBLOCK || bytes != 0)
                 break;
-            }
             fifo_wait(fifo, flags, -lg);
             continue;
         }
@@ -143,18 +137,16 @@ size_t fifo_in(fifo_t *fifo, const void *buf, size_t lg, int flags)
 
     fifo_lock(fifo);
     while (lg > 0) {
-        if (fifo->wpen_ >= fifo->size_) {
+        if (fifo->wpen_ >= fifo->size_)
             fifo->wpen_ = 0;
-        }
 
         address = (void *)(fifo->buf_ + fifo->wpen_);
         cap = fifo->size_ - fifo->wpen_;
         cap = MIN(cap, fifo->size_ - fifo->avail_);
         cap = MIN(cap, lg);
         if (cap == 0) {
-            if (flags & FP_NOBLOCK || bytes != 0) {
+            if (flags & FP_NOBLOCK || bytes != 0)
                 break;
-            }
             fifo_wait(fifo, flags, lg);
             continue;
         }

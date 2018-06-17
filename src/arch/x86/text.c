@@ -142,31 +142,31 @@ int TXT_ansi_escape(const char *msg)
     for (;;) {
         varv[varc] = strtoul(sv, &sv, 10);
         varc++;
-        if (*sv != ';') {
+        if (*sv != ';')
             break;
-        } else {
+
+        else
             sv++;
-        }
     }
 
     switch (*sv) {
     case 'm':
-        for (i = 0; i < varc; ++i) {
+        for (i = 0; i < varc; ++i)
             TXT_ansi_color(varv[i]);
-        }
         break;
     case 'H':
     case 'f':
         TXT_ansi_coord(varv[0], varv[1]);
         break;
     case 'J': // Erase in display
-        if (varv[0] == 1) {
+        if (varv[0] == 1)
             memset(&TXT_screen[TXT_cursor], 0, (TXT_width * TXT_height - TXT_cursor) * 2);
-        } else if (varv[0] == 2) {
+
+        else if (varv[0] == 2)
             memset(TXT_screen, 0, TXT_cursor * 2);
-        } else if (varv[0] == 3) {
+
+        else if (varv[0] == 3)
             memset(TXT_screen, 0, TXT_width * TXT_height * 2);
-        }
         break;
     default:
         return 0;
@@ -190,19 +190,22 @@ void TXT_write(const char *msg, size_t lg)
 {
     const char *st = msg;
     for (; msg - st < (int)lg; ++msg) {
-        if (*msg == '\r') {
+        if (*msg == '\r')
             TXT_cursor -= TXT_cursor % TXT_width;
-        } else if (*msg == '\n') {
+
+        else if (*msg == '\n')
             TXT_eol();
-        } else if (*msg == '\t') {
+
+        else if (*msg == '\t')
             TXT_cursor = (TXT_cursor + 7) & ~7;
-        } else if (*msg == '\e' && msg[1] == '[') {
+
+        else if (*msg == '\e' && msg[1] == '[')
             msg += TXT_ansi_escape(msg);
-        } else if (*msg < 0x20) {
+
+        else if (*msg < 0x20) {
             // Ignore
-        } else if (*msg < 0x7F) {
+        } else if (*msg < 0x7F)
             TXT_screen[TXT_cursor++] = TXT_brush | *msg;
-        }
     }
     TXT_eom();
 }

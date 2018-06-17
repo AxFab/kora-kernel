@@ -38,9 +38,8 @@ static inline void PS2_mouse_wait(uint8_t bit)
 {
     int timeout = 100000;
     while (timeout--) {
-        if (inb(MOUSE_STATUS) & bit) {
+        if (inb(MOUSE_STATUS) & bit)
             break;
-        }
     }
 }
 
@@ -48,9 +47,8 @@ static inline void PS2_mouse_wait_signal()
 {
     int timeout = 100000;
     while (timeout--) {
-        if (inb(MOUSE_STATUS) & 2) {
+        if (inb(MOUSE_STATUS) & 2)
             break;
-        }
     }
 }
 

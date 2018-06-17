@@ -217,7 +217,7 @@ void cpuid_setup()
     // Get CPU Vendor name
     x86_cpuid(0, 0, cpu_name);
     cpu_name[4] = 0;
-    cpu_table[cpu_no()].vendor = strdup((char*)&cpu_name[1]);
+    cpu_table[cpu_no()].vendor = strdup((char *)&cpu_name[1]);
     kprintf(KLOG_DBG, "CPU%d :: %s\n", cpu_no(), &cpu_name[1]);
 
     // Get CPU features
@@ -239,61 +239,116 @@ void cpuid_setup()
 
     char *tmp = kalloc(1024);
     tmp[0] = 0;
-    if (x86_FEATURES_FPU(all_features)) strcat(tmp, "FPU, ");
-    if (x86_FEATURES_VME(all_features)) strcat(tmp, "VME, ");
-    if (x86_FEATURES_PE(all_features)) strcat(tmp, "PE, ");
-    if (x86_FEATURES_PSE(all_features)) strcat(tmp, "PSE, ");
-    if (x86_FEATURES_TSC(all_features)) strcat(tmp, "TSC, ");
-    if (x86_FEATURES_MSR(all_features)) strcat(tmp, "MSR, ");
-    if (x86_FEATURES_PAE(all_features)) strcat(tmp, "PAE, ");
-    if (x86_FEATURES_MCE(all_features)) strcat(tmp, "MCE, ");
-    if (x86_FEATURES_CX8(all_features)) strcat(tmp, "CX8, ");
-    if (x86_FEATURES_APIC(all_features)) strcat(tmp, "APIC, ");
-    if (x86_FEATURES_SEP(all_features)) strcat(tmp, "SEP, ");
-    if (x86_FEATURES_MTRR(all_features)) strcat(tmp, "MTRR, ");
-    if (x86_FEATURES_PGE(all_features)) strcat(tmp, "PGE, ");
-    if (x86_FEATURES_MCA(all_features)) strcat(tmp, "MCA, ");
-    if (x86_FEATURES_CMOV(all_features)) strcat(tmp, "CMOV, ");
-    if (x86_FEATURES_PAT(all_features)) strcat(tmp, "PAT, ");
-    if (x86_FEATURES_PSE36(all_features)) strcat(tmp, "PSE36, ");
-    if (x86_FEATURES_PSN(all_features)) strcat(tmp, "PSN, ");
-    if (x86_FEATURES_CLF(all_features)) strcat(tmp, "CLF, ");
-    if (x86_FEATURES_DTES(all_features)) strcat(tmp, "DTES, ");
-    if (x86_FEATURES_ACPI(all_features)) strcat(tmp, "ACPI, ");
-    if (x86_FEATURES_MMX(all_features)) strcat(tmp, "MMX, ");
-    if (x86_FEATURES_FXSR(all_features)) strcat(tmp, "FXSR, ");
-    if (x86_FEATURES_SSE(all_features)) strcat(tmp, "SSE, ");
-    if (x86_FEATURES_SSE2(all_features)) strcat(tmp, "SSE2, ");
-    if (x86_FEATURES_SS(all_features)) strcat(tmp, "SS, ");
-    if (x86_FEATURES_HTT(all_features)) strcat(tmp, "HTT, ");
-    if (x86_FEATURES_TM1(all_features)) strcat(tmp, "TM1, ");
-    if (x86_FEATURES_IA64(all_features)) strcat(tmp, "IA64, ");
-    if (x86_FEATURES_PBE(all_features)) strcat(tmp, "PBE, ");
-    if (x86_FEATURES_SSE3(all_features)) strcat(tmp, "SSE3, ");
-    if (x86_FEATURES_PCLMUL(all_features)) strcat(tmp, "PCLMUL, ");
-    if (x86_FEATURES_DTES64(all_features)) strcat(tmp, "DTES64, ");
-    if (x86_FEATURES_MONITOR(all_features)) strcat(tmp, "MONITOR, ");
-    if (x86_FEATURES_DS_CPL(all_features)) strcat(tmp, "DS_CPL, ");
-    if (x86_FEATURES_VMX(all_features)) strcat(tmp, "VMX, ");
-    if (x86_FEATURES_SMX(all_features)) strcat(tmp, "SMX, ");
-    if (x86_FEATURES_EST(all_features)) strcat(tmp, "EST, ");
-    if (x86_FEATURES_TM2(all_features)) strcat(tmp, "TM2, ");
-    if (x86_FEATURES_SSSE3(all_features)) strcat(tmp, "SSSE3, ");
-    if (x86_FEATURES_CID(all_features)) strcat(tmp, "AVX, ");
-    if (x86_FEATURES_FMA(all_features)) strcat(tmp, "FMA, ");
-    if (x86_FEATURES_CX16(all_features)) strcat(tmp, "CX16, ");
-    if (x86_FEATURES_ETPRD(all_features)) strcat(tmp, "ETPRD, ");
-    if (x86_FEATURES_PDCM(all_features)) strcat(tmp, "PDCM, ");
-    if (x86_FEATURES_DCA(all_features)) strcat(tmp, "DCA, ");
-    if (x86_FEATURES_SSE4_1(all_features)) strcat(tmp, "SSE4_1, ");
-    if (x86_FEATURES_SSE4_2(all_features)) strcat(tmp, "SSE4_2, ");
-    if (x86_FEATURES_x2APIC(all_features)) strcat(tmp, "x2APIC, ");
-    if (x86_FEATURES_MOVBE(all_features)) strcat(tmp, "MOVBE, ");
-    if (x86_FEATURES_POPCNT(all_features)) strcat(tmp, "POPCNT, ");
-    if (x86_FEATURES_AES(all_features)) strcat(tmp, "AES, ");
-    if (x86_FEATURES_XSAVE(all_features)) strcat(tmp, "XSAVE, ");
-    if (x86_FEATURES_OSXSAVE(all_features)) strcat(tmp, "OSXSAVE, ");
-    if (x86_FEATURES_AVX(all_features)) strcat(tmp, "AVX, ");
+    if (x86_FEATURES_FPU(all_features))
+        strcat(tmp, "FPU, ");
+    if (x86_FEATURES_VME(all_features))
+        strcat(tmp, "VME, ");
+    if (x86_FEATURES_PE(all_features))
+        strcat(tmp, "PE, ");
+    if (x86_FEATURES_PSE(all_features))
+        strcat(tmp, "PSE, ");
+    if (x86_FEATURES_TSC(all_features))
+        strcat(tmp, "TSC, ");
+    if (x86_FEATURES_MSR(all_features))
+        strcat(tmp, "MSR, ");
+    if (x86_FEATURES_PAE(all_features))
+        strcat(tmp, "PAE, ");
+    if (x86_FEATURES_MCE(all_features))
+        strcat(tmp, "MCE, ");
+    if (x86_FEATURES_CX8(all_features))
+        strcat(tmp, "CX8, ");
+    if (x86_FEATURES_APIC(all_features))
+        strcat(tmp, "APIC, ");
+    if (x86_FEATURES_SEP(all_features))
+        strcat(tmp, "SEP, ");
+    if (x86_FEATURES_MTRR(all_features))
+        strcat(tmp, "MTRR, ");
+    if (x86_FEATURES_PGE(all_features))
+        strcat(tmp, "PGE, ");
+    if (x86_FEATURES_MCA(all_features))
+        strcat(tmp, "MCA, ");
+    if (x86_FEATURES_CMOV(all_features))
+        strcat(tmp, "CMOV, ");
+    if (x86_FEATURES_PAT(all_features))
+        strcat(tmp, "PAT, ");
+    if (x86_FEATURES_PSE36(all_features))
+        strcat(tmp, "PSE36, ");
+    if (x86_FEATURES_PSN(all_features))
+        strcat(tmp, "PSN, ");
+    if (x86_FEATURES_CLF(all_features))
+        strcat(tmp, "CLF, ");
+    if (x86_FEATURES_DTES(all_features))
+        strcat(tmp, "DTES, ");
+    if (x86_FEATURES_ACPI(all_features))
+        strcat(tmp, "ACPI, ");
+    if (x86_FEATURES_MMX(all_features))
+        strcat(tmp, "MMX, ");
+    if (x86_FEATURES_FXSR(all_features))
+        strcat(tmp, "FXSR, ");
+    if (x86_FEATURES_SSE(all_features))
+        strcat(tmp, "SSE, ");
+    if (x86_FEATURES_SSE2(all_features))
+        strcat(tmp, "SSE2, ");
+    if (x86_FEATURES_SS(all_features))
+        strcat(tmp, "SS, ");
+    if (x86_FEATURES_HTT(all_features))
+        strcat(tmp, "HTT, ");
+    if (x86_FEATURES_TM1(all_features))
+        strcat(tmp, "TM1, ");
+    if (x86_FEATURES_IA64(all_features))
+        strcat(tmp, "IA64, ");
+    if (x86_FEATURES_PBE(all_features))
+        strcat(tmp, "PBE, ");
+    if (x86_FEATURES_SSE3(all_features))
+        strcat(tmp, "SSE3, ");
+    if (x86_FEATURES_PCLMUL(all_features))
+        strcat(tmp, "PCLMUL, ");
+    if (x86_FEATURES_DTES64(all_features))
+        strcat(tmp, "DTES64, ");
+    if (x86_FEATURES_MONITOR(all_features))
+        strcat(tmp, "MONITOR, ");
+    if (x86_FEATURES_DS_CPL(all_features))
+        strcat(tmp, "DS_CPL, ");
+    if (x86_FEATURES_VMX(all_features))
+        strcat(tmp, "VMX, ");
+    if (x86_FEATURES_SMX(all_features))
+        strcat(tmp, "SMX, ");
+    if (x86_FEATURES_EST(all_features))
+        strcat(tmp, "EST, ");
+    if (x86_FEATURES_TM2(all_features))
+        strcat(tmp, "TM2, ");
+    if (x86_FEATURES_SSSE3(all_features))
+        strcat(tmp, "SSSE3, ");
+    if (x86_FEATURES_CID(all_features))
+        strcat(tmp, "AVX, ");
+    if (x86_FEATURES_FMA(all_features))
+        strcat(tmp, "FMA, ");
+    if (x86_FEATURES_CX16(all_features))
+        strcat(tmp, "CX16, ");
+    if (x86_FEATURES_ETPRD(all_features))
+        strcat(tmp, "ETPRD, ");
+    if (x86_FEATURES_PDCM(all_features))
+        strcat(tmp, "PDCM, ");
+    if (x86_FEATURES_DCA(all_features))
+        strcat(tmp, "DCA, ");
+    if (x86_FEATURES_SSE4_1(all_features))
+        strcat(tmp, "SSE4_1, ");
+    if (x86_FEATURES_SSE4_2(all_features))
+        strcat(tmp, "SSE4_2, ");
+    if (x86_FEATURES_x2APIC(all_features))
+        strcat(tmp, "x2APIC, ");
+    if (x86_FEATURES_MOVBE(all_features))
+        strcat(tmp, "MOVBE, ");
+    if (x86_FEATURES_POPCNT(all_features))
+        strcat(tmp, "POPCNT, ");
+    if (x86_FEATURES_AES(all_features))
+        strcat(tmp, "AES, ");
+    if (x86_FEATURES_XSAVE(all_features))
+        strcat(tmp, "XSAVE, ");
+    if (x86_FEATURES_OSXSAVE(all_features))
+        strcat(tmp, "OSXSAVE, ");
+    if (x86_FEATURES_AVX(all_features))
+        strcat(tmp, "AVX, ");
 
     kprintf(KLOG_DBG, "Features: %s\n", tmp);
     kfree(tmp);
@@ -345,7 +400,7 @@ void cpu_setup()
     // activate interval timer
     //  - no irq yet
     kprintf(KLOG_ERR, "End of CPU setup.\n");
-    for(;;);
+    for (;;);
 }
 
 void cpu_early_init() // GDT & IDT

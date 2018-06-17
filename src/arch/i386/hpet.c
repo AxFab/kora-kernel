@@ -44,8 +44,8 @@ int hpet_setup(acpi_hpet_t *hpet)
     kprintf(KLOG_ERR, "HPET, found %d timers\n", timers);
     int i, idx = -1;
     for (i = 0; i < timers; ++i) {
-    	if (regs->timers[i].config & HPET_TM_PERIODIC) {
-    	    idx = i;
+        if (regs->timers[i].config & HPET_TM_PERIODIC) {
+            idx = i;
             break;
         }
     }
