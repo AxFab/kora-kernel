@@ -158,9 +158,8 @@ START_TEST(test_bbtree_003)
 {
     int i, j;
     for (j = 2; j < 99; ++j) {
-        for (i = 0; i < j; ++i) {
+        for (i = 0; i < j; ++i)
             test_bbtree_003_sub(i, j - 1, j);
-        }
         test_bbtree_003_sub(j, j, j);
     }
 }

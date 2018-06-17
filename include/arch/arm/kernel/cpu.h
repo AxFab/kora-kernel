@@ -26,8 +26,7 @@
 #define IRQ_OFF  ((void)0)
 
 
-struct regs
-{
+struct regs {
     uint32_t ss;
 };
 

@@ -30,7 +30,7 @@ typedef struct IO_FILE FILE;
 FILE *fopen(const char *, const char *);
 int fread(void *, size_t, size_t, FILE *);
 int fwrite(const void *, size_t, size_t, FILE *);
-int fclose(FILE*);
+int fclose(FILE *);
 
 
 // time64_t time64()
@@ -91,7 +91,7 @@ void export(const char *name, surface_t *srf)
     header.image = 0;
     fwrite(&header, sizeof(header), 1, fp);
     for (i = 0; i < srf->height; ++i)
-        fwrite(&srf->pixels[srf->width * (srf->height-i-1) * 3], srf->width, 3, fp);
+        fwrite(&srf->pixels[srf->width * (srf->height - i - 1) * 3], srf->width, 3, fp);
     fclose(fp);
 }
 
@@ -120,7 +120,7 @@ uint32_t colors_kora[] = {
 
 void test_VDS()
 {
-    kprintf (-1, "\n\e[94m  IO FILE VDS - <<<>>>\e[0m\n");
+    kprintf(-1, "\n\e[94m  IO FILE VDS - <<<>>>\e[0m\n");
 
     surface_t *screen = vds_create(800, 600, 3);
     surface_t *w0 = vds_create(400, 600, 4);
@@ -244,7 +244,7 @@ void test_pipe_01()
 {
     int ret;
     char buf[1024];
-    pipe_t* pipe = pipe_create();
+    pipe_t *pipe = pipe_create();
     pipe->max_size = 32;
 
     memset(buf, 0x01, 1024);
@@ -273,7 +273,7 @@ void test_pipe_01()
     kprintf(KLOG_DBG, "\n");
 }
 
-int main ()
+int main()
 {
     // kSYS.cpus = &kCPU0;
     kprintf(-1, "Kora FILE check - " __ARCH " - v" _VTAG_ "\n");

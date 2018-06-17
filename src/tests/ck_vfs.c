@@ -27,7 +27,7 @@ void vfs_sweep(mountfs_t *fs, int max);
 
 void test_01()
 {
-    kprintf (-1, "\n\e[94m  VFS #1 - Search, unmount and re-search\e[0m\n");
+    kprintf(-1, "\n\e[94m  VFS #1 - Search, unmount and re-search\e[0m\n");
 
     KSETUP(imgdk);
     KSETUP(isofs);
@@ -55,7 +55,7 @@ void test_01()
 
 void test_02()
 {
-    kprintf (-1, "\n\e[94m  VFS #2 - Read directory\e[0m\n");
+    kprintf(-1, "\n\e[94m  VFS #2 - Read directory\e[0m\n");
 
     KSETUP(imgdk);
     KSETUP(isofs);
@@ -86,7 +86,7 @@ void test_02()
 
 void test_03()
 {
-    kprintf (-1, "\n\e[94m  VFS #3 - Format, create remove nodes\e[0m\n");
+    kprintf(-1, "\n\e[94m  VFS #3 - Format, create remove nodes\e[0m\n");
 
     KSETUP(imgdk);
     KSETUP(isofs);
@@ -123,7 +123,7 @@ void test_03()
     KTEARDOWN(imgdk);
 }
 
-int main ()
+int main()
 {
     kprintf(-1, "Kora VFS check - " __ARCH " - v" _VTAG_ "\n");
     test_01();

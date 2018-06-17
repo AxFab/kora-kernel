@@ -25,16 +25,17 @@ static void isofs_filename(ISOFS_entry_t *entry, char *name)
     memcpy(name, entry->fileId, entry->lengthFileId);
     name[(int)entry->lengthFileId] = '\0';
     if (name[entry->lengthFileId - 2 ] == ';') {
-        if (name[entry->lengthFileId - 3] == '.') {
+        if (name[entry->lengthFileId - 3] == '.')
             name[entry->lengthFileId - 3] = '\0';
-        } else {
+
+        else
             name[entry->lengthFileId - 2] = '\0';
-        }
     }
 }
 
 /* */
-static ISO_inode_t *isofs_inode(ISO_info_t *vol, ISOFS_entry_t *entry, acl_t *acl)
+static ISO_inode_t *isofs_inode(ISO_info_t *vol, ISOFS_entry_t *entry,
+                                acl_t *acl)
 {
 
     int mode = entry->fileFlag & 2 ? S_IFDIR | 0755 : S_IFREG | 0644;
@@ -51,7 +52,7 @@ static ISO_inode_t *isofs_inode(ISO_info_t *vol, ISOFS_entry_t *entry, acl_t *ac
 
 ISO_dirctx_t *isofs_opendir(ISO_inode_t *dir)
 {
-    ISO_dirctx_t *ctx = (ISO_dirctx_t*)kalloc(sizeof(ISO_dirctx_t));
+    ISO_dirctx_t *ctx = (ISO_dirctx_t *)kalloc(sizeof(ISO_dirctx_t));
     errno = 0;
     return ctx;
 }
@@ -96,9 +97,8 @@ ISO_inode_t *isofs_lookup(ISO_inode_t *dir, const char *name)
         /* Move pointer to next entry, eventualy continue directory mapping. */
         entry = ISOFS_nextEntry(entry);
         bool remap = (size_t)entry >= (size_t)address + 8192;
-        if (!remap) {
+        if (!remap)
             remap = (size_t)entry + entry->lengthRecord > (size_t)address + 8192;
-        }
 
         if (remap) {
             size_t off = (size_t)entry - (size_t)address - 4096;
@@ -135,9 +135,8 @@ ISO_inode_t *isofs_readdir(ISO_inode_t *dir, char *name, ISO_dirctx_t *ctx)
         /* Move pointer to next entry, eventualy continue directory mapping. */
         entry = ISOFS_nextEntry(entry);
         bool remap = (size_t)entry >= (size_t)ctx->base + 8192;
-        if (!remap) {
+        if (!remap)
             remap = (size_t)entry + entry->lengthRecord > (size_t)ctx->base + 8192;
-        }
 
         ctx->off = (size_t)entry - (size_t)ctx->base;
         if (remap) {
@@ -181,13 +180,12 @@ inode_t *isofs_mount(inode_t *dev)
         }
 
         ISOFS_descriptor_t *descriptor = (ISOFS_descriptor_t *)&address[(lba -
-                                           addressLba) * 2048];
+                                         addressLba) * 2048];
         if ((descriptor->magicInt[0] & 0xFFFFFF00) != ISOFS_STD_ID1 ||
-                (descriptor->magicInt[1] & 0x0000FFFF) != ISOFS_STD_ID2 ||
-                (descriptor->type != ISOFS_VOLDESC_PRIM && !volume)) {
-            if (volume) {
-                kfree (volume);
-            }
+            (descriptor->magicInt[1] & 0x0000FFFF) != ISOFS_STD_ID2 ||
+            (descriptor->type != ISOFS_VOLDESC_PRIM && !volume)) {
+            if (volume)
+                kfree(volume);
 
             kprintf(KLOG_DBG, " isofs -- Not a volume descriptor at lba %d\n", lba);
             kunmap(address, addressCnt * 2048);
@@ -212,16 +210,17 @@ inode_t *isofs_mount(inode_t *dev)
                 descriptor->volname [i] = '\0'; // TODO -- Horrible !
             }
 
-            strcpy (volume->name, descriptor->volname);
+            strcpy(volume->name, descriptor->volname);
 
-        } else if (descriptor->type == ISOFS_VOLDESC_BOOT) {
+        } else if (descriptor->type == ISOFS_VOLDESC_BOOT)
             volume->bootable = !0;
-        } else if (descriptor->type == ISOFS_VOLDESC_TERM) {
+
+        else if (descriptor->type == ISOFS_VOLDESC_TERM)
             break;
-        } else {
-            if (volume) {
-                kfree (volume);
-            }
+
+        else {
+            if (volume)
+                kfree(volume);
             kprintf(KLOG_DBG, " isofs -- Bad volume descriptor id %d\n", descriptor->type);
             kunmap(address, addressCnt * 2048);
             errno = EBADF;
@@ -231,13 +230,14 @@ inode_t *isofs_mount(inode_t *dev)
     kunmap(address, addressCnt * 2048);
 
 
-    ISO_inode_t *ino = (ISO_inode_t *)vfs_inode(volume->lbaroot, S_IFDIR | 0755, NULL, sizeof(ISO_inode_t));
+    ISO_inode_t *ino = (ISO_inode_t *)vfs_inode(volume->lbaroot, S_IFDIR | 0755,
+                       NULL, sizeof(ISO_inode_t));
     ino->ino.length = volume->lgthroot;
     ino->ino.lba = volume->lbaroot;
     ino->vol = volume;
     ino->vol->dev = vfs_open(dev);
 
-    mountfs_t *fs = (mountfs_t*)kalloc(sizeof(mountfs_t));
+    mountfs_t *fs = (mountfs_t *)kalloc(sizeof(mountfs_t));
     fs->lookup = (fs_lookup)isofs_lookup;
     fs->read = (fs_read)isofs_read;
     fs->umount = (fs_umount)isofs_umount;
@@ -246,7 +246,7 @@ inode_t *isofs_mount(inode_t *dev)
     fs->closedir = (fs_closedir)isofs_closedir;
     fs->read_only = true;
 
-    vfs_mountpt(volume->name, "isofs", fs, (inode_t*)ino);
+    vfs_mountpt(volume->name, "isofs", fs, (inode_t *)ino);
     return &ino->ino;
 }
 

@@ -31,7 +31,7 @@ extern size_t hpet_mmio;
 
 static int acpi_checksum(acpi_head_t *header)
 {
-    uint8_t *ptr = (uint8_t*)header;
+    uint8_t *ptr = (uint8_t *)header;
     uint8_t *end = ptr + header->length;
     uint8_t sum = 0;
     while (ptr < end)
@@ -47,7 +47,7 @@ void acpi_fadt_setup(acpi_fadt_t *fadt)
 void acpi_madt_setup(acpi_madt_t *madt)
 {
     kprintf(KLOG_DBG, "MADT Table at %p\n", madt);
-    apic_mmio = (void*)madt->local_apic;
+    apic_mmio = (void *)madt->local_apic;
     kprintf(KLOG_DBG, "Local APIC at %p\n", apic_mmio);
 
     int cpus = 0;
@@ -55,7 +55,7 @@ void acpi_madt_setup(acpi_madt_t *madt)
     uint8_t *end = ptr + madt->header.length - offsetof(acpi_madt_t, records);
 
     while (ptr < end) {
-        madt_lapic_t *lapic = (madt_lapic_t*)ptr;
+        madt_lapic_t *lapic = (madt_lapic_t *)ptr;
         switch (lapic->type) {
         case 0:
             cpus++;
@@ -67,16 +67,16 @@ void acpi_madt_setup(acpi_madt_t *madt)
     lapic_setup(cpus);
     ptr = madt->records;
     while (ptr < end) {
-        madt_lapic_t *lapic = (madt_lapic_t*)ptr;
+        madt_lapic_t *lapic = (madt_lapic_t *)ptr;
         switch (lapic->type) {
         case 0:
             lapic_register(lapic);
             break;
         case 1:
-            ioapic_register((madt_ioapic_t*)lapic);
+            ioapic_register((madt_ioapic_t *)lapic);
             break;
         case 2:
-            apic_override_register((madt_override_t*)lapic);
+            apic_override_register((madt_override_t *)lapic);
             break;
         case 4:
             // SIZE 6 -> ff 00 00 01
@@ -90,23 +90,24 @@ void acpi_madt_setup(acpi_madt_t *madt)
 void acpi_setup()
 {
     // Search for 'RSD PTR ' in hardware space, aligned on 16B.
-    char *ptr = (char*)0xE0000;
-    for (; ptr < (char*)0x100000; ptr += 16) {
+    char *ptr = (char *)0xE0000;
+    for (; ptr < (char *)0x100000; ptr += 16) {
         if (memcmp(ptr, "RSD PTR ", 8) != 0)
             continue;
         kprintf(KLOG_DBG, "Found ACPI at %p\n", ptr);
         break;
     }
 
-    if (ptr >= (char*)0x100000) {
+    if (ptr >= (char *)0x100000) {
         kprintf(KLOG_DBG, "Not found ACPI.\n");
         return;
     }
 
     // Search RSDP and RSDT
-    rsdp = (acpi_rsdp_t*)ptr;
-    void *rsdt_pg = kmap(PAGE_SIZE, NULL, ALIGN_DW(rsdp->rsdt, PAGE_SIZE), VMA_PHYSIQ);
-    rsdt = (acpi_rsdt_t*)((size_t)rsdt_pg | (rsdp->rsdt & (PAGE_SIZE - 1)));
+    rsdp = (acpi_rsdp_t *)ptr;
+    void *rsdt_pg = kmap(PAGE_SIZE, NULL, ALIGN_DW(rsdp->rsdt, PAGE_SIZE),
+                         VMA_PHYSIQ);
+    rsdt = (acpi_rsdt_t *)((size_t)rsdt_pg | (rsdp->rsdt & (PAGE_SIZE - 1)));
     if (acpi_checksum(&rsdt->header) != 0) {
         kprintf(KLOG_ERR, "Invalid ACPI RSDT checksum.\n");
         return;
@@ -118,7 +119,8 @@ void acpi_setup()
         // Read each entry
         // void *rstb_pg = kmap(PAGE_SIZE, NULL, ALIGN_DW(rsdt->tables[i], PAGE_SIZE), VMA_PHYSIQ);
         void *rstb_pg = rsdt_pg;
-        acpi_head_t *rstb = (acpi_head_t*)((size_t)rstb_pg | (rsdt->tables[i] & (PAGE_SIZE - 1)));
+        acpi_head_t *rstb = (acpi_head_t *)((size_t)rstb_pg | (rsdt->tables[i] &
+                                            (PAGE_SIZE - 1)));
 
         // memcpy(C, rstb->signature, 4);
         // kprintf(KLOG_ERR, "ACPI RSDT entry: %s - %x.\n", C, rstb->length);
@@ -127,15 +129,15 @@ void acpi_setup()
             continue;
         }
 
-        switch (*((uint32_t*)rstb)) {
+        switch (*((uint32_t *)rstb)) {
         case 0x50434146: // FACP
-            acpi_fadt_setup((acpi_fadt_t*)rstb);
+            acpi_fadt_setup((acpi_fadt_t *)rstb);
             break;
         case 0x43495041: // APIC
-            acpi_madt_setup((acpi_madt_t*)rstb);
+            acpi_madt_setup((acpi_madt_t *)rstb);
             break;
         case 0x54455048: // HPET
-            hpet_mmio = ((acpi_hpet_t*)rstb)->base.base;
+            hpet_mmio = ((acpi_hpet_t *)rstb)->base.base;
             break;
         default:
             kprintf(KLOG_ERR, "ACPI RSDT entry unknown.\n");
@@ -149,12 +151,11 @@ acpi_head_t *acpi_scan(CSTR name, int idx)
     int i, j = 0;
     int n = (rsdt->header.length - sizeof(acpi_head_t)) / sizeof(uint32_t);
     for (i = 0; i < n; ++i) {
-        acpi_head_t *head = (acpi_head_t*)rsdt->tables[i];
+        acpi_head_t *head = (acpi_head_t *)rsdt->tables[i];
         if (memcpy(head->signature, name, 4) != 0)
             continue;
-        if (j++ == idx) {
+        if (j++ == idx)
             return head;
-        }
     }
     return NULL;
 }

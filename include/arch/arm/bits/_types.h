@@ -58,10 +58,9 @@ typedef long int time_t;
 typedef long int clock_t;
 
 /* Structure for a time value.  */
-struct timespec
-{
-  time_t tv_sec;    /* Seconds.  */
-  long int tv_nsec;   /* Nanoseconds.  */
+struct timespec {
+    time_t tv_sec;    /* Seconds.  */
+    long int tv_nsec;   /* Nanoseconds.  */
 };
 
 // STDINT

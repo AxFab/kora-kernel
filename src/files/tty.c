@@ -99,14 +99,15 @@ static void tty_chcolor(tty_t *tty, line_t *line, int val)
         line->fx_color = tty->fx_color;
         line->bg_color = tty->bg_color;
     } else if (val < 30) {
-    } else if (val < 40) {
+    } else if (val < 40)
         line->fx_color = tty->colors[val - 30];
-    } else if (val < 50) {
+
+    else if (val < 50)
         line->bg_color = tty->colors[val - 40];
-    } else if (val < 90) {
-    } else if (val < 100) {
+
+    else if (val < 90) {
+    } else if (val < 100)
         line->fx_color = tty->colors[val - 90 + 9];
-    }
 }
 
 /* Parse an ANSI escape command */
@@ -117,7 +118,7 @@ static void tty_command(tty_t *tty, line_t *line, const char **str)
         return;
     do {
         (*str)++;
-        val[i++] = strtoul(*str, (char**)str, 10);
+        val[i++] = strtoul(*str, (char **)str, 10);
     } while (i < 5 && **str == ';');
 
     switch (**str) {
@@ -139,9 +140,8 @@ static void tty_paint_line(tty_t *tty, line_t *line, const char *str)
         if (*str == '\e') {
             ++str;
             tty_command(tty, line, &str);
-        } else if (*str >= 0x20) {
+        } else if (*str >= 0x20)
             tty_glyph(tty, line, x++, *str);
-        }
     }
     if (line->next) {
         line->next->fx_color = line->fx_color;
@@ -194,11 +194,11 @@ void tty_write(tty_t *tty, const char *str, int len)
             if (*str == '\e') {
                 ++str;
                 tty_command(tty, line, &str);
-            } else if (*str == '\n') {
+            } else if (*str == '\n')
                 break;
-            } else if (*str >= 0x20) {
+
+            else if (*str >= 0x20)
                 ++x;
-            }
             if (x >= tty->col_max) {
                 ++str;
                 break;
@@ -237,7 +237,8 @@ void tty_write(tty_t *tty, const char *str, int len)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void tty_attach(tty_t *tty, surface_t *win, const font_t *font, const uint32_t *colors, int iv)
+void tty_attach(tty_t *tty, surface_t *win, const font_t *font,
+                const uint32_t *colors, int iv)
 {
     tty->win = win;
     tty->font = font;
@@ -248,9 +249,10 @@ void tty_attach(tty_t *tty, surface_t *win, const font_t *font, const uint32_t *
     tty->col_max = win ? win->width / font->dispx : 50;
 }
 
-tty_t *tty_create(surface_t *win, const font_t *font, const uint32_t *colors, int iv)
+tty_t *tty_create(surface_t *win, const font_t *font, const uint32_t *colors,
+                  int iv)
 {
-    tty_t *tty = (tty_t*)kalloc(sizeof(tty_t));
+    tty_t *tty = (tty_t *)kalloc(sizeof(tty_t));
     tty_attach(tty, win, font, colors, iv);
     tty->top = kalloc(sizeof(line_t));
     tty->first = tty->top;

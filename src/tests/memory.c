@@ -34,31 +34,36 @@ START_TEST(test_memory_001)
     mspace_t *mspace = mspace_create();
 
     // We have 24 pages available
-    void* a1 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a1 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a1 != NULL && errno == 0);
-    void* a2 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a2 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a2 != NULL && errno == 0);
-    void* a3 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a3 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a3 != NULL && errno == 0);
-    void* a4 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a4 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a4 != NULL && errno == 0);
-    void* a5 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a5 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a5 != NULL && errno == 0);
-    void* a6 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a6 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a6 != NULL && errno == 0);
-    void* a7 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a7 = mspace_map(mspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a7 == NULL && errno == ENOMEM);
 
-    ck_assert(mspace_protect(mspace, (size_t)a2, 4 * PAGE_SIZE, VMA_READ) == 0 && errno == 0); // Full VMA
-    ck_assert(mspace_protect(mspace, (size_t)a3, 2 * PAGE_SIZE, VMA_READ) == 0 && errno == 0); // Low Half VMA
-    ck_assert(mspace_protect(mspace, (size_t)a4 + 2 * PAGE_SIZE, 2 * PAGE_SIZE, VMA_READ) == 0 && errno == 0); // High Half VMA
+    ck_assert(mspace_protect(mspace, (size_t)a2, 4 * PAGE_SIZE, VMA_READ) == 0
+              && errno == 0); // Full VMA
+    ck_assert(mspace_protect(mspace, (size_t)a3, 2 * PAGE_SIZE, VMA_READ) == 0
+              && errno == 0); // Low Half VMA
+    ck_assert(mspace_protect(mspace, (size_t)a4 + 2 * PAGE_SIZE, 2 * PAGE_SIZE,
+                             VMA_READ) == 0 && errno == 0); // High Half VMA
 
-    ck_assert(mspace_protect(mspace, (size_t)a2 + 3 * PAGE_SIZE, 2 * PAGE_SIZE, VMA_WRITE) == 0 && errno == 0); // 2 Part VMA
+    ck_assert(mspace_protect(mspace, (size_t)a2 + 3 * PAGE_SIZE, 2 * PAGE_SIZE,
+                             VMA_WRITE) == 0 && errno == 0); // 2 Part VMA
 
     // Unmap
     ck_assert(mspace_unmap(mspace, (size_t)a1, 4 * PAGE_SIZE) == 0 && errno == 0);
 
-    ck_assert(mspace_protect(mspace, (size_t)a2, 12 * PAGE_SIZE, VMA_DEAD) == 0 && errno == 0);
+    ck_assert(mspace_protect(mspace, (size_t)a2, 12 * PAGE_SIZE, VMA_DEAD) == 0
+              && errno == 0);
     mspace_scavenge(mspace);
 
     mspace_display(0, mspace);  /* Should write on a file... */
@@ -76,16 +81,19 @@ START_TEST(test_memory_002)
     mmu_uspace_size = 16; // Set size of mspace
     mspace_t *mspace = mspace_create();
 
-    void* a1 = mspace_map(mspace, 0, 2 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a1 = mspace_map(mspace, 0, 2 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a1 != NULL && errno == 0);
 
-    void* a2 = mspace_map(mspace, (size_t)a1 + 4 * PAGE_SIZE, 2 * PAGE_SIZE, NULL, 0, 0, VMA_RO | VMA_HEAP | VMA_MAP_FIXED);
+    void *a2 = mspace_map(mspace, (size_t)a1 + 4 * PAGE_SIZE, 2 * PAGE_SIZE, NULL,
+                          0, 0, VMA_RO | VMA_HEAP | VMA_MAP_FIXED);
     ck_assert(a2 != NULL && errno == 0);
 
-    void* a0 = mspace_map(mspace, (size_t)a1 + 4 * PAGE_SIZE, 1 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP | VMA_MAP_FIXED);
+    void *a0 = mspace_map(mspace, (size_t)a1 + 4 * PAGE_SIZE, 1 * PAGE_SIZE, NULL,
+                          0, 0, VMA_RW | VMA_HEAP | VMA_MAP_FIXED);
     ck_assert(a0 == NULL && errno == ERANGE);
 
-    void* a3 = mspace_map(mspace, (size_t)a1 + 4 * PAGE_SIZE, 6 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a3 = mspace_map(mspace, (size_t)a1 + 4 * PAGE_SIZE, 6 * PAGE_SIZE, NULL,
+                          0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a3 != NULL && errno == 0);
 
     mspace_display(0, mspace);  /* Should write on a file... */
@@ -120,13 +128,14 @@ START_TEST(test_memory_004)
     mmu_uspace_size = 20; // Set size of mspace
     mspace_t *mspace = mspace_create();
 
-    void* a1 = mspace_map(mspace, 0, 6 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
+    void *a1 = mspace_map(mspace, 0, 6 * PAGE_SIZE, NULL, 0, 0, VMA_RW | VMA_HEAP);
     ck_assert(a1 != NULL && errno == 0);
 
-    void* a2 = mspace_map(mspace, 0, 6 * PAGE_SIZE, NULL, 0, 0, VMA_RO | VMA_HEAP);
+    void *a2 = mspace_map(mspace, 0, 6 * PAGE_SIZE, NULL, 0, 0, VMA_RO | VMA_HEAP);
     ck_assert(a2 != NULL && errno == 0);
 
-    void* a3 = mspace_map(mspace, 0, 6 * PAGE_SIZE, NULL, 0, 0xCAFE0000, VMA_RW | VMA_PHYS);
+    void *a3 = mspace_map(mspace, 0, 6 * PAGE_SIZE, NULL, 0, 0xCAFE0000,
+                          VMA_RW | VMA_PHYS);
     ck_assert(a3 != NULL && errno == 0);
 
     int pages0 = kMMU.free_pages;

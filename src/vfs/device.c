@@ -28,9 +28,8 @@ device_t *vfs_lookup_device_(CSTR name)
 {
     device_t *dev;
     for ll_each(&dev_list, dev, device_t, node) {
-        if (!strcmp(name, dev->name)) {
+        if (!strcmp(name, dev->name))
             return dev;
-        }
     }
     return NULL;
 }
@@ -46,11 +45,14 @@ int vfs_mkdev(CSTR name, device_t *dev, inode_t *ino)
     dev->ino = vfs_open(ino);
     ino->dev = dev;
     if (S_ISBLK(ino->mode) && ino->length)
-        kprintf(KLOG_MSG, "%s %s %s <\e[33m%s\e[0m>\n", ((blkdev_t*)dev)->class, dev->vendor ? dev->vendor : "", sztoa(ino->length), name);
+        kprintf(KLOG_MSG, "%s %s %s <\e[33m%s\e[0m>\n", ((blkdev_t *)dev)->class,
+                dev->vendor ? dev->vendor : "", sztoa(ino->length), name);
     else if (S_ISBLK(ino->mode))
-        kprintf(KLOG_MSG, "%s %s <\e[33m%s\e[0m>\n", ((blkdev_t*)dev)->class, dev->vendor ? dev->vendor : "", name);
+        kprintf(KLOG_MSG, "%s %s <\e[33m%s\e[0m>\n", ((blkdev_t *)dev)->class,
+                dev->vendor ? dev->vendor : "", name);
     else if (S_ISCHR(ino->mode))
-        kprintf(KLOG_MSG, "%s %s <\e[33m%s\e[0m>\n", ((chardev_t*)dev)->class, dev->vendor ? dev->vendor : "", name);
+        kprintf(KLOG_MSG, "%s %s <\e[33m%s\e[0m>\n", ((chardev_t *)dev)->class,
+                dev->vendor ? dev->vendor : "", name);
 
     ll_append(&dev_list, &dev->node);
     // TODO -- Use id to check if we know the device

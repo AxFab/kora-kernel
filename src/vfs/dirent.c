@@ -49,7 +49,7 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
     fsvolume_t *fs = dir->fs;
 
     splock_lock(&fs->dev.lock);
-    dirent_t *ent = (dirent_t*)hmp_get(&fs->hmap, key, lg);
+    dirent_t *ent = (dirent_t *)hmp_get(&fs->hmap, key, lg);
     if (ent) {
         // Remove from LRU
         ll_remove(&fs->lru, &ent->lru);
@@ -67,10 +67,10 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
         rwlock_rdlock(&ent->lock);
     } else if (ent->ino == NULL) {
         // if (!block) {
-            kfree(key);
-            splock_unlock(&fs->dev.lock);
-            errno = EWOULDBLOCK;
-            return NULL;
+        kfree(key);
+        splock_unlock(&fs->dev.lock);
+        errno = EWOULDBLOCK;
+        return NULL;
         // }
 
         // TODO - Wait until

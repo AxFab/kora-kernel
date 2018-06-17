@@ -128,22 +128,24 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
     uint32_t mem = i > 1 ? (uint32_t)i * 64 * 1024 : inl(VGA_PORT_DATA);
     kprintf(KLOG_DBG, "VGA Memory size %s \n", sztoa(mem));
 
-    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VMA_PHYSIQ);
+    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7,
+                                      VMA_PHYSIQ);
 
     uint32_t pixels0 = pci->bar[0].mmio;
     kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", info->name, pixels0);
 
     // Load surface device !
     i = 7;
-    while (size[i*2] * size[i*2+1] * 8U > mem) --i;
-    vga_change_resol(size[i*2], size[i*2+1]);
+    while (size[i * 2] * size[i * 2 + 1] * 8U > mem)
+        --i;
+    vga_change_resol(size[i * 2], size[i * 2 + 1]);
 
-    surface_t *screen = vds_create_empty(size[i*2], size[i*2+1], 4);
+    surface_t *screen = vds_create_empty(size[i * 2], size[i * 2 + 1], 4);
     uint32_t pixels1 = pixels0 + screen->pitch * screen->height;
     // screen->pixels = (uint8_t*)pixels1;
     // vds_fill(screen, 0xa61010);
-    screen->pixels = (uint8_t*)pixels0;
-    screen->backup = (uint8_t*)pixels1;
+    screen->pixels = (uint8_t *)pixels0;
+    screen->backup = (uint8_t *)pixels1;
     screen->flip = vga_flip;
     // vds_fill(screen, 0xa6a610);
     vga_change_offset(screen->height);

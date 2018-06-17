@@ -65,26 +65,25 @@ PACK(struct grub_info {
 
 int grub_init(void *table)
 {
-    grub_table = (struct grub_info*)table;
+    grub_table = (struct grub_info *)table;
     csl_early_init();
     com_early_init();
 
-    if (grub_table->flags & GRUB_BOOT_LOADER) {
+    if (grub_table->flags & GRUB_BOOT_LOADER)
         kprintf(KLOG_MSG, "Boot Loader: %s\n", grub_table->boot_loader);
-    }
 
-    if (grub_table->flags & GRUB_CMDLINE) {
+    if (grub_table->flags & GRUB_CMDLINE)
         kprintf(KLOG_MSG, "Command line: %s\n", grub_table->cmdline);
-    }
 
     if (grub_table->flags & GRUB_BOOT_DEVICE) {
-        if (grub_table->boot_dev == 0x80) { // 1000b
+        if (grub_table->boot_dev == 0x80)   // 1000b
             kprintf(KLOG_MSG, "Booting device: HDD\n");
-        } else if (grub_table->boot_dev == 0xe0) { // 1110b
+
+        else if (grub_table->boot_dev == 0xe0)   // 1110b
             kprintf(KLOG_MSG, "Booting device: CD\n");
-        } else {
+
+        else
             kprintf(KLOG_MSG, "Booting device: Unknown <%2x>\n", grub_table->boot_dev);
-        }
     }
 
 

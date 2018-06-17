@@ -33,7 +33,7 @@
  * type, or with a type that is not compatible with the type that results after
  * application of the default argument promotions, the behaviour is undefined.
 */
-typedef char* va_list;
+typedef char *va_list;
 
 /** The va_start() macro is invoked to initialise ap to the beginning of the
  * list before any calls to va_arg(). */

@@ -58,8 +58,7 @@ struct iovec {
     size_t length;
 };
 
-struct image
-{
+struct image {
     int width, height, pitch, format;
 };
 
@@ -79,7 +78,7 @@ int sys_exec(const char *exec, char **args, char **env, unsigned long flags);
 int sys_clone(unsigned long flags);
 /* Signals */
 int sys_sigraise(unsigned long signum, long pid);
-int sys_sigaction(unsigned long signum, void* sigaction);
+int sys_sigaction(unsigned long signum, void *sigaction);
 void sys_sigreturn();
 /* Memory */
 void *sys_mmap(size_t addr, size_t len, int fd, off_t off, unsigned long flags);
@@ -92,7 +91,8 @@ int sys_read(int fd, const struct iovec *iovec, unsigned long count);
 int sys_write(int fd, const struct iovec *iovec, unsigned long count);
 int sys_seek(int fd, off_t off, unsigned long whence);
 /* - */
-int sys_window(void *img, int fd, void *info, unsigned long features, unsigned long events);
+int sys_window(void *img, int fd, void *info, unsigned long features,
+               unsigned long events);
 int sys_pipe(int *fds, size_t size);
 
 #endif  /* _KORA_SYSCALLS_H */

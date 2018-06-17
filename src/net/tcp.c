@@ -48,7 +48,7 @@ int tcp_header(skb_t *skb, const uint8_t *ip, int length, int port, int src)
         return -1;
     strncat(skb->log, "tcp:", NET_LOG_SIZE);
     TCP_header_t header;
-    header.src_port = htonw(src > 0 ? src: net_rand_port());
+    header.src_port = htonw(src > 0 ? src : net_rand_port());
     header.dest_port = htonw(port);
     header.checksum = tcp_checksum(skb, &header);
     return net_write(skb, &header, sizeof(header));
@@ -62,9 +62,9 @@ int tcp_receive(skb_t *skb, unsigned length)
         return -1;
     // TODO check checksum, and length
     switch (header.dest_port) {
-        default:
-            // socket_t *socket = net_listener("tcp", header.dest_port);
-            return -1;
+    default:
+        // socket_t *socket = net_listener("tcp", header.dest_port);
+        return -1;
     }
 }
 
@@ -76,7 +76,7 @@ int tcp_packet(socket_t *socket)
 socket_t *tcp_socket(netdev_t *ifnet, uint8_t *ip, int port)
 {
     // TODO - do we know the MAC address!
-    socket_t *socket = (socket_t*)kalloc(sizeof(socket_t));
+    socket_t *socket = (socket_t *)kalloc(sizeof(socket_t));
     socket->ifnet = ifnet;
     socket->sport = net_ephemeral_port(socket);
     socket->dport = port;

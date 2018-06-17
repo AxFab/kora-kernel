@@ -51,9 +51,8 @@ static heap_arena_t *find_arena(size_t ptr)
     // printf(" FREE - Look for 0x%zx\n", ptr);
     for ll_each(&__arenas, arena, heap_arena_t, node_) {
         // printf("   |-> Arean 0x%zx - 0x%zx\n", arena->address_, arena->address_ + arena->length_);
-        if (arena->address_ > ptr || arena->address_ + arena->length_ <= ptr) {
+        if (arena->address_ > ptr || arena->address_ + arena->length_ <= ptr)
             continue;
-        }
         return arena;
     }
     return NULL;
@@ -88,23 +87,19 @@ void *_PRT(malloc)(size_t size)
     void *ptr = NULL;
     heap_arena_t *arena = NULL;
 
-    if (size > __arena_chunk_size_limit) {
+    if (size > __arena_chunk_size_limit)
         return _PRT(valloc)(size);
-    }
 
     for ll_each(&__arenas, arena, heap_arena_t, node_) {
-        if (arena->length_ - arena->used_ < size) {
+        if (arena->length_ - arena->used_ < size)
             continue;
-        }
 
-        if (arena->used_ == 0) {
+        if (arena->used_ == 0)
             --__empty_arena;
-        }
 
         ptr = malloc_r(arena, size);
-        if (ptr != NULL) {
+        if (ptr != NULL)
             break;
-        }
     }
 
     if (ptr == NULL) {
@@ -131,9 +126,8 @@ void *_PRT(calloc)(size_t nmemb, size_t size)
 {
     void *ptr;
     size *= nmemb;
-    if (size > __arena_chunk_size_limit) {
+    if (size > __arena_chunk_size_limit)
         return _PRT(valloc)(size);
-    }
 
     ptr = _PRT(malloc)(size);
     memset(ptr, 0, size);
@@ -145,9 +139,8 @@ void *_PRT(realloc)(void *ptr, size_t size)
 {
     size_t lg = 0; /* Get chunk size */
     void *buf;
-    if (lg > size) {
+    if (lg > size)
         return ptr;
-    }
     /* TODO try to grab next item! */
     buf = _PRT(malloc)(size);
     memcpy(buf, ptr, MIN(lg, size));
@@ -165,9 +158,10 @@ void _PRT(free)(void *ptr)
     }
 
     if (arena->flags_ & HEAP_MAPPED) {
-        if ((size_t)ptr == arena->address_) {
+        if ((size_t)ptr == arena->address_)
             heap_unmap((void *)arena->address_, arena->length_);
-        } else {
+
+        else {
             __FAIL(-1, ""); /* TODO */
             return;
         }

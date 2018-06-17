@@ -29,7 +29,7 @@
 /* All of those methods are bind over vfprintf
  * which is implemented in another file.
  */
-int _PRT(vfprintf) (FILE *fp, const char *str, va_list ap);
+int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap);
 
 /* TODO Take from limits.h or something */
 #undef INT_MAX
@@ -42,13 +42,12 @@ int _PRT(vfprintf) (FILE *fp, const char *str, va_list ap);
 #define SIZE_MAX (4294967295U)
 
 /* Write on a string streaming */
-static int _swrite (FILE *fp, const char *buf, size_t length)
+static int _swrite(FILE *fp, const char *buf, size_t length)
 {
     size_t lg = MIN(length, (size_t)(fp->wbf_.end_ - fp->wbf_.pos_));
-    if (lg == 0) {
+    if (lg == 0)
         return EOF;
-    }
-    memcpy (fp->wbf_.pos_, buf, lg);
+    memcpy(fp->wbf_.pos_, buf, lg);
     fp->wbf_.pos_ += lg;
     fp->count_ += lg;
     return (int)lg;
@@ -74,9 +73,8 @@ static inline int _vsnprintf(char *str, size_t lg, const char *format,
     } else if (!lg) {
         fp.wbf_.pos_ = &b;
         fp.wbf_.end_ = fp.wbf_.pos_++;
-    } else if (fp.wbf_.end_ < fp.wbf_.pos_) {
+    } else if (fp.wbf_.end_ < fp.wbf_.pos_)
         fp.wbf_.end_ = (char *)SIZE_MAX;
-    }
 
     res = _PRT(vfprintf)(&fp, format, ap);
     fp.wbf_.pos_[-(fp.wbf_.pos_ == fp.wbf_.end_)] = '\0';
@@ -119,7 +117,7 @@ int fprintf(FILE *fp, const char *format, ...)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 /* Write on a string streaming */
-static int _dwrite (FILE *fp, const char *buf, size_t length)
+static int _dwrite(FILE *fp, const char *buf, size_t length)
 {
     length = write(fp->fd_, buf, length);
     fp->count_ += length;
@@ -168,7 +166,7 @@ int _PRT(sprintf)(char *str, const char *format, ...)
     int res;
     va_list ap;
     va_start(ap, format);
-    res = _vsnprintf (str, INT_MAX, format, ap);
+    res = _vsnprintf(str, INT_MAX, format, ap);
     va_end(ap);
     return res;
 }
@@ -208,9 +206,8 @@ int vasprintf(char **s, const char *format, va_list ap)
     l = vfprintf(NULL, format, ap);
     va_end(ap2);
 
-    if (l < 0 || !(*s = malloc(l + 1))) {
+    if (l < 0 || !(*s = malloc(l + 1)))
         return -1;
-    }
 
     return _vsnprintf(*s, l + 1, format, ap);
 }

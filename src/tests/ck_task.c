@@ -28,34 +28,49 @@ struct kCpu kCPU0;
 
 void mspace_display(mspace_t *mspace) {}
 void mmu_context(mspace_t *mspace) {}
-mspace_t *mspace_create() { return NULL; }
-mspace_t *mspace_open(mspace_t *mspace) { return NULL; }
+mspace_t *mspace_create()
+{
+    return NULL;
+}
+mspace_t *mspace_open(mspace_t *mspace)
+{
+    return NULL;
+}
 void mspace_close(mspace_t *mspace) {}
 // void mspace_map(mspace_t *mspace) {}
-void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, off_t off, off_t limit, int flags)
+void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
+                 off_t off, off_t limit, int flags)
 {
     return NULL;
 }
 
-inode_t *vfs_open(inode_t *ino) { return NULL; }
+inode_t *vfs_open(inode_t *ino)
+{
+    return NULL;
+}
 void vfs_close(inode_t *ino) {}
-int vfs_read(inode_t *ino) { return -1; }
+int vfs_read(inode_t *ino)
+{
+    return -1;
+}
 // void vfs_close() {}
 
-void kernel_tasklet(void* start, long arg, CSTR name)
+void kernel_tasklet(void *start, long arg, CSTR name)
 {
     task_t *task = task_create(NULL, NULL, 0, name);
     task_start(task, (size_t)start, arg);
 }
 
-void task_1(long arg) {
+void task_1(long arg)
+{
     for (;;) {
         advent_wait(NULL, NULL, 50000);
         kprintf(-1, "A\n");
     }
 }
 
-void task_2(long arg) {
+void task_2(long arg)
+{
     for (;;) {
         advent_wait(NULL, NULL, 50000);
         kprintf(-1, "B\n");
@@ -72,9 +87,8 @@ void sys_ticks_um()
     // bufdump(regs, 0x60);
     sys_ticks(0);
     kCPU.io_elapsed += time_elapsed(&kCPU.last);
-    if (kCPU.running) {
+    if (kCPU.running)
         kCPU.running->other_elapsed += time_elapsed(&kCPU.running->last);
-    }
     // task_signals();
     // task_leave_sys();
     assert(kCPU.irq_semaphore == 1);
@@ -112,7 +126,7 @@ void test_02()
 {
 }
 
-int main ()
+int main()
 {
     kprintf(-1, "\e[1;97mKora TASK check - " __ARCH " - v" _VTAG_ "\e[0m\n");
     kSYS.cpus = &kCPU0;
@@ -133,18 +147,22 @@ void cpu_halt()
 
 
 
-static void _exit() {
-    for (;;) task_switch(TS_ZOMBIE, -42);
+static void _exit()
+{
+    for (;;)
+        task_switch(TS_ZOMBIE, -42);
 }
 
-void cpu_stack(task_t* task, size_t entry, size_t param)
+void cpu_stack(task_t *task, size_t entry, size_t param)
 {
-    size_t *stack = (size_t*)task->kstack + (task->kstack_len / sizeof(size_t));
+    size_t *stack = (size_t *)task->kstack + (task->kstack_len / sizeof(size_t));
     task->state[7] = entry;
     task->state[5] = (size_t)task->kstack;
 
-    stack--; *stack = param;
-    stack--; *stack = (size_t)_exit;
+    stack--;
+    *stack = param;
+    stack--;
+    *stack = (size_t)_exit;
     task->state[6] = (size_t)stack;
 }
 

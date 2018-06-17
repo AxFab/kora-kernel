@@ -77,7 +77,8 @@ int vfs_fdisk(CSTR dname, long parts, long *sz)
         return -1;
     }
 
-    struct MBR_sector *sector = (struct MBR_sector *)kmap(PAGE_SIZE, dev->ino, 0, VMA_FILE_RW);
+    struct MBR_sector *sector = (struct MBR_sector *)kmap(PAGE_SIZE, dev->ino, 0,
+                                VMA_FILE_RW);
     sector->jmp = 0x109064ef;
     sector->sign = 0xAA55;
     sector->uid = 0x12345678;
@@ -114,7 +115,8 @@ int vfs_parts(CSTR dname)
         return -1;
     }
 
-    struct MBR_sector *sector = (struct MBR_sector *)kmap(PAGE_SIZE, dev->ino, 0, VMA_FILE_RO);
+    struct MBR_sector *sector = (struct MBR_sector *)kmap(PAGE_SIZE, dev->ino, 0,
+                                VMA_FILE_RO);
     if ((sector->jmp & 0xFFFFFF) != 0x009064ef || sector->sign != 0xAA55) {
         errno = EINVAL;
         return -1;
@@ -123,11 +125,12 @@ int vfs_parts(CSTR dname)
     for (i = 0; i < 4; ++i) {
         if (sector->parts[i].start != 0 && sector->parts[i].length != 0) {
             sprintf(buf, "%s%d", dname, i);
-            MBR_inode_t *ino = (MBR_inode_t*)vfs_inode(i, S_IFBLK | 0640, NULL, sizeof(MBR_inode_t));
+            MBR_inode_t *ino = (MBR_inode_t *)vfs_inode(i, S_IFBLK | 0640, NULL,
+                               sizeof(MBR_inode_t));
             ino->ino.lba = sector->parts[i].start;
             ino->ino.length = sector->parts[i].length * 512;
             ino->underlying = dev;
-            device_t *sdev = (device_t*)kalloc(sizeof(device_t));
+            device_t *sdev = (device_t *)kalloc(sizeof(device_t));
             sdev->read_only = dev->read_only;
             sdev->block = dev->block;
             sdev->vendor = "MBR";
@@ -136,7 +139,7 @@ int vfs_parts(CSTR dname)
             sdev->write = (fs_write)vfs_mbr_write;
             sdev->release = (fs_release_dev)vfs_mbr_release;
             vfs_mkdev(buf, sdev, &ino->ino);
-            vfs_close((inode_t*)ino);
+            vfs_close((inode_t *)ino);
         }
     }
 

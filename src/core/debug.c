@@ -42,7 +42,8 @@ void stackdump(size_t frame)
         // Unwind to previous stack frame
         ebp = (size_t *)(ebp[0]);
         args = &ebp[2];
-        kprintf(KLOG_DBG, "  0x%x - %s ()         [args: %x] \n", eip, ksymbol((void *)eip),
+        kprintf(KLOG_DBG, "  0x%x - %s ()         [args: %x] \n", eip,
+                ksymbol((void *)eip),
                 (size_t)args);
     }
 }
@@ -55,13 +56,13 @@ void kdump(const void *buf, int len)
         kprintf(KLOG_DBG, "%04x   ", i);
         int n = MIN(16, len - i);
         for (j = 0; j < n; ++j)
-            kprintf(KLOG_DBG, "%02x ", ptr[i+j]);
+            kprintf(KLOG_DBG, "%02x ", ptr[i + j]);
         for (j = n; j < 16; ++j)
             kprintf(KLOG_DBG, "   ");
         kprintf(KLOG_DBG, "  ");
         for (j = 0; j < n; ++j)
             kprintf(KLOG_DBG, "%c",
-                ptr[i+j] >= 0x20 && ptr[i+j] < 0x7F ? ptr[i+j] : '.');
+                    ptr[i + j] >= 0x20 && ptr[i + j] < 0x7F ? ptr[i + j] : '.');
         for (j = n; j < 16; ++j)
             kprintf(KLOG_DBG, " ");
         kprintf(KLOG_DBG, "\n");
@@ -83,21 +84,22 @@ char *sztoa(size_t number)
         number /= 1024;
     };
 
-    if (k == 0) {
-        snprintf (sz_format, 20, "%d bytes", (int)number);
+    if (k == 0)
+        snprintf(sz_format, 20, "%d bytes", (int)number);
 
-    } else if (number < 10) {
+
+    else if (number < 10) {
         float value = (rest / 1024.0f) * 100;
-        snprintf (sz_format, 20, "%1d.%02d %s", (int)number, (int)value, prefix[k]);
+        snprintf(sz_format, 20, "%1d.%02d %s", (int)number, (int)value, prefix[k]);
 
     } else if (number < 100) {
         float value = (rest / 1024.0f) * 10;
-        snprintf (sz_format, 20, "%2d.%01d %s", (int)number, (int)value, prefix[k]);
+        snprintf(sz_format, 20, "%2d.%01d %s", (int)number, (int)value, prefix[k]);
 
     } else {
         // float value = (rest / 1024.0f) + number;
         //snprintf (sz_format, 20, "%.3f %s", (float)value, prefix[k]);
-        snprintf (sz_format, 20, "%4d %s", (int)number, prefix[k]);
+        snprintf(sz_format, 20, "%4d %s", (int)number, prefix[k]);
     }
 
     return sz_format;
@@ -154,9 +156,8 @@ uint32_t crc32(const void *buf, size_t len)
     const uint8_t *ptr = (const uint8_t *)buf;
     register uint32_t checksum = 0xFFFFFFFF;
 
-    for ( ; len; --len, ++ptr) {
+    for (; len; --len, ++ptr)
         checksum = CRC32_T[(checksum ^ (*ptr)) & 0xFF] ^ (checksum >> 8);
-    }
     return ~checksum;
 }
 

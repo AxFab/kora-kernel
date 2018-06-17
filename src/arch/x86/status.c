@@ -142,7 +142,7 @@ void cpu_exception_x86(int no, regs_t *regs)
             signal_exception_x86[no].name);
     if (kCPU.running == NULL)
         kpanic("Kernel code triggered an exception.\n");
-        // TODO -- If a module is responsable, close this module and send an alert.
+    // TODO -- If a module is responsable, close this module and send an alert.
     // task_kill(kCPU.running, signal_exception_x86[no].signum);
     // task_switch();
     for (;;);
@@ -172,12 +172,13 @@ void page_fault_x86(size_t address, int code, regs_t *regs)
     // task_enter_sys(NULL, regs->cs == SGM_CODE_KERNEL);
     mspace_t *mem = kCPU.running ? mem = kCPU.running->usmem : NULL;
     int reason = 0;
-    if ((code & x86_PFEC_PRST) == 0) {
+    if ((code & x86_PFEC_PRST) == 0)
         reason |= PGFLT_MISSING;
-    } if (code & x86_PFEC_WR) {
+
+    if (code & x86_PFEC_WR) {
         reason |= PGFLT_WRITE;
-    // } else {
-    //     reason = PGFLT_ERROR;
+        // } else {
+        //     reason = PGFLT_ERROR;
     }
     // kprintf(KLOG_DBG, "[CPU ] #PF %08x (%o)\n", address, code);
     int ret = page_fault(mem, address, reason);
@@ -187,9 +188,8 @@ void page_fault_x86(size_t address, int code, regs_t *regs)
         if (kCPU.running) {
             // task_kill(kCPU.running, SIGSEGV);
             // task_signals();
-        } else {
+        } else
             cpu_exception_x86(14, regs);
-        }
     }
     // task_leave_sys();
     irq_enable();
@@ -206,9 +206,8 @@ void sys_irq_x86(int no, regs_t *regs)
     // bufdump(regs, 0x60);
     sys_irq(no);
     kCPU.io_elapsed += time_elapsed(&kCPU.last);
-    if (kCPU.running) {
+    if (kCPU.running)
         kCPU.running->other_elapsed += time_elapsed(&kCPU.running->last);
-    }
     // task_signals();
     // task_leave_sys();
     assert(kCPU.irq_semaphore == 1);

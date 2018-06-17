@@ -79,9 +79,8 @@ int grub_start(uint32_t *table)
     }
 
 
-    if (!(grub_table[0] & GRUB_MEMORY)) {
+    if (!(grub_table[0] & GRUB_MEMORY))
         return -1;
-    }
 
     return 0;
 }

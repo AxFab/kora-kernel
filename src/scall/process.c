@@ -35,18 +35,16 @@ void sys_exit(long status, unsigned long type)
     // scheduler_next();
 }
 
-int sys_exec(const char * exec, char **args, char **env, unsigned long flags)
+int sys_exec(const char *exec, char **args, char **env, unsigned long flags)
 {
     task_t *parent = kCPU.running;
     inode_t *ino = vfs_search(parent->root, parent->pwd, exec, NULL);
-    if (ino == NULL) {
+    if (ino == NULL)
         return -1;
-    }
 
     task_t *task = task_create(NULL, parent->root, TSK_USER_SPACE, exec);
-    if (elf_open(task, ino) != 0) {
+    if (elf_open(task, ino) != 0)
         return -1;
-    }
 
     errno = 0;
     return 0;

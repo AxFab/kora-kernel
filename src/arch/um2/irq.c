@@ -37,9 +37,8 @@ void irq_reset(bool enable)
     irq_active = true;
     kCPU.irq_semaphore = enable ? 1 : 0;
     irq_last = false;
-    if (enable) {
+    if (enable)
         irq_enable();
-    }
 }
 
 bool irq_enable()

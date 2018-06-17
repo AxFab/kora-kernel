@@ -37,7 +37,7 @@ void free(void *ptr);
 
 _Noreturn void abort();
 
-int vprintf(const char*, va_list);
+int vprintf(const char *, va_list);
 
 clock_t clock();
 
@@ -71,8 +71,10 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     char *ptr = (char *)valloc(length);
 
     static char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"};
-    char sh = flags & VMA_COPY_ON_WRITE ? (flags & VMA_SHARED ? 'W' : 'w') : (flags & VMA_SHARED ? 'S' : 'p');
-    kprintf(KLOG_MEM, " - Krn :: "FPTR"-"FPTR" %s%c {%x}\n", ptr, ptr + length, rights[flags & 7], sh, flags);
+    char sh = flags & VMA_COPY_ON_WRITE ? (flags & VMA_SHARED ? 'W' : 'w') :
+              (flags & VMA_SHARED ? 'S' : 'p');
+    kprintf(KLOG_MEM, " - Krn :: "FPTR"-"FPTR" %s%c {%x}\n", ptr, ptr + length,
+            rights[flags & 7], sh, flags);
 
     switch (flags & VMA_TYPE) {
     case VMA_FILE:

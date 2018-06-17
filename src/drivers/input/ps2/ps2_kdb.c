@@ -46,9 +46,8 @@ void PS2_kdb_handler()
 {
     char c = 0;
     for (;;) {
-        if (inb(0x60) != c) {
+        if (inb(0x60) != c)
             break;
-        }
     }
 
     c = inb(0x60);
@@ -62,33 +61,39 @@ void PS2_kdb_handler()
         } else if (c == KEY_SCROLL_LOCK) {
             kdb_status ^= KDB_SCROLL_LOCK;
             PS2_kbd_led(kdb_status);
-        } else if (c == KEY_SHIFT_L || c == KEY_SHIFT_R) {
+        } else if (c == KEY_SHIFT_L || c == KEY_SHIFT_R)
             kdb_status |= KDB_SHIFT;
-        } else if (c == KEY_CTRL_L || c == KEY_CTRL_R) {
+
+        else if (c == KEY_CTRL_L || c == KEY_CTRL_R)
             kdb_status |= KDB_CTRL;
-        } else if (c == KEY_ALT) {
+
+        else if (c == KEY_ALT)
             kdb_status |= KDB_ALT;
-        } else if (c == KEY_ALTGR) {
+
+        else if (c == KEY_ALTGR)
             kdb_status |= KDB_ALTGR;
-        } else if (c == KEY_HOST) {
+
+        else if (c == KEY_HOST)
             kdb_status |= KDB_HOST;
-        }
 
         PS2_event(kdb_ino, EV_KEY_PRESS, 0, (kdb_status << 16) | c);
 
     } else {
         c &= 0x7F;
-        if (c == KEY_SHIFT_L || c == KEY_SHIFT_R) {
+        if (c == KEY_SHIFT_L || c == KEY_SHIFT_R)
             kdb_status &= ~KDB_SHIFT;
-        } else if (c == KEY_CTRL_L || c == KEY_CTRL_R) {
+
+        else if (c == KEY_CTRL_L || c == KEY_CTRL_R)
             kdb_status &= ~KDB_CTRL;
-        } else if (c == KEY_ALT) {
+
+        else if (c == KEY_ALT)
             kdb_status &= ~KDB_ALT;
-        } else if (c == KEY_ALTGR) {
+
+        else if (c == KEY_ALTGR)
             kdb_status &= ~KDB_ALTGR;
-        } else if (c == KEY_HOST) {
+
+        else if (c == KEY_HOST)
             kdb_status &= ~KDB_HOST;
-        }
 
         PS2_event(kdb_ino, EV_KEY_RELEASE, 0, (kdb_status << 16) | c);
     }

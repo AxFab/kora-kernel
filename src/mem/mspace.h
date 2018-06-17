@@ -41,7 +41,8 @@ struct vma {
 /* Helper to print VMA info into syslogs */
 char *vma_print(char *buf, int len, vma_t *vma);
 /* - */
-vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino, off_t offset, off_t limit, int flags);
+vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
+                  off_t offset, off_t limit, int flags);
 /* - */
 vma_t *vma_clone(mspace_t *mspace, vma_t *model);
 /* Split one VMA into two. */
@@ -49,7 +50,7 @@ vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length);
 /* Close a VMA and release private pages. */
 int vma_close(mspace_t *mspace, vma_t *vma, int arg);
 /* Change the flags of a VMA. */
-int vma_protect(mspace_t *mspace, vma_t* vma, int flags);
+int vma_protect(mspace_t *mspace, vma_t *vma, int flags);
 
 
 int vma_resolve(vma_t *vma, size_t address, size_t length);

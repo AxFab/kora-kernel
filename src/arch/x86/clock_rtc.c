@@ -43,16 +43,16 @@ int rtc_century_reg = 0; /* Set by ACPI table parsing code if possible */
 static inline int RTC_OnUpdate()
 {
     outb(CMOS_ADDRESS, 0x0A);
-    return inb (CMOS_DATA) & 0x80;
+    return inb(CMOS_DATA) & 0x80;
 }
 
-static inline unsigned char RTC_Read (int reg)
+static inline unsigned char RTC_Read(int reg)
 {
     outb(CMOS_ADDRESS, reg);
-    return inb (CMOS_DATA);
+    return inb(CMOS_DATA);
 }
 
-static inline void RTC_ReadTm (struct tm *date, int *century)
+static inline void RTC_ReadTm(struct tm *date, int *century)
 {
     while (RTC_OnUpdate());
 
@@ -64,9 +64,8 @@ static inline void RTC_ReadTm (struct tm *date, int *century)
     date->tm_mon = RTC_Read(RTC_MONTH);
     date->tm_year = RTC_Read(RTC_YEAR);
 
-    if (RTC_CENTURY) {
+    if (RTC_CENTURY)
         (*century) = RTC_Read(RTC_CENTURY);
-    }
 }
 
 static inline int RTC_Equals(struct tm *d1, struct tm *d2)
@@ -110,12 +109,12 @@ struct tm RTC_GetTime()
     int century;
     int regB;
 
-    RTC_ReadTm (&date, &century);
+    RTC_ReadTm(&date, &century);
 
     /* Check if we got it right */
     do {
         last = date;
-        RTC_ReadTm (&date, &century);
+        RTC_ReadTm(&date, &century);
     } while (!RTC_Equals(&last, &date));
 
     regB = RTC_Read(RTC_REGISTER_B);
@@ -124,28 +123,26 @@ struct tm RTC_GetTime()
     if (!(regB & 0x04)) {
         date.tm_sec = (date.tm_sec & 0x0F) + ((date.tm_sec / 16) * 10);
         date.tm_min = (date.tm_min & 0x0F) + ((date.tm_min / 16) * 10);
-        date.tm_hour = ( (date.tm_hour & 0x0F) + (((date.tm_hour & 0x70) / 16) * 10) )
+        date.tm_hour = ((date.tm_hour & 0x0F) + (((date.tm_hour & 0x70) / 16) * 10))
                        | (date.tm_hour & 0x80);
         date.tm_mday = (date.tm_mday & 0x0F) + ((date.tm_mday / 16) * 10);
         date.tm_mon = (date.tm_mon & 0x0F) + ((date.tm_mon / 16) * 10);
         date.tm_year = (date.tm_year & 0x0F) + ((date.tm_year / 16) * 10);
 
-        if (RTC_CENTURY) {
+        if (RTC_CENTURY)
             century = (century & 0x0F) + ((century / 16) * 10);
-        }
     }
 
     /* Convert 12 hour clock to 24 hour clock */
-    if (!(regB & 0x02) && (date.tm_hour & 0x80)) {
+    if (!(regB & 0x02) && (date.tm_hour & 0x80))
         date.tm_hour = ((date.tm_hour & 0x7F) + 12) % 24;
-    }
 
     /* Calculate the full (4-digit) year */
-    if (RTC_CENTURY != 0) {
+    if (RTC_CENTURY != 0)
         date.tm_year += century * 100;
-    } else {
+
+    else
         date.tm_year += CURRENT_CENTURY * 100;
-    }
 
     /* FIXME Compute the rest of tm struct */
     date.tm_yday = 0;

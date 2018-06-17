@@ -46,7 +46,7 @@ desktop_t *current_desktop = NULL;
 
 surface_t *wmgr_surface(desktop_t *desktop, int width, int height, int depth)
 {
-    surface_t *surface = (surface_t*)kalloc(sizeof(surface_t));
+    surface_t *surface = (surface_t *)kalloc(sizeof(surface_t));
     surface->width = width;
     surface->height = height;
     surface->depth = 4;
@@ -58,7 +58,7 @@ surface_t *wmgr_surface(desktop_t *desktop, int width, int height, int depth)
 void wmgr_register_screen(surface_t *screen)
 {
     if (current_display == NULL) {
-        current_display = (display_t*)kalloc(sizeof(display_t));
+        current_display = (display_t *)kalloc(sizeof(display_t));
         splock_init(&current_display->lock);
     }
 
@@ -71,13 +71,15 @@ void wmgr_register_screen(surface_t *screen)
 surface_t *wmgr_window(desktop_t *desktop, int width, int height)
 {
     splock_lock(&desktop->lock);
-    surface_t *surface = (surface_t*)kalloc(sizeof(surface_t));
+    surface_t *surface = (surface_t *)kalloc(sizeof(surface_t));
     surface->width = width;
     surface->height = height;
     surface->depth = 4;
     surface->pitch = width * 4;
-    surface->pixels = kmap(surface->pitch * height, NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
-    surface->backup = kmap(surface->pitch * height, NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
+    surface->pixels = kmap(surface->pitch * height, NULL, 0,
+                           VMA_ANON_RW | VMA_RESOLVE);
+    surface->backup = kmap(surface->pitch * height, NULL, 0,
+                           VMA_ANON_RW | VMA_RESOLVE);
     ll_append(&desktop->windows, &surface->node);
     splock_unlock(&desktop->lock);
     return surface;
@@ -89,8 +91,10 @@ void wmgr_event(event_t *ev)
     case EV_MOUSE_MOTION:
         current_desktop->mouse_x += (int)ev->param1;
         current_desktop->mouse_y += (int)ev->param2;
-        current_desktop->mouse_x = MAX(0, MIN(current_desktop->width, current_desktop->mouse_x));
-        current_desktop->mouse_y = MAX(0, MIN(current_desktop->height, current_desktop->mouse_y));
+        current_desktop->mouse_x = MAX(0, MIN(current_desktop->width,
+                                              current_desktop->mouse_x));
+        current_desktop->mouse_y = MAX(0, MIN(current_desktop->height,
+                                              current_desktop->mouse_y));
         break;
     }
 }
@@ -99,7 +103,7 @@ void wmgr_event(event_t *ev)
 void wmgr_tasket(desktop_t *desktop)
 {
     // task_priority(kCPU.running, KRN_RT, MICROSEC_PER_SEC / DISPLAY_HZ);
-    for (; ; ) {
+    for (; ;) {
         advent_wait(NULL, NULL, 1000000 / DISPLAY_HZ); // 1 sec
         kprintf(KLOG_MSG, "Paint\n");
         // display_t *display = desktop->display;

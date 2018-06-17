@@ -56,7 +56,8 @@ static int pipe_resize_unlock_(pipe_t *pipe, int size)
             pipe->wpen += pipe->size;
         } else {
             memcpy(remap + pipe->size, pipe->base, size - pipe->size);
-            memcpy(remap, pipe->base + size - pipe->size, pipe->wpen - pipe->base - (size - pipe->size));
+            memcpy(remap, pipe->base + size - pipe->size,
+                   pipe->wpen - pipe->base - (size - pipe->size));
             pipe->wpen = 0;// TODO - !?
             return -1;
         }
@@ -95,7 +96,7 @@ static int pipe_erase_unlock_(pipe_t *pipe, int len)
 
 pipe_t *pipe_create()
 {
-    pipe_t *pipe = (pipe_t*)kalloc(sizeof(pipe_t));
+    pipe_t *pipe = (pipe_t *)kalloc(sizeof(pipe_t));
     pipe->size = 16; // PAGE_SIZE; // TODO -- Read config!
     pipe->max_size = 64; // * PAGE_SIZE;
     pipe->base = kalloc(pipe->size);// kmap(pipe->size, NULL, 0, VMA_PIPE_RW);
@@ -143,11 +144,11 @@ int pipe_write(pipe_t *pipe, const char *buf, int len, int flags)
         int cap = MIN3(len, pipe->end - pipe->wpen, pipe->size - pipe->avail);
         if (cap == 0) {
             if (pipe->size < pipe->max_size) {
-    // kdump(pipe->base, pipe->size);
-    // kprintf(KLOG_DBG, "Bf\n");
+                // kdump(pipe->base, pipe->size);
+                // kprintf(KLOG_DBG, "Bf\n");
                 pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size));
-    // kdump(pipe->base, pipe->size);
-    // kprintf(KLOG_DBG, "Af\n");
+                // kdump(pipe->base, pipe->size);
+                // kprintf(KLOG_DBG, "Af\n");
                 continue;
             }
             advent_awake(&pipe->rlist, 0);

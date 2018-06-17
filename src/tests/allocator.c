@@ -172,7 +172,7 @@ START_TEST(test_heap_001)
 
     free_p(p1);
 
-    void *p3 = malloc_p( 128);
+    void *p3 = malloc_p(128);
     ck_assert(p3 >= ptr && p3 < limit);
 
     free_p(p3);

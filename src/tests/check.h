@@ -60,9 +60,8 @@ static inline void ck_case_(const char *name, void(*func)())
     if (setjmp(case_jmp) == 0) {
         func();
         kprintf(-1, "\033[90m%24s %s%s\033[0m\n", name, "\033[32m", "OK");
-    } else {
+    } else
         kprintf(-1, "\033[90m%24s %s%s\033[0m\n", name, "\033[31m", "FAILS");
-    }
 }
 
 static inline void ck_fails(const char *expr, const char *file, int line)

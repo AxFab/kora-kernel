@@ -155,7 +155,7 @@ _Noreturn void cpu_run_x86(regs_t *);
 // }
 
 
-_Noreturn void cpu_halt_x86(size_t kstack, struct x86_tss* tss);
+_Noreturn void cpu_halt_x86(size_t kstack, struct x86_tss *tss);
 
 _Noreturn void cpu_halt()
 {
@@ -171,7 +171,7 @@ _Noreturn void cpu_halt()
     cpu_halt_x86(0x100000 + (cpu_no() + 1) * 0x1000, &TSS_BASE[cpu_no()]);
 }
 
-void cpu_setup_x86 ()
+void cpu_setup_x86()
 {
     int i;
 
@@ -194,9 +194,8 @@ void cpu_setup_x86 ()
     }
 
     // IDT - Interupt Descriptor Table
-    for (i = 0; i < 256; ++i) {
+    for (i = 0; i < 256; ++i)
         IDT(i, 0x08, (uint32_t)x86_interrupt, TRAPGATE);
-    }
 
     // Hardware Exception
     IDT(0x0, 0x08, (uint32_t)x86_exception00, INTGATE);

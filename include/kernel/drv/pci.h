@@ -83,80 +83,81 @@ struct PCI_device *PCI_search(uint16_t vendor_id, uint32_t class_id,
 
 
 static inline void PCI_wr32(struct PCI_device *pci, char no, uint16_t address,
-                         uint32_t value)
+                            uint32_t value)
 {
     if (pci->bar[0].base & 1) {
         int iobase = pci->bar[0].base  & 0xFFFFFFFC;
         outl(iobase, address);
         outl(iobase + 4, value);
-    } else {
+    } else
         *((volatile uint32_t *)(pci->bar[0].mmio + address)) = value;
-    }
 }
 
 static inline uint32_t PCI_rd32(struct PCI_device *pci, char no,
-                             uint16_t address)
+                                uint16_t address)
 {
     if (pci->bar[0].base & 1) {
         int iobase = pci->bar[0].base  & 0xFFFFFFFC;
         outl(iobase, address);
         return inl(iobase + 4);
-    } else {
+    } else
         return *((volatile uint32_t *)(pci->bar[0].mmio + address));
-    }
 }
 
 static inline void PCI_wr16(struct PCI_device *pci, char no, uint16_t address,
-                         uint16_t value)
+                            uint16_t value)
 {
     if (pci->bar[0].base & 1) {
         int iobase = pci->bar[0].base  & 0xFFFFFFFC;
         outw(iobase, address);
         outw(iobase + 4, value);
-    } else {
+    } else
         *((volatile uint16_t *)(pci->bar[0].mmio + address)) = value;
-    }
 }
 
 static inline uint16_t PCI_rd16(struct PCI_device *pci, char no,
-                             uint16_t address)
+                                uint16_t address)
 {
     if (pci->bar[0].base & 1) {
         int iobase = pci->bar[0].base  & 0xFFFFFFFC;
         outw(iobase, address);
         return inw(iobase + 4);
-    } else {
+    } else
         return *((volatile uint16_t *)(pci->bar[0].mmio + address));
-    }
 }
 
 /* Read 8 bits from the PCI configuration */
 uint8_t PCI_config_read8(uint8_t bus, uint8_t slot, uint8_t func,
-                                  uint8_t offset);
+                         uint8_t offset);
 /* Read 16 bits from the PCI configuration */
 uint16_t PCI_config_read16(uint8_t bus, uint8_t slot, uint8_t func,
-                                  uint8_t offset);
+                           uint8_t offset);
 
 /* Read 32 bits from the PCI configuration */
 uint32_t PCI_config_read32(uint8_t bus, uint8_t slot, uint8_t func,
-                                  uint8_t offset);
+                           uint8_t offset);
 /* Write 32 bits from the PCI configuration */
 void PCI_config_write32(uint8_t bus, uint8_t slot, uint8_t func,
-                               uint8_t offset, uint32_t value);
+                        uint8_t offset, uint32_t value);
 
-static inline uint8_t PCI_cfg_rd8(struct PCI_device *pci, uint8_t off) {
+static inline uint8_t PCI_cfg_rd8(struct PCI_device *pci, uint8_t off)
+{
     return PCI_config_read8(pci->bus, pci->slot, 0, off);
 }
 
-static inline uint16_t PCI_cfg_rd16(struct PCI_device *pci, uint8_t off) {
+static inline uint16_t PCI_cfg_rd16(struct PCI_device *pci, uint8_t off)
+{
     return PCI_config_read16(pci->bus, pci->slot, 0, off);
 }
 
-static inline uint32_t PCI_cfg_rd32(struct PCI_device *pci, uint8_t off) {
+static inline uint32_t PCI_cfg_rd32(struct PCI_device *pci, uint8_t off)
+{
     return PCI_config_read32(pci->bus, pci->slot, 0, off);
 }
 
-static inline void PCI_cfg_wr32(struct PCI_device *pci, uint8_t off, uint32_t val) {
+static inline void PCI_cfg_wr32(struct PCI_device *pci, uint8_t off,
+                                uint32_t val)
+{
     PCI_config_write32(pci->bus, pci->slot, 0, off, val);
 }
 

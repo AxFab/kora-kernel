@@ -4,20 +4,20 @@
 // Memory-Mapped I/O output
 static inline void mmio_write(uint32_t reg, uint32_t data)
 {
-    *(volatile uint32_t*)reg = data;
+    *(volatile uint32_t *)reg = data;
 }
 
 // Memory-Mapped I/O input
 static inline uint32_t mmio_read(uint32_t reg)
 {
-    return *(volatile uint32_t*)reg;
+    return *(volatile uint32_t *)reg;
 }
 
 // Loop <delay> times in a way that the compiler won't optimize away
 static inline void delay(int32_t count)
 {
     asm volatile("__delay_%=: subs %[count], %[count], #1; bne __delay_%=\n"
-         : "=r"(count): [count]"0"(count) : "cc");
+                 : "=r"(count): [count]"0"(count) : "cc");
 }
 
 // #define PBASE  0x20000000 // Raspberry-pi 1
@@ -30,8 +30,7 @@ static inline void delay(int32_t count)
 
 #define UART0_BASE  (PBASE + 0x201000)
 
-enum
-{
+enum {
     // PBASE = 0x3F000000,
 
     // GPIO_BASE = PBASE + 0x200000, // for raspi2 & 3, 0x20200000 for raspi1
@@ -103,7 +102,7 @@ void uart_init()
 
     // Mask all interrupts.
     mmio_write(UART0_IMSC, (1 << 1) | (1 << 4) | (1 << 5) | (1 << 6) |
-                           (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10));
+               (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10));
 
     // Enable UART0, receive & transfer part of UART.
     mmio_write(UART0_CR, (1 << 0) | (1 << 8) | (1 << 9));
@@ -112,18 +111,18 @@ void uart_init()
 void uart_putc(unsigned char c)
 {
     // Wait for UART to become ready to transmit.
-    while ( mmio_read(UART0_FR) & (1 << 5) ) { }
+    while (mmio_read(UART0_FR) & (1 << 5)) { }
     mmio_write(UART0_DR, c);
 }
 
 unsigned char uart_getc()
 {
     // Wait for UART to have received something.
-    while ( mmio_read(UART0_FR) & (1 << 4) ) { }
+    while (mmio_read(UART0_FR) & (1 << 4)) { }
     return mmio_read(UART0_DR);
 }
 
-void uart_puts(const char* str)
+void uart_puts(const char *str)
 {
     for (size_t i = 0; str[i] != '\0'; i ++)
         uart_putc((unsigned char)str[i]);

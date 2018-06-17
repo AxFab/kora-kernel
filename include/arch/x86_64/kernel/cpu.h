@@ -26,8 +26,7 @@
 #define IRQ_OFF  asm("cli")
 
 
-struct regs
-{
+struct regs {
     uint16_t gs, unused_g1, unused_g2, unused_g3;
     uint16_t fs, unused_f;
     uint16_t es, unused_e;
@@ -50,68 +49,68 @@ struct regs
 
 static inline void outb(unsigned short port, unsigned char val)
 {
-    asm volatile ("outb %1, %0" : : "dN" (port), "a" (val));
+    asm volatile("outb %1, %0" : : "dN"(port), "a"(val));
 }
 
 static inline void outw(int port, uint16_t val)
 {
-    asm volatile ("outw %1, %0" : : "dN" (port), "a" (val));
+    asm volatile("outw %1, %0" : : "dN"(port), "a"(val));
 }
 
 static inline void outl(int port, uint32_t val)
 {
-    asm volatile ("outl %1, %0" : : "dN" (port), "a" (val));
+    asm volatile("outl %1, %0" : : "dN"(port), "a"(val));
 }
 
 static inline uint8_t inb(int port)
 {
     unsigned char val;
-    asm volatile ("inb %%dx, %%rax" : "=a" (val) : "dN" (port));
+    asm volatile("inb %%dx, %%rax" : "=a"(val) : "dN"(port));
     return val;
 }
 
 static inline uint16_t inw(int port)
 {
     unsigned short val;
-    asm volatile ("inw %%dx, %%rax" : "=a" (val) : "dN" (port));
+    asm volatile("inw %%dx, %%rax" : "=a"(val) : "dN"(port));
     return val;
 }
 
 static inline uint32_t inl(int port)
 {
     unsigned int val;
-    asm volatile ("inl %%dx, %%rax" : "=a" (val) : "dN" (port));
+    asm volatile("inl %%dx, %%rax" : "=a"(val) : "dN"(port));
     return val;
 }
 
 static inline void outsb(int port, const uint8_t *buf, int count)
 {
-    asm volatile ("rep outsb" : "+S" (buf), "+c" (count) : "d" (port));
+    asm volatile("rep outsb" : "+S"(buf), "+c"(count) : "d"(port));
 }
 
 static inline void outsw(int port, const uint16_t *buf, int count)
 {
-    asm volatile ("rep outsw" : "+S" (buf), "+c" (count) : "d" (port));
+    asm volatile("rep outsw" : "+S"(buf), "+c"(count) : "d"(port));
 }
 
 static inline void outsl(int port, const uint32_t *buf, int count)
 {
-    asm volatile ("rep outsl" : "+S" (buf), "+c" (count) : "d" (port));
+    asm volatile("rep outsl" : "+S"(buf), "+c"(count) : "d"(port));
 }
 
 static inline void insb(int port, uint8_t *buf, int count)
 {
-    asm volatile ("rep insb" : "+D" (buf), "+c" (count) : "d" (port) : "memory");
+    asm volatile("rep insb" : "+D"(buf), "+c"(count) : "d"(port) : "memory");
 }
 
 static inline void insw(int port, uint16_t *buf, int count)
 {
-    asm volatile ("rep insw" : "+D" (buf), "+c" (count) : "d" (port) : "memory");
+    asm volatile("rep insw" : "+D"(buf), "+c"(count) : "d"(port) : "memory");
 }
 
 static inline void insl(int port, uint32_t *buf, int count)
 {
-    asm volatile ("rep insl" : "+D" (buf), "+c" (count) : "d" (port) : "memory");
+    asm volatile("rep insl" : "+D"(buf), "+c"(count) : "d"(port) : "memory");
 }
 
 #endif /* _KERNEL_CPU_H */

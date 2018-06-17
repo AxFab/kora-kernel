@@ -133,10 +133,10 @@ int task_kill(task_t *task, unsigned signum)
 
     splock_lock(&task->lock);
     task->recieved_signal |= 1 << signum;
-//     if (task->status == TS_INTERRUPTIBLE) {
-//         task->status = TS_READY;
-//         scheduler_add(task);
-//     }
+    //     if (task->status == TS_INTERRUPTIBLE) {
+    //         task->status = TS_READY;
+    //         scheduler_add(task);
+    //     }
     splock_unlock(&task->lock);
     return 0;
 }
@@ -162,9 +162,8 @@ int task_kill(task_t *task, unsigned signum)
 int task_resume(task_t *task)
 {
     splock_lock(&task->lock);
-    if (task->status <= TS_ZOMBIE || task->status >= TS_READY) {
+    if (task->status <= TS_ZOMBIE || task->status >= TS_READY)
         return -1;
-    }
 
     task->status = TS_READY;
     scheduler_add(task);
@@ -243,9 +242,8 @@ static pid_t task_new_pid()
     // TODO -- Lock
     do {
         pid = AUTO_PID++;
-        if (AUTO_PID > MAX_PID) {
+        if (AUTO_PID > MAX_PID)
             AUTO_PID = MIN_PID;
-        }
     } while (task_search(pid) != NULL);
     return pid;
 }
@@ -275,9 +273,8 @@ void task_switch(int status, int retcode)
             /* Quit the task */
             advent_awake(&task->wlist, 0);
             // task_zombie(task);
-        } else if (status == TS_READY) {
+        } else if (status == TS_READY)
             scheduler_add(task);
-        }
         task->status = status;
         splock_unlock(&task->lock);
     }
@@ -301,7 +298,7 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
     task->user = user;
 
     kprintf(KLOG_TSK, "Create %s task #%d, %s\n",
-        flags & TSK_USER_SPACE ? "user" : "kernel", task->pid, name);
+            flags & TSK_USER_SPACE ? "user" : "kernel", task->pid, name);
     task->name = strdup(name);
     task->root = root ? vfs_open(root) : NULL;
     task->pwd = root ? vfs_open(root) : NULL;
@@ -310,9 +307,8 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
     if (flags & TSK_USER_SPACE)
         task->usmem = mspace_create();
     task->bnode.value_ = task->pid;
-    if (kCPU.running != NULL) {
+    if (kCPU.running != NULL)
         task->parent = kCPU.running;
-    }
     bbtree_insert(&pid_tree, &task->bnode);
     return task;
 }
@@ -427,10 +423,10 @@ void task_show_all()
     splock_lock(&tsk_lock);
     task_t *task = bbtree_first(&pid_tree, task_t, bnode);
     // kprintf(-1, "  PID");
-    for (;task; task = bbtree_next(&task->bnode, task_t, bnode)) {
+    for (; task; task = bbtree_next(&task->bnode, task_t, bnode)) {
         // PID / USER / PRIO / VIRT / RES / SHR / ST / %CPU %MEM  TIME+ CMD
         kprintf(-1, " %4d %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
-            task->bnode.value_, "no-user", 0, status[task->status], task->name);
+                task->bnode.value_, "no-user", 0, status[task->status], task->name);
     }
     splock_unlock(&tsk_lock);
 }

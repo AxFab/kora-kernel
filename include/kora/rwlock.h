@@ -62,14 +62,12 @@ static inline void rwlock_rdlock(rwlock_t *lock)
 {
     for (;;) {
         atomic_inc(&lock->readers);
-        if (!lock->lock) {
+        if (!lock->lock)
             return;
-        }
 
         atomic_dec(&lock->readers);
-        while (lock->lock) {
+        while (lock->lock)
             cpu_relax();
-        }
     }
 }
 
@@ -77,9 +75,8 @@ static inline void rwlock_rdlock(rwlock_t *lock)
 static inline void rwlock_wrlock(rwlock_t *lock)
 {
     splock_lock(&lock->lock);
-    while (lock->readers) {
+    while (lock->readers)
         cpu_relax();
-    }
 }
 
 /* Release a lock previously taken for reading */
@@ -98,9 +95,8 @@ static inline void rwlock_wrunlock(rwlock_t *lock)
 static inline bool rwlock_rdtrylock(rwlock_t *lock)
 {
     atomic_inc(&lock->readers);
-    if (!lock->lock) {
+    if (!lock->lock)
         return true;
-    }
 
     atomic_dec(&lock->readers);
     return false;
@@ -109,11 +105,13 @@ static inline bool rwlock_rdtrylock(rwlock_t *lock)
 /* Try to grab a lock for writing but without blocking. */
 static inline bool rwlock_wrtrylock(rwlock_t *lock)
 {
-    if (lock->readers) {
+    if (lock->readers)
         return false;
-    } else if (!splock_trylock(&lock->lock)) {
+
+    else if (!splock_trylock(&lock->lock))
         return false;
-    } else if (lock->readers) {
+
+    else if (lock->readers) {
         splock_unlock(&lock->lock);
         return false;
     }
@@ -124,14 +122,12 @@ static inline bool rwlock_wrtrylock(rwlock_t *lock)
 /* Transform a previously hold reading lock into a writing one. Might block. */
 static inline bool rwlock_upgrade(rwlock_t *lock)
 {
-    if (!splock_trylock(&lock->lock)) {
+    if (!splock_trylock(&lock->lock))
         return false;
-    }
 
     atomic_dec(&lock->readers);
-    while (lock->readers) {
+    while (lock->readers)
         cpu_relax();
-    }
 
     return true;
 }

@@ -84,7 +84,7 @@ void cpu_apic_timer_init()
     apic[APIC_LVT_TIMER] = 0x62 | (1 << 17); // IRQ18
     apic[APIC_DCTR] = 0x3; // Divide by 16
     apic[APIC_ICTR] = ticksIn10ms;
-    kprintf (KLOG_MSG, "Set cpu period of 10ms. %d.\n", ticksIn10ms);
+    kprintf(KLOG_MSG, "Set cpu period of 10ms. %d.\n", ticksIn10ms);
 }
 
 typedef struct acpi_rsdp acpi_rsdp_t;
@@ -135,34 +135,38 @@ PACK(struct madt_lapic {
 
 void cpu_apic()
 {
-    char *ptr = (char*)0xE0000;
-    for (; ptr < (char*)0x100000; ptr += 16) {
+    char *ptr = (char *)0xE0000;
+    for (; ptr < (char *)0x100000; ptr += 16) {
         if (memcmp(ptr, "RSD PTR ", 8) != 0)
             continue;
         kprintf(-1, "Found ACPI at %p\n", ptr);
         break;
     }
 
-    if (ptr >= 0x100000) {
+    if (ptr >= 0x100000)
         kprintf(-1, "No found ACPI.\n");
-    } else {
+
+    else {
 
     }
 
-    acpi_rsdp_t *rsdp = (acpi_rsdp_t*)ptr;
+    acpi_rsdp_t *rsdp = (acpi_rsdp_t *)ptr;
     kdump(rsdp, 0x20);
 
     void *tbl = kmap(PAGE_SIZE, NULL, ALIGN_DW(rsdp->rsdt, PAGE_SIZE), VMA_PHYSIQ);
-    acpi_rsdt_t *rsdt = (acpi_rsdt_t *)((size_t)tbl | (rsdp->rsdt & (PAGE_SIZE - 1)));
+    acpi_rsdt_t *rsdt = (acpi_rsdt_t *)((size_t)tbl | (rsdp->rsdt &
+                                        (PAGE_SIZE - 1)));
     kprintf(-1, "ACPI rsdt:%p\n");
     kdump(rsdt, 0x30);
     for (int i = 0; i < (rsdt->header.length - 0x24) / 4; ++i) {
         kprintf(-1, "ACPI table.%d:%p\n", i, rsdt->tables[i]);
-        acpi_rsdt_t *rtbl = (acpi_rsdt_t *)((size_t)tbl | (rsdt->tables[i] & (PAGE_SIZE - 1)));
+        acpi_rsdt_t *rtbl = (acpi_rsdt_t *)((size_t)tbl | (rsdt->tables[i] &
+                                            (PAGE_SIZE - 1)));
         kdump(rtbl, rtbl->header.length);
     }
 
-    acpi_madt_t *madt = (acpi_madt_t *)((size_t)tbl | (rsdt->tables[1] & (PAGE_SIZE - 1)));
+    acpi_madt_t *madt = (acpi_madt_t *)((size_t)tbl | (rsdt->tables[1] &
+                                        (PAGE_SIZE - 1)));
     kprintf(-1, "LOCAL APIC at: 0x%x\n", madt->local_apic);
 
 

@@ -55,10 +55,12 @@ void memory_sweep()
 
 void memory_info()
 {
-    kprintf(KLOG_DBG, "MemTotal:      %s\n", sztoa(kMMU.upper_physical_page * PAGE_SIZE));
+    kprintf(KLOG_DBG, "MemTotal:      %s\n",
+            sztoa(kMMU.upper_physical_page * PAGE_SIZE));
     kprintf(KLOG_DBG, "MemFree:       %s\n", sztoa(kMMU.free_pages * PAGE_SIZE));;
     kprintf(KLOG_DBG, "MemAvailable:  %s\n", sztoa(kMMU.pages_amount * PAGE_SIZE));
-    kprintf(KLOG_DBG, "MemUsed:       %s\n", sztoa((kMMU.pages_amount - kMMU.free_pages) * PAGE_SIZE));
+    kprintf(KLOG_DBG, "MemUsed:       %s\n",
+            sztoa((kMMU.pages_amount - kMMU.free_pages) * PAGE_SIZE));
 }
 
 // Buffers:           53664 kB

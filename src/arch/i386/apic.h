@@ -42,8 +42,7 @@
 #define APIC_TM_DIV (0x3E0 / 4) // Timer divide
 
 typedef struct cpu_x86 cpu_x86_t;
-struct cpu_x86
-{
+struct cpu_x86 {
     int id;
     char *vendor;
     char *family;

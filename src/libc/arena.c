@@ -48,13 +48,13 @@ static void arena_freelist_rm(heap_arena_t *arena, heap_chunk_t *chunk)
     assert(splock_locked(&arena->lock_));
     chunk->isfree_ = 0;
     arena->used_ += chunk->size_;
-    if (chunk->g_.f_.next_ != NULL) {
+    if (chunk->g_.f_.next_ != NULL)
         chunk->g_.f_.next_->g_.f_.prev_ = chunk->g_.f_.prev_;
-    }
 
-    if (chunk->g_.f_.prev_ != NULL) {
+    if (chunk->g_.f_.prev_ != NULL)
         chunk->g_.f_.prev_->g_.f_.next_ = chunk->g_.f_.next_;
-    } else {
+
+    else {
         /* TODO multi free list */
         arena->free_ = chunk->g_.f_.next_;
     }
@@ -83,13 +83,11 @@ static void arena_freelist_add(heap_arena_t *arena, heap_chunk_t *chunk)
         cur->g_.f_.prev_ = chunk;
     } else {
 
-        while (cur->g_.f_.next_ && cur->g_.f_.next_->size_ >= chunk->size_) {
+        while (cur->g_.f_.next_ && cur->g_.f_.next_->size_ >= chunk->size_)
             cur = cur->g_.f_.next_;
-        }
 
-        if (cur->g_.f_.next_) {
+        if (cur->g_.f_.next_)
             cur->g_.f_.next_->g_.f_.prev_ = chunk;
-        }
         chunk->g_.f_.prev_ = cur;
         chunk->g_.f_.next_ = cur->g_.f_.next_;
         cur->g_.f_.next_ = chunk;
@@ -103,15 +101,14 @@ static heap_chunk_t *arena_split_chunk(heap_arena_t *arena,
     heap_chunk_t *next = arena_next_chunk(chunk);
     size_t sum = chunk->size_;
 
-    assert (sum >= len + HEAP_MIN_CHUNK);
+    assert(sum >= len + HEAP_MIN_CHUNK);
     chunk->size_ = len;
     split = arena_next_chunk(chunk);
     split->size_ = sum - len;
     split->prsz_ = len;
 
-    if ((size_t)next < arena->address_ + arena->length_) {
+    if ((size_t)next < arena->address_ + arena->length_)
         next->prsz_ = split->size_;
-    }
     return split;
 }
 
@@ -121,9 +118,8 @@ static heap_chunk_t *arena_collapse(heap_arena_t *arena, heap_chunk_t *c1,
     heap_chunk_t *next;
     c1->size_ += c2->size_;
     next = arena_next_chunk(c1);
-    if ((size_t)next < arena->address_ + arena->length_) {
+    if ((size_t)next < arena->address_ + arena->length_)
         next->prsz_ = c1->size_;
-    }
     return c1;
 }
 
@@ -192,9 +188,8 @@ void *malloc_r(heap_arena_t *arena, size_t len)
         }
 
         /* Loop until the chunk is too small. */
-        if (cur->size_ < len) {
+        if (cur->size_ < len)
             continue;
-        }
 
         arena_freelist_rm(arena, cur);
         if (cur->size_ >= len + HEAP_MIN_CHUNK) {
@@ -240,7 +235,7 @@ void free_r(heap_arena_t *arena, void *ptr)
     /* If we ask for heap corruption checks */
     if (arena->flags_ & HEAP_CHECK) {
         if ((prev != chunk && prev->size_ != chunk->prsz_) ||
-                (next != chunk && next->prsz_ != chunk->size_)) {
+            (next != chunk && next->prsz_ != chunk->size_)) {
             arena->flags_ |= HEAP_CORRUPTED;
             splock_unlock(&arena->lock_);
             errno = -1;
@@ -260,9 +255,8 @@ void free_r(heap_arena_t *arena, void *ptr)
     }
 
     arena_freelist_add(arena, chunk);
-    if (arena->flags_ & HEAP_PARANO) {
+    if (arena->flags_ & HEAP_PARANO)
         arena_check(arena);
-    }
 
     splock_unlock(&arena->lock_);
     errno = 0;

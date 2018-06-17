@@ -145,14 +145,13 @@ const char *sdNames[] = { "sdA", "sdB", "sdC", "sdD" };
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-static void ATAPI_Detect (struct ATA_Drive *dr)
+static void ATAPI_Detect(struct ATA_Drive *dr)
 {
     uint8_t cl = inb(dr->pbase_ + ATA_REG_LBA1);
     uint8_t ch = inb(dr->pbase_ + ATA_REG_LBA2);
 
-    if (!((cl == 0x14 && ch == 0xEB) || (cl == 0x69 && ch == 0x96))) {
+    if (!((cl == 0x14 && ch == 0xEB) || (cl == 0x69 && ch == 0x96)))
         return;
-    }
 
     // kprintf ("ATAPI ");
     dr->type_ = IDE_ATAPI;
@@ -161,7 +160,7 @@ static void ATAPI_Detect (struct ATA_Drive *dr)
 }
 
 
-static int ATA_Detect (struct ATA_Drive *dr)
+static int ATA_Detect(struct ATA_Drive *dr)
 {
     int res, k;
     uint8_t ptr[2048];
@@ -220,9 +219,8 @@ static int ATA_Detect (struct ATA_Drive *dr)
     }
 
     k = 39;
-    while (dr->model_[k] == ' ') {
+    while (dr->model_[k] == ' ')
         dr->model_[k--] = '\0';
-    }
     dr->model_[40] = '\0';// Terminate String.
     // kprintf (" Size: %d Kb, %s \n", dr->size_ / 2, dr->model_);
     return 1;
@@ -230,14 +228,14 @@ static int ATA_Detect (struct ATA_Drive *dr)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static int ATA_Polling (struct ATA_Drive *dr)
+static int ATA_Polling(struct ATA_Drive *dr)
 {
     // (I) Delay 400 nanosecond for BSY to be set:
     ATA_DELAY;
 
     // (II) Wait for BSY to be cleared:
     while (inb(dr->pbase_ + ATA_REG_STATUS) &
-            ATA_SR_BSY); // Wait for BSY to be zero.
+           ATA_SR_BSY); // Wait for BSY to be zero.
 
     uint8_t state = inb(dr->pbase_ + ATA_REG_STATUS); // Read Status Register.
 
@@ -331,32 +329,24 @@ static int ATA_Data(int dir, struct ATA_Drive *dr, uint32_t lba,
 
     // DMA dir |= 0x02
     if (mode < 2) {
-        if (dir == 0) {
+        if (dir == 0)
             cmd = ATA_CMD_READ_PIO;
-        }
-        if (dir == 1) {
+        if (dir == 1)
             cmd = ATA_CMD_WRITE_PIO;
-        }
-        if (dir == 2) {
+        if (dir == 2)
             cmd = ATA_CMD_READ_DMA;
-        }
-        if (dir == 3) {
+        if (dir == 3)
             cmd = ATA_CMD_WRITE_DMA;
-        }
 
     } else {
-        if (dir == 0) {
+        if (dir == 0)
             cmd = ATA_CMD_READ_PIO_EXT;
-        }
-        if (dir == 1) {
+        if (dir == 1)
             cmd = ATA_CMD_WRITE_PIO_EXT;
-        }
-        if (dir == 2) {
+        if (dir == 2)
             cmd = ATA_CMD_READ_DMA_EXT;
-        }
-        if (dir == 3) {
+        if (dir == 3)
             cmd = ATA_CMD_WRITE_DMA_EXT;
-        }
     }
 
     outb(dr->pbase_ + ATA_REG_COMMAND, cmd);      // Send the Command.
@@ -386,18 +376,17 @@ static int ATA_Data(int dir, struct ATA_Drive *dr, uint32_t lba,
 
         outb(dr->pbase_ + ATA_REG_COMMAND, (mode == 2) ?
              ATA_CMD_CACHE_FLUSH_EXT :
-             ATA_CMD_CACHE_FLUSH );
+             ATA_CMD_CACHE_FLUSH);
         ATA_Polling(dr);
 
-    } else {
+    } else
         return EIO;
-    }
 
     return 0;
 }
 
-static int ATAPI_Read (struct ATA_Drive *dr, uint32_t lba,  uint8_t sects,
-                       uint8_t *buf)
+static int ATAPI_Read(struct ATA_Drive *dr, uint32_t lba,  uint8_t sects,
+                      uint8_t *buf)
 {
     int words =
         1024; // Sector Size. ATAPI drives have a sector size of 2048 bytes.
@@ -478,13 +467,14 @@ int ATA_read(inode_t *ino, void *data, size_t size, off_t offset)
     uint32_t lba = offset / dr->dev.block;
     uint8_t sects = size / dr->dev.block;
 
-    if (dr->type_ == IDE_ATA) {
+    if (dr->type_ == IDE_ATA)
         errno = ATA_Data(ATA_READ, dr, lba, sects, (uint8_t *)data);
-    } else if (dr->type_ == IDE_ATAPI) {
+
+    else if (dr->type_ == IDE_ATAPI)
         errno = ATAPI_Read(dr, lba, sects, (uint8_t *)data);
-    } else {
+
+    else
         errno = EIO;
-    }
     return errno == 0 ? 0 : -1;
 }
 
@@ -494,13 +484,14 @@ int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
     uint32_t lba = offset / dr->dev.block;
     uint8_t sects = size / dr->dev.block;
 
-    if (dr->type_ == IDE_ATA) {
+    if (dr->type_ == IDE_ATA)
         errno = ATA_Data(ATA_WRITE, dr, lba, sects, (uint8_t *)data);
-    } else if (dr->type_ == IDE_ATAPI) {
+
+    else if (dr->type_ == IDE_ATAPI)
         errno = EROFS;
-    } else {
+
+    else
         errno = EIO;
-    }
     return errno == 0 ? 0 : -1;
 }
 
@@ -509,7 +500,7 @@ int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
 void ATA_setup()
 {
     int i;
-    memset (sdx, 0, 4 * sizeof(struct ATA_Drive));
+    memset(sdx, 0, 4 * sizeof(struct ATA_Drive));
     sdx[0].pbase_ = 0x1f0;
     sdx[0].pctrl_ = 0x3f6;
     sdx[0].disc_ = 0xa0;
@@ -549,9 +540,8 @@ void ATA_teardown()
 {
     int i;
     for (i = 0; i < 4; ++i) {
-        if (sdx[i].type_ == IDE_ATA || sdx[i].type_ == IDE_ATAPI) {
+        if (sdx[i].type_ == IDE_ATA || sdx[i].type_ == IDE_ATAPI)
             vfs_rmdev(sdNames[i]);
-        }
     }
 }
 

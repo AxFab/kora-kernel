@@ -304,14 +304,12 @@ int keyboard_layout_US[][2] = {
 static int seat_key_unicode(int kcode, int state)
 {
     int r = 0;
-    if ((state & KDB_CAPS_LOCK) != (state & KDB_SHIFT)) {
+    if ((state & KDB_CAPS_LOCK) != (state & KDB_SHIFT))
         r += 1;
-    }
     // if (state & KDB_ALTGR)
     //   r += 2;
-    if (kcode > 0x54) {
+    if (kcode > 0x54)
         return 0;
-    }
     return keyboard_layout_US[kcode][r];
 }
 
@@ -329,13 +327,11 @@ int seat_event(uint8_t type, uint32_t param1, uint16_t param2)
     if (type == EV_KEY_PRESS) {
         kUSR.key_last = param2;
         kUSR.key_ticks = 5; // TODO Config !
-    } else if (type == EV_KEY_RELEASE) {
+    } else if (type == EV_KEY_RELEASE)
         kUSR.key_last = 0;
-    }
 
-    if (type == EV_KEY_PRESS || type == EV_KEY_RELEASE || type == EV_KEY_REPEAT) {
+    if (type == EV_KEY_PRESS || type == EV_KEY_RELEASE || type == EV_KEY_REPEAT)
         param1 = seat_key_unicode(param2 & 0xFF, param2 >> 16);
-    }
 
     // ...
     event_t ev;
@@ -367,7 +363,8 @@ int seat_event(uint8_t type, uint32_t param1, uint16_t param2)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static void surface_copy_RGBA_TO_RGB(surface_t *dest, surface_t *src, int relx, int rely)
+static void surface_copy_RGBA_TO_RGB(surface_t *dest, surface_t *src, int relx,
+                                     int rely)
 {
     int left = MAX(0, relx);
     int top = MAX(0, rely);
@@ -386,7 +383,8 @@ static void surface_copy_RGBA_TO_RGB(surface_t *dest, surface_t *src, int relx, 
     }
 }
 
-static void surface_copy_RGBA_TO_RGBA(surface_t *dest, surface_t *src, int relx, int rely)
+static void surface_copy_RGBA_TO_RGBA(surface_t *dest, surface_t *src, int relx,
+                                      int rely)
 {
     int left = MAX(0, relx);
     int top = MAX(0, rely);
@@ -406,7 +404,8 @@ static void surface_copy_RGBA_TO_RGBA(surface_t *dest, surface_t *src, int relx,
     }
 }
 
-static void surface_copy_RGB_TO_RGBA(surface_t *dest, surface_t *src, int relx, int rely)
+static void surface_copy_RGB_TO_RGBA(surface_t *dest, surface_t *src, int relx,
+                                     int rely)
 {
     int left = MAX(0, relx);
     int top = MAX(0, rely);
@@ -426,7 +425,8 @@ static void surface_copy_RGB_TO_RGBA(surface_t *dest, surface_t *src, int relx, 
     }
 }
 
-static void surface_copy_RGB_TO_RGB(surface_t *dest, surface_t *src, int relx, int rely)
+static void surface_copy_RGB_TO_RGB(surface_t *dest, surface_t *src, int relx,
+                                    int rely)
 {
     int left = MAX(0, relx);
     int top = MAX(0, rely);
@@ -447,59 +447,66 @@ static void surface_copy_RGB_TO_RGB(surface_t *dest, surface_t *src, int relx, i
 
 void surface_copy(surface_t *dest, surface_t *src, int relx, int rely)
 {
-    if (src->format == 4 && dest->format == 3) {
+    if (src->format == 4 && dest->format == 3)
         surface_copy_RGBA_TO_RGB(dest, src, relx, rely);
-    } else if (src->format == 4 && dest->format == 4) {
+
+    else if (src->format == 4 && dest->format == 4)
         surface_copy_RGBA_TO_RGBA(dest, src, relx, rely);
-    } else if (src->format == 3 && dest->format == 4) {
+
+    else if (src->format == 3 && dest->format == 4)
         surface_copy_RGB_TO_RGBA(dest, src, relx, rely);
-    } else if (src->format == 3 && dest->format == 3) {
+
+    else if (src->format == 3 && dest->format == 3)
         surface_copy_RGB_TO_RGB(dest, src, relx, rely);
-    } else {
+
+    else {
         // Not supported
     }
 }
 
-static void surface_fill_rect_RGB(surface_t *scr, int left, int top, int width, int height, uint32_t rgb)
+static void surface_fill_rect_RGB(surface_t *scr, int left, int top, int width,
+                                  int height, uint32_t rgb)
 {
-  left = MAX(0, left); // CLIP !?
-  top = MAX(0, top); // CLIP !?
-  int right = MIN(scr->width, left + width);
-  int bottom = MIN(scr->height, top + height);
+    left = MAX(0, left); // CLIP !?
+    top = MAX(0, top); // CLIP !?
+    int right = MIN(scr->width, left + width);
+    int bottom = MIN(scr->height, top + height);
 
-  int x, y, k;
-  for (y = top; y < bottom; ++y) {
-    k = y * scr->pitch;
-    for (x = left; x < right; ++x) {
-      scr->pixels[k + x * 3 + 0] = rgb & 0xFF;
-      scr->pixels[k + x * 3 + 1] = (rgb >> 8) & 0xFF;
-      scr->pixels[k + x * 3 + 2] = (rgb >> 16) & 0xFF;
+    int x, y, k;
+    for (y = top; y < bottom; ++y) {
+        k = y * scr->pitch;
+        for (x = left; x < right; ++x) {
+            scr->pixels[k + x * 3 + 0] = rgb & 0xFF;
+            scr->pixels[k + x * 3 + 1] = (rgb >> 8) & 0xFF;
+            scr->pixels[k + x * 3 + 2] = (rgb >> 16) & 0xFF;
+        }
     }
-  }
 }
 
-static void surface_fill_rect_RGBA(surface_t *scr, int left, int top, int width, int height, uint32_t rgb)
+static void surface_fill_rect_RGBA(surface_t *scr, int left, int top, int width,
+                                   int height, uint32_t rgb)
 {
-  left = MAX(0, left); // CLIP !?
-  top = MAX(0, top); // CLIP !?
-  int right = MIN(scr->width, left + width);
-  int bottom = MIN(scr->height, top + height);
+    left = MAX(0, left); // CLIP !?
+    top = MAX(0, top); // CLIP !?
+    int right = MIN(scr->width, left + width);
+    int bottom = MIN(scr->height, top + height);
 
-  int x, y, k;
-  for (y = top; y < bottom; ++y) {
-    k = y * scr->pitch;
-    for (x = left; x < right; ++x) {
-      scr->pixels[k + x * 4 + 0] = rgb & 0xFF;
-      scr->pixels[k + x * 4 + 1] = (rgb >> 8) & 0xFF;
-      scr->pixels[k + x * 4 + 2] = (rgb >> 16) & 0xFF;
-      scr->pixels[k + x * 4 + 3] = 0xff;
+    int x, y, k;
+    for (y = top; y < bottom; ++y) {
+        k = y * scr->pitch;
+        for (x = left; x < right; ++x) {
+            scr->pixels[k + x * 4 + 0] = rgb & 0xFF;
+            scr->pixels[k + x * 4 + 1] = (rgb >> 8) & 0xFF;
+            scr->pixels[k + x * 4 + 2] = (rgb >> 16) & 0xFF;
+            scr->pixels[k + x * 4 + 3] = 0xff;
+        }
     }
-  }
 }
 
-void surface_fill_rect(surface_t *scr, int x, int y, int width, int height, uint32_t rgb)
+void surface_fill_rect(surface_t *scr, int x, int y, int width, int height,
+                       uint32_t rgb)
 {
-    switch(scr->format) {
+    switch (scr->format) {
     case 3:
         surface_fill_rect_RGB(scr, x, y, width, height, rgb);
         break;
@@ -509,7 +516,8 @@ void surface_fill_rect(surface_t *scr, int x, int y, int width, int height, uint
     }
 }
 
-void surface_draw(surface_t *scr, int width, int height, uint32_t *color, uint8_t *px)
+void surface_draw(surface_t *scr, int width, int height, uint32_t *color,
+                  uint8_t *px)
 {
     int relx = (scr->width - width) / 2;
     int rely = (scr->height - height) / 2;
@@ -543,21 +551,18 @@ surface_t *__fbs[MAX_SCREEN] = { NULL };
 
 void seat_ticks()
 {
-    if (((s_ticks++) % 20) != 0) { // TODO -- Or no update required
+    if (((s_ticks++) % 20) != 0)   // TODO -- Or no update required
         return;
-    }
 
     // TODO -- Unoptimize redraw !
     surface_t *win;
     surface_t *screen = seat_screen(0);
-    if (screen == NULL) {
+    if (screen == NULL)
         return;
-    }
     kprintf(0, "PAINT\n");
     surface_fill_rect(screen, 0, 0, screen->width, screen->height, 0xd8d8d8);
-    for ll_each(&win_list, win, surface_t, node) {
+    for ll_each(&win_list, win, surface_t, node)
         surface_copy(screen, win, win->x, win->y);
-    }
 }
 
 surface_t *seat_screen(int no)
@@ -565,9 +570,10 @@ surface_t *seat_screen(int no)
     return no >= 0 && no < MAX_SCREEN ? __fbs[no] : NULL;
 }
 
-inode_t *seat_surface(int width, int height, int format, int features, int events)
+inode_t *seat_surface(int width, int height, int format, int features,
+                      int events)
 {
-    inode_t * ino = vfs_inode(3, S_IFWIN, 0);
+    inode_t *ino = vfs_inode(3, S_IFWIN, 0);
     ino->win->width = width;
     ino->win->height = height;
     ino->win->format = format;
@@ -586,9 +592,9 @@ inode_t *seat_surface(int width, int height, int format, int features, int event
     return ino;
 }
 
-inode_t *seat_framebuf(int width, int height, int format, int pitch, void* mmio)
+inode_t *seat_framebuf(int width, int height, int format, int pitch, void *mmio)
 {
-    inode_t * ino = vfs_inode(3, S_IFWIN, 0);
+    inode_t *ino = vfs_inode(3, S_IFWIN, 0);
     ino->win->width = width;
     ino->win->height = height;
     ino->win->format = format;
@@ -615,7 +621,7 @@ int __fb0_format;
 int __fb0_pitch;
 void *__fb0_pixels;
 
-void seat_fb0(int width, int height, int format, int pitch, void* mmio)
+void seat_fb0(int width, int height, int format, int pitch, void *mmio)
 {
     __fb0_width = width;
     __fb0_height = height;
@@ -626,9 +632,8 @@ void seat_fb0(int width, int height, int format, int pitch, void* mmio)
 
 inode_t *seat_initscreen()
 {
-    if (__fb0_pixels == NULL) {
+    if (__fb0_pixels == NULL)
         return NULL;
-    }
     return seat_framebuf(__fb0_width, __fb0_height, __fb0_format, __fb0_pitch,
                          __fb0_pixels);
 }

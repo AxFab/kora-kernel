@@ -40,7 +40,8 @@ PACK(struct ARP_header {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static int arp_packet_ip4(netdev_t *ifnet, const uint8_t *mac, const uint8_t *ip, int op)
+static int arp_packet_ip4(netdev_t *ifnet, const uint8_t *mac,
+                          const uint8_t *ip, int op)
 {
     skb_t *skb = net_packet(ifnet, 64);
     if (skb == NULL)
@@ -79,7 +80,7 @@ static int arp_recv_ip4(skb_t *skb, int op)
         return -1;
 
     if (memcmp(mac, skb->ifnet->eth_addr, ETH_ALEN) != 0 &&
-            memcmp(mac, eth_broadcast, ETH_ALEN) != 0)
+        memcmp(mac, eth_broadcast, ETH_ALEN) != 0)
         return -1;
 
     if (op == ARP_REQUEST) {
@@ -115,7 +116,8 @@ int arp_receive(skb_t *skb)
     strncat(skb->log, "arp:", NET_LOG_SIZE);
     if (net_read(skb, &header, sizeof(header)) != 0)
         return -1;
-    if (header.hardware != ARP_HW_ETH || header.protocol != ARP_PC_IP || header.hw_length != ETH_ALEN)
+    if (header.hardware != ARP_HW_ETH || header.protocol != ARP_PC_IP
+        || header.hw_length != ETH_ALEN)
         return -1;
 
     if (header.pc_length == IP4_ALEN)

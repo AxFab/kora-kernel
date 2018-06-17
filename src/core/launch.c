@@ -79,7 +79,7 @@ void kernel_module(kmod_t *mod)
     mod->setup();
 }
 
-void kernel_tasklet(void* start, long arg, CSTR name)
+void kernel_tasklet(void *start, long arg, CSTR name)
 {
     task_t *task = task_create(NULL, NULL, 0, name);
     task_start(task, (size_t)start, arg);
@@ -125,14 +125,17 @@ void kernel_start()
     kSYS.cpus = &kCPU0;
     irq_reset(false);
     irq_disable();
-    kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
+    kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the "
+            __DATE__ ".\n");
 
     assert(kCPU.irq_semaphore == 1);
     memory_initialize();
     // Resolve page fault for allocation -- circular deps between mspace_map and kalloc
     kalloc(2);
-    kprintf (KLOG_MSG, "Memory available %s over ", sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
-    kprintf (KLOG_MSG, "%s\n", sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
+    kprintf(KLOG_MSG, "Memory available %s over ",
+            sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
+    kprintf(KLOG_MSG, "%s\n",
+            sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
     memory_info();
     assert(kCPU.irq_semaphore == 1);
 
@@ -141,7 +144,7 @@ void kernel_start()
     cpu_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    kprintf (KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
+    kprintf(KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
 
     for (;;);
 
@@ -155,18 +158,18 @@ void kernel_start()
     // bool irq = irq_enable();
     // assert(irq);
 
-// #if 1
-//     // KSETUP(ps2);
-//     KSETUP(ide_ata);
-//     KSETUP(pci);
-//     KSETUP(e1000);
-//     KSETUP(vbox);
-//     KSETUP(ac97);
-//     // KSETUP(vga);
-// #else
-//     KSETUP(imgdk);
-// #endif
-//     KSETUP(isofs);
+    // #if 1
+    //     // KSETUP(ps2);
+    //     KSETUP(ide_ata);
+    //     KSETUP(pci);
+    //     KSETUP(e1000);
+    //     KSETUP(vbox);
+    //     KSETUP(ac97);
+    //     // KSETUP(vga);
+    // #else
+    //     KSETUP(imgdk);
+    // #endif
+    //     KSETUP(isofs);
 
     // kernel_tasklet(ktsk1, 1, "Dbg_task1");
     // kernel_tasklet(ktsk2, 2, "Dbg_task2");

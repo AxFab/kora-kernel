@@ -23,7 +23,7 @@
 #include <string.h>
 #include <errno.h>
 
-short * const csl_screen = (short *)0x000B8000;
+short *const csl_screen = (short *)0x000B8000;
 const int csl_width = 80;
 const int csl_height = 25;
 int csl_cursor = 0;
@@ -84,11 +84,11 @@ int ansi_parse(ansi_cmd_t *cmd, const char *str, int len)
     for (;;) {
         cmd->args[cmd->len] = strtoul(sv, &sv, 10);
         cmd->len++;
-        if (*sv != ';') {
+        if (*sv != ';')
             break;
-        } else {
+
+        else
             sv++;
-        }
     }
 
     cmd->cmd = *sv;

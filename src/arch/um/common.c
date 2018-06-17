@@ -28,13 +28,12 @@
 int strnlen(const char *str, int max)
 {
     register const char *p = str;
-    while (*p && max--) {
+    while (*p && max--)
         p++;
-    }
     return str - p;
 }
 
-void *valloc (size_t size)
+void *valloc(size_t size)
 {
     void *ptr = malloc(size + 4096);
     ptr = (void *)ALIGN_UP((int)ptr, 4096);
@@ -78,21 +77,22 @@ char *sztoa(size_t number)
         number /= 1024;
     };
 
-    if (k == 0) {
-        snprintf (sz_format, 20, "%d bytes", (int)number);
+    if (k == 0)
+        snprintf(sz_format, 20, "%d bytes", (int)number);
 
-    } else if (number < 10) {
+
+    else if (number < 10) {
         float value = (rest / 1024.0f) * 100;
-        snprintf (sz_format, 20, "%1d.%02d %s", (int)number, (int)value, prefix[k]);
+        snprintf(sz_format, 20, "%1d.%02d %s", (int)number, (int)value, prefix[k]);
 
     } else if (number < 100) {
         float value = (rest / 1024.0f) * 10;
-        snprintf (sz_format, 20, "%2d.%01d %s", (int)number, (int)value, prefix[k]);
+        snprintf(sz_format, 20, "%2d.%01d %s", (int)number, (int)value, prefix[k]);
 
     } else {
         // float value = (rest / 1024.0f) + number;
         //snprintf (sz_format, 20, "%.3f %s", (float)value, prefix[k]);
-        snprintf (sz_format, 20, "%4d %s", (int)number, prefix[k]);
+        snprintf(sz_format, 20, "%4d %s", (int)number, prefix[k]);
     }
 
     return sz_format;
@@ -163,7 +163,7 @@ void kclock(struct timespec *ts)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 #if 0
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
     kernel_start();
     return 0;

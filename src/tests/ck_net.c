@@ -32,12 +32,12 @@ time64_t time64()
 void abort();
 void vfs_read() {}
 
-typedef void*(*pfunc_t)(void*);
+typedef void *(*pfunc_t)(void *);
 #define ck_assert(e) do { if (!(e)) ck_fail(#e,__AT__); } while(0)
 void ck_fail(const char *expr, const char *at)
 {
-	kprintf(-1, "Assert at %s: %s\n", at, expr);
-	abort();
+    kprintf(-1, "Assert at %s: %s\n", at, expr);
+    abort();
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -57,23 +57,23 @@ splock_t net_lock;
 
 int pack = 0;
 
-void net_tasklet(netdev_t*);
+void net_tasklet(netdev_t *);
 void net_start(netdev_t *ifnet)
 {
-	net_tasklet(ifnet);
+    net_tasklet(ifnet);
     pthread_exit(NULL);
 }
 
 void advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
 {
-	struct timespec req;
-	req.tv_sec = timeout_us / USEC_PER_SEC;
-	req.tv_nsec = (timeout_us % USEC_PER_SEC) * 1000LL;
-	if (lock != NULL)
-	    assert(splock_locked(lock));
-	// TODO -- Push on the list
-	if (lock != NULL)
-	    splock_unlock(lock);
+    struct timespec req;
+    req.tv_sec = timeout_us / USEC_PER_SEC;
+    req.tv_nsec = (timeout_us % USEC_PER_SEC) * 1000LL;
+    if (lock != NULL)
+        assert(splock_locked(lock));
+    // TODO -- Push on the list
+    if (lock != NULL)
+        splock_unlock(lock);
     nanosleep(&req, NULL);
     atomic_dec(&cnt);
     if (cnt <= 0) {
@@ -88,10 +88,10 @@ void advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
 
 void kernel_tasklet(void *start, long arg, CSTR name)
 {
-    if ((void*)arg == &eth1)
-        pthread_create(&thread1, NULL, (pfunc_t)net_start, (void*)arg);
-    else if ((void*)arg == &eth2)
-        pthread_create(&thread2, NULL, (pfunc_t)net_start, (void*)arg);
+    if ((void *)arg == &eth1)
+        pthread_create(&thread1, NULL, (pfunc_t)net_start, (void *)arg);
+    else if ((void *)arg == &eth2)
+        pthread_create(&thread2, NULL, (pfunc_t)net_start, (void *)arg);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -100,7 +100,8 @@ int sendUT(netdev_t *ifnet, skb_t *skb)
 {
     splock_lock(&ifnet->lock);
     splock_lock(&net_lock);
-    kprintf(KLOG_DBG, "Packet send by eth%d: %s (%d)\n", ifnet->no, skb->log, skb->length);
+    kprintf(KLOG_DBG, "Packet send by eth%d: %s (%d)\n", ifnet->no, skb->log,
+            skb->length);
     // dump(skb->buf, skb->length);
     // kprintf(KLOG_DBG, "\n");
     // check packets
@@ -124,7 +125,7 @@ int linkUT(netdev_t *ifnet)
 
 int main()
 {
-	host_init();
+    host_init();
 
     memset(&eth1, 0, sizeof(eth1));
     memcpy(eth1.eth_addr, mac1, ETH_ALEN);

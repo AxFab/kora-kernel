@@ -222,7 +222,7 @@ START_TEST(test_heap_001)
 
     free_p(p1);
 
-    void *p3 = malloc_p( 128);
+    void *p3 = malloc_p(128);
     ck_assert(p3 >= ptr && p3 < limit);
 
     free_p(p3);
@@ -377,9 +377,8 @@ START_TEST(test_bbtree_003)
 {
     int i, j;
     for (j = 2; j < 99; ++j) {
-        for (i = 0; i < j; ++i) {
+        for (i = 0; i < j; ++i)
             test_bbtree_003_sub(i, j - 1, j);
-        }
         test_bbtree_003_sub(j, j, j);
     }
 }
@@ -966,16 +965,15 @@ START_TEST(test_time_001)
     test_time_convert(1221253494, "Fri Sep 12 21:04:54 2008\n");
     test_time_convert(951876312, "Wed Mar  1 02:05:12 2000\n");
     test_time_convert(951811944, "Tue Feb 29 08:12:24 2000\n");
-    if (sizeof(time_t) == 4) {
+    if (sizeof(time_t) == 4)
         test_time_convert(0x80000000, "Fri Dec 13 20:45:52 1901\n");
-    }
 }
 END_TEST
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
     CK_SUITE("Basics");
     CK_FIXTURE("Doubly-linked List");
@@ -1029,20 +1027,29 @@ int main (int argc, char **argv)
     CK_END();
 
 
-//     // Create suites
-//     int errors;
-//     SRunner *sr = srunner_create(NULL);
-//     srunner_add_suite (sr, suite_basics());
-//     srunner_add_suite (sr, suite_standard());
+    //     // Create suites
+    //     int errors;
+    //     SRunner *sr = srunner_create(NULL);
+    //     srunner_add_suite (sr, suite_basics());
+    //     srunner_add_suite (sr, suite_standard());
 
-//     // Run test-suites
-//     srunner_run_all(sr, CK_NORMAL);
-//     errors = srunner_ntests_failed(sr);
-//     srunner_free(sr);
-//     return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+    //     // Run test-suites
+    //     srunner_run_all(sr, CK_NORMAL);
+    //     errors = srunner_ntests_failed(sr);
+    //     srunner_free(sr);
+    //     return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-void *heap_map(size_t length) { return NULL; }
-void *heap_unmap(void *address, size_t length) { return NULL; }
+void *heap_map(size_t length)
+{
+    return NULL;
+}
+void *heap_unmap(void *address, size_t length)
+{
+    return NULL;
+}
 void vfs_read() {}
-int cpu_no() { return 0; }
+int cpu_no()
+{
+    return 0;
+}

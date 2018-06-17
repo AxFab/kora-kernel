@@ -24,8 +24,7 @@
 
 typedef struct tm_line tm_line_t;
 
-struct tm_line
-{
+struct tm_line {
     long offset;
     uint32_t tx_color;
     uint32_t bg_color;
@@ -33,8 +32,7 @@ struct tm_line
     tm_line_t *next;
 };
 
-struct terminal
-{
+struct terminal {
     fifo_t *out;
     fifo_t *in;
     tm_line_t *top;
@@ -47,34 +45,35 @@ struct terminal
 };
 
 uint32_t consoleColor[] = {
-  0xff181818, 0xffa61010, 0xff10a610, 0xffa66010,
-  0xff1010a6, 0xffa610a6, 0xff10a6a6, 0xffa6a6a6,
-  0xffffffff
+    0xff181818, 0xffa61010, 0xff10a610, 0xffa66010,
+    0xff1010a6, 0xffa610a6, 0xff10a6a6, 0xffa6a6a6,
+    0xffffffff
 };
 uint32_t consoleSecColor[] = {
-  0xff323232, 0xffd01010, 0xff10d010, 0xffd0d010,
-  0xff1060d0, 0xffd010d0, 0xff10d0d0, 0xffd0d0d0,
-  0xffffffff
+    0xff323232, 0xffd01010, 0xff10d010, 0xffd0d010,
+    0xff1060d0, 0xffd010d0, 0xff10d0d0, 0xffd0d0d0,
+    0xffffffff
 };
 uint32_t consoleBgColor[] = {
-  0xff181818, 0xffa61010, 0xff10a610, 0xffa66010,
-  0xff1010a6, 0xffa610a6, 0xff10a6a6, 0xffa6a6a6,
-  0xffffffff
+    0xff181818, 0xffa61010, 0xff10a610, 0xffa66010,
+    0xff1010a6, 0xffa610a6, 0xff10a6a6, 0xffa6a6a6,
+    0xffffffff
 };
 
 terminal_t *term_create(surface_t *surface)
 {
-    terminal_t *term = (terminal_t*)kalloc(sizeof(terminal_t));
+    terminal_t *term = (terminal_t *)kalloc(sizeof(terminal_t));
     size_t size = 64 * _Kib_;
-    term->base = (char*)kmap(size, NULL, 0, VMA_FG_FIFO | VMA_RESOLVE);
+    term->base = (char *)kmap(size, NULL, 0, VMA_FG_FIFO | VMA_RESOLVE);
     term->out = fifo_create(term->base, size);
-    term->in = fifo_create(kmap(4 * _Kib_, NULL, 0, VMA_FG_FIFO | VMA_RESOLVE), 4 * _Kib_);
+    term->in = fifo_create(kmap(4 * _Kib_, NULL, 0, VMA_FG_FIFO | VMA_RESOLVE),
+                           4 * _Kib_);
 
     term->tx_color = 0xffa6a6a6;
     term->bg_color = 0xff181818;
     term->row = 1;
 
-    tm_line_t *line = (tm_line_t*)kalloc(sizeof(tm_line_t));
+    tm_line_t *line = (tm_line_t *)kalloc(sizeof(tm_line_t));
     line->tx_color = 0xffa6a6a6;
     line->bg_color = 0xff181818;
     term->last = line;
@@ -91,19 +90,22 @@ terminal_t *term_create(surface_t *surface)
 
 static void term_change_color(terminal_t *term, tm_line_t *line, int value)
 {
-  if (value == 0) {
-    line->tx_color = term->tx_color;
-    line->bg_color = term->bg_color;
-  } else if (value < 30) {
-  } else if (value < 40) {
-    line->tx_color = consoleColor[value - 30];
-  } else if (value < 50) {
-    line->bg_color = consoleBgColor[value - 40];
-  } else if (value < 90) {
-  } else if (value < 100) {
-    line->tx_color = consoleSecColor[value - 90];
-  } else {
-  }
+    if (value == 0) {
+        line->tx_color = term->tx_color;
+        line->bg_color = term->bg_color;
+    } else if (value < 30) {
+    } else if (value < 40)
+        line->tx_color = consoleColor[value - 30];
+
+    else if (value < 50)
+        line->bg_color = consoleBgColor[value - 40];
+
+    else if (value < 90) {
+    } else if (value < 100)
+        line->tx_color = consoleSecColor[value - 90];
+
+    else {
+    }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -127,7 +129,7 @@ static void term_readcmd(terminal_t *term, tm_line_t *line, const char **str)
         return;
     do {
         (*str)++;
-        val[i++] = (int)strtoul(*str, (char**)str, 10);
+        val[i++] = (int)strtoul(*str, (char **)str, 10);
     } while (i < 5 && **str == ';');
 
     switch (**str) {
@@ -149,9 +151,8 @@ static int term_paint(terminal_t *term, tm_line_t *line, int row)
         ch = term_readchar(term, line, &str);
         if (ch == '\0')
             return -1;
-        else if (ch == '\033') {
+        else if (ch == '\033')
             term_readcmd(term, line, &str);
-        }
 
         // TODO -- PAINT
         if (col >= term->max_col)
@@ -203,14 +204,13 @@ int term_write(terminal_t *term, const char *buffer, int length)
 {
     fifo_in(term->out, buffer, length, 0);
     for (;;) {
-        if (term->row > term->max_row) {
+        if (term->row > term->max_row)
             term_scroll(term, term->row - term->max_row);
-        }
 
         int pen = term_paint(term, term->last, term->row);
         if (pen == 0)
             break;
-        tm_line_t *line = (tm_line_t*)kalloc(sizeof(tm_line_t));
+        tm_line_t *line = (tm_line_t *)kalloc(sizeof(tm_line_t));
         line->offset = pen;
         line->tx_color = term->last->tx_color;
         line->bg_color = term->last->bg_color;

@@ -33,3 +33,6 @@ fi
 
 # If there are whitespace errors, print the offending file names and fail.
 exec git diff-index --check --cached $against --
+
+# astyle --style=kr --indent=spaces=4 --indent-col1-comments --min-conditional-indent=1 --pad-oper --pad-header --unpad-paren --align-pointer=name --align-reference=name --break-one-line-headers --remove-brackets --convert-tabs --max-code-length=80 --lineend=linux --mode=c -r "*.c" "*.h"
+

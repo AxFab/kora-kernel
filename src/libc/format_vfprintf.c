@@ -153,9 +153,8 @@ static const char state[]_I('z' + 1) = {
 static inline void pop_arg(format_arg_t *arg, int type, va_list *ap)
 {
     /* Give the compiler a hint for optimizing the switch. */
-    if ((unsigned)type > MAXSTATE) {
+    if ((unsigned)type > MAXSTATE)
         return;
-    }
 
     switch (type) {
     case PTR:
@@ -221,8 +220,8 @@ static inline void pop_arg(format_arg_t *arg, int type, va_list *ap)
     }
 }
 
-static inline int read_format_specifier (format_spec_t *sb, const char **ptr,
-        va_list *ap)
+static inline int read_format_specifier(format_spec_t *sb, const char **ptr,
+                                        va_list *ap)
 {
     int ty;
     char sign;
@@ -235,18 +234,16 @@ static inline int read_format_specifier (format_spec_t *sb, const char **ptr,
 
     /* Read modifier flags */
     for (sb->flag_ = 0; (*str <= '0') &&
-            ((1 << (*str - ' ')) & FLAGMASK); str++) {
+         ((1 << (*str - ' ')) & FLAGMASK); str++)
         sb->flag_ |= ((1 << (*str - ' ')) & FLAGMASK);
-    }
 
 
     /* Read field width */
     if (*str == '*') {
         str++;
         sb->field_ = va_arg(*ap, int);
-    } else {
+    } else
         sb->field_ = (int)_strtox(str, (char **)&str, 10, &sign);
-    }
 
     /* Read precision */
     if (str[0] == '.' && str[1] == '*') {
@@ -255,16 +252,14 @@ static inline int read_format_specifier (format_spec_t *sb, const char **ptr,
     } else if (str[0] == '.') {
         str++;
         sb->precis_ = (int)_strtox(str, (char **)&str, 10, &sign);
-    } else {
+    } else
         sb->precis_ = -1;
-    }
 
     /* Format specifier state machine */
     ty = BARE;
     do {
-        if (*str > 'z') {
+        if (*str > 'z')
             return -1;
-        }
 
         sb->type_ = ty;
         ty = state[ty]_I(*(str++));
@@ -272,9 +267,8 @@ static inline int read_format_specifier (format_spec_t *sb, const char **ptr,
 
     sb->type_ = ty;
 
-    if (!ty) {
+    if (!ty)
         return -1;
-    }
 
     /* Check validity of argument type */
 
@@ -309,18 +303,16 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
         if (*str != '%') {
             mxs = strchr(str, '%');
             lg = (mxs == NULL) ? (int)strlen(str) : (int)(mxs - str);
-            if (fp->write(fp, str, lg) < 0) {
+            if (fp->write(fp, str, lg) < 0)
                 return -1;
-            }
 
             str += lg;
             continue;
 
             /* Handle %% escape code */
         } else if (str[1] == '%') {
-            if (fp->write(fp, str, 1) < 0) {
+            if (fp->write(fp, str, 1) < 0)
                 return -1;
-            }
 
             str += 2;
             continue;
@@ -329,16 +321,14 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
         /* Read format specifier */
         str++;
 
-        if (read_format_specifier(&sb, &str, &ap) < 0) {
+        if (read_format_specifier(&sb, &str, &ap) < 0)
             return -1;
-        }
 
 
-        if (sb.flag_ & LEFT_ADJ) {
+        if (sb.flag_ & LEFT_ADJ)
             sb.flag_ &= ~ZERO_PAD;
-        }
 
-        pop_arg (&arg, sb.type_, &ap);
+        pop_arg(&arg, sb.type_, &ap);
         lg = 0;
 
         switch (str[-1]) {
@@ -351,9 +341,8 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
         case 'x':
         case 'X':
 
-            if (sb.flag_ & ALT_FORM) {
+            if (sb.flag_ & ALT_FORM)
                 lg -= 2;
-            }
 
             if (str[-1] & 32)
                 _utoa(arg.i, tmp, 16, _utoa_digits);
@@ -374,9 +363,10 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
         case 'd':
         case 'i':
 
-            if (arg.s >= 0) {
+            if (arg.s >= 0)
                 _utoa(arg.s, tmp, 10, _utoa_digits);
-            } else {
+
+            else {
                 lg--;
                 if (fp->write(fp, "-", 1) < 0)
                     return -1;
@@ -395,9 +385,8 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
 
         case 's':
 
-            if (arg.p == NULL) {
+            if (arg.p == NULL)
                 arg.p = "(null)";
-            }
 
             lg = strlen((char *)arg.p);
 
@@ -421,27 +410,23 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
 
             if (lg > 0 && !(sb.flag_ & LEFT_ADJ)) {
                 while (lg--) {
-                    if (fp->write(fp, &ch, 1) < 0) {
+                    if (fp->write(fp, &ch, 1) < 0)
                         return -1;
-                    }
                 }
             }
 
             if ((sb.flag_ & ALT_FORM) && (str[-1] | 32) == 'x') {
-                if (fp->write(fp, "0x", 2) < 0) {
+                if (fp->write(fp, "0x", 2) < 0)
                     return -1;
-                }
             }
 
-            if (fp->write(fp, tmp, strlen(tmp)) < 0) {
+            if (fp->write(fp, tmp, strlen(tmp)) < 0)
                 return -1;
-            }
 
             if (lg > 0) {
                 while (lg--) {
-                    if (fp->write(fp, &ch, 1) < 0) {
+                    if (fp->write(fp, &ch, 1) < 0)
                         return -1;
-                    }
                 }
             }
 

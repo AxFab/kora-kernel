@@ -72,25 +72,27 @@ void irq_ack(int no)
 /* Disable a specific IRQ */
 void irq_mask(int no)
 {
-    if (no >= 16) {
+    if (no >= 16)
         return;
-    } else if (no >= 8) {
+
+    else if (no >= 8)
         outb(PIC2_DATA, inb(PIC2_DATA) | 1 << (no - 8));
-    } else {
+
+    else
         outb(PIC1_DATA, inb(PIC1_DATA) | 1 << no);
-    }
 }
 
 /* Enable a specific IRQ */
 void irq_unmask(int no)
 {
-    if (no >= 16) {
+    if (no >= 16)
         return;
-    } else if (no >= 8) {
+
+    else if (no >= 8)
         outb(PIC2_DATA, inb(PIC2_DATA) & ~(1 << (no - 8)));
-    } else {
+
+    else
         outb(PIC1_DATA, inb(PIC1_DATA) & ~(1 << no));
-    }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -130,7 +132,8 @@ void x86_pgflt(size_t vaddr, int code, regs_t *regs)
 
 void x86_syscall(regs_t *regs)
 {
-    int ret = irq_syscall(regs->eax, regs->ecx, regs->edx, regs->ebx, regs->esi, regs->edi);
+    int ret = irq_syscall(regs->eax, regs->ecx, regs->edx, regs->ebx, regs->esi,
+                          regs->edi);
     regs->eax = ret;
     regs->edx = errno;
 }
