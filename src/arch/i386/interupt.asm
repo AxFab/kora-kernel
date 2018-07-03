@@ -39,6 +39,8 @@ extern x86_fault, x86_error, irq_enter, x86_syscall, x86_pgflt
 
 ; Macro to save registers on interruption
 %macro SAVE_REGS 0
+    push ebp
+    mov ebp, esp
     pushad
     push ds
     push es
@@ -56,6 +58,7 @@ extern x86_fault, x86_error, irq_enter, x86_syscall, x86_pgflt
     pop es
     pop ds
     popad
+    leave
 %endmacro
 
 %macro FAULT_HANDLER 1

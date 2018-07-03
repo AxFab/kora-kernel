@@ -17,29 +17,26 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#ifndef _MBSTRING_H
+#define _MBSTRING_H 1
 
-#define CMOS_CMD 0x70
-#define CMOS_DATA 0x71
-
-#define BCD2DEC(v) (((v)&0xf)+(((v)>>4)&0xf)*10)
-
-static inline uint8_t cmos_rd(uint8_t idx)
-{
-    outb(CMOS_CMD, idx);
-    return inb(CMOS_DATA);
-}
-
-static inline void cmos_wr(uint8_t idx, uint8_t val)
-{
-    outb(CMOS_CMD, idx);
-    outb(CMOS_DATA, val);
-}
-
-time_t rtc_time()
-{
-    return 0;
-}
+#include <stddef.h>
 
 
+#define _TVOID void
+#define _TCHAR unsigned char
+#define _SFM(n)  mem ## n
+#define _SFX(n)  mbs ## n
+#include <cbuild/string.h>
+#undef _TVOID
+#undef _TCHAR
+#undef _SFM
+#undef _SFX
+
+
+int mbtowc(wchar_t *wc, const char *str, size_t len);
+// size_t mbstowcs (wchar_t *ws, const char **str, size_t wn, mbstate_t *st);
+size_t mbstowcs (wchar_t *ws, const char *str, size_t wn);
+int mblen(const char *str, size_t len);
+
+#endif  /* _MBSTRING_H */

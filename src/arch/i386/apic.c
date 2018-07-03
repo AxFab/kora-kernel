@@ -81,14 +81,15 @@ static void ioapic_write_irq(int no, uint8_t *ioapic, int irq)
     ioapic_write(no, ioapic, reg + 1, (value >> 32) & 0xffffffff);
 }
 
-static uint64_t ioapic_read_irq(int no, uint8_t *ioapic, int irq)
-{
-    uint64_t value = 0;
-    uint32_t reg = (irq << 1) + 0x10;
-    value |= ioapic_read(no, ioapic, reg);
-    value |= (uint64_t)ioapic_read(no, ioapic, reg + 1) << 32;
-    return value;
-}
+// static uint64_t ioapic_read_irq(int no, uint8_t *ioapic, int irq)
+// {
+//     uint64_t value = 0;
+//     uint32_t reg = (irq << 1) + 0x10;
+//     value |= ioapic_read(no, ioapic, reg);
+//     value |= (uint64_t)ioapic_read(no, ioapic, reg + 1) << 32;
+//     return value;
+// }
+
 
 void ioapic_register(madt_ioapic_t *info)
 {
@@ -124,7 +125,7 @@ void apic_override_register(madt_override_t *info)
 
 
 void ap_start();
-
+void GDT(int no, uint32_t base, uint32_t limit, int access, int other);
 
 void apic_init()
 {
@@ -134,13 +135,22 @@ void apic_init()
     apic_regs[APIC_LDR] = 0xFF000000;
     apic_regs[APIC_EOI] = 0;
 
-    kprintf(-1, "CPU%d - at %p \n", cpu_no(), &kCPU);
-    kprintf(-1, "CPU%d IRQ sem%d \n", cpu_no(), kCPU.irq_semaphore);
+    int i = cpu_no();
+    kprintf(-1, "CPU%d - at %p \n", i, &kCPU);
+
+    TSS_BASE[i].debug_flag = 0;
+    TSS_BASE[i].io_map = 0;
+    TSS_BASE[i].esp0 = cpu_table[i].stack + PAGE_SIZE - 16;
+    TSS_BASE[i].ss0 = 0x18;
+    GDT(i + 7, TSS_CPU(i), 0x67, 0xe9, 0x00); // TSS CPU(i)
+    x86_set_tss(i + 7);
+
+    kprintf(-1, "CPU%d irq_semaphore=%d \n", i, kCPU.irq_semaphore);
 }
 
 void apic_setup()
 {
-    if (apic_regs != NULL || apic_mmio == NULL)
+    if (apic_regs != NULL || apic_mmio == 0)
         return;
 
     kprintf(KLOG_ERR, "Local APIC at %x\n", apic_mmio);
@@ -167,6 +177,12 @@ void apic_setup()
 void ap_setup()
 {
     kprintf(KLOG_DBG, "CPU%d is awake !\n", cpu_no());
+    irq_reset(false);
+    irq_disable();
+    assert(kCPU.irq_semaphore == 1);
     cpuid_setup();
     apic_init();
+    assert(kCPU.irq_semaphore == 1);
+    cpu_halt();
+    for(;;);
 }

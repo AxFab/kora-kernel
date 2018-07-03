@@ -45,7 +45,8 @@ void __perror_fail(int err, const char *file, int line, const char *msg)
  */
 _Noreturn void __assert_fail(const char *expr, const char *file, int line)
 {
-    kprintf(KLOG_ERR, "Assertion failed (%s) at %s:%d -- %s\n", expr, file, line);
+    kprintf(KLOG_ERR, "Assertion failed CPU%d (%s) at %s:%d -- %s\n",
+        cpu_no(), expr, file, line);
     task_t *task = kCPU.running;
     if (task)
         task_core(task);
@@ -154,10 +155,6 @@ void kclock(struct timespec *ts)
 }
 
 void kexit()
-{
-}
-
-void irq_syscall()
 {
 }
 
