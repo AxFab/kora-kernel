@@ -23,8 +23,6 @@
 #include "apic.h"
 
 
-#define TSS_BASE  ((struct x86_tss*)0x1000)
-#define TSS_CPU(i)  (0x1000 + sizeof(struct x86_tss) * i)
 #define INTGATE  0x8E00     /* used for interruptions */
 #define INTGATE_USER  0xEE00     /* used for special system calls */
 #define TRAPGATE  0xEF00     /* used for system calls */
@@ -109,7 +107,7 @@ PACK(struct x86_idt {
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Write an GDT entry on the table */
-static void GDT(int no, uint32_t base, uint32_t limit, int access, int other)
+void GDT(int no, uint32_t base, uint32_t limit, int access, int other)
 {
     struct x86_gdt *ptr = (struct x86_gdt *)(0);
     ptr += no;
@@ -122,7 +120,7 @@ static void GDT(int no, uint32_t base, uint32_t limit, int access, int other)
     ptr->base24_31 = (base & 0xff000000) >> 24;
 }
 
-static void IDT(int no, int segment, uint32_t address, int type)
+void IDT(int no, int segment, uint32_t address, int type)
 {
     struct x86_idt *ptr = (struct x86_idt *)(0x800);
     ptr += no;
@@ -399,9 +397,10 @@ void cpu_setup()
     // upgrade PIC to APIC
     // activate interval timer
     //  - no irq yet
-    kprintf(KLOG_ERR, "End of CPU setup.\n");
-    for (;;);
+    // kprintf(KLOG_ERR, "End of CPU setup.\n");
+    // for (;;);
 }
+
 
 void cpu_early_init() // GDT & IDT
 {

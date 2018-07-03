@@ -176,4 +176,10 @@ PACK(struct acpi_hpet {
 });
 
 
+void lapic_register(madt_lapic_t *info);
+void lapic_setup(int cpus);
+void ioapic_register(madt_ioapic_t *info);
+void apic_override_register(madt_override_t *info);
+
+
 #endif  /* _SRC_ACPI_H */

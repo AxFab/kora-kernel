@@ -158,7 +158,7 @@ void irq_enter(int no)
 {
     irq_disable();
     assert(kCPU.irq_semaphore == 1);
-    task_t *task = kCPU.running;
+    // task_t *task = kCPU.running;
     // if (task)
     //     task->elapsed_user = time_elapsed(&task->elapsed_last);
     // kCPU.elapsed_user = time_elapsed(&kCPU->elapsed_last);
@@ -187,7 +187,13 @@ void irq_fault(const fault_t *fault)
     task_t *task = kCPU.running;
     // task->elapsed_user = time_elapsed(&task->elapsed_last);
     // kCPU.elapsed_user = time_elapsed(&kCPU->elapsed_last);
-    kprintf(KLOG_IRQ, "Task.%d raise exception: %s\n", 0, fault->name);
+    if (task == NULL) {
+        stackdump(8);
+        kprintf(KLOG_IRQ, "Fault on CPU%d raise exception: %s\n", cpu_no(), fault->name);
+        kpanic("Kernel trigger an exception\n");
+    }
+
+    kprintf(KLOG_IRQ, "Task.%d on CPU%d raise exception: %s\n", task->pid , cpu_no(), fault->name);
     stackdump(8);
     if (fault->raise != 0)
         task_kill(kCPU.running, fault->raise);

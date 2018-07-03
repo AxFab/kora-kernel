@@ -87,7 +87,7 @@ void kernel_tasklet(void *start, long arg, CSTR name)
 
 extern int no_dbg;
 
-static void ktsk1()
+void ktsk1()
 {
     for (;;) {
         advent_wait(NULL, NULL, 1000000);
@@ -95,7 +95,7 @@ static void ktsk1()
     }
 }
 
-static void ktsk2()
+void ktsk2()
 {
     for (;;) {
         advent_wait(NULL, NULL, 1000000);
@@ -103,7 +103,7 @@ static void ktsk2()
     }
 }
 
-static void ktsk3()
+void ktsk3()
 {
     for (;;) {
         advent_wait(NULL, NULL, 1000000);
@@ -111,7 +111,7 @@ static void ktsk3()
     }
 }
 
-static void kernel_top(long sec)
+void kernel_top(long sec)
 {
     advent_wait(NULL, NULL, 10000);
     for (;;) {
@@ -146,6 +146,7 @@ void kernel_start()
 
     kprintf(KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
 
+    cpu_halt();
     for (;;);
 
     // time_t now = cpu_time();

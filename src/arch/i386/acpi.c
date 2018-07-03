@@ -47,7 +47,7 @@ void acpi_fadt_setup(acpi_fadt_t *fadt)
 void acpi_madt_setup(acpi_madt_t *madt)
 {
     kprintf(KLOG_DBG, "MADT Table at %p\n", madt);
-    apic_mmio = (void *)madt->local_apic;
+    apic_mmio = madt->local_apic;
     kprintf(KLOG_DBG, "Local APIC at %p\n", apic_mmio);
 
     int cpus = 0;

@@ -64,5 +64,6 @@ int hpet_setup(acpi_hpet_t *hpet)
     // config &= ~(0x1F << 9);
     // config |= irq << 9;
     // regs->timers[idx].config = config;
+    return 0;
 }
 

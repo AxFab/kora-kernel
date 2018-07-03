@@ -153,7 +153,7 @@ void usr_check_buf(const char *buf, unsigned len)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-long kernel_scall(long no, long a1, long a2, long a3, long a4, long a5)
+long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
     int i;
     // kprintf(KLOG_DBG, "[SYSC] PID:%d, No %d.\n", kCPU.running->pid, no);

@@ -21,6 +21,7 @@
 #include <kernel/cpu.h>
 #include <kernel/device.h>
 #include <string.h>
+#include <mbstring.h>
 #include <errno.h>
 
 short *const csl_screen = (short *)0x000B8000;
@@ -72,8 +73,6 @@ struct ansi_cmd {
 
 int ansi_parse(ansi_cmd_t *cmd, const char *str, int len)
 {
-    int i;
-    int cn = 0;
     char *sv = (char *)str;
     cmd->len = 0;
     cmd->cmd = 0;

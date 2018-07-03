@@ -65,6 +65,7 @@ static int com_read(int port, inode_t *ino)
     if ((inb(port + 5) & 1) != 0) {
         while ((inb(port + 5) & 1) != 0) {
             byte = inb(port);
+            (void)byte;
             // chardev_push(ino, &byte, 1);
         }
         return 0;
@@ -72,7 +73,7 @@ static int com_read(int port, inode_t *ino)
     return -1;
 }
 
-int com_output(int no, char *buf, int len)
+int com_output(int no, const char *buf, int len)
 {
     int port = serial_ports[no];
     for (; len-- > 0; buf++) {

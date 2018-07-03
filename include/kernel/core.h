@@ -46,6 +46,7 @@ void kernel_sweep();
 
 /* - */
 page_t mmu_read(size_t vaddr);
+void page_range(long long base, long long length);
 
 void kernel_tasklet(void *start, long arg, CSTR name);
 void kexit();
@@ -130,6 +131,10 @@ void irq_disable();
 void irq_register(int no, irq_handler_t func, void *data);
 /* - */
 void irq_unregister(int no, irq_handler_t func, void *data);
+/* - */
+void irq_fault(const fault_t *fault);
+/* - */
+long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -138,8 +143,14 @@ int cpu_no(); // TODO optimization by writing this one as `pure'.
 time_t cpu_time();
 /* - */
 void cpu_awake();
-
+/* - */
+void cpu_setup();
+/* - */
+uint64_t cpu_clock();
+/* - */
 uint64_t time_elapsed(uint64_t *last);
+/* - */
+void cpu_halt();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
