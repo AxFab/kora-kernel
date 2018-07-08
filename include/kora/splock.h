@@ -75,7 +75,7 @@ static inline bool splock_trylock(splock_t *lock)
     unsigned short ticket = lock->users;
     unsigned cmp1 = ((unsigned)ticket << 16) + ticket;
     unsigned cmp2 = ((unsigned)(ticket + 1) << 16) + ticket;
-    if (atomic32_cmpxchg(lock->val, cmp, cmp2))
+    if (atomic32_cmpxchg(lock->val, cmp1, cmp2))
         return true;
     irq_enable();
     return false;

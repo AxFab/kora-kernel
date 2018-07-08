@@ -28,7 +28,7 @@ global int_irq6, int_irq7, int_irq8, int_irq9, int_irq10, int_irq11
 global int_irq12, int_irq13, int_irq14, int_irq15, int_irq16, int_irq17
 global int_irq18, int_irq19, int_irq20, int_irq21, int_irq22, int_irq23
 global int_irq24, int_irq25, int_irq26, int_irq27, int_irq28, int_irq29
-global int_irq30, int_irq31
+global int_irq30, int_irq31, int_irqLT
 
 
 extern x86_fault, x86_error, irq_enter, x86_syscall, x86_pgflt
@@ -220,3 +220,5 @@ int_irq30:
 int_irq31:
     IRQ_HANDLER  31
 
+int_irqLT:
+    IRQ_HANDLER  250

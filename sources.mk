@@ -25,6 +25,7 @@ CFLAGS += -ggdb3 -I$(topdir)/include -I$(topdir)/include/cc
 
 COV_FLAGS += --coverage -fprofile-arcs -ftest-coverage
 KRN_FLAGS += -DKORA_STDC
+# -DSPLOCK_TICKET
 
 include $(srcdir)/drivers/drivers.mk
 include $(srcdir)/arch/$(target_arch)/make.mk

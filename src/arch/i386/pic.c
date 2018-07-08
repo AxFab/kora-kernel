@@ -43,3 +43,12 @@ void pic_setup()
     outb(PIC1_DATA, 0x0);
     outb(PIC2_DATA, 0x0);
 }
+
+
+void pic_mask_off()
+{
+    inb(PIC1_DATA);
+    outb(PIC1_DATA, 0xFF);
+    inb(PIC2_DATA);
+    outb(PIC2_DATA, 0xFF);
+}

@@ -18,7 +18,10 @@
 use32
 
 global cpu_no, cpu_save, cpu_restore, cpu_halt
-extern apic_regs
+extern apic_regs, cpu_table
+
+%define KCS 0x8
+%define KDS 0x10
 
 cpu_no:
     mov eax, [apic_regs]
@@ -59,6 +62,45 @@ cpu_restore:
     jmp ecx
 
 cpu_halt:
+    cli
+    ; Get TSS Address
+    call cpu_no
+    mov ecx, eax
+    shl eax, 7
+    add eax, 0x1000
+    mov edi, eax
+
+    ; Compute stack
+    mov ebx, [cpu_table]
+    mov edx, ecx
+    shl edx, 5
+    add ebx, edx
+    add ebx, 12
+    mov eax, [ebx]
+    add eax, 0xFF0
+    mov esp, eax
+
+    ; Prepare stack
+    mov esp, eax
+    mov dword [esp + 0], cpu_halt.halt  ; eip
+    mov dword [esp + 4], KCS  ; cs
+    mov dword [esp + 8], 0x200  ; eflags
+
+    ; Set TSS ESP0
+    add edi, 4
+    mov [edi], eax
+
+    mov ax, KDS
+    mov ds, ax
+    mov es, ax
+
+    ; End of interupt
+    mov al,0x20
+    out 0x20,al
+    iret
+
+.halt:
     sti
     hlt
-    jmp $
+    pause
+    jmp .halt
