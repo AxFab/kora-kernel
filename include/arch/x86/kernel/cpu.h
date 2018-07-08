@@ -75,6 +75,7 @@ struct x86_tss {
     uint16_t    gs, __gs_unused;
     uint16_t    ldt_selector, __ldt_sel_unused;
     uint16_t    debug_flag, io_map;
+    uint16_t    padding[12];
 };
 
 #define TSS_BASE  ((struct x86_tss*)0x1000)

@@ -73,9 +73,9 @@ static void ioapic_write(int no, uint8_t *ioapic, uint32_t index,
     data[0] = value;
 }
 
-static void ioapic_write_irq(int no, uint8_t *ioapic, int irq)
+static void ioapic_write_irq(int no, uint8_t *ioapic, int irq, int flags)
 {
-    uint64_t value = 0x20 + irq;
+    uint64_t value = (0x20 + irq) | flags;
     uint32_t reg = (irq << 1) + 0x10;
     ioapic_write(no, ioapic, reg, value & 0xffffffff);
     ioapic_write(no, ioapic, reg + 1, (value >> 32) & 0xffffffff);
@@ -101,9 +101,11 @@ void ioapic_register(madt_ioapic_t *info)
     kprintf(KLOG_ERR, " - ioapic: apic:%d, base:%x, GSIs:%d, IRQs %d\n",
             info->apic_id, info->base, info->gsi, irq_count);
 
-    int i;
-    for (i = 0; i < irq_count; ++i)
-        ioapic_write_irq(info->apic_id, ioapic, i);
+    int i, flags;
+    for (i = 0; i < irq_count; ++i) {
+        flags = (i == 0 || i == 23) ? (0xFF << 56) | 0x800 : 0x8000;
+        ioapic_write_irq(info->apic_id, ioapic, i, flags);
+    }
 
     // kunmap(ioapic, PAGE_SIZE);
 }
@@ -123,6 +125,19 @@ void apic_override_register(madt_override_t *info)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+void apic_start_timer()
+{
+    /* Tell APIC timer to use divider 16 */
+    apic_regs[APIC_TM_DIV] = 0x3;
+    apic_regs[APIC_TM_INC] = 0xffffffff;
+    x86_delay(100 * 1000);
+    apic_regs[APIC_LVT_TMR] = 0x10000;
+    uint32_t ticksIn10ms = 0xffffffff - apic_regs[APIC_TM_CUC];
+    apic_regs[APIC_LVT_TMR] = 0x20 | 0x20000;
+    apic_regs[APIC_TM_DIV] = 0x3;
+    apic_regs[APIC_TM_INC] = ticksIn10ms;
+    kprintf(0, "APIC timer ticks in 10ms: %d \n", ticksIn10ms);
+}
 
 void ap_start();
 void GDT(int no, uint32_t base, uint32_t limit, int access, int other);
@@ -135,17 +150,25 @@ void apic_init()
     apic_regs[APIC_LDR] = 0xFF000000;
     apic_regs[APIC_EOI] = 0;
 
-    int i = cpu_no();
-    kprintf(-1, "CPU%d - at %p \n", i, &kCPU);
+    apic_start_timer();
 
-    TSS_BASE[i].debug_flag = 0;
-    TSS_BASE[i].io_map = 0;
-    TSS_BASE[i].esp0 = cpu_table[i].stack + PAGE_SIZE - 16;
-    TSS_BASE[i].ss0 = 0x18;
-    GDT(i + 7, TSS_CPU(i), 0x67, 0xe9, 0x00); // TSS CPU(i)
-    x86_set_tss(i + 7);
+    /* Local vector table register
+        0-7     The vector number
+        8-11    (timer) 100b if NMI
+        12      Set if interrupt is pending
+        13      (timer) Polarity, set is low triggered
+        14      (timer) Remote IRR
+        15      (timer) Trigger mode, set is level triggered
+        16      Set to mask
+                Reserved
+     */
+    apic_regs[APIC_LVT_TMR] = 32 + 23;
+    apic_regs[APIC_LVT_PERF] = 32 + 24;
+    apic_regs[APIC_LVT_LINT0] = 32 + 25;
+    apic_regs[APIC_LVT_LINT1] = 32 + 26;
+    apic_regs[APIC_LVT_ERR] = 32 + 27;
 
-    kprintf(-1, "CPU%d irq_semaphore=%d \n", i, kCPU.irq_semaphore);
+    pic_mask_off();
 }
 
 void apic_setup()
@@ -168,6 +191,7 @@ void apic_setup()
     apic_regs[APIC_ICR_LOW] = 0x000C4600 | ((size_t)ap_start >> 12);
     x86_delay(2); // 200-microsecond delay loop.
 
+    // pic_mask_off();
     apic_init();
 
     // kunmap(apic_mmio, PAGE_SIZE);
@@ -182,7 +206,10 @@ void ap_setup()
     assert(kCPU.irq_semaphore == 1);
     cpuid_setup();
     apic_init();
+    tss_setup();
+
     assert(kCPU.irq_semaphore == 1);
+    irq_reset(false);
     cpu_halt();
     for(;;);
 }

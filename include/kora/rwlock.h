@@ -62,11 +62,11 @@ static inline void rwlock_rdlock(rwlock_t *lock)
 {
     for (;;) {
         atomic_inc(&lock->readers);
-        if (!lock->lock)
+        if (!splock_locked(&lock->lock))
             return;
 
         atomic_dec(&lock->readers);
-        while (lock->lock)
+        while (splock_locked(&lock->lock))
             cpu_relax();
     }
 }
@@ -95,7 +95,7 @@ static inline void rwlock_wrunlock(rwlock_t *lock)
 static inline bool rwlock_rdtrylock(rwlock_t *lock)
 {
     atomic_inc(&lock->readers);
-    if (!lock->lock)
+    if (!splock_locked(&lock->lock))
         return true;
 
     atomic_dec(&lock->readers);

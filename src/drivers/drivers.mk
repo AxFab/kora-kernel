@@ -17,7 +17,7 @@
 drvdir = $(srcdir)/drivers
 
 # drv_src-y += $(wildcard $(drvdir)/disk/ata/*.c)
-# drv_src-y += $(wildcard $(drvdir)/disk/gpt/*.c)
+# # drv_src-y += $(wildcard $(drvdir)/disk/gpt/*.c)
 # # drv_src-y += $(wildcard $(drvdir)/disk/imgdk/*.c)
 
 # # drv_src-y += $(wildcard $(drvdir)/fs/ext2/*.c)

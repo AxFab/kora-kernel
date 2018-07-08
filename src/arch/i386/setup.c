@@ -84,6 +84,7 @@ void int_irq28();
 void int_irq29();
 void int_irq30();
 void int_irq31();
+void int_irqLT();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -375,6 +376,23 @@ void cpuid_setup()
     }
 }
 
+void tss_setup()
+{
+    int i = cpu_no();
+    kprintf(-1, "CPU%d - at %p \n", i, &kCPU);
+
+    TSS_BASE[i].debug_flag = 0;
+    TSS_BASE[i].io_map = 0;
+    TSS_BASE[i].esp0 = cpu_table[i].stack + PAGE_SIZE - 16;
+    TSS_BASE[i].ss0 = 0x18;
+    GDT(i + 7, TSS_CPU(i), 0x67, 0xe9, 0x00); // TSS CPU(i)
+    x86_set_tss(i + 7);
+
+    kprintf(-1, "CPU%d TSS at %x using stack %x\n", i, &TSS_BASE[i], TSS_BASE[i].esp0);
+    kprintf(-1, "CPU%d TSS no %d with %x \n", i, i + 7, TSS_CPU(i));
+    kprintf(-1, "CPU%d irq_semaphore=%d \n", i, kCPU.irq_semaphore);
+}
+
 // create cpufeatures structs
 void cpu_setup()
 {
@@ -382,9 +400,14 @@ void cpu_setup()
     // setup pic (BSP only)
     // pic_setup();
     // look for ACPI (BSP)
+    pic_setup();
     acpi_setup();
     cpuid_setup();
+    time_t now = rtc_time();
+    kprintf(0, "Unix Epoch: %d \n", now);
     apic_setup();
+    tss_setup();
+    hpet_setup();
     //   save prepare cpus
     //   prepare io_apic, overwrite
     // TSS
@@ -487,5 +510,7 @@ void cpu_early_init() // GDT & IDT
     IDT(0x3F, 0x08, (uint32_t)int_irq31, INTGATE);
 
     IDT(0x40, 0x08, (uint32_t)int_syscall, TRAPGATE);
+
+    IDT(0xFF, 0x08, (uint32_t)int_irqLT, INTGATE);
 }
 

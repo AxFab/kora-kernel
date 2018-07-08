@@ -146,8 +146,6 @@ void kernel_start()
 
     kprintf(KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
 
-    cpu_halt();
-    for (;;);
 
     // time_t now = cpu_time();
     // kprintf(KLOG_MSG, "Startup: %s", asctime(gmtime(&now)));
@@ -160,10 +158,10 @@ void kernel_start()
     // assert(irq);
 
     // #if 1
-    //     // KSETUP(ps2);
-    //     KSETUP(ide_ata);
+        // KSETUP(ps2);
+        // KSETUP(ide_ata);
     //     KSETUP(pci);
-    //     KSETUP(e1000);
+    // KSETUP(e1000);
     //     KSETUP(vbox);
     //     KSETUP(ac97);
     //     // KSETUP(vga);
@@ -205,10 +203,16 @@ void kernel_start()
     // vfs_close(root);
     // vfs_close(ino);
     // irq_reset(false);
-    // clock_init();
+    clock_init();
     // no_dbg = 0;
-    // irq_register(0, (irq_handler_t)sys_ticks, NULL);
+    int clock_irq = 2;
+    irq_register(clock_irq, (irq_handler_t)sys_ticks, NULL);
     // PS2_reset();
+
+    assert(kCPU.irq_semaphore == 1);
+    irq_reset(false);
+    cpu_halt();
+    for (;;);
 }
 
 void kernel_ready()

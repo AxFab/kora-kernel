@@ -276,25 +276,6 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     kprintf(0, "%s, Speed: %s\n", ifnet->name, spd[sp]);
 }
 
-// void e1000_start(E1000_inet_t *ifnet)
-// {
-//     e1000_init_hw(ifnet);
-//     // net_tasklet(ifnet);
-
-//     ifnet->dev.ip4_addr[0] = 192;
-//     ifnet->dev.ip4_addr[1] = 168;
-//     ifnet->dev.ip4_addr[2] = 1;
-//     ifnet->dev.ip4_addr[3] = 9;
-//     uint32_t ip = 0x0101a8c0;
-//     arp_query(&ifnet->dev, (uint8_t*)&ip);
-
-
-//     for (;;) {
-//         advent_wait(NULL, NULL, 1000000); // 1 sec
-//         kprintf(0, "E1000's waiting...\n");
-//     }
-// }
-
 
 void e1000_startup(struct PCI_device *pci, const char *name)
 {
@@ -403,18 +384,6 @@ struct e1000_id __e1000_ids[] = {
 };
 
 
-struct e1000_id *e1000_pci_info(struct PCI_device *pci)
-{
-    unsigned i;
-    for (i = 0; i < sizeof(__e1000_ids) / sizeof(struct e1000_id); ++i) {
-        if (__e1000_ids[i].id == pci->device_id)
-            return &__e1000_ids[i];
-    }
-
-    return NULL;
-}
-
-
 int e1000_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
 {
     unsigned i;
@@ -422,7 +391,7 @@ int e1000_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
         return -1;
     for (i = 0; i < sizeof(__e1000_ids) / sizeof(struct e1000_id); ++i) {
         if (__e1000_ids[i].id == device)
-            return 0;
+            return i;
     }
 
     return -1;
@@ -433,12 +402,13 @@ void e1000_setup()
     struct PCI_device *pci = NULL;
     char name[48];
 
+    int i;
     for (;;) {
-        pci = PCI_search2(e1000_match_pci_device);
+        pci = pci_search(e1000_match_pci_device, &i);
         if (pci == NULL)
             break;
 
-        struct e1000_id *info = e1000_pci_info(pci);
+        struct e1000_id *info = &__e1000_ids[i];
         strcpy(name, "Intel PRO/1000");
         if (info) {
             strcat(name, " ");

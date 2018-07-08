@@ -76,10 +76,7 @@ struct PCI_device {
 
 typedef int (*pci_matcher)(uint16_t vendor, uint32_t class, uint16_t device);
 
-struct PCI_device *PCI_search2(pci_matcher match);
-
-struct PCI_device *PCI_search(uint16_t vendor_id, uint32_t class_id,
-                              uint16_t device_id);
+struct PCI_device *pci_search(pci_matcher match, int *data);
 
 
 static inline void PCI_wr32(struct PCI_device *pci, char no, uint16_t address,
@@ -127,38 +124,38 @@ static inline uint16_t PCI_rd16(struct PCI_device *pci, char no,
 }
 
 /* Read 8 bits from the PCI configuration */
-uint8_t PCI_config_read8(uint8_t bus, uint8_t slot, uint8_t func,
+uint8_t pci_config_read8(uint8_t bus, uint8_t slot, uint8_t func,
                          uint8_t offset);
 /* Read 16 bits from the PCI configuration */
-uint16_t PCI_config_read16(uint8_t bus, uint8_t slot, uint8_t func,
+uint16_t pci_config_read16(uint8_t bus, uint8_t slot, uint8_t func,
                            uint8_t offset);
 
 /* Read 32 bits from the PCI configuration */
-uint32_t PCI_config_read32(uint8_t bus, uint8_t slot, uint8_t func,
+uint32_t pci_config_read32(uint8_t bus, uint8_t slot, uint8_t func,
                            uint8_t offset);
 /* Write 32 bits from the PCI configuration */
-void PCI_config_write32(uint8_t bus, uint8_t slot, uint8_t func,
+void pci_config_write32(uint8_t bus, uint8_t slot, uint8_t func,
                         uint8_t offset, uint32_t value);
 
 static inline uint8_t PCI_cfg_rd8(struct PCI_device *pci, uint8_t off)
 {
-    return PCI_config_read8(pci->bus, pci->slot, 0, off);
+    return pci_config_read8(pci->bus, pci->slot, 0, off);
 }
 
 static inline uint16_t PCI_cfg_rd16(struct PCI_device *pci, uint8_t off)
 {
-    return PCI_config_read16(pci->bus, pci->slot, 0, off);
+    return pci_config_read16(pci->bus, pci->slot, 0, off);
 }
 
 static inline uint32_t PCI_cfg_rd32(struct PCI_device *pci, uint8_t off)
 {
-    return PCI_config_read32(pci->bus, pci->slot, 0, off);
+    return pci_config_read32(pci->bus, pci->slot, 0, off);
 }
 
 static inline void PCI_cfg_wr32(struct PCI_device *pci, uint8_t off,
                                 uint32_t val)
 {
-    PCI_config_write32(pci->bus, pci->slot, 0, off, val);
+    pci_config_write32(pci->bus, pci->slot, 0, off, val);
 }
 
 

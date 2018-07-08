@@ -36,7 +36,11 @@
 #define APIC_ESR  (0x280 / 4) // Error Status Register
 #define APIC_ICR_LOW  (0x300 / 4)
 #define APIC_ICR_HIGH  (0x310 / 4)
-#define APIC_LVT3  (0x370 / 4) // LVT Error register
+#define APIC_LVT_TMR (0x320 / 4) // LVT Timer
+#define APIC_LVT_PERF (0x320 / 4) // LVT Perf
+#define APIC_LVT_LINT0 (0x320 / 4) // LVT Int 0
+#define APIC_LVT_LINT1 (0x320 / 4) // LVT Int 1
+#define APIC_LVT_ERR  (0x370 / 4) // LVT Error register
 #define APIC_TM_INC (0x380 / 4) // Timer initial counter
 #define APIC_TM_CUC (0x390 / 4) // Timer current counter
 #define APIC_TM_DIV (0x3E0 / 4) // Timer divide
