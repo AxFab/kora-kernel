@@ -75,7 +75,7 @@ void sys_ticks()
         // Compute global load
         splock_unlock(&xtime_lock);
     } else {
-        kprintf(-1, "CPU.%d Ticks\n", cpu_no());
+        // kprintf(-1, "CPU.%d Ticks\n", cpu_no());
         return;
     }
     advent_timeout();

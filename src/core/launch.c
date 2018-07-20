@@ -139,9 +139,10 @@ void kernel_start()
     memory_info();
     assert(kCPU.irq_semaphore == 1);
 
-
-    assert(kCPU.irq_semaphore == 1);
     cpu_setup();
+    assert(kCPU.irq_semaphore == 1);
+
+    platform_setup();
     assert(kCPU.irq_semaphore == 1);
 
     kprintf(KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
@@ -161,7 +162,7 @@ void kernel_start()
         // KSETUP(ps2);
         // KSETUP(ide_ata);
     //     KSETUP(pci);
-    // KSETUP(e1000);
+    KSETUP(e1000);
     //     KSETUP(vbox);
     //     KSETUP(ac97);
     //     // KSETUP(vga);
@@ -170,10 +171,10 @@ void kernel_start()
     // #endif
     //     KSETUP(isofs);
 
-    // kernel_tasklet(ktsk1, 1, "Dbg_task1");
-    // kernel_tasklet(ktsk2, 2, "Dbg_task2");
-    // kernel_tasklet(ktsk3, 3, "Dbg_task3");
-    // kernel_tasklet(kernel_top, 5, "Dbg top 5s");
+    kernel_tasklet(ktsk1, 1, "Dbg_task1");
+    kernel_tasklet(ktsk2, 2, "Dbg_task2");
+    kernel_tasklet(ktsk3, 3, "Dbg_task3");
+    kernel_tasklet(kernel_top, 5, "Dbg top 5s");
     // desktop_t *dekstop = wmgr_desktop();
 
     // tty_attach(tty_syslog, wmgr_window(dekstop, 600, 600), &font_6x9, colors_kora, 0);
@@ -205,14 +206,15 @@ void kernel_start()
     // irq_reset(false);
     clock_init();
     // no_dbg = 0;
-    int clock_irq = 2;
-    irq_register(clock_irq, (irq_handler_t)sys_ticks, NULL);
+    // int clock_irq = 2;
+    // irq_register(0, (irq_handler_t)sys_ticks, NULL);
+    irq_register(2, (irq_handler_t)sys_ticks, NULL);
     // PS2_reset();
 
     assert(kCPU.irq_semaphore == 1);
     irq_reset(false);
-    cpu_halt();
-    for (;;);
+    // cpu_halt();
+    // for (;;);
 }
 
 void kernel_ready()

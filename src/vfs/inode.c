@@ -280,7 +280,7 @@ inode_t *vfs_open(inode_t *ino)
  */
 void vfs_close(inode_t *ino)
 {
-    unsigned int cnt = atomic_fetch_add(&ino->rcu, -1);
+    unsigned int cnt = atomic32_xadd(&ino->rcu, -1);
     if (cnt <= 1) {
         // TODO -- Close IO file
         // if (ino->dev != NULL) {

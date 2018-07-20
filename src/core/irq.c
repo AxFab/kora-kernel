@@ -115,6 +115,7 @@ void sys_irq(int no)
         kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d, no handlers.\n", no, cpu_no());
         return;
     }
+        kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d.\n", no, cpu_no());
     for ll_each(&irqv[no].list, record, irq_record_t, node)
         record->func(record->data);
     irq_ack(no);

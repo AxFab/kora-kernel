@@ -133,7 +133,7 @@ startup:
     cli
     call kernel_start
     PUTC 0x27, 'E', 'd'
-    ;sti
+    sti
     jmp $
 
 align 4

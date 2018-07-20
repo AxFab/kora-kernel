@@ -81,6 +81,8 @@ clock_t clock(void);
 /* Get time in seconds  */
 time_t time(time_t *p);
 
+time_t timegm(struct tm *tm);
+
 void nanosleep(struct timespec *req, struct timespec *rest);
 
 #endif  /* _TIME_H */

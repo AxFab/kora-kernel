@@ -22,7 +22,7 @@
 #ifndef _KORA_SPLOCK_H
 #define _KORA_SPLOCK_H 1
 
-#include <stdatomic.h>
+#include <bits/atomic.h>
 #include <stdbool.h>
 extern bool irq_enable();
 extern void irq_disable();
@@ -38,12 +38,14 @@ extern void irq_disable();
 typedef union splock splock_t;
 
 union splock {
-    atomic_char32_t val;
+    atomic32_t val;
     struct {
-        atomic_char16_t ticket;
-        atomic_char16_t users;
+        atomic16_t ticket;
+        atomic16_t users;
     };
 };
+
+#define INIT_SPLOCK  { 0 }
 
 /* Initialize and reset a spin-lock structure */
 static inline void splock_init(splock_t *lock)
@@ -55,7 +57,7 @@ static inline void splock_init(splock_t *lock)
 static inline void splock_lock(splock_t *lock)
 {
     irq_disable();
-    unsigned short ticket = atomic16_xadd(&lock->users, 1);
+    uint16_t ticket = atomic16_xadd(&lock->users, 1);
     while (lock->ticket != ticket)
         cpu_relax();
 }
@@ -64,7 +66,7 @@ static inline void splock_lock(splock_t *lock)
 static inline void splock_unlock(splock_t *lock)
 {
     cpu_barrier();
-    atomic16_inc(lock->ticket);
+    atomic16_inc(&lock->ticket);
     irq_enable();
 }
 
@@ -72,10 +74,10 @@ static inline void splock_unlock(splock_t *lock)
 static inline bool splock_trylock(splock_t *lock)
 {
     irq_disable();
-    unsigned short ticket = lock->users;
+    uint16_t ticket = lock->users;
     unsigned cmp1 = ((unsigned)ticket << 16) + ticket;
     unsigned cmp2 = ((unsigned)(ticket + 1) << 16) + ticket;
-    if (atomic32_cmpxchg(lock->val, cmp1, cmp2))
+    if (atomic32_cmpxchg(&lock->val, cmp1, cmp2))
         return true;
     irq_enable();
     return false;
@@ -93,7 +95,9 @@ static inline bool splock_locked(splock_t *lock)
 
 #else  /* NAIVE IMPLEMENTATION */
 
-typedef atomic_uint splock_t;
+typedef atomic32_t splock_t;
+
+#define INIT_SPLOCK  0
 
 /* Initialize and reset a spin-lock structure */
 static inline void splock_init(splock_t *lock)

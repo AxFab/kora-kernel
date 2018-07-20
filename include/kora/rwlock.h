@@ -22,7 +22,7 @@
 #ifndef _KORA_RWLOCK_H
 #define _KORA_RWLOCK_H 1
 
-#include <stdatomic.h>
+#include <bits/atomic.h>
 #include <kora/splock.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -47,7 +47,7 @@ typedef struct rwlock rwlock_t;
 
 struct rwlock {
     splock_t lock;
-    atomic_uint readers;
+    atomic32_t readers;
 };
 
 /* Initialize or reset a read/write lock structure */

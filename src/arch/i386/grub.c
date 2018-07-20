@@ -69,22 +69,23 @@ int grub_init(void *table)
     csl_early_init();
     com_early_init();
 
-    if (grub_table->flags & GRUB_BOOT_LOADER)
-        kprintf(KLOG_MSG, "Boot Loader: %s\n", grub_table->boot_loader);
+    // Those call to kprintf crash under VirtualBox!
+    // if (grub_table->flags & GRUB_BOOT_LOADER)
+    //     kprintf(KLOG_MSG, "Boot Loader: %s\n", grub_table->boot_loader);
 
-    if (grub_table->flags & GRUB_CMDLINE)
-        kprintf(KLOG_MSG, "Command line: %s\n", grub_table->cmdline);
+    // if (grub_table->flags & GRUB_CMDLINE)
+    //     kprintf(KLOG_MSG, "Command line: %s\n", grub_table->cmdline);
 
-    if (grub_table->flags & GRUB_BOOT_DEVICE) {
-        if (grub_table->boot_dev == 0x80)   // 1000b
-            kprintf(KLOG_MSG, "Booting device: HDD\n");
+    // if (grub_table->flags & GRUB_BOOT_DEVICE) {
+    //     if (grub_table->boot_dev == 0x80)   // 1000b
+    //         kprintf(KLOG_MSG, "Booting device: HDD\n");
 
-        else if (grub_table->boot_dev == 0xe0)   // 1110b
-            kprintf(KLOG_MSG, "Booting device: CD\n");
+    //     else if (grub_table->boot_dev == 0xe0)   // 1110b
+    //         kprintf(KLOG_MSG, "Booting device: CD\n");
 
-        else
-            kprintf(KLOG_MSG, "Booting device: Unknown <%2x>\n", grub_table->boot_dev);
-    }
+    //     else
+    //         kprintf(KLOG_MSG, "Booting device: Unknown <%2x>\n", grub_table->boot_dev);
+    // }
 
 
     return 0;

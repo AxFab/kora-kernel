@@ -20,6 +20,7 @@
 #include <kernel/core.h>
 #include <kernel/cpu.h>
 #include <string.h>
+#include <time.h>
 
 #define CURRENT_YEAR        2018
 #define CURRENT_CENTURY     (CURRENT_YEAR / 100)
