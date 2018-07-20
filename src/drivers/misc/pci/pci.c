@@ -19,7 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/drv/pci.h>
-#include <kora/atomic.h>
+#include <bits/atomic.h>
 #include <string.h>
 
 #ifdef K_MODULE

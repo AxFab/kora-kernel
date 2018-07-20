@@ -32,7 +32,7 @@ struct stream {
 struct resx {
     bbtree_t tree; // TODO -- Is BBTree the best data structure !?
     rwlock_t lock;
-    atomic_uint users;
+    atomic32_t users;
 };
 
 
@@ -50,7 +50,7 @@ resx_t *resx_rcu(resx_t *resx, int usage)
     if (usage == 1)
         atomic_inc(&resx->users);
     else {
-        if (atomic_fetch_add(&resx->users, -1) == 1) {
+        if (atomic32_xadd(&resx->users, -1) == 1) {
             // WE CAN DESALLOCATE THIS ONE !
             kfree(resx);
             return NULL;

@@ -24,7 +24,7 @@
 #include <kernel/memory.h>
 #include <kora/bbtree.h>
 #include <kora/splock.h>
-#include <stdatomic.h>
+#include <bits/atomic.h>
 
 
 struct vma {

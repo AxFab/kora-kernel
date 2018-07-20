@@ -249,3 +249,7 @@ struct PCI_device *pci_search(pci_matcher match, int *data)
 }
 
 
+void platform_setup()
+{
+    pci_setup();
+}

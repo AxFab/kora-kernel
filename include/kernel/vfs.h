@@ -84,8 +84,8 @@ struct inode {
     struct timespec mtime;
     struct timespec btime;
 
-    atomic_uint rcu;
-    atomic_uint links;
+    atomic32_t rcu;
+    atomic32_t links;
     union {
         void *object;
     };

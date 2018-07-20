@@ -23,7 +23,7 @@
 #include <kernel/cpu.h>
 #include <kernel/vma.h>
 #include <kernel/mmu.h>
-#include <kora/atomic.h>
+#include <bits/atomic.h>
 #include <string.h>
 #include <assert.h>
 #include <time.h>
@@ -155,7 +155,7 @@ bool delay_reg = false;
 void x86_delayIRQ()
 {
     // Timer is in microseconds
-    atomic_fetch_add(&x86_delayTimer, 1000000 / CLOCK_HZ);
+    atomic32_xadd(&x86_delayTimer, 1000000 / CLOCK_HZ);
 }
 
 void x86_delayX(unsigned int microsecond)

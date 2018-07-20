@@ -19,7 +19,7 @@
  */
 #include <assert.h>
 #include <stdbool.h>
-#include <stdatomic.h>
+#include <bits/atomic.h>
 #include <kernel/core.h>
 #include <kernel/cpu.h>
 

@@ -106,7 +106,7 @@ void acpi_setup()
     // Search RSDP and RSDT
     rsdp = (acpi_rsdp_t *)ptr;
     void *rsdt_pg = kmap(PAGE_SIZE, NULL, ALIGN_DW(rsdp->rsdt, PAGE_SIZE),
-                         VMA_PHYSIQ);
+                         VMA_PHYSIQ | VMA_UNCACHABLE);
     rsdt = (acpi_rsdt_t *)((size_t)rsdt_pg | (rsdp->rsdt & (PAGE_SIZE - 1)));
     if (acpi_checksum(&rsdt->header) != 0) {
         kprintf(KLOG_ERR, "Invalid ACPI RSDT checksum.\n");

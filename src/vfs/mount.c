@@ -64,7 +64,7 @@ int vfs_mountpt(CSTR name, CSTR fsname, fsvolume_t *fs, inode_t *ino)
 
 void vfs_mountpt_rcu_(fsvolume_t *fs)
 {
-    if (atomic_fetch_add(&fs->rcu, -1) > 1)
+    if (atomic32_xadd(&fs->rcu, -1) > 1)
         return;
     kfree(fs->name);
     kfree(fs->fsname);

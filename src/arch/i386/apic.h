@@ -59,4 +59,10 @@ extern size_t apic_mmio;
 void apic_setup();
 void cpuid_setup(); // in setup.c
 
+void pic_mask_off();
+void tss_setup();
+void pic_setup();
+time_t rtc_time();
+void hpet_setup();
+
 #endif  /* _SRC_APIC_H */

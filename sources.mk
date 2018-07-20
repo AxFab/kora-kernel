@@ -24,7 +24,7 @@ CFLAGS += -Wno-multichar -Wno-implicit-fallthrough
 CFLAGS += -ggdb3 -I$(topdir)/include -I$(topdir)/include/cc
 
 COV_FLAGS += --coverage -fprofile-arcs -ftest-coverage
-KRN_FLAGS += -DKORA_STDC
+KRN_FLAGS += -DKORA_STDC -DSPLOCK_TICKET
 # -DSPLOCK_TICKET
 
 include $(srcdir)/drivers/drivers.mk

@@ -21,7 +21,7 @@
 #include <kernel/task.h>
 #include <kernel/vfs.h>
 #include <kernel/memory.h>
-#include <kora/atomic.h>
+#include <bits/atomic.h>
 #include <bits/signum.h>
 #include <string.h>
 #include <assert.h>

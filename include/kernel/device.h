@@ -120,7 +120,7 @@ struct fsvolume {
 
     int atimes; /* Sepcify the behaviour of atimes handling */
     HMP_map hmap;
-    atomic_uint rcu;
+    atomic32_t rcu;
     llhead_t lru;
 
     fs_read read;

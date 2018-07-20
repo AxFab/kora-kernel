@@ -43,6 +43,7 @@ void kclock(struct timespec *ts);
 void kernel_start();
 void kernel_ready();
 void kernel_sweep();
+void platform_setup();
 
 /* - */
 page_t mmu_read(size_t vaddr);

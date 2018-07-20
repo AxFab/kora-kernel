@@ -73,7 +73,7 @@ static void ioapic_write(int no, uint8_t *ioapic, uint32_t index,
     data[0] = value;
 }
 
-static void ioapic_write_irq(int no, uint8_t *ioapic, int irq, int flags)
+static void ioapic_write_irq(int no, uint8_t *ioapic, int irq, uint64_t flags)
 {
     uint64_t value = (0x20 + irq) | flags;
     uint32_t reg = (irq << 1) + 0x10;
@@ -93,7 +93,7 @@ static void ioapic_write_irq(int no, uint8_t *ioapic, int irq, int flags)
 
 void ioapic_register(madt_ioapic_t *info)
 {
-    uint8_t *ioapic = kmap(PAGE_SIZE, NULL, info->base, VMA_PHYSIQ);
+    uint8_t *ioapic = kmap(PAGE_SIZE, NULL, info->base, VMA_PHYSIQ | VMA_UNCACHABLE);
 
     int irq_count = (ioapic_read(info->apic_id, ioapic,
                                  IOAPIC_VERSION) >> 16) & 0xFF;
@@ -101,9 +101,10 @@ void ioapic_register(madt_ioapic_t *info)
     kprintf(KLOG_ERR, " - ioapic: apic:%d, base:%x, GSIs:%d, IRQs %d\n",
             info->apic_id, info->base, info->gsi, irq_count);
 
-    int i, flags;
+    int i;
+    uint64_t flags;
     for (i = 0; i < irq_count; ++i) {
-        flags = (i == 0 || i == 23) ? (0xFF << 56) | 0x800 : 0x8000;
+        flags = (i == 0 || i == 23) ? (0xFFULL << 56) | 0x800 : 0x8000;
         ioapic_write_irq(info->apic_id, ioapic, i, flags);
     }
 
@@ -162,11 +163,11 @@ void apic_init()
         16      Set to mask
                 Reserved
      */
-    apic_regs[APIC_LVT_TMR] = 32 + 23;
-    apic_regs[APIC_LVT_PERF] = 32 + 24;
-    apic_regs[APIC_LVT_LINT0] = 32 + 25;
-    apic_regs[APIC_LVT_LINT1] = 32 + 26;
-    apic_regs[APIC_LVT_ERR] = 32 + 27;
+    // apic_regs[APIC_LVT_TMR] = 32 + 23;
+    // apic_regs[APIC_LVT_PERF] = 32 + 24;
+    // apic_regs[APIC_LVT_LINT0] = 32 + 25;
+    // apic_regs[APIC_LVT_LINT1] = 32 + 26; //) | (4 << 8);
+    // apic_regs[APIC_LVT_ERR] = 32 + 27;
 
     pic_mask_off();
 }
@@ -177,7 +178,7 @@ void apic_setup()
         return;
 
     kprintf(KLOG_ERR, "Local APIC at %x\n", apic_mmio);
-    apic_regs = kmap(PAGE_SIZE, NULL, apic_mmio, VMA_PHYSIQ);
+    apic_regs = kmap(PAGE_SIZE, NULL, apic_mmio, VMA_PHYSIQ | VMA_UNCACHABLE);
 
     kprintf(KLOG_DBG, "Send INIT IPI to all APs\n");
     // INIT IPI to all APs

@@ -281,7 +281,7 @@ void mspace_sweep(mspace_t *mspace)
 /* Decrement RCU and might release all VMA and free data structures. */
 void mspace_close(mspace_t *mspace)
 {
-    if (atomic_fetch_add(&mspace->users, -1) == 1) {
+    if (atomic32_xadd(&mspace->users, -1) == 1) {
         mspace_sweep(mspace);
         mmu_destroy_uspace(mspace);
         /* Free memory space */

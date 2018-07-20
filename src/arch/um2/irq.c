@@ -21,7 +21,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <bits/cdefs.h>
-#include <kora/atomic.h>
+#include <bits/atomic.h>
 
 bool irq_enable();
 

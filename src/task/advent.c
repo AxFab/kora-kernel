@@ -36,7 +36,7 @@ struct advent {
 };
 
 llhead_t wlist = INIT_LLHEAD;
-splock_t wlock = 0;
+splock_t wlock = INIT_SPLOCK;
 time64_t wtime = INT64_MAX;
 
 
