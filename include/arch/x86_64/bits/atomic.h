@@ -68,7 +68,7 @@ static inline uint16_t atomic16_xadd(atomic16_t *ptr, uint16_t value)
     return value;
 }
 
-uint16_t atomic16_cmpxchg(atomic16_t *ptr, uint16_t reference,
+static inline uint16_t atomic16_cmpxchg(atomic16_t *ptr, uint16_t reference,
                           uint16_t value)
 {
     asm volatile("lock cmpxchg %%ax, %2;"
