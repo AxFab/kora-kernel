@@ -110,7 +110,7 @@ static inline void splock_lock(splock_t *lock)
 {
     irq_disable();
     for (;;) {
-        if (atomic_exchange(lock, 1) == 0)
+        if (atomic_xchg(lock, 1) == 0)
             return;
         while (*lock != 0)
             cpu_relax();
@@ -129,7 +129,7 @@ static inline void splock_unlock(splock_t *lock)
 static inline bool splock_trylock(splock_t *lock)
 {
     irq_disable();
-    if (atomic_exchange(lock, 1) == 0)
+    if (atomic_xchg(lock, 1) == 0)
         return true;
     irq_enable();
     return false;
