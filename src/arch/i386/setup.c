@@ -209,8 +209,8 @@ void cpuid_setup()
 {
     int cpu_name[5];
     if (cpu_table == NULL) {
-
-        for (;;);
+        cpu_table = (cpu_x86_t *)kalloc(sizeof(cpu_x86_t));
+        cpu_table[0].stack = 0x4000;
     }
 
     // Get CPU Vendor name
@@ -401,13 +401,13 @@ void cpu_setup()
     // pic_setup();
     // look for ACPI (BSP)
     pic_setup();
-    acpi_setup();
+    // acpi_setup();
     cpuid_setup();
     time_t now = rtc_time();
     kprintf(0, "Unix Epoch: %d \n", now);
-    apic_setup();
+    // apic_setup();
     tss_setup();
-    hpet_setup();
+    // hpet_setup();
     //   save prepare cpus
     //   prepare io_apic, overwrite
     // TSS

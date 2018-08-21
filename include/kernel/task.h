@@ -120,7 +120,8 @@ struct task {
     /* Memory address space */
     mspace_t *usmem;  /* User space memory */
 
-    llhead_t wlist;
+    emitter_t wlist;
+    advent_t *advent;
 };
 
 #define TSK_USER_SPACE  0x001
@@ -148,10 +149,18 @@ void scheduler_rm(task_t *item);
 task_t *scheduler_next();
 
 
-void advent_awake(llhead_t *list, int err);
-int advent_wait(splock_t *lock, llhead_t *list, long timeout_us);
-int advent_wait_rd(rwlock_t *lock, llhead_t *list, long timeout_us);
-void advent_timeout();
+// void advent_awake(llhead_t *list, int err);
+// int advent_wait(splock_t *lock, llhead_t *list, long timeout_us);
+// int advent_wait_rd(rwlock_t *lock, llhead_t *list, long timeout_us);
+// void advent_timeout();
+
+/* Wait for an event to be emited */
+int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us);
+int async_wait_rd(rwlock_t *lock, emitter_t *emitter, long timeout_us);
+int async_wait_wr(rwlock_t *lock, emitter_t *emitter, long timeout_us);
+void async_cancel(task_t *task);
+void async_raise(emitter_t *emitter, int err);
+void async_timesup();
 
 int elf_open(task_t *task, inode_t *ino);
 

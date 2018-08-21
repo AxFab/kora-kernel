@@ -207,7 +207,7 @@ void net_tasklet(netdev_t *ifnet)
                 skb = ll_dequeue(&ifnet->queue, skb_t, node);
                 if (skb != NULL)
                     break;
-                advent_wait(&ifnet->lock, &ifnet->waiters, 1000); // timeout - time64());
+                async_wait(&ifnet->lock, &ifnet->waiters, 1000); // timeout - time64());
             }
             splock_unlock(&ifnet->lock);
             if (skb == NULL)

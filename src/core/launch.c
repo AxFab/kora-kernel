@@ -90,7 +90,7 @@ extern int no_dbg;
 void ktsk1()
 {
     for (;;) {
-        advent_wait(NULL, NULL, 1000000);
+        async_wait(NULL, NULL, 1000000);
         kprintf(-1, "Task1\n");
     }
 }
@@ -98,7 +98,7 @@ void ktsk1()
 void ktsk2()
 {
     for (;;) {
-        advent_wait(NULL, NULL, 1000000);
+        async_wait(NULL, NULL, 1000000);
         kprintf(-1, "Task2\n");
     }
 }
@@ -106,16 +106,16 @@ void ktsk2()
 void ktsk3()
 {
     for (;;) {
-        advent_wait(NULL, NULL, 1000000);
+        async_wait(NULL, NULL, 1000000);
         kprintf(-1, "Task3\n");
     }
 }
 
 void kernel_top(long sec)
 {
-    advent_wait(NULL, NULL, 10000);
+    async_wait(NULL, NULL, 10000);
     for (;;) {
-        advent_wait(NULL, NULL, sec * 1000000);
+        async_wait(NULL, NULL, sec * 1000000);
         task_show_all();
     }
 }
@@ -207,8 +207,8 @@ void kernel_start()
     clock_init();
     // no_dbg = 0;
     // int clock_irq = 2;
-    // irq_register(0, (irq_handler_t)sys_ticks, NULL);
-    irq_register(2, (irq_handler_t)sys_ticks, NULL);
+    irq_register(0, (irq_handler_t)sys_ticks, NULL);
+    // irq_register(2, (irq_handler_t)sys_ticks, NULL);
     // PS2_reset();
 
     assert(kCPU.irq_semaphore == 1);

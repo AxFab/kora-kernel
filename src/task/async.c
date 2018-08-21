@@ -24,17 +24,10 @@
 #include <kora/rwlock.h>
 #include <errno.h>
 
-typedef struct advent advent_t;
-typedef struct emitter emitter_t;
 
 splock_t async_lock;
 llhead_t async_queue = INIT_LLHEAD;
 time64_t async_timeout = INT64_MAX;
-
-struct emitter {
-    llhead_t list;
-    // TODO - Add lock as soon as we dont required global lock.
-};
 
 struct advent {
     emitter_t *emitter;
@@ -68,12 +61,12 @@ static advent_t *async_advent(emitter_t *emitter, long timeout_us)
     return advent;
 }
 
-static void async_cancel(advent_t *advent, int err)
+static void async_terminate(advent_t *advent, int err)
 {
     assert(splock_locked(&async_lock));
     advent->err = err;
     if (advent->emitter != NULL)
-        ll_remove(&emitter->list, &advent->em_node);
+        ll_remove(&advent->emitter->list, &advent->em_node);
     ll_remove(&async_queue, &advent->qu_node);
     advent->task->advent = NULL;
 }
@@ -102,12 +95,34 @@ int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us)
     return lock == NULL || errno == 0 ? 0 : -1;
 }
 
+/* Wait for an event to be emited */
+int async_wait_rd(rwlock_t *lock, emitter_t *emitter, long timeout_us)
+{
+    assert(kCPU.running != NULL);
+    assert(kCPU.irq_semaphore == (lock == NULL ? 0 : 1));
+    assert((lock == NULL) == (emitter == NULL));
+    assert(emitter != NULL || timeout_us > 0);
+
+    advent_t *advent = async_advent(emitter, timeout_us);
+    if (lock != NULL)
+        rwlock_rdunlock(lock);
+    /* We have no locks but IRQs are still off, we can switch task */
+    task_switch(TS_BLOCKED, 0);
+
+    /* We have been rescheduled */
+    errno = advent->err;
+    kfree(advent);
+    if (lock != NULL)
+        rwlock_rdlock(lock);
+    return lock == NULL || errno == 0 ? 0 : -1;
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void async_cancel(task_t *task)
 {
     splock_lock(&async_lock);
-    async_cancel(task->advent, 0);
+    async_terminate(task->advent, 0);
     splock_unlock(&async_lock);
 }
 
@@ -116,12 +131,12 @@ void async_raise(emitter_t *emitter, int err)
     advent_t *advent;
     advent_t *next;
     /* We use a system-wide lock for waiting queues */
-    splock_t(&async_lock);
+    splock_lock(&async_lock);
     advent = ll_first(&emitter->list, advent_t, em_node);
     while (advent) {
         next = ll_next(&advent->em_node, advent_t, em_node);
         /* Wakeup task */
-        async_cancel(advent, err);
+        async_terminate(advent, err);
         task_resume(advent->task);
         advent = next;
     }
@@ -129,13 +144,13 @@ void async_raise(emitter_t *emitter, int err)
 }
 
 
-void async_timeout()
+void async_timesup()
 {
     advent_t *advent;
     advent_t *next;
     time64_t later = INT64_MAX;
     time64_t now = time64();
-    if (now < async_next)
+    if (now < async_timeout)
         return;
     if (!splock_trylock(&async_lock))
         return;
@@ -145,7 +160,7 @@ void async_timeout()
         next = ll_next(&advent->qu_node, advent_t, qu_node);
         if (now >= advent->timeout) {
             /* Wakeup task */
-            async_cancel(advent, err);
+            async_terminate(advent, EAGAIN);
             task_resume(advent->task);
         } else if (later > advent->timeout)
             later = advent->timeout;

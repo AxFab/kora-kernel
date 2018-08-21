@@ -21,6 +21,7 @@
 #define _KERNEL_TYPES 1
 
 #include <kora/stddef.h>
+#include <kora/llist.h>
 #include <kernel/mmu.h>
 #include <stddef.h>
 #include <stdarg.h>
@@ -43,6 +44,9 @@ time64_t time64();
 // Tasks
 typedef struct task task_t;
 typedef struct event event_t;
+typedef struct advent advent_t;
+typedef struct emitter emitter_t;
+
 
 // Memory
 typedef struct mspace mspace_t;
@@ -80,6 +84,12 @@ struct fault {
     const char *mnemonic;
 };
 
+
+
+struct emitter {
+    llhead_t list;
+    // TODO - Add lock as soon as we dont required global lock.
+};
 
 typedef struct blk_ops blk_ops_t;
 typedef struct chr_ops chr_ops_t;

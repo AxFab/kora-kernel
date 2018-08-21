@@ -104,7 +104,7 @@ void wmgr_tasket(desktop_t *desktop)
 {
     // task_priority(kCPU.running, KRN_RT, MICROSEC_PER_SEC / DISPLAY_HZ);
     for (; ;) {
-        advent_wait(NULL, NULL, 1000000 / DISPLAY_HZ); // 1 sec
+        async_wait(NULL, NULL, 1000000 / DISPLAY_HZ); // 1 sec
         kprintf(KLOG_MSG, "Paint\n");
         // display_t *display = desktop->display;
         // splock_lock(&display->lock);
