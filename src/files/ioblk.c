@@ -43,7 +43,7 @@ struct blkpage {
 struct blkcache {
     bbtree_t tree;
     rwlock_t lock;
-    llhead_t wlist; /* Waiting list for readers */
+    emitter_t wlist; /* Waiting list for readers */
 };
 
 /* Request sync to driver */
@@ -163,7 +163,7 @@ page_t ioblk_page(inode_t *ino, off_t off)
     /* If the page is referenced return aonce ready */
     if (page != NULL) {
         if (page->phys
-            || advent_wait_rd(&cache->lock, &cache->wlist, IO_TIMEOUT) == 0) {
+            || async_wait_rd(&cache->lock, &cache->wlist, IO_TIMEOUT) == 0) {
             rwlock_rdunlock(&cache->lock);
             errno = 0;
             return page->phys;
@@ -188,7 +188,7 @@ page_t ioblk_page(inode_t *ino, off_t off)
     /* Request fetch to driver */
     int ret = ioblk_fetch_(page);
     rwlock_wrlock(&cache->lock);
-    advent_awake(&cache->wlist, errno);
+    async_raise(&cache->wlist, errno);
     if (ret != 0)
         ioblk_close(cache, page, true);
     rwlock_wrunlock(&cache->lock);

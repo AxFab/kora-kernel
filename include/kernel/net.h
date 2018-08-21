@@ -124,7 +124,7 @@ struct netdev {
     int(*link)(netdev_t *);
 
     llhead_t queue;
-    llhead_t waiters;
+    emitter_t waiters;
     splock_t lock;
 
     char *hostname;

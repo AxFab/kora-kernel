@@ -271,7 +271,7 @@ void task_switch(int status, int retcode)
         }
         if (status == TS_ZOMBIE) {
             /* Quit the task */
-            advent_awake(&task->wlist, 0);
+            async_raise(&task->wlist, 0);
             // task_zombie(task);
         } else if (status == TS_READY)
             scheduler_add(task);

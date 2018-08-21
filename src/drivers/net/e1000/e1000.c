@@ -189,7 +189,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     struct PCI_device *pci = ifnet->pci;
 
     /* Wait */
-    advent_wait(NULL, NULL, 1000000); // 1 sec
+    async_wait(NULL, NULL, 1000000); // 1 sec
 
     uint32_t status = PCI_rd32(pci, 0, REG_CTRL);
     status |= (1 << 5);   /* set auto speed detection */
@@ -211,7 +211,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     PCI_wr32(pci, 0, REG_CTRL, status);
 
     /* Wait */
-    advent_wait(NULL, NULL, 1000000); // 1 sec
+    async_wait(NULL, NULL, 1000000); // 1 sec
 
     // kprintf(0, "Check E1000 IRQ = %d\n", PCI_cfg_rd16(pci, PCI_INTERRUPT_LINE) & 0xFF);
     irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
@@ -264,7 +264,7 @@ void e1000_init_hw(E1000_inet_t *ifnet)
     PCI_wr32(pci, 0, REG_IMS, _B(0) | _B(1) | _B(2) | _B(6) | _B(7));
 
     /* Wait */
-    advent_wait(NULL, NULL, 1000000); // 1 sec
+    async_wait(NULL, NULL, 1000000); // 1 sec
 
     status = PCI_rd32(pci, 0, REG_STATUS); // & (1 << 1);
     if (status & (1 << 1)) {

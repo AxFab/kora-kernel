@@ -61,10 +61,10 @@ void clock_init()
 }
 
 
-void advent_timeout();
-
 void sys_ticks()
 {
+    kprintf(-1, "CPU.%d Ticks\n", cpu_no());
+
     // irq_disable();
     if (timer_cpu == cpu_no()) {
         splock_lock(&xtime_lock);
@@ -78,7 +78,7 @@ void sys_ticks()
         // kprintf(-1, "CPU.%d Ticks\n", cpu_no());
         return;
     }
-    advent_timeout();
+    async_timesup();
     task_switch(TS_READY, 0);
 }
 

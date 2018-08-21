@@ -36,8 +36,8 @@ struct pipe {
     int avail;
 
     splock_t lock;
-    llhead_t rlist;
-    llhead_t wlist;
+    emitter_t rlist;
+    emitter_t wlist;
 };
 
 static int pipe_resize_unlock_(pipe_t *pipe, int size)
@@ -151,14 +151,14 @@ int pipe_write(pipe_t *pipe, const char *buf, int len, int flags)
                 // kprintf(KLOG_DBG, "Af\n");
                 continue;
             }
-            advent_awake(&pipe->rlist, 0);
+            async_raise(&pipe->rlist, 0);
             if (flags & IO_NO_BLOCK)
                 break;
             if (flags & IO_CONSUME) {
                 pipe_erase_unlock_(pipe, len);
                 continue;
             }
-            advent_wait(&pipe->lock, &pipe->wlist, -1);
+            async_wait(&pipe->lock, &pipe->wlist, -1);
             continue;
         }
         memcpy(pipe->wpen, buf, cap);
@@ -170,7 +170,7 @@ int pipe_write(pipe_t *pipe, const char *buf, int len, int flags)
         if (pipe->wpen == pipe->end)
             pipe->wpen = pipe->base;
     }
-    advent_awake(&pipe->rlist, 0);
+    async_raise(&pipe->rlist, 0);
     splock_unlock(&pipe->lock);
     errno = 0;
     return bytes;
@@ -188,10 +188,10 @@ int pipe_read(pipe_t *pipe, char *buf, int len, int flags)
     while (len > 0) {
         int cap = MIN3(len, pipe->end - pipe->rpen, pipe->avail);
         if (cap == 0) {
-            advent_awake(&pipe->wlist, 0);
+            async_raise(&pipe->wlist, 0);
             if (flags & IO_NO_BLOCK)
                 break;
-            advent_wait(&pipe->lock, &pipe->rlist, -1);
+            async_wait(&pipe->lock, &pipe->rlist, -1);
             continue;
         }
         memcpy(buf, pipe->rpen, cap);
@@ -203,7 +203,7 @@ int pipe_read(pipe_t *pipe, char *buf, int len, int flags)
         if (pipe->rpen == pipe->end)
             pipe->rpen = pipe->base;
     }
-    advent_awake(&pipe->wlist, 0);
+    async_raise(&pipe->wlist, 0);
     splock_unlock(&pipe->lock);
     errno = 0;
     return bytes;
