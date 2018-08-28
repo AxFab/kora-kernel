@@ -27,9 +27,6 @@
 extern bool irq_enable();
 extern void irq_disable();
 
-#define cpu_relax() asm("pause")
-#define cpu_barrier() asm("")
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

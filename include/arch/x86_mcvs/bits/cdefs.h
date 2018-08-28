@@ -17,13 +17,15 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _ERRNO_H
-#define _ERRNO_H 1
+#ifndef _BITS_CDEFS_H
+#define _BITS_CDEFS_H 1
 
-#include <bits/errno.h>
+#define _Noreturn __declspec(noreturn)
+#define PACK(decl) __pragma(pack(push,1)) decl __pragma(pack(pop))
+#define unlikely(c) c
+#define likely(c) c
 
-int *__errno_location();
-#undef errno
-#define errno  (*__errno_location())
+#define __ARCH "x86"
+#define __ILP32
 
-#endif /* _ERRNO_H */
+#endif /* _BITS_CDEFS_H */
