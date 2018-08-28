@@ -57,10 +57,12 @@ uint16_t rand16();
 uint32_t rand32();
 uint64_t rand64();
 unsigned long strtoul(const char *nptr, char **endptr, int base);
-int sprintf(char *str, const char *format, ...);
 int snprintf(char *, int, const char *, ...);
 int vsnprintf(char *, int, const char *, va_list ap);
 int vprintf(const char *format, va_list ap);
+#if defined(_WIN32)
+#  define snprintf(s,i,f,...) snprintf_s(s,i,f,__VA_ARGS__)
+#endif
 
 void *malloc(size_t size);
 void free(void *ptr);
