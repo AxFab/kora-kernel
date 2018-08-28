@@ -41,7 +41,7 @@ void close(int fd);
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 struct IMGDK_Drive {
-    device_t dev;
+    blkdev_t dev;
     int fd;
     splock_t lock;
 };
@@ -63,7 +63,7 @@ static void imgdk_open(int i)
     int e;
     char fname[16];
     for (e = 0; e < 2; ++e) {
-        sprintf(fname, "sd%c.%s", 'A' + i, exts[e]);
+        snprintf(fname, 16, "sd%c.%s", 'A' + i, exts[e]);
         int fd = open(fname, O_RDWR);
         if (fd == -1) {
             sdx[i].fd = -1;
@@ -77,10 +77,10 @@ static void imgdk_open(int i)
         blk->length = sz;
         blk->lba = i;
 
-        sdx[i].dev.read_only = e > 0;
-        sdx[i].dev.is_detached = false;
+        sdx[i].dev.dev.read_only = e > 0;
+        sdx[i].dev.dev.is_detached = false;
         sdx[i].dev.block = sdSize[e];
-        sdx[i].dev.vendor = "HostSimul";
+        sdx[i].dev.dev.vendor = "HostSimul";
         sdx[i].dev.class = class[e];
         sdx[i].dev.read = imgdk_read;
         sdx[i].dev.write = imgdk_write;
@@ -122,7 +122,7 @@ int imgdk_write(inode_t *ino, const void *data, size_t size, off_t offset)
     if (fd == 0) {
         errno = ENODEV;
         return -1;
-    } else if (sdx[ino->lba].dev.read_only) {
+    } else if (sdx[ino->lba].dev.dev.read_only) {
         errno = EROFS;
         return -1;
     }
@@ -150,6 +150,11 @@ void imgdk_release_dev(struct IMGDK_Drive *dev)
 
 void imgdk_setup()
 {
+	int fp = fopen("sdA.img", "w");
+	fseek(fp, 10 * _Mib_ - 1, SEEK_END);
+	fwrite(&fp, 1, 1, fp);
+	fclose(fp);
+	
     int i;
     for (i = 0; i < 4; ++i)
         imgdk_open(i);
@@ -162,4 +167,4 @@ void imgdk_teardown()
         imgdk_exit(i);
 }
 
-MODULE(imgdk, MOD_AGPL, imgdk_setup, imgdk_teardown);
+MODULE(imgdk, imgdk_setup, imgdk_teardown);

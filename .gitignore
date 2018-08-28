@@ -36,5 +36,6 @@
 
 # Visual studio
 !vs/*.sln
+!vs/*.c
 !vs/*.vcxproj
 !vs/*.vcxproj.*

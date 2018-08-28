@@ -118,7 +118,7 @@ struct fsvolume {
     char *fsname;
     uint8_t id[16];
 
-    int atimes; /* Sepcify the behaviour of atimes handling */
+    int atimes; /* Specify the behavior of atimes handling */
     HMP_map hmap;
     atomic32_t rcu;
     llhead_t lru;
@@ -189,6 +189,7 @@ inode_t *vfs_inode(int no, int mode, acl_t *acl, size_t size);
 
 int vfs_mkdev(CSTR name, device_t *dev, inode_t *ino);
 void vfs_rmdev(CSTR name);
+inode_t *vfs_search_device(CSTR name);
 
 void register_fs(CSTR, fs_mount mount);
 void unregister_fs(CSTR name);

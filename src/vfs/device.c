@@ -34,6 +34,12 @@ device_t *vfs_lookup_device_(CSTR name)
     return NULL;
 }
 
+inode_t *vfs_search_device(CSTR name)
+{
+	device_t *dev = vfs_lookup_device_(name);
+	return dev ? dev->ino : NULL;
+}
+
 int vfs_mkdev(CSTR name, device_t *dev, inode_t *ino)
 {
     if (dev == NULL || ino == NULL) {

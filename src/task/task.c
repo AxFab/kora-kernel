@@ -162,8 +162,10 @@ int task_kill(task_t *task, unsigned signum)
 int task_resume(task_t *task)
 {
     splock_lock(&task->lock);
-    if (task->status <= TS_ZOMBIE || task->status >= TS_READY)
+    if (task->status <= TS_ZOMBIE || task->status >= TS_READY) {
+        splock_unlock(&task->lock);
         return -1;
+    }
 
     task->status = TS_READY;
     scheduler_add(task);
