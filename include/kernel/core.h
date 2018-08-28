@@ -151,7 +151,7 @@ uint64_t cpu_clock();
 /* - */
 uint64_t time_elapsed(uint64_t *last);
 /* - */
-void cpu_halt();
+_Noreturn void cpu_halt();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

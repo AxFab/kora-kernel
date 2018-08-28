@@ -33,3 +33,8 @@
 
 # Exceptions
 !hooks/license.h
+
+# Visual studio
+!vs/*.sln
+!vs/*.vcxproj
+!vs/*.vcxproj.*
