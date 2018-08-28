@@ -103,8 +103,7 @@ static inline uint32_t atomic32_xchg(atomic32_t *ptr, uint32_t value)
 static inline uint32_t atomic32_xadd(atomic32_t *ptr, uint32_t value)
 {
     register atomic32_t ref = value;
-	if (*ptr == reference)
-        *ptr += value;
+    *ptr += value;
     return ref;
 }
 
