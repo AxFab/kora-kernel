@@ -57,11 +57,12 @@ uint16_t rand16();
 uint32_t rand32();
 uint64_t rand64();
 unsigned long strtoul(const char *nptr, char **endptr, int base);
-int snprintf(char *, int, const char *, ...);
-int vsnprintf(char *, int, const char *, va_list ap);
+int snprintf(char *buf, int lg, const char * msg, ...);
+int vsnprintf(char *buf, int lg, const char * msg, va_list ap);
 int vprintf(const char *format, va_list ap);
 #if defined(_WIN32)
-#  define snprintf(s,i,f,...) sprintf_s(s,i,f,__VA_ARGS__)
+int snprintf_s(char *buf, int lg, const char *msg, ...);
+# define snprintf(s,i,f,...) sprintf_s(s,i,f,__VA_ARGS__)
 #endif
 
 void *malloc(size_t size);
@@ -162,7 +163,7 @@ struct kCpu {
     unsigned irq_semaphore;
 
     /* Time statistics */
-    uint64_t last;  /* Register to compute elpased time. Unit is platform dependent. */
+    uint64_t last;  /* Register to compute elapsed time. Unit is platform dependent. */
     uint64_t user_elapsed;  /* Time spend into user space code */
     uint64_t sys_elapsed;  /* Time spend into kernel space code */
     uint64_t irq_elapsed;  /* Time spend into IRQ handling */

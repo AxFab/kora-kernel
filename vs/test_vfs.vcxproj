@@ -40,13 +40,19 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)\bin_w32\vfs\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)\bin_x64\vfs\</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Fabien\develop\kora-kernel\include\arch\x86_mcvs;C:\Users\Fabien\develop\kora-kernel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include\arch\x86_mcvs;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4129;4273;4028</DisableSpecificWarnings>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -58,6 +64,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\core\debug.c" />
+    <ClCompile Include="..\src\drivers\disk\imgdk\imgdk.c" />
+    <ClCompile Include="..\src\drivers\fs\fat\fatfs.c" />
+    <ClCompile Include="..\src\files\ioblk.c" />
+    <ClCompile Include="..\src\libc\bbtree.c" />
+    <ClCompile Include="..\src\libc\hmap.c" />
+    <ClCompile Include="..\src\libc\string.c" />
+    <ClCompile Include="..\src\task\async.c" />
     <ClCompile Include="..\src\vfs\device.c" />
     <ClCompile Include="..\src\vfs\directory.c" />
     <ClCompile Include="..\src\vfs\dirent.c" />
@@ -66,6 +79,40 @@
     <ClCompile Include="..\src\vfs\parts.c" />
     <ClCompile Include="core.c" />
     <ClCompile Include="test_vfs.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\arch\x86_mcvs\bits\atomic.h" />
+    <ClInclude Include="..\include\arch\x86_mcvs\bits\cdefs.h" />
+    <ClInclude Include="..\include\assert.h" />
+    <ClInclude Include="..\include\ctype.h" />
+    <ClInclude Include="..\include\errno.h" />
+    <ClInclude Include="..\include\kernel\core.h" />
+    <ClInclude Include="..\include\kernel\device.h" />
+    <ClInclude Include="..\include\kernel\files.h" />
+    <ClInclude Include="..\include\kernel\input.h" />
+    <ClInclude Include="..\include\kernel\memory.h" />
+    <ClInclude Include="..\include\kernel\net.h" />
+    <ClInclude Include="..\include\kernel\scall.h" />
+    <ClInclude Include="..\include\kernel\task.h" />
+    <ClInclude Include="..\include\kernel\types.h" />
+    <ClInclude Include="..\include\kernel\vfs.h" />
+    <ClInclude Include="..\include\kernel\vma.h" />
+    <ClInclude Include="..\include\kora\allocator.h" />
+    <ClInclude Include="..\include\kora\bbtree.h" />
+    <ClInclude Include="..\include\kora\format.h" />
+    <ClInclude Include="..\include\kora\hmap.h" />
+    <ClInclude Include="..\include\kora\iofile.h" />
+    <ClInclude Include="..\include\kora\llist.h" />
+    <ClInclude Include="..\include\kora\mcrs.h" />
+    <ClInclude Include="..\include\kora\rwlock.h" />
+    <ClInclude Include="..\include\kora\splock.h" />
+    <ClInclude Include="..\include\kora\stddef.h" />
+    <ClInclude Include="..\include\kora\syscalls.h" />
+    <ClInclude Include="..\include\mbstring.h" />
+    <ClInclude Include="..\include\string.h" />
+    <ClInclude Include="..\include\sys\errno.h" />
+    <ClInclude Include="..\include\sys\signum.h" />
+    <ClInclude Include="..\include\time.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

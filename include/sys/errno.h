@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #if !defined _ERRNO_H
-# error "Never use <bits/errno.h> directly; include <errno.h> instead."
+# error "Never use <sys/errno.h> directly; include <errno.h> instead."
 #endif
 
 

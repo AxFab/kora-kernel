@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <kernel/core.h>
+#include <kernel/vfs.h>
 #include <kora/hmap.h>
 #include <kora/splock.h>
 
@@ -127,7 +128,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     vma->offset = offset;
     vma->ino = ino;
     vma->flags = flags;
-    hmp_put(&krn_mmap, &ptr, sizeof(void*), vma);
+    hmp_put(&krn_mmap, (char*)&ptr, sizeof(void*), vma);
     switch (flags & VMA_TYPE) {
     case VMA_FILE:
         assert(ino != NULL);
@@ -142,24 +143,25 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
 
 void kunmap(size_t addr, size_t length)
 {
-    struct vma *vma = (struct vma*)hmp_get(&krn_mmap, &addr, sizeof(void*));
+    struct vma *vma = (struct vma*)hmp_get(&krn_mmap, (char*)&addr, sizeof(void*));
     assert(vma != NULL);
     assert(vma->length == length);
-    hmp_remove(&krn_mmap, &addr, sizeof(void*));
+    hmp_remove(&krn_mmap, (char*)&addr, sizeof(void*));
     switch (vma->flags & VMA_TYPE) {
     case VMA_FILE:
         assert(vma->ino != NULL);
-        vfs_write(vma->ino, addr, length, vma->offset);
+        if (vma->flags & VMA_WRITE)
+            vfs_write(vma->ino, (void*)addr, length, vma->offset);
         break;
     default:
         assert(false);
         break;
     }
     free(vma);
-    _aligned_free(addr);
+    _aligned_free((void*)addr);
 }
 
-page_t mmu_read() { return 0; }
+page_t mmu_read(page_t addr) { return 0; }
 void page_release(page_t addr) {}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

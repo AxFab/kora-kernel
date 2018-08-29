@@ -19,141 +19,54 @@
  *
  *      File system driver FAT12, FAT16, FAT32 and exFAT.
  */
-#include <kernel/device.h>
-#include <kernel/core.h>
-#include <kora/mcrs.h>
-#include <errno.h>
-#include <string.h>
-
-/* Identificators for volume descriptors */
-#define FAT12 12
-#define FAT16 16
-#define FAT32 32
-
-#define ATTR_READ_ONLY      0x01
-#define ATTR_HIDDEN       0x02
-#define ATTR_SYSTEM       0x04
-#define ATTR_VOLUME_ID      0x08
-#define ATTR_DIRECTORY      0x10
-#define ATTR_ARCHIVE      0x20
-#define ATTR_LONG_NAME      0x0F
-#define ATTR_LONG_NAME_MASK   0x3F
+#include "fatfs.h"
 
 
-#define CLUSTER_OF(v,s)   ((((s) - (v)->FirstDataSector) / (v)->SecPerClus) + 2)
-#define SECTOR_OF(v,s)    ((((s) - 2) * (v)->SecPerClus) + (v)->FirstDataSector)
-#define FSECTOR_FROM(v,s) ((((((((s) - (v)->FirstDataSector) / (v)->SecPerClus) + 2)) - 2) * (v)->SecPerClus) + (v)->FirstDataSector)
+struct FAT_volume *fatfs_init(void *ptr) 
+{
+    struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
+    struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
+    if (bpb->BS_jmpBoot[0] != 0xE9 && !(bpb->BS_jmpBoot[0] == 0xEB &&
+        bpb->BS_jmpBoot[2] == 0x90)) {
+        return NULL;
+    }
 
-PACK(struct BPB_Struct {
-    unsigned char BS_jmpBoot [3];
-    char      BS_OEMName [8];
-    unsigned short  BPB_BytsPerSec;
-    unsigned char BPB_SecPerClus;
-    unsigned short  BPB_ResvdSecCnt;
-    unsigned char BPB_NumFATs;
-    unsigned short  BPB_RootEntCnt;
-    unsigned short  BPB_TotSec16;
-    unsigned char BPB_Media;
-    unsigned short  BPB_FATSz16;
-    unsigned short  BPB_SecPerTrk;
-    unsigned short  BPB_NumHeads;
-    unsigned int  BPB_HiddSec;
-    unsigned int  BPB_TotSec32;
+    struct FAT_volume *info = (struct FAT_volume *)kalloc(sizeof(struct FAT_volume));
+    info->RootDirSectors = ((bpb->BPB_RootEntCnt * 32) + (bpb->BPB_BytsPerSec - 1)) / bpb->BPB_BytsPerSec;
+    info->FATSz = (bpb->BPB_FATSz16 != 0 ? bpb->BPB_FATSz16 : bpb32->BPB_FATSz32);
+    info->FirstDataSector = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * info->FATSz) + info->RootDirSectors;
+    info->TotSec = (bpb->BPB_TotSec16 != 0 ? bpb->BPB_TotSec16 : bpb->BPB_TotSec32);
+    info->DataSec = info->TotSec - (bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * info->FATSz) + info->RootDirSectors);
+    if (info->FATSz == 0 || bpb->BPB_SecPerClus == 0 || info->TotSec <= info->DataSec) {
+        kfree(info);
+        return NULL;
+    }
 
-    unsigned char BS_DrvNum;
-    unsigned char BS_Reserved1;
-    unsigned char BS_BootSig;
-    unsigned int  BS_VolID;
-    char      BS_VolLab [11];
-    char      BS_FilSysType [8];
-});
+    info->CountofClusters = info->DataSec / bpb->BPB_SecPerClus;
+    info->FATType = (info->CountofClusters < 4085 ? FAT12 : (info->CountofClusters < 65525 ? FAT16 : FAT32));
+    if (info->FATType == FAT16) {
+        info->RootEntry = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz16);
+    } else {
+        info->RootEntry = ((bpb32->BPB_RootClus - 2) * bpb->BPB_SecPerClus) + info->FirstDataSector;
+    }
+    info->SecPerClus = bpb->BPB_SecPerClus;
+    info->ResvdSecCnt = bpb->BPB_ResvdSecCnt;
+    info->BytsPerSec = bpb->BPB_BytsPerSec;
 
-PACK(struct BPB_Struct32 {
-    unsigned char BS_jmpBoot [3];
-    char      BS_OEMName [8];
-    unsigned short  BPB_BytsPerSec;
-    unsigned char BPB_SecPerClus;
-    unsigned short  BPB_ResvdSecCnt;
-    unsigned char BPB_NumFATs;
-    unsigned short  BPB_RootEntCnt;
-    unsigned short  BPB_TotSec16;
-    unsigned char BPB_Media;
-    unsigned short  BPB_FATSz16;
-    unsigned short  BPB_SecPerTrk;
-    unsigned short  BPB_NumHeads;
-    unsigned int  BPB_HiddSec;
-    unsigned int  BPB_TotSec32;
+    int lg = 11;
+    memcpy(info->name, bpb->BS_VolLab, lg);
+    while (lg > 0 && info->name[--lg] == ' ')
+        info->name[lg] = '\0';
+    if (lg == 0)
+        strncpy(info->name, "UNNAMED", 48);
 
-    unsigned int  BPB_FATSz32;
-    unsigned short  BPB_ExtFlags;
-    unsigned short  BPB_FSVer;
-    unsigned int  BPB_RootClus;
-    unsigned short  BPB_FSInfo;
-    unsigned short  BPB_BkBootSec;
-    char      BPB_Reserved [12];
-
-    unsigned char BS_DrvNum;
-    unsigned char BS_Reserved1;
-    unsigned char BS_BootSig;
-    unsigned int  BS_VolID;
-    char      BS_VolLab [11];
-    char      BS_FilSysType [8];
-});
-
-PACK(struct FAT_ShortEntry {
-    unsigned char DIR_Name[11];
-    unsigned char DIR_Attr;
-    unsigned char DIR_NTRes;
-    unsigned char DIR_CrtTimeTenth;
-    unsigned short  DIR_CrtTime;
-    unsigned short  DIR_CrtDate;
-    unsigned short  DIR_LstAccDate;
-    unsigned short  DIR_FstClusHi;
-    unsigned short  DIR_WrtTime;
-    unsigned short  DIR_WrtDate;
-    unsigned short  DIR_FstClusLo;
-    unsigned int  DIR_FileSize;
-});
-
-PACK(struct FAT_LongNameEntry {
-    unsigned char LDIR_Ord;
-    unsigned short  LDIR_Name1[5];
-    unsigned char LDIR_Attr;
-    unsigned char LDIR_Type;
-    unsigned char LDIR_Cheksum;
-    unsigned short  LDIR_Name2[6];
-    unsigned short  LDIR_FstClusLO;
-    unsigned short  LDIR_Name3[2];
-});
+    info->totalSize = (long long)info->DataSec * 512;
+    info->usedSpace = 0;
+    info->freeSpace = 0;
+    return info;
+}
 
 
-
-/** Structure for a volume in FAT FS */
-struct FAT_volume {
-    char    name[48];
-    char    label[8];
-    long long totalSize;
-    long long usedSpace;
-    long long freeSpace;
-    unsigned int RootDirSectors;
-    unsigned int FATSz;
-    unsigned int FirstDataSector;
-    unsigned int TotSec;
-    unsigned int DataSec;
-    unsigned int CountofClusters;
-    unsigned int ResvdSecCnt;
-    unsigned int BytsPerSec;
-    int FATType;
-    unsigned int RootEntry;
-    int SecPerClus;
-};
-
-typedef struct FAT_inode FAT_inode_t;
-
-struct FAT_inode {
-    inode_t ino;
-    struct FAT_volume *vol;
-};
 
 // /* ----------------------------------------------------------------------- */
 // static char* FAT_build_short_name(struct FAT_ShortEntry *entrySh)
@@ -518,7 +431,7 @@ int fatfs_format(inode_t *ino)
         fatType = 32;
         clustSz = PW2_UP(ino->length / 0xFFFFFFFF);
     }
-    
+
     clustSz = MIN(MAX(clustSz, 512), 8192);
     clustCnt = ino->length / clustSz;
     int fatSz = clustCnt / (ino->blk->block * 8 / fatType);
@@ -567,6 +480,12 @@ int fatfs_format(inode_t *ino)
         memcpy(bpb32->BS_FilSysType, fatType == 12 ? "FAT12   " : "FAT16   ", 8);
         // rootLba = ...
     }
+
+    // read volume info
+    // fatfs_mkdir(info, lba);
+    // fatfs_put_entry(info, inode_t, inode, name);
+    // fatfs_alloc_cluster(int lba, size_t )
+
 
     // TODO Create FAT
     // TODO Create Root Directory ( . / .. )
