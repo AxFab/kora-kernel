@@ -61,7 +61,7 @@ int snprintf(char *, int, const char *, ...);
 int vsnprintf(char *, int, const char *, va_list ap);
 int vprintf(const char *format, va_list ap);
 #if defined(_WIN32)
-#  define snprintf(s,i,f,...) snprintf_s(s,i,f,__VA_ARGS__)
+#  define snprintf(s,i,f,...) sprintf_s(s,i,f,__VA_ARGS__)
 #endif
 
 void *malloc(size_t size);

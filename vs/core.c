@@ -1,10 +1,18 @@
+#include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdarg.h>
+#include <time.h>
 #include <kernel/core.h>
+#include <kora/hmap.h>
+#include <kora/splock.h>
 
-int _errno;
+int __errno;
 
 int *__errno_location()
 {
-    return &_errno;
+    return &__errno;
 }
 
 _Noreturn void __assert_fail(CSTR expr, CSTR file, int line)
@@ -25,7 +33,7 @@ void kfree(void *ptr)
 
 void kprintf(int lvl, CSTR msg, ...)
 {
-    va_list ap
+    va_list ap;
     va_start(ap, msg);
     splock_lock(&klog_lock);
     vprintf(msg, ap);
@@ -36,19 +44,21 @@ void kprintf(int lvl, CSTR msg, ...)
 void kclock(struct timespec *ts)
 {
     time64_t ticks = time64(); 
-    ts->tv_seconds = ticks / _PwNano_;
-    ts&>tv_nanosecs = ticks % _PwNano_; 
+    ts->tv_sec = ticks / _PwNano_;
+    ts&>tv_nsec = ticks % _PwNano_;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+struct kSys kSYS;
 
 time64_t time64()
 {
-	clock_t ticks = clock();
-    if (_PwNano_ > SEC_PER_CLOCK)
+    clock_t ticks = clock();
+    if (_PwNano_ > CLOCKS_PER_SEC)
         ticks *= _PwNano_ / SEC_PER_CLOCK;
     else
-        ticks /= SEC_PER_CLOCK / _PwNano_;
+        ticks /= CLOCKS_PER_SEC / _PwNano_;
     return ticks;
 }
 
@@ -57,25 +67,74 @@ int cpu_no()
     return 0;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-irq_enable
-irq_disable
-irq_reset
+bool irq_active = false;
+bool irq_last = false;
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void *kmap(size_t length, inode_t *ino, off_t off, int flags)
+void irq_reset(bool enable)
 {
+    irq_active = true;
+    kCPU.irq_semaphore = enable ? 1 : 0;
+    irq_last = false;
+    if (enable)
+        irq_enable();
+}
+
+bool irq_enable()
+{
+    if (irq_active) {
+        assert(kCPU.irq_semaphore > 0);
+        if (--kCPU.irq_semaphore == 0) {
+            irq_last = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+void irq_disable()
+{
+    if (irq_active) {
+        irq_last = false;
+        ++kCPU.irq_semaphore;
+    }
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+bool krn_mmp_init = false;
+HMP_map krn_mmap;
+
+struct vma {
+	void *address;
+	size_t length;
+	off_t offset;
+	inode_t *ino;
+	int flags;
+};
+
+void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
+{
+	if (!krn_mmap_init) {
+		hmp_init(&krn_mmap, 16);
+		krn_mmap_init = true;
+	}
     void *ptr = _aligned_malloc(length, PAGE_SIZE);
     struct vma *vma = (struct vma*)kalloc(sizeof(struct vma));
     vma->length = length;
     vma->offset = offset;
     vma->ino = ino;
     hmp_put(&krn_mmap, &ptr, sizeof(void*), vma);
-    if ((flags & VMA_TYPE) == VMA_FILE) {
+    switch (flags & VMA_TYPE) {
+    case VMA_FILE:
         assert(ino != NULL);
         vfs_read(ino, ptr, length, offset);
+        break;
+    default:
+        assert(false);
+        break ;
     }
     return ptr;
 }
@@ -86,9 +145,14 @@ void kunmap(size_t addr, size_t length)
     assert(vma != NULL);
     assert(vma->length == length);
     hmp_remove(&krn_mmap, &addr, sizeof(void*));
-    if ((vma->flags & VMA_TYPE) == VMA_FILE) {
-        assert(vma->ino != NULL);
-        vfs_weite(vma->ino, addr, length, vma->offset);
+    switch (flags & VMA_TYPE) {
+    case VMA_FILE:
+        assert(ino != NULL);
+        vfs_write(vma->ino, ptr, length, vma->offset);
+        break;
+    default:
+        assert(false);
+        break ;
     }
     free(vma);
     _aligned_free(addr);
@@ -97,7 +161,20 @@ void kunmap(size_t addr, size_t length)
 page_t mmu_read() { return 0; }
 void page_release(page_t addr) {}
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#if 1
+_Noreturn void task_switch(int status, int retcode) 
+{ 
+    assert(false);
+    for(;;);
+}
+int task_resume(task_t *task)
+{
+	assert(false);
+	for(;;);
+}
+#else
 
 _Noreturn void task_switch(int status, int retcode)
 {
@@ -163,4 +240,4 @@ int task_resume(task_t *task)
     return 0;
 }
 
-
+#endif
