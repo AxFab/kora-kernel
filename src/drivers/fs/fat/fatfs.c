@@ -501,7 +501,7 @@ static int PW2_UP(int val)
 
 int fatfs_format(inode_t *ino)
 {
-    uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, ino, 0, VMA_FG_RW_FILE);
+    uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, ino, 0, VMA_FILE_RW
     struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
 
@@ -526,27 +526,31 @@ int fatfs_format(inode_t *ino)
     bpb->BS_jmpBoot[0] = 0xEB;
     bpb->BS_jmpBoot[2] = 0x90;
     memcpy(bpb->BS_OEMName, "MSWIN4.1", 8);
-    bpb->BPB_BytsPerSec = ino->block; // Usually 512
-    bpb->BPB_SecPerClus = clustSz / ino->block;
-    bpb->BPB_ResvdSecCnt = FATSz == 32 ? 32 : 1;
+    bpb->BPB_BytsPerSec = ino->blk->block; // Usually 512
+    bpb->BPB_SecPerClus = clustSz / ino->blk->block;
+    bpb->BPB_ResvdSecCnt = fatType == 32 ? 32 : 1;
     bpb->BPB_NumFATs = 2;
     // unsigned short  BPB_RootEntCnt;
-    bpb->BPB_TotSec16 = FATSz == 32 ? 0 : ino->length / ino->block;
-    bpb->BPB_TotSec32 = FATSz == 32 ? ino->length / ino->block : 0;
     bpb->BPB_Media = 0xF8;
     // bpb->BPB_SecPerTrk = ; // Geometry dist
     // bpb->BPB_NumHeads; // Geometry
     // bpb->BPB_HiddSec; // Geometry
 
-    if (FATSz != 32) {
+    unsigned rootLba = 0;
+    if (fatType != 32) {
+        bpb->BPB_TotSec16 = ino->length / ino->blk->block;
+        bpb->BPB_TotSec32 = 0;
         bpb->BS_DrvNum = 0x80;
         bpb->BS_Reserved1 = 0;
         bpb->BS_BootSig = 0x29;
         // bpb->BS_VolID = time();
         memcpy(bpb->BS_VolLab, "NO NAME    ", 11);
-        memcpy(bpb->BS_FilSysType, FATSz == 12 ? "FAT12   " : "FAT16   ", 8);
+        memcpy(bpb->BS_FilSysType, fatType == 12 ? "FAT12   " : "FAT16   ", 8);
         bpb->BPB_FATSz16 = fatSz;
+        rootLba = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz16);
     } else {
+        bpb->BPB_TotSec16 = 0;
+        bpb->BPB_TotSec32 = ino->length / ino->block;
         // bpb32->BPB_FATSz32 = ;
         // bpb32->BPB_ExtFlags = ;
         bpb32->BPB_FSVer = 0;
@@ -560,7 +564,8 @@ int fatfs_format(inode_t *ino)
         bpb32->BS_BootSig = 0x29;
         // bpb32->BS_VolID = time();
         memcpy(bpb32->BS_VolLab, "NO NAME    ", 11);
-        memcpy(bpb32->BS_FilSysType, FATSz == 12 ? "FAT12   " : "FAT16   ", 8);
+        memcpy(bpb32->BS_FilSysType, fatType == 12 ? "FAT12   " : "FAT16   ", 8);
+        // rootLba = ...
     }
 
     // TODO Create FAT
