@@ -162,7 +162,7 @@ struct kCpu {
     unsigned irq_semaphore;
 
     /* Time statistics */
-    uint64_t last;  /* Register to compute elpased time. Unit is platform dependant. */
+    uint64_t last;  /* Register to compute elpased time. Unit is platform dependent. */
     uint64_t user_elapsed;  /* Time spend into user space code */
     uint64_t sys_elapsed;  /* Time spend into kernel space code */
     uint64_t irq_elapsed;  /* Time spend into IRQ handling */

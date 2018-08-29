@@ -501,7 +501,7 @@ static int PW2_UP(int val)
 
 int fatfs_format(inode_t *ino)
 {
-    uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, ino, 0, VMA_FILE_RW
+    uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, ino, 0, VMA_FILE_RW);
     struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
 
@@ -550,7 +550,7 @@ int fatfs_format(inode_t *ino)
         rootLba = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz16);
     } else {
         bpb->BPB_TotSec16 = 0;
-        bpb->BPB_TotSec32 = ino->length / ino->block;
+        bpb->BPB_TotSec32 = ino->length / ino->blk->block;
         // bpb32->BPB_FATSz32 = ;
         // bpb32->BPB_ExtFlags = ;
         bpb32->BPB_FSVer = 0;

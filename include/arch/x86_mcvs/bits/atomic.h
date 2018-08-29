@@ -59,21 +59,21 @@ static inline void atomic16_dec(atomic16_t *ptr)
 
 static inline uint16_t atomic16_xchg(atomic16_t *ptr, uint16_t value)
 {
-    register atomic16_t ref = value;
+    register atomic16_t ref = *ptr;
     *ptr = value;
     return ref;
 }
 
 static inline uint16_t atomic16_xadd(atomic16_t *ptr, uint16_t value)
 {
-    register atomic16_t ref = value;
+    register atomic16_t ref = *ptr;
     *ptr += value;
     return ref;
 }
 
 static inline uint16_t atomic16_cmpxchg(atomic16_t *ptr, uint16_t reference, uint16_t value)
 {
-    register atomic16_t ref = value;
+    register atomic16_t ref = *ptr;
     if (*ptr == reference)
         *ptr = value;
     return ref;
@@ -95,21 +95,21 @@ static inline void atomic32_dec(atomic32_t *ptr)
 
 static inline uint32_t atomic32_xchg(atomic32_t *ptr, uint32_t value)
 {
-    register atomic32_t ref = value;
+    register atomic32_t ref = *ptr;
 	*ptr = value;
     return ref;
 }
 
 static inline uint32_t atomic32_xadd(atomic32_t *ptr, uint32_t value)
 {
-    register atomic32_t ref = value;
+    register atomic32_t ref = *ptr;
     *ptr += value;
     return ref;
 }
 
 static inline uint32_t atomic32_cmpxchg(atomic32_t *ptr, uint32_t reference,  uint32_t value)
 {
-    register atomic32_t ref = value;
+    register atomic32_t ref = *ptr;
 	if (*ptr == reference)
         *ptr = value;
     return ref;

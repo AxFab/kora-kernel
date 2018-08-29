@@ -9,6 +9,7 @@
 #include <kora/splock.h>
 
 int __errno;
+splock_t klog_lock = INIT_SPLOCK;
 
 int *__errno_location()
 {
@@ -45,7 +46,7 @@ void kclock(struct timespec *ts)
 {
     time64_t ticks = time64(); 
     ts->tv_sec = ticks / _PwNano_;
-    ts&>tv_nsec = ticks % _PwNano_;
+    ts->tv_nsec = ticks % _PwNano_;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -56,7 +57,7 @@ time64_t time64()
 {
     clock_t ticks = clock();
     if (_PwNano_ > CLOCKS_PER_SEC)
-        ticks *= _PwNano_ / SEC_PER_CLOCK;
+        ticks *= _PwNano_ / CLOCKS_PER_SEC;
     else
         ticks /= CLOCKS_PER_SEC / _PwNano_;
     return ticks;
@@ -71,16 +72,6 @@ int cpu_no()
 
 bool irq_active = false;
 bool irq_last = false;
-
-
-void irq_reset(bool enable)
-{
-    irq_active = true;
-    kCPU.irq_semaphore = enable ? 1 : 0;
-    irq_last = false;
-    if (enable)
-        irq_enable();
-}
 
 bool irq_enable()
 {
@@ -102,9 +93,18 @@ void irq_disable()
     }
 }
 
+void irq_reset(bool enable)
+{
+    irq_active = true;
+    kCPU.irq_semaphore = enable ? 1 : 0;
+    irq_last = false;
+    if (enable)
+        irq_enable();
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-bool krn_mmp_init = false;
+bool krn_mmap_init = false;
 HMP_map krn_mmap;
 
 struct vma {
@@ -126,6 +126,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     vma->length = length;
     vma->offset = offset;
     vma->ino = ino;
+    vma->flags = flags;
     hmp_put(&krn_mmap, &ptr, sizeof(void*), vma);
     switch (flags & VMA_TYPE) {
     case VMA_FILE:
@@ -134,7 +135,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
         break;
     default:
         assert(false);
-        break ;
+        break;
     }
     return ptr;
 }
@@ -145,14 +146,14 @@ void kunmap(size_t addr, size_t length)
     assert(vma != NULL);
     assert(vma->length == length);
     hmp_remove(&krn_mmap, &addr, sizeof(void*));
-    switch (flags & VMA_TYPE) {
+    switch (vma->flags & VMA_TYPE) {
     case VMA_FILE:
-        assert(ino != NULL);
-        vfs_write(vma->ino, ptr, length, vma->offset);
+        assert(vma->ino != NULL);
+        vfs_write(vma->ino, addr, length, vma->offset);
         break;
     default:
         assert(false);
-        break ;
+        break;
     }
     free(vma);
     _aligned_free(addr);
