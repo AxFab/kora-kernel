@@ -1,6 +1,10 @@
 #include <kernel/vfs.h>
 #include <kernel/device.h>
 
+void imgdk_setup();
+void fatfs_setup();
+int fatfs_format(inode_t *blk);
+
 int main()
 {
 	// TODO - Clean FS and DEV list!

@@ -38,6 +38,10 @@ int write(int fd, const char *buf, int len);
 int lseek(int fd, off_t off, int whence);
 void close(int fd);
 
+size_t fopen(const char *name, const char *mode);
+int fwrite(void *buf, int e, int s, size_t fd);
+int fseek(size_t fp, off_t off, int whence);
+int fclose(size_t fd);
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 struct IMGDK_Drive {
@@ -85,7 +89,7 @@ static void imgdk_open(int i)
         sdx[i].dev.read = imgdk_read;
         sdx[i].dev.write = imgdk_write;
 
-        vfs_mkdev(sdNames[i], &sdx[i].dev, blk);
+        vfs_mkdev(sdNames[i], (device_t*)&sdx[i].dev, blk);
         vfs_close(blk);
         break;
     }
@@ -150,7 +154,7 @@ void imgdk_release_dev(struct IMGDK_Drive *dev)
 
 void imgdk_setup()
 {
-	int fp = fopen("sdA.img", "w");
+    size_t fp = fopen("sdA.img", "w");
 	fseek(fp, 10 * _Mib_ - 1, SEEK_END);
 	fwrite(&fp, 1, 1, fp);
 	fclose(fp);

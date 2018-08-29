@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _BITS_SIGNUM_H
-#define _BITS_SIGNUM_H 1
+#ifndef _SYS_SIGNUM_H
+#define _SYS_SIGNUM_H 1
 
 /* Type of a signal handler.  */
 typedef void (*sighandler_t)(int);
@@ -82,4 +82,4 @@ typedef void (*sighandler_t)(int);
 #define __SIGRTMAX  (_NSIG - 1)
 
 
-#endif /* _BITS_SIGNUM_H */
+#endif /* _SYS_SIGNUM_H */
