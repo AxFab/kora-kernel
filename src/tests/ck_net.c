@@ -64,7 +64,7 @@ void net_start(netdev_t *ifnet)
     pthread_exit(NULL);
 }
 
-void advent_wait(splock_t *lock, llhead_t *list, long timeout_us)
+void async_wait(splock_t *lock, llhead_t *list, long timeout_us)
 {
     struct timespec req;
     req.tv_sec = timeout_us / USEC_PER_SEC;
