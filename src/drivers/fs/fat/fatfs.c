@@ -22,7 +22,7 @@
 #include "fatfs.h"
 
 
-struct FAT_volume *fatfs_init(void *ptr) 
+struct FAT_volume *fatfs_init(void *ptr, inode_t *dev) 
 {
     struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
@@ -63,10 +63,24 @@ struct FAT_volume *fatfs_init(void *ptr)
     info->totalSize = (long long)info->DataSec * 512;
     info->usedSpace = 0;
     info->freeSpace = 0;
+    info->dev = dev;
     return info;
 }
 
+void fatfs_write_short_entry(struct FAT_ShortEntry *en, const char *name, int lba)
+{
+	
+}
 
+void fatfs_mkdir(struct FAT_volume* info, inode_t* dir, int lba)
+{
+	void *ptr = kmap(PAGE_SIZE, info->dev, lba * info->BytsPerSec, VMA_FILE_RW);
+	struct FAT_ShortEntry *en = (struct FAT_ShortEntry*)ptr;
+	fatfs_write_short_entry(en, ".", lba);
+	assert(en - ptr + sizeof(*en) <= PAGE_SIZE);
+    memset(en, 0, sizeof(*en));
+	kunmap(ptr, PAGE_SIZE);
+}
 
 // /* ----------------------------------------------------------------------- */
 // static char* FAT_build_short_name(struct FAT_ShortEntry *entrySh)
@@ -449,7 +463,6 @@ int fatfs_format(inode_t *ino)
     // bpb->BPB_NumHeads; // Geometry
     // bpb->BPB_HiddSec; // Geometry
 
-    unsigned rootLba = 0;
     if (fatType != 32) {
         bpb->BPB_TotSec16 = ino->length / ino->blk->block;
         bpb->BPB_TotSec32 = 0;
@@ -460,7 +473,6 @@ int fatfs_format(inode_t *ino)
         memcpy(bpb->BS_VolLab, "NO NAME    ", 11);
         memcpy(bpb->BS_FilSysType, fatType == 12 ? "FAT12   " : "FAT16   ", 8);
         bpb->BPB_FATSz16 = fatSz;
-        rootLba = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz16);
     } else {
         bpb->BPB_TotSec16 = 0;
         bpb->BPB_TotSec32 = ino->length / ino->blk->block;
@@ -478,14 +490,16 @@ int fatfs_format(inode_t *ino)
         // bpb32->BS_VolID = time();
         memcpy(bpb32->BS_VolLab, "NO NAME    ", 11);
         memcpy(bpb32->BS_FilSysType, fatType == 12 ? "FAT12   " : "FAT16   ", 8);
-        // rootLba = ...
     }
 
     // read volume info
     // fatfs_mkdir(info, lba);
     // fatfs_put_entry(info, inode_t, inode, name);
     // fatfs_alloc_cluster(int lba, size_t )
-
+    struct FAT_volume *info = fatfs_init(ptr, ino);
+    assert(info);
+    fatfs_mkdir(info, NULL, info->RootEntry);
+    kfree(info);
 
     // TODO Create FAT
     // TODO Create Root Directory ( . / .. )
@@ -508,52 +522,13 @@ inode_t *fatfs_mount(inode_t *dev)
     }
 
     uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, dev, 0, VMA_FILE_RO);
-    struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
-    struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
-    if (bpb->BS_jmpBoot[0] != 0xE9 && !(bpb->BS_jmpBoot[0] == 0xEB &&
-                                        bpb->BS_jmpBoot[2] == 0x90)) {
+    struct FAT_volume *info = fatfs_init(ptr, dev);
+    if (info == NULL) {
         kunmap(ptr, PAGE_SIZE);
         errno = EBADF;
         return NULL;
     }
 
-    struct FAT_volume *info = (struct FAT_volume *)kalloc(sizeof(
-                                  struct FAT_volume));
-    info->RootDirSectors = ((bpb->BPB_RootEntCnt * 32) + (bpb->BPB_BytsPerSec -
-                            1)) / bpb->BPB_BytsPerSec;
-    info->FATSz = (bpb->BPB_FATSz16 != 0 ? bpb->BPB_FATSz16 : bpb32->BPB_FATSz32);
-    info->FirstDataSector = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs *
-                            info->FATSz) + info->RootDirSectors;
-    info->TotSec = (bpb->BPB_TotSec16 != 0 ? bpb->BPB_TotSec16 :
-                    bpb->BPB_TotSec32);
-    info->DataSec = info->TotSec - (bpb->BPB_ResvdSecCnt +
-                                    (bpb->BPB_NumFATs * info->FATSz) + info->RootDirSectors);
-    if (info->FATSz == 0 || bpb->BPB_SecPerClus == 0 ||
-        info->TotSec <= info->DataSec) {
-        kfree(info);
-        kunmap(ptr, PAGE_SIZE);
-        errno = EBADF;
-        return NULL;
-    }
-
-    info->CountofClusters = info->DataSec / bpb->BPB_SecPerClus;
-    info->FATType = (info->CountofClusters < 4085 ? FAT12 :
-                     (info->CountofClusters < 65525 ? FAT16 : FAT32));
-    if (info->FATType == FAT16) {
-        info->RootEntry = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs *
-                          bpb->BPB_FATSz16);
-    } else {
-        info->RootEntry = ((bpb32->BPB_RootClus - 2) * bpb->BPB_SecPerClus) +
-                          info->FirstDataSector;
-    }
-    info->SecPerClus = bpb->BPB_SecPerClus;
-    info->ResvdSecCnt = bpb->BPB_ResvdSecCnt;
-    info->BytsPerSec = bpb->BPB_BytsPerSec;
-
-    strncpy(info->name, "UNNAMED", 48);
-    info->totalSize = (long long)info->DataSec * 512;
-    info->usedSpace = 0;
-    info->freeSpace = 0;
 
     const char *fsName = info->FATType == FAT32 ? "fat32" :
                          (info->FATType == FAT16 ?
