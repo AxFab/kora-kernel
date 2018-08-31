@@ -135,6 +135,7 @@ PACK(struct FAT_LongNameEntry {
 struct FAT_volume {
     char    name[48];
     char    label[8];
+    inode_t *dev;
     long long totalSize;
     long long usedSpace;
     long long freeSpace;
