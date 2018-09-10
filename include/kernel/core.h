@@ -61,7 +61,7 @@ int snprintf(char *buf, int lg, const char * msg, ...);
 int vsnprintf(char *buf, int lg, const char * msg, va_list ap);
 int vprintf(const char *format, va_list ap);
 #if defined(_WIN32)
-int snprintf_s(char *buf, int lg, const char *msg, ...);
+int sprintf_s(char *buf, int lg, const char *msg, ...);
 # define snprintf(s,i,f,...) sprintf_s(s,i,f,__VA_ARGS__)
 #endif
 

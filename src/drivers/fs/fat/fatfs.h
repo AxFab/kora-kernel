@@ -47,6 +47,8 @@
 #define SECTOR_OF(v,s)    ((((s) - 2) * (v)->SecPerClus) + (v)->FirstDataSector)
 #define FSECTOR_FROM(v,s) ((((((((s) - (v)->FirstDataSector) / (v)->SecPerClus) + 2)) - 2) * (v)->SecPerClus) + (v)->FirstDataSector)
 
+#define FAT_TYPE(cl)  ((cl) < 4085 ? FAT12 : ((cl) < 65525 ? FAT16 : FAT32)))
+
 PACK(struct BPB_Struct {
     unsigned char BS_jmpBoot [3];
     char      BS_OEMName [8];

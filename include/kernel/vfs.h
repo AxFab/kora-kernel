@@ -102,8 +102,10 @@ struct inode {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-/* Look for an inode */
+/* Look for an inode recursively */
 inode_t *vfs_search(inode_t *root, inode_t *pwd, CSTR path, acl_t *acl);
+/* Look for an inode on a directory */
+inode_t *vfs_lookup(inode_t *dir, CSTR name);
 /* Create an empty inode (DIR or REG) */
 inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
 /* Link an inode (If supported) */

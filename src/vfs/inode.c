@@ -31,10 +31,12 @@ inode_t *vfs_inode(int no, int mode, acl_t *acl, size_t size)
     inode_t *inode = (inode_t *)kalloc(MAX(sizeof(inode_t), size));
     inode->no = no;
     inode->mode = mode;
+    /*
     kclock(&inode->btime);
     inode->ctime = inode->btime;
     inode->mtime = inode->btime;
     inode->atime = inode->btime;
+    */
     inode->rcu = 1;
     inode->links = 0;
 
@@ -161,7 +163,7 @@ int vfs_rename(inode_t *dir, CSTR name, inode_t *ino);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-/* Create a symlink */
+/* Create a symbolic link */
 inode_t *vfs_symlink(inode_t *dir, CSTR name, CSTR path);
 /* Read a link */
 int vfs_readlink(inode_t *ino, char *buf, int len, int flags)

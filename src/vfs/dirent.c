@@ -40,7 +40,7 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
     assert(dir != NULL && S_ISDIR(dir->mode));
     assert(name != NULL && strnlen(name, VFS_MAXNAME) < VFS_MAXNAME);
 
-    /* Build a uniq key for the directory */
+    /* Build a unique key for the directory */
     int lg = strlen(name) + 4;
     char *key = kalloc(lg + 1);
     ((int *)key)[0] = dir->no;
@@ -105,7 +105,7 @@ void vfs_rm_dirent_(dirent_t *ent)
     rwlock_rdunlock(&ent->lock);
     // TODO -- Wake up other !
     rwlock_wrlock(&ent->lock);
-    kfree(&ent->lock);
+    // kfree(&ent);
 
     splock_unlock(&fs->dev.lock);
 }
@@ -199,7 +199,7 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
     ino = vfs_open(ino);
     while (fname != NULL) {
         if (S_ISLNK(ino->mode)) {
-            // TODO -- Follow sumlink
+            // TODO -- Follow symbolic link
             (*links)++;
             vfs_close(ino);
             kfree(path_cpy);
@@ -220,7 +220,7 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
         if (ent == NULL) {
             vfs_close(ino);
             kfree(path_cpy);
-            errno = ENOENT;
+            assert(errno != 0);
             return NULL;
         }
         vfs_open(ent->ino);
@@ -234,3 +234,15 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
     return ino;
 }
 
+inode_t *vfs_lookup(inode_t *dir, CSTR name)
+{
+	assert(dir != NULL && name != NULL);
+	dirent_t *ent = vfs_lookup_(dir, name);
+    if (ent == NULL) {
+        assert(errno != 0);
+        return NULL;
+    }
+    inode_t *ino = ent->ino;
+    rwlock_rdunlock(&ent->lock);
+    return ino;
+}
