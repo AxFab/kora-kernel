@@ -22,6 +22,11 @@
 #include <errno.h>
 
 int snprintf(char *, size_t, const char *, ...);
+#if defined(_WIN32)
+int sprintf_s(char *buf, int lg, const char *msg, ...);
+# define snprintf(s,i,f,...) sprintf_s(s,i,f,__VA_ARGS__)
+#endif
+
 
 /* 2000-03-01 (mod 400 year, immediately after feb29 */
 #define LEAPOCH (946684800LL + 86400*(31+29))

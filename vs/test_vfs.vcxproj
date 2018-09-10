@@ -69,7 +69,9 @@
     <ClCompile Include="..\src\files\ioblk.c" />
     <ClCompile Include="..\src\libc\bbtree.c" />
     <ClCompile Include="..\src\libc\hmap.c" />
+    <ClCompile Include="..\src\libc\random.c" />
     <ClCompile Include="..\src\libc\string.c" />
+    <ClCompile Include="..\src\libc\time.c" />
     <ClCompile Include="..\src\task\async.c" />
     <ClCompile Include="..\src\vfs\device.c" />
     <ClCompile Include="..\src\vfs\directory.c" />
@@ -113,6 +115,7 @@
     <ClInclude Include="..\include\sys\errno.h" />
     <ClInclude Include="..\include\sys\signum.h" />
     <ClInclude Include="..\include\time.h" />
+    <ClInclude Include="..\src\drivers\fs\fat\fatfs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

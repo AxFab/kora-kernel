@@ -33,8 +33,7 @@ typedef int (*fs_umount)(inode_t *ino);
 typedef int (*fs_read)(inode_t *ino, void *buf, size_t len, off_t off);
 typedef int (*fs_write)(inode_t *ino, const void *buf, size_t len, off_t off);
 
-typedef inode_t *(*fs_open)(inode_t *dir, CSTR name, int mode, acl_t *acl,
-                            int flags);
+typedef inode_t *(*fs_open)(inode_t *dir, CSTR name, int mode, acl_t *acl,int flags);
 typedef inode_t *(*fs_lookup)(inode_t *dir, CSTR name);
 
 typedef void *(*fs_opendir)(inode_t *ino);

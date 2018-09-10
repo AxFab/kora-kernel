@@ -54,6 +54,7 @@ void kclock(struct timespec *ts)
 
 struct kSys kSYS;
 
+#if !defined(_WIN32)
 time64_t time64()
 {
     clock_t ticks = clock();
@@ -63,6 +64,21 @@ time64_t time64()
         ticks /= CLOCKS_PER_SEC / _PwNano_;
     return ticks;
 }
+#else
+#include <windows.h>
+time64_t time64()
+{
+	const INT64 UNIX_START 0x019DB1DED53E8000
+	
+	FILETIME ft;
+	GetSystemTimeAsFileTime(&ft);
+	
+	LARGE_INTEGER li;
+	li.LowPart = ft.dwLowDateTime;
+	li.HighPart = ft.dwHighDateTime;
+	return (li.QuadPart - UNIX_START) * 100;
+}
+#endif
 
 int cpu_no()
 {

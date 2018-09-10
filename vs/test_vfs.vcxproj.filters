@@ -49,6 +49,9 @@
     <ClCompile Include="..\src\drivers\disk\imgdk\imgdk.c">
       <Filter>src\drivers\imgdk</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\libc\time.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
@@ -190,6 +193,9 @@
     </ClInclude>
     <ClInclude Include="..\include\time.h">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\drivers\fs\fat\fatfs.h">
+      <Filter>src\drivers\fatfs</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
