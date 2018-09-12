@@ -54,5 +54,17 @@ void __perror_fail(int, const char *, int, const char *);
 
 #define POISON_PTR ((void*)0xAAAAAAAA)
 
+static inline int POW2_UP(int val)
+{
+	if (val == 0 || POW2(val))
+	    return val;
+	--val;
+	val |= val >> 1;
+	val |= val >> 2;
+	val |= val >> 4;
+	val |= val >> 8;
+	val |= val >> 16;
+	return val + 1;
+}
 
 #endif  /* _KORA_MCRS_H */

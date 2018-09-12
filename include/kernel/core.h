@@ -158,6 +158,13 @@ _Noreturn void cpu_halt();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+bio_t *bio_create(inode_t *ino, int flags, int block, int offset);
+void *bio_access(bio_t *io, int lba);
+void bio_clean(bio_t *io, int lba);
+void bio_destroy(bio_t *io);
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 struct kCpu {
     task_t *running;
     unsigned irq_semaphore;

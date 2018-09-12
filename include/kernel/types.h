@@ -75,6 +75,7 @@ typedef struct acl acl_t;
 typedef struct regs regs_t;
 typedef struct fault fault_t;
 
+typedef struct bio bio_t;
 
 
 typedef int(*irq_handler_t)(void *);

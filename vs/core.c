@@ -134,6 +134,8 @@ struct vma {
 
 void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
 {
+	if (!IS_ALIGNED(length, PAGE_SIZE) || !IS_ALIGNED(length, PAGE_SIZE))
+		assert("unautorized operation");
 	if (!krn_mmap_init) {
 		hmp_init(&krn_mmap, 16);
 		krn_mmap_init = true;

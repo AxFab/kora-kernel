@@ -116,6 +116,7 @@ int vfs_umount(inode_t *ino)
         return -1;
     }
 
+    errno = 0;
     if (fs->umount)
         fs->umount(ino);
     vfs_close(fs->dev.ino);
