@@ -273,7 +273,7 @@ char *strrchr(const char *str, int c)
     int lg = strlen(str) - 1;
     for (; lg >= 0; --lg) {
         if (str[lg] == (char)c)
-            return (char *)str;
+            return (char *)&str[lg];
     }
 
     return NULL;
