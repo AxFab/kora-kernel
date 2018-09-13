@@ -1,0 +1,225 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\task\async.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\libc\bbtree.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\bio.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\debug.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vfs\device.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vfs\directory.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vfs\dirent.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\libc\hmap.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vfs\inode.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\files\ioblk.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vfs\mount.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\launch.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel_simu.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\irq.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\libc\random.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vfs\parts.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\libc\string.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\libc\time.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\task\ticks.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\mem\memory.c">
+      <Filter>src\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\mem\mspace.c">
+      <Filter>src\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\mem\pages.c">
+      <Filter>src\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\mem\vma.c">
+      <Filter>src\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\task\resx.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\task\scheduler.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\task\task.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\kora\allocator.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\bbtree.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\core.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\ctype.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\arch\x86_mcvs\bits\atomic.h">
+      <Filter>include\bits</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\arch\x86_mcvs\bits\cdefs.h">
+      <Filter>include\bits</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\device.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\errno.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\sys\errno.h">
+      <Filter>include\sys</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\files.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\format.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\assert.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\hmap.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\iofile.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\mcrs.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\llist.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\net.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\sys\signum.h">
+      <Filter>include\sys</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\stddef.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\splock.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\mbstring.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\input.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\memory.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\rwlock.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\vma.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\vfs.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\types.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\task.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kernel\scall.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\string.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\time.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\syscalls.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\mem\mspace.h">
+      <Filter>src\mem</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{04b17440-631f-4633-b9ee-0e88d3521301}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\kora">
+      <UniqueIdentifier>{164e5362-931e-4a4c-914d-7fabe195e4e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\kernel">
+      <UniqueIdentifier>{f52ff60f-bf9f-4e49-a912-3ecb5e93f873}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{27fb4c6b-4629-4540-9b26-a60490a45c93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\libc">
+      <UniqueIdentifier>{3016abd7-5223-4d60-99a3-0a46be9c7adb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\task">
+      <UniqueIdentifier>{e99ff9a5-591f-4da3-89cb-dc99e9a069cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{1d02d1bb-1661-498a-b390-501b1b7cafec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\vfs">
+      <UniqueIdentifier>{577f3ca2-bcee-4559-b701-0daeaafc4671}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\sys">
+      <UniqueIdentifier>{b79bedfa-164a-40a9-85e3-4d93f84bf328}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bits">
+      <UniqueIdentifier>{2de773ed-714f-4c71-b594-25a254f0a16b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\files">
+      <UniqueIdentifier>{fbae8fe9-0354-4f7f-999a-fccdcdb77b56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\mem">
+      <UniqueIdentifier>{3c7e79a7-82bb-4a8c-942a-273f097b3e97}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
