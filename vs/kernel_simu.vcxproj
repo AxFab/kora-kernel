@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -11,8 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{31C749A7-D99D-422A-B361-4A8ED37B45A2}</ProjectGuid>
-    <RootNamespace>test_vfs</RootNamespace>
+    <ProjectGuid>{4CB7CC80-A792-80F6-40D9-D37B45A24A8E}</ProjectGuid>
+    <RootNamespace>kernel_simu</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -55,7 +55,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\include\arch\x86_mcvs;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4129;4273;4028</DisableSpecificWarnings>
-      <PreprocessorDefinitions>_MBCS;_FAKE_MEM;_FAKE_TIME;_FAKE_TASK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;_VTAG_="0.0-VS";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -63,15 +63,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_MBCS;_FAKE_MEM;_FAKE_TIME;_FAKE_TASK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;_VTAG_="0.0-VS";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\core\bio.c" />
     <ClCompile Include="..\src\core\debug.c" />
     <ClCompile Include="..\src\core\irq.c" />
-    <ClCompile Include="..\src\drivers\disk\imgdk\imgdk.c" />
-    <ClCompile Include="..\src\drivers\fs\fat\fatfs.c" />
+    <ClCompile Include="..\src\core\launch.c" />
     <ClCompile Include="..\src\files\ioblk.c" />
     <ClCompile Include="..\src\libc\bbtree.c" />
     <ClCompile Include="..\src\libc\hmap.c" />
@@ -86,7 +85,7 @@
     <ClCompile Include="..\src\vfs\mount.c" />
     <ClCompile Include="..\src\vfs\parts.c" />
     <ClCompile Include="core.c" />
-    <ClCompile Include="test_vfs.c" />
+    <ClCompile Include="kernel_simu.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\arch\x86_mcvs\bits\atomic.h" />
@@ -121,7 +120,6 @@
     <ClInclude Include="..\include\sys\errno.h" />
     <ClInclude Include="..\include\sys\signum.h" />
     <ClInclude Include="..\include\time.h" />
-    <ClInclude Include="..\src\drivers\fs\fat\fatfs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

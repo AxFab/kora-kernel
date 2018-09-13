@@ -38,35 +38,38 @@ inode_t *fatfs_mount(inode_t *dev)
 
     uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, dev, 0, VMA_FILE_RO);
     struct FAT_volume *info = fatfs_init(ptr, dev);
-    if (info == NULL) {
-        kunmap(ptr, PAGE_SIZE);
+    kunmap(ptr, PAGE_SIZE);
+    if (info == NULL) { 
         errno = EBADF;
         return NULL;
     }
 
-
+    info->io_head = bio_create(dev, VMA_FILE_RW, info->BytPerSec, 0);
     const char *fsName = info->FATType == FAT32 ? "fat32" :
                          (info->FATType == FAT16 ?
                           "fat16" : "fat12");
-    FAT_inode_t *ino = (FAT_inode_t *)vfs_inode(info->RootEntry, S_IFDIR | 0755,
+    FAT_inode_t *ino = (FAT_inode_t *)vfs_inode(info->RootEntry, S_IFDIR | 0777,
                        NULL, sizeof(FAT_inode_t));
     ino->ino.length = 0;
     // ino->ino.block = /*mount->SecPerClus */ mount->BytsPerSec;
-    ino->ino.lba = info->RootEntry;
+    ino->ino.lba = 1;
     ino->vol = info;
     // ino->vol->dev = vfs_open(dev);
 
     fsvolume_t *fs = (fsvolume_t *)kalloc(sizeof(fsvolume_t));
-    // fs->lookup = (fs_lookup)isofs_lookup;
+    fs->open = (fs_open)fatfs_open;
     // fs->read = (fs_read)isofs_read;
     fs->umount = (fs_umount)fatfs_umount;
     // fs->opendir = (fs_opendir)isofs_opendir;
     // fs->readdir = (fs_readdir)isofs_readdir;
     // fs->closedir = (fs_closedir)isofs_closedir;
     // fs->read_only = true;
-
+    int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
+    info->io_data_rw = bio_create(dev, VMA_FILE_RW, info->BytPerSec * info->SecPerClus, origin_sector * info->BytPerSec);
+    info->io_data_ro = bio_create(dev, VMA_FILE_RO, info->BytPerSec * info->SecPerClus, origin_sector * info->BytPerSec);
     vfs_mountpt(info->name, fsName, fs, (inode_t *)ino);
     kunmap(ptr, PAGE_SIZE);
+    errno = 0;
     return &ino->ino;
 }
 

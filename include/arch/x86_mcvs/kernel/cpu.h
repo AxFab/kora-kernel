@@ -22,8 +22,8 @@
 
 #include <kernel/types.h>
 
-#define IRQ_ON   asm("sti")
-#define IRQ_OFF  asm("cli")
+#define IRQ_ON   ((void)0)
+#define IRQ_OFF  ((void)0)
 
 
 struct regs {
@@ -42,7 +42,7 @@ struct regs {
     uint32_t eip;
     uint16_t cs, unused_c;
     uint32_t eflags;
-    /* ESP and SS are only pop on priviledge change  */
+    /* ESP and SS are only pop on privilege change  */
     uint32_t esp;
     uint32_t ss;
 };

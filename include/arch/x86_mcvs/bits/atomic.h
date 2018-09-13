@@ -95,9 +95,12 @@ static inline void atomic32_dec(atomic32_t *ptr)
 
 static inline uint32_t atomic32_xchg(atomic32_t *ptr, uint32_t value)
 {
-    register atomic32_t ref = *ptr;
-	*ptr = value;
-    return ref;
+	unsigned addr = (unsigned)ptr;
+	__asm {
+		mov eax, value
+		mov ebx, addr
+		lock xchg [ebx], eax
+	}
 }
 
 static inline uint32_t atomic32_xadd(atomic32_t *ptr, uint32_t value)
