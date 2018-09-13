@@ -21,7 +21,7 @@
 #include <kernel/cpu.h>
 #include <kora/llist.h>
 #include <kernel/task.h>
-#include <bits/signum.h>
+#include <sys/signum.h>
 #include <assert.h>
 
 #define IRQ_COUNT 32
@@ -105,7 +105,7 @@ void irq_disable()
 
 void irq_ack(int no);
 
-void sys_irq(int no)
+void sys_irq(int no) // TODO -- same as irq_enter without irq management
 {
     // irq_disable();
     assert(no >= 0 && no < IRQ_COUNT);

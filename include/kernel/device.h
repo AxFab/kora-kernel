@@ -34,7 +34,6 @@ typedef int (*fs_read)(inode_t *ino, void *buf, size_t len, off_t off);
 typedef int (*fs_write)(inode_t *ino, const void *buf, size_t len, off_t off);
 
 typedef inode_t *(*fs_open)(inode_t *dir, CSTR name, int mode, acl_t *acl,int flags);
-typedef inode_t *(*fs_lookup)(inode_t *dir, CSTR name);
 
 typedef void *(*fs_opendir)(inode_t *ino);
 typedef inode_t *(*fs_readdir)(inode_t *ino, char *name, void *ctx);
@@ -126,7 +125,6 @@ struct fsvolume {
     fs_write write;
 
     fs_open open;
-    fs_lookup lookup;
     fs_umount umount;
 
     fs_opendir opendir;

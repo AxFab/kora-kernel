@@ -159,10 +159,10 @@ dirent_t *vfs_lookup_(inode_t *dir, CSTR name)
 {
     assert(dir != NULL && S_ISDIR(dir->mode));
 
-    fs_lookup lookup = dir->fs->lookup;
+    fs_open open = dir->fs->open;
     if (dir->fs->dev.is_detached)
-        lookup = NULL;
-    if (lookup == NULL) {
+        open = NULL;
+    if (open == NULL) {
         errno = ENOSYS;
         return NULL;
     }
@@ -173,7 +173,7 @@ dirent_t *vfs_lookup_(inode_t *dir, CSTR name)
         return NULL;
     } else if (ent->ino == NULL) {
         // TODO -- We can't - lock on entry (rdlock) !?
-        inode_t *ino = lookup(dir, name);
+        inode_t *ino = open(dir, name, 0, NULL, VFS_OPEN);
         if (ino == NULL) {
             assert(errno != 0);
             vfs_rm_dirent_(ent);

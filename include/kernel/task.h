@@ -172,7 +172,7 @@ bool cpu_task_return_uspace(task_t *task);
 
 void cpu_stack(task_t *task, size_t entry, size_t param);
 int cpu_save(cpu_state_t state);
-void cpu_restore(cpu_state_t state, int no);
+void cpu_restore(cpu_state_t state);
 
 resx_t *resx_create();
 resx_t *resx_rcu(resx_t *resx, int usage);

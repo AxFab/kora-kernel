@@ -53,7 +53,7 @@ typedef unsigned long long page_t; */
 /* Page entry flags:
  *  bit0: Is present
  *  bit1: Allow write operations
- *  bit2: Accesible into user mode
+ *  bit2: Accessible into user mode
  */
 #define MMU_WRITE   2
 #define MMU_USERMD  4
@@ -86,8 +86,17 @@ void grub_memory();
   0x..180000   1536 Kb    512 Kb     Initial Heap Area
  */
 
+#include <setjmp.h>
+
 #define FPTR "%08p"
-typedef size_t cpu_state_t[6];
+
+typedef void (*entry)(size_t);
+
+typedef struct {
+	jmp_buf jbuf;
+	entry_t  entry;
+	size_t param;
+} cpu_state_t;
 
 
 #endif /* _KERNEL_ASM_MMU_H */
