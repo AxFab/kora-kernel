@@ -22,7 +22,7 @@
 #include <kernel/vfs.h>
 #include <kernel/memory.h>
 #include <bits/atomic.h>
-#include <bits/signum.h>
+#include <sys/signum.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>

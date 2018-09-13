@@ -6,6 +6,7 @@
 #include <time.h>
 #include <kernel/core.h>
 #include <kernel/vfs.h>
+#include <kernel/task.h>
 #include <kora/hmap.h>
 #include <kora/splock.h>
 
@@ -43,6 +44,17 @@ void kprintf(int lvl, CSTR msg, ...)
     va_end(ap);
 }
 
+_Noreturn void kpanic(CSTR msg, ...)
+{
+    va_list ap;
+    va_start(ap, msg);
+    splock_lock(&klog_lock);
+    vprintf(msg, ap);
+    splock_unlock(&klog_lock);
+    va_end(ap);
+    __assert_fail("Kernel panic!", __FILE__, __LINE__);
+}
+
 void kclock(struct timespec *ts)
 {
     time64_t ticks = time64(); 
@@ -54,6 +66,7 @@ void kclock(struct timespec *ts)
 
 struct kSys kSYS;
 
+#ifdef _FAKE_TIME
 #if !defined(_WIN32)
 time64_t time64()
 {
@@ -68,8 +81,8 @@ time64_t time64()
 #include <windows.h>
 time64_t time64()
 {
-	const INT64 UNIX_START 0x019DB1DED53E8000
-	
+    const INT64 UNIX_START = 0x019DB1DED53E8000;
+
 	FILETIME ft;
 	GetSystemTimeAsFileTime(&ft);
 	
@@ -79,44 +92,15 @@ time64_t time64()
 	return (li.QuadPart - UNIX_START) * 100;
 }
 #endif
+#endif
 
 int cpu_no()
 {
     return 0;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-bool irq_active = false;
-bool irq_last = false;
-
-bool irq_enable()
+void irq_ack() 
 {
-    if (irq_active) {
-        assert(kCPU.irq_semaphore > 0);
-        if (--kCPU.irq_semaphore == 0) {
-            irq_last = true;
-            return true;
-        }
-    }
-    return false;
-}
-
-void irq_disable()
-{
-    if (irq_active) {
-        irq_last = false;
-        ++kCPU.irq_semaphore;
-    }
-}
-
-void irq_reset(bool enable)
-{
-    irq_active = true;
-    kCPU.irq_semaphore = enable ? 1 : 0;
-    irq_last = false;
-    if (enable)
-        irq_enable();
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -184,20 +168,16 @@ void page_release(page_t addr) {}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-#if 1
+
+#if _FAKE_TASK
 _Noreturn void task_switch(int status, int retcode) 
 { 
     assert(false);
     for(;;);
 }
-int task_resume(task_t *task)
-{
-	assert(false);
-	for(;;);
-}
 #else
 
-_Noreturn void task_switch(int status, int retcode)
+void task_switch(int status, int retcode)
 {
     assert(kCPU.irq_semaphore == 1);
     assert(status >= TS_ZOMBIE && status <= TS_READY);
@@ -236,29 +216,9 @@ _Noreturn void task_switch(int status, int retcode)
     // TODO Start task chrono!
     if (task->usmem)
         mmu_context(task->usmem);
-    // kprintf(-1, "Start Task %d\n", task->pid);
-    //
-    mtx_unlock(task->state.mtx);
-    if (!prev || status == TS_ZOMBIE)
-        terminate_thread();
-    if (state != TS_READY) // set to sleep!
-        mtx_wait(prev->state.mtx);
+    // kprintf(-1, "Start Task %d\n", task->pid)
+
     longjmp(prev->state.jbuf, 1);
-}
-
-
-int task_resume(task_t *task)
-{
-    splock_lock(&task->lock);
-    if (task->status <= TS_ZOMBIE || task->status >= TS_READY) {
-        splock_unlock(&task->lock);
-        return -1;
-    }
-
-    task->status = TS_READY;
-    // TODO mutex unlock scheduler_add(task);
-    splock_unlock(&task->lock);
-    return 0;
 }
 
 #endif

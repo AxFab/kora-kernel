@@ -90,7 +90,7 @@ void grub_memory();
 
 #define FPTR "%08p"
 
-typedef void (*entry)(size_t);
+typedef void (*entry_t)(size_t);
 
 typedef struct {
 	jmp_buf jbuf;
