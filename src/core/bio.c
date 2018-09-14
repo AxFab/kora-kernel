@@ -72,7 +72,7 @@ bio_t *bio_create(inode_t *ino, int flags, int block, size_t offset)
 	return io;
 }
 
-void *bio_access(bio_t *io, int lba)
+void *bio_access(bio_t *io, size_t lba)
 {
 	lba = lba * io->factor + io->offset;
 	size_t offset = io->modulus != 1 ? lba % io->modulus : 0;
@@ -90,7 +90,7 @@ void *bio_access(bio_t *io, int lba)
 	return (uint8_t*)page->base + (offset * io->off_block);
 }
 
-void bio_clean(bio_t *io, int lba)
+void bio_clean(bio_t *io, size_t lba)
 {
 	lba = lba * io->factor + io->offset;
 	size_t offset = io->modulus != 1 ? lba % io->modulus : 0;
@@ -116,7 +116,7 @@ void bio_destroy(bio_t *io)
 		hmp_remove(&io->table, (char*)&page->lba, sizeof(page->lba));
 		kfree(page);
 	}
-	// TODO - clean LRU
+
 	assert(io->table.count_ == 0);
 	hmp_destroy(&io->table, 0);
 	kfree(io);

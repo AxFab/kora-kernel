@@ -32,7 +32,7 @@
 #define _PwMilli_ (1000L)
 #define _PwMicro_ (1000L * _PwMilli_)
 #define _PwNano_ (1000LL * _PwMicro_)
-#define _PwFemeto_ (1000LL * _PwNano_)
+#define _PwFemto_ (1000LL * _PwNano_)
 
 #define ALIGN_UP(v,a)      (((v)+(a-1))&(~(a-1)))
 #define ALIGN_DW(v,a)      ((v)&(~(a-1)))

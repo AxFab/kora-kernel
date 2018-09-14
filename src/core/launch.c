@@ -132,10 +132,6 @@ void kernel_start()
     memory_initialize();
     // Resolve page fault for allocation -- circular deps between mspace_map and kalloc
     kalloc(2);
-    kprintf(KLOG_MSG, "Memory available %s over ",
-            sztoa((uintmax_t)kMMU.pages_amount * PAGE_SIZE));
-    kprintf(KLOG_MSG, "%s\n",
-            sztoa((uintmax_t)kMMU.upper_physical_page * PAGE_SIZE));
     memory_info();
     assert(kCPU.irq_semaphore == 1);
 

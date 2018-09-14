@@ -69,7 +69,13 @@ struct FAT_volume *fatfs_init(void *ptr, inode_t *dev)
 
 void fatfs_write_short_entry(struct FAT_ShortEntry *en, const char *name, int lba)
 {
-	
+	if (strlen(name) <= 8/* ASCII */) {
+		memset(en->DIR_Name, ' ', sizeof(en->DIR_Name));
+		strcpy(en->DIR_Name, name);
+	} else {
+		// ...
+	}
+	en->DIR_Attr = true ? ATTR_DIRECTORY : ATTR_ARCHIVE;
 }
 
 void fatfs_mkdir(struct FAT_volume* info, inode_t* dir, int lba)

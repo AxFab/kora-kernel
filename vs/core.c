@@ -6,7 +6,6 @@
 #include <time.h>
 #include <kernel/core.h>
 #include <kernel/vfs.h>
-#include <kernel/task.h>
 #include <kora/hmap.h>
 #include <kora/splock.h>
 
@@ -33,6 +32,8 @@ void kfree(void *ptr)
 {
     free(ptr);
 }
+
+/* ------------------------------------------------------------------- */
 
 void kprintf(int lvl, CSTR msg, ...)
 {
@@ -66,37 +67,11 @@ void kclock(struct timespec *ts)
 
 struct kSys kSYS;
 
-#ifdef _FAKE_TIME
-#if !defined(_WIN32)
-time64_t time64()
-{
-    clock_t ticks = clock();
-    if (_PwNano_ > CLOCKS_PER_SEC)
-        ticks *= _PwNano_ / CLOCKS_PER_SEC;
-    else
-        ticks /= CLOCKS_PER_SEC / _PwNano_;
-    return ticks;
-}
-#else
-#include <windows.h>
-time64_t time64()
-{
-    const INT64 UNIX_START = 0x019DB1DED53E8000;
-
-	FILETIME ft;
-	GetSystemTimeAsFileTime(&ft);
-	
-	LARGE_INTEGER li;
-	li.LowPart = ft.dwLowDateTime;
-	li.HighPart = ft.dwHighDateTime;
-	return (li.QuadPart - UNIX_START) * 100;
-}
-#endif
-#endif
+__declspec(thread) int __cpu_no = 0;
 
 int cpu_no()
 {
-    return 0;
+    return __cpu_no;
 }
 
 void irq_ack() 
@@ -136,6 +111,8 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
         assert(ino != NULL);
         vfs_read(ino, ptr, length, offset);
         break;
+    case VMA_STACK:
+        break;
     default:
         assert(false);
         break;
@@ -163,8 +140,46 @@ void kunmap(size_t addr, size_t length)
     _aligned_free((void*)addr);
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#ifdef _FAKE_MEM
 page_t mmu_read(page_t addr) { return 0; }
 void page_release(page_t addr) {}
+int page_fault() { return -1; }
+#endif
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#ifdef _FAKE_TIME
+#if !defined(_WIN32)
+time64_t time64()
+{
+    clock_t ticks = clock();
+    if (_PwNano_ > CLOCKS_PER_SEC)
+        ticks *= _PwNano_ / CLOCKS_PER_SEC;
+    else
+        ticks /= CLOCKS_PER_SEC / _PwNano_;
+    return ticks;
+}
+#else
+#include <windows.h>
+time64_t time64()
+{
+	// January 1, 1970 (start of Unix epoch) in ticks
+    const INT64 UNIX_START = 0x019DB1DED53E8000;
+
+	FILETIME ft;
+	GetSystemTimeAsFileTime(&ft);
+	
+	LARGE_INTEGER li;
+	li.LowPart = ft.dwLowDateTime;
+	li.HighPart = ft.dwHighDateTime;
+	// Convert ticks since EPOCH into nano-seconds
+	return (li.QuadPart - UNIX_START) * 100;
+}
+#endif
+#endif
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -175,50 +190,6 @@ _Noreturn void task_switch(int status, int retcode)
     assert(false);
     for(;;);
 }
-#else
 
-void task_switch(int status, int retcode)
-{
-    assert(kCPU.irq_semaphore == 1);
-    assert(status >= TS_ZOMBIE && status <= TS_READY);
-    task_t *task = kCPU.running;
-    if (task) {
-        // kprintf(-1, "Leaving Task %d\n", task->pid);
-        splock_lock(&task->lock);
-        task->retcode = retcode;
-        if (setjmp(task->state.jbuf) != 0)
-            return;
-        // kprintf(-1, "Saved Task %d\n", task->pid);
-
-        // TODO Stop task chrono
-        if (task->status == TS_ABORTED) {
-            if (status == TS_BLOCKED) {
-                // TODO - We have advent structure to clean
-            }
-            status = TS_ZOMBIE;
-        }
-        if (status == TS_ZOMBIE) {
-            /* Quit the task */
-            async_raise(&task->wlist, 0);
-            // task_zombie(task);
-        } else if (status == TS_READY)
-            scheduler_add(task);
-        task->status = status;
-        splock_unlock(&task->lock);
-    }
-
-    task = scheduler_next();
-    task_t *prev = kCPU.running;
-    kCPU.running = task;
-    irq_reset(false);
-    if (task == NULL)
-        cpu_halt();
-    // TODO Start task chrono!
-    if (task->usmem)
-        mmu_context(task->usmem);
-    // kprintf(-1, "Start Task %d\n", task->pid)
-
-    longjmp(prev->state.jbuf, 1);
-}
 
 #endif

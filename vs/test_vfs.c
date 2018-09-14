@@ -14,6 +14,54 @@
 
 void imgdk_setup();
 
+inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, void(*format)(inode_t *))
+{
+	// TODO - Clean FS and DEV list!
+	imgdk_setup();
+	fsmod->setup();
+	
+	inode_t *disk = vfs_search_device(dev);
+	ck_ok(disk != NULL && errno == 0, "Search disk");
+	format(disk);
+	
+	inode_t *root = vfs_mount(dev, fsmod->name);
+	ck_root(root != NULL  && errno == 0, "Mount newly formed disk");
+	return root;
+}
+
+void test_fs_teardown(inode_t *root)
+{
+	int res = vfs_mount(root);
+    ck_ok(res == 0 && errno == 0, "Unmount file system");
+	vfs_close(root);
+}
+
+
+void test_fs_basic(inode_t *ino)
+{
+	/*
+	lookup EMPTY
+	create EMPTY.txt
+	lookup EMPTT txt
+	close
+	close
+	
+	create FOLDER
+	create FILE.O
+	search FOLDER/FILE.O
+	close
+	close
+	
+	unlink FOLDER
+	lookup ..
+	unlink FILE.O
+	lookup ..
+	unlink FOLDER
+	lookup ..
+	*/
+}
+
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 extern kmod_t kmod_info_fatfs;
@@ -29,16 +77,6 @@ END_TEST
 
 int main(int argc, char **argv)
 {
-	// TODO - Clean FS and DEV list!
-	imgdk_setup();
-	fatfs_setup();
-	
-	inode_t *sdA = vfs_search_device("sdA");
-	fatfs_format(sdA);
-	// ck_ok(sdA != NULL, "#1");
-	
-	inode_t *root = vfs_mount("sdA", "fatfs");
-
 	CHECK_TSUITE("File System");
 	CHECK_TCASE(test_fs_fat16);
     return 0;

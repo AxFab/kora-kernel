@@ -48,8 +48,7 @@ inode_t *fatfs_mount(inode_t *dev)
     const char *fsName = info->FATType == FAT32 ? "fat32" :
                          (info->FATType == FAT16 ?
                           "fat16" : "fat12");
-    FAT_inode_t *ino = (FAT_inode_t *)vfs_inode(info->RootEntry, S_IFDIR | 0777,
-                       NULL, sizeof(FAT_inode_t));
+    FAT_inode_t *ino = (FAT_inode_t *)vfs_inode(info->RootEntry, S_IFDIR | 0777, NULL, sizeof(FAT_inode_t));
     ino->ino.length = 0;
     // ino->ino.block = /*mount->SecPerClus */ mount->BytsPerSec;
     ino->ino.lba = 1;
