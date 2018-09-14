@@ -89,6 +89,7 @@ int fatfs_format(inode_t *ino)
         bpb->BS_DrvNum = 0x80; // Get
         bpb->BS_Reserved1 = 0;
         bpb->BS_BootSig = 0x29;
+        bpb->BPB_RootEntCnt = 512;
         bpb->BS_VolID = rand32();
         memset(bpb->BS_VolLab, ' ', 11);
         memcpy(bpb->BS_VolLab, volume, MIN(strlen(volume), 11));
@@ -140,7 +141,7 @@ int fatfs_format(inode_t *ino)
                 fat_table[0] = 0xfff8;
                 fat_table[1] = 0xffff;
             }
-            bio_clean(io_head, lba + 1);
+            bio_clean(io_head, lba + j);
         }
     }
     

@@ -137,7 +137,6 @@ PACK(struct FAT_LongNameEntry {
 struct FAT_volume {
     char    name[48];
     char    label[8];
-    inode_t *dev;
     long long totalSize;
     long long usedSpace;
     long long freeSpace;
@@ -152,6 +151,9 @@ struct FAT_volume {
     int FATType;
     unsigned int RootEntry;
     int SecPerClus;
+    bio_t *io_head;
+    bio_t *io_data_rw;
+    bio_t *io_data_ro;
 };
 
 /* FAT FS SRC
@@ -191,7 +193,9 @@ struct FAT_inode {
 };
 
 
-struct FAT_volume *fatfs_init(void *ptr);
+struct FAT_volume *fatfs_init(void *ptr,);
+FAT_inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, struct FAT_volume *info);
+FAT_inode_t *fatfs_open(FAT_inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
 
 
 #endif /* _SRC_FATFS_H */
