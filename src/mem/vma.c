@@ -38,7 +38,7 @@ char *vma_print(char *buf, int len, vma_t *vma)
     char sh = vma->flags & VMA_COPY_ON_WRITE ? (vma->flags & VMA_SHARED ? 'W' : 'w')
               : (vma->flags & VMA_SHARED ? 'S' : 'p');
     i += snprintf(&buf[i], len - i, FPTR"-"FPTR" %s %s%c  {%04x} <%s> ",
-                  vma->node.value_, vma->node.value_ + vma->length,
+                  (void*)vma->node.value_, (void*)(vma->node.value_ + vma->length),
                   rights[(vma->flags >> 4) & 7], rights[vma->flags & 7], sh,
                   vma->flags, sztoa(vma->length));
     switch (vma->flags & VMA_TYPE) {
@@ -52,7 +52,7 @@ char *vma_print(char *buf, int len, vma_t *vma)
         i += snprintf(&buf[i], len - i, "[pipe]");
         break;
     case VMA_PHYS:
-        i += snprintf(&buf[i], len - i, "PHYS="FPTR, vma->offset);
+        i += snprintf(&buf[i], len - i, "PHYS="FPTR, (void*)vma->offset);
         break;
     case VMA_ANON:
         break;

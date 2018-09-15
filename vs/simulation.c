@@ -143,8 +143,10 @@ DWORD WINAPI new_cpu_thread(LPVOID lpParameter)
         }
     case 1:
         task->state.entry(task->state.param);
+        task_stop(task, 0);
         break;
     }
+    return 0;
 }
 
 void cpu_stack(task_t *task, size_t entry, size_t param)

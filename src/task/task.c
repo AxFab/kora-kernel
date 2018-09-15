@@ -91,37 +91,36 @@ void task_start(task_t *task, size_t entry, long args)
     scheduler_add(task);
 }
 
-// int task_stop(task_t *task, int code)
-// {
-//     splock_lock(&task->lock);
-//     if (task == kCPU.running || task->status == TS_READY) {
-//         scheduler_rm(task);
-//     } else if (task->status == TS_RUNNING) {
-//         task->status = TS_ABORTED;
-//         task->retcode = code;
-//         splock_unlock(&task->lock);
-//         return 0;
-//     } else if (task->status == TS_ZOMBIE) {
-//         splock_unlock(&task->lock);
-//         return -1;
-//     }
-
-//     task->status = TS_ZOMBIE;
-//     task->retcode = code;
-
-//     task_t *parent = task->parent;
-//     // TODO - All children become orphans
-//     splock_unlock(&task->lock);
-
-//     if (parent) {
-//         task_kill(parent, SIGCHLD);
-//     }
-
-//     // event_trigger(EV_TASK_DIE, task);
-
-//     // Usage counter !?
-//     return 0;
-// }
+int task_stop(task_t *task, int code)
+{
+    splock_lock(&task->lock);
+    if (task == kCPU.running) {
+        // Nothing to do !?
+    } else if (task->status == TS_READY) {
+        scheduler_rm(task);
+    } else if (task->status == TS_RUNNING) {
+        task->status = TS_ABORTED;
+        task->retcode = code;
+        splock_unlock(&task->lock);
+        return 0;
+    } else if (task->status == TS_ZOMBIE) {
+        splock_unlock(&task->lock);
+        return -1;
+    } else {
+        assert(false);
+    }
+    task->status = TS_ZOMBIE;
+    task->retcode = code;
+    task_t *parent = task->parent;
+    // TODO - All children become orphans
+    splock_unlock(&task->lock);
+    if (parent) {
+        task_kill(parent, SIGCHLD);
+    }
+    // event_trigger(EV_TASK_DIE, task);
+    // rcu_free(task);
+    return 0;
+}
 
 
 int task_kill(task_t *task, unsigned signum)
@@ -276,14 +275,12 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
 // {
 //     task_t *task = task_allocat();
 //     task->pid = task_new_pid();
-
 //     // Keep file descriptor
 //     if (clone & CLONE_FILES) {
 //         task->resx = resx_rcu(model->resx, 1);
 //     } else {
 //         task->resx = resx_create();
 //     }
-
 //     // Keep FS informations
 //     if (clone & CLONE_FS) {
 //         task->root = vfs_open(model->root);
@@ -292,7 +289,6 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
 //         task->root = NULL; // TODO - default root !?
 //         task->pwd = NULL;
 //     }
-
 //     if (clone & CLONE_PARENT) {
 //         task->parent = model->parent;
 //     } else {
@@ -300,23 +296,15 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
 //             task->parent = kCPU.running;
 //         }
 //     }
-
-
 //     if (clone & CLONE_TLS) {
 //     } else {
 //     }
-
-
 //     if (clone & CLONE_SIGNAL) {
 //     } else {
 //     }
-
-
 //     if (clone & CLONE_SCALL) {
 //     } else {
 //     }
-
-
 //     if (clone & CLONE_THREAD) {
 //         task->usmem = mspace_open(model->usmem);
 //     } else {
@@ -326,13 +314,11 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
 //             task->usmem = flags & TSK_USER_SPACE ? mspace_create() : NULL;
 //         }
 //     }
-
 //     if (clone & CLONE_USER) {
 //         task->user = model->user;
 //     } else {
 //         task->user = NULL;
 //     }
-
 //     task->bnode.value_ = task->pid;
 //     bbtree_insert(&pid_tree, &task->bnode);
 //     return task;

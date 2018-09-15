@@ -120,13 +120,54 @@ void kernel_top(long sec)
     }
 }
 
+void kernel_init()
+{
+    // Start plug and play demon
+    // ...
+
+    // Look for modules
+#if defined(__VENDOR_PC)
+    // KSETUP(ps2);
+    // KSETUP(ide_ata);
+    // KSETUP(e1000);
+    // KSETUP(vbox);
+    // KSETUP(ac97);
+    // KSETUP(vga);
+#elif defined(__VENDOR_UM)
+    // KSETUP(imgdk);
+#endif
+    // KSETUP(isofs);
+    // KSETUP(fatfs);
+
+    // vfs_mount(root, "dev", NULL, "devfs");
+    // vfs_mount(root, "tmp", NULL, "tmpfs");
+
+    // Look for home file system
+    // inode_t *root = vfs_mount("sdC", "isofs");
+    // if (root == NULL) {
+    //     kprintf(-1, "Expected mount point over 'sdC' !\n");
+    //     return;
+    // }
+    // inode_t *ino = vfs_search(root, root, "bin/init", NULL);
+    // if (ino == NULL) {
+    //     kprintf(-1, "Expected file 'bin/init'.\n");
+    //     return;
+    // }
+    // task_t *task0 = task_create(NULL, root, TSK_USER_SPACE, "init");
+    // if (elf_open(task0, ino) != 0) {
+    //     kprintf(-1, "Unable to execute file\n");
+    // }
+
+    // vfs_close(root);
+    // vfs_close(ino);
+}
+
 void kernel_start()
 {
     kSYS.cpus = &kCPU0;
     irq_reset(false);
     irq_disable();
-    kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the "
-            __DATE__ ".\n");
+    kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
 
     assert(kCPU.irq_semaphore == 1);
     memory_initialize();
@@ -138,79 +179,27 @@ void kernel_start()
     cpu_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    platform_setup();
-    assert(kCPU.irq_semaphore == 1);
-
     kprintf(KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
 
-
-    // time_t now = cpu_time();
-    // kprintf(KLOG_MSG, "Startup: %s", asctime(gmtime(&now)));
-
-    /* Drivers startup */
-    // kernel_module("tmpfs", TMPFS_setup, TMPFS_teardown);
-    // DEVFS_setup();
-
-    // bool irq = irq_enable();
-    // assert(irq);
-
-    // #if 1
-        // KSETUP(ps2);
-        // KSETUP(ide_ata);
-    //     KSETUP(pci);
-    KSETUP(e1000);
-    //     KSETUP(vbox);
-    //     KSETUP(ac97);
-    //     // KSETUP(vga);
-    // #else
-    //     KSETUP(imgdk);
-    // #endif
-    //     KSETUP(isofs);
+    platform_setup();
+    assert(kCPU.irq_semaphore == 1);
 
     kernel_tasklet(ktsk1, 1, "Dbg_task1");
     kernel_tasklet(ktsk2, 2, "Dbg_task2");
     kernel_tasklet(ktsk3, 3, "Dbg_task3");
+    kernel_tasklet(kernel_init, 0, "Kernel init");
+    // kernel_tasklet(kernel_shell, 0, "Kernel shell");
+    // kernel_tasklet(kernel_desktop, 0, "Kernel desktop");
     kernel_tasklet(kernel_top, 5, "Dbg top 5s");
-    // desktop_t *dekstop = wmgr_desktop();
 
-    // tty_attach(tty_syslog, wmgr_window(dekstop, 600, 600), &font_6x9, colors_kora, 0);
-
-    // irq_disable();
-
-    // inode_t *root = vfs_mount("sdC", "isofs");
-    // if (root == NULL) {
-    //     kprintf(-1, "Expected mount point named 'ISOIMAGE' over 'sdC' !\n");
-    //     return;
-    // }
-
-    // // vfs_mount(root, "dev", NULL, "devfs");
-    // // vfs_mount(root, "tmp", NULL, "tmpfs");
-
-    // inode_t *ino = vfs_search(root, root, "bin/init", NULL);
-    // if (ino == NULL) {
-    //     kprintf(-1, "Expected file 'bin/init'.\n");
-    //     return;
-    // }
-
-    // task_t *task0 = task_create(NULL, root, TSK_USER_SPACE, "init");
-    // if (elf_open(task0, ino) != 0) {
-    //     kprintf(-1, "Unable to execute file\n");
-    // }
-
-    // vfs_close(root);
-    // vfs_close(ino);
-    // irq_reset(false);
-    clock_init();
     // no_dbg = 0;
     // int clock_irq = 2;
+    clock_init();
     irq_register(0, (irq_handler_t)sys_ticks, NULL);
     // irq_register(2, (irq_handler_t)sys_ticks, NULL);
     // PS2_reset();
-
     assert(kCPU.irq_semaphore == 1);
     irq_reset(false);
-    // cpu_halt();
-    // for (;;);
 }
 
 void kernel_ready()
