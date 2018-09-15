@@ -93,5 +93,5 @@ void scheduler_switch(int status, int retcode)
     if (task->usmem)
         mmu_context(task->usmem);
     // kprintf(-1, "Start Task %d\n", task->pid);
-    cpu_restore(task->state, 1);
+    cpu_restore(task->state);
 }

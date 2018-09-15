@@ -187,7 +187,7 @@ void kernel_start()
     kernel_tasklet(ktsk1, 1, "Dbg_task1");
     kernel_tasklet(ktsk2, 2, "Dbg_task2");
     kernel_tasklet(ktsk3, 3, "Dbg_task3");
-    kernel_tasklet(kernel_init, 0, "Kernel init");
+    // kernel_tasklet(kernel_init, 0, "Kernel init");
     // kernel_tasklet(kernel_shell, 0, "Kernel shell");
     // kernel_tasklet(kernel_desktop, 0, "Kernel desktop");
     kernel_tasklet(kernel_top, 5, "Dbg top 5s");

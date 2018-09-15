@@ -160,51 +160,52 @@ long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 
     scall_t *sc = &scalls[no];
     long *args = &a1;
-    char *buf = (char *)kalloc(1024);
-    int lg = sprintf(buf, "sys_%s(", sc->name);
+    int sz = 1024;
+    char *buf = (char *)kalloc(sz);
+    int lg = snprintf(buf, sz, "sys_%s(", sc->name);
     for (i = 0; i < 5; ++i) {
         if (i != 0 && sc->args[i - 1] != SC_NOARG)
-            lg += sprintf(&buf[lg], ", ");
+            lg += snprintf(&buf[lg], sz - lg, ", ");
         switch (sc->args[i]) {
         case SC_NOARG:
             break;
         case SC_SIGNED:
-            lg += sprintf(&buf[lg], "%d", args[i]);
+            lg += snprintf(&buf[lg], sz - lg, "%d", args[i]);
             break;
         case SC_UNSIGNED:
-            lg += sprintf(&buf[lg], "%u", args[i]);
+            lg += snprintf(&buf[lg], sz - lg, "%u", args[i]);
             break;
         case SC_OCTAL:
-            lg += sprintf(&buf[lg], "0%o", args[i]);
+            lg += snprintf(&buf[lg], sz - lg, "0%o", args[i]);
             break;
         case SC_HEX:
-            lg += sprintf(&buf[lg], "0x%x", args[i]);
+            lg += snprintf(&buf[lg], sz - lg, "0x%x", args[i]);
             break;
         case SC_STRING:
-            lg += sprintf(&buf[lg], "\"%s\"", (char *)args[i]);
+            lg += snprintf(&buf[lg], sz - lg, "\"%s\"", (char *)args[i]);
             break;
         case SC_FD:
-            lg += sprintf(&buf[lg], "%d:...", args[i]);
+            lg += snprintf(&buf[lg], sz - lg, "%d:...", args[i]);
             break;
         case SC_STRUCT:
-            lg += sprintf(&buf[lg], "0x%x", args[i]);
+            lg += snprintf(&buf[lg], sz - lg, "0x%x", args[i]);
             break;
         case SC_OFFSET:
-            lg += sprintf(&buf[lg], "%d", args[i]);
+            lg += snprintf(&buf[lg], sz - lg, "%d", args[i]);
             break;
         case SC_POINTER:
-            lg += sprintf(&buf[lg], "%p", args[i]);
+            lg += snprintf(&buf[lg], sz - lg, "%p", args[i]);
             break;
         }
     }
 
     if (!sc->retrn) {
-        lg += sprintf(&buf[lg], ")\n");
+        lg += snprintf(&buf[lg], sz - lg, ")\n");
         kprintf(KLOG_SYC, buf);
     }
 
     int ret = sc->handler(a1, a2, a3, a4, a5);
-    lg += sprintf(&buf[lg], ") = %d [%d]\n", ret, errno);
+    lg += snprintf(&buf[lg], sz - lg, ") = %d [%d]\n", ret, errno);
     kprintf(KLOG_SYC, buf);
     kfree(buf);
     return ret;
