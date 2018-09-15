@@ -21,7 +21,7 @@
 #include <kernel/cpu.h>
 #include <kernel/task.h>
 #include <errno.h>
-#include <bits/signum.h>
+#include <sys/signum.h>
 #include "apic.h"
 #include "pic.h"
 

@@ -140,7 +140,7 @@ page_t mmu_protect(size_t vaddr, int flags)
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if ((*dir & 1) == 0 || ((*tbl & 1) == 0))
-        return;
+        return 0;
     page_t pg = *tbl & ~(PAGE_SIZE - 1);
     *tbl = pg | mmu_flags(vaddr, flags);
     asm volatile(
