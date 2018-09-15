@@ -83,7 +83,7 @@ void mmu_leave()
 }
 
 /* Resolve a single missing virtual page */
-void mmu_resolve(size_t vaddr, page_t phys, int flags)
+page_t mmu_resolve(size_t vaddr, page_t phys, int flags)
 {
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
@@ -105,6 +105,7 @@ void mmu_resolve(size_t vaddr, page_t phys, int flags)
         *tbl = phys | mmu_flags(vaddr, flags);
     } else
         assert(vaddr >= MMU_KSPACE_LOWER);
+    return (*tbl) & ~(PAGE_SIZE - 1);
 }
 
 /* Get physical address for virtual provided one */
@@ -134,7 +135,7 @@ page_t mmu_drop(size_t vaddr)
 }
 
 /* Change access settimgs for a virtual page */
-void mmu_protect(size_t vaddr, int flags)
+page_t mmu_protect(size_t vaddr, int flags)
 {
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
@@ -146,6 +147,7 @@ void mmu_protect(size_t vaddr, int flags)
         "movl %0,%%eax\n"
         "invlpg (%%eax)\n"
         :: "r"(vaddr) : "%eax");
+    return pg;
 }
 
 void mmu_create_uspace(mspace_t *mspace)

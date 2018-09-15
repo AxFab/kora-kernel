@@ -63,7 +63,7 @@ void clock_init()
 
 void sys_ticks()
 {
-    kprintf(-1, "CPU.%d Ticks\n", cpu_no());
+    // kprintf(-1, "CPU.%d Ticks\n", cpu_no());
 
     // irq_disable();
     if (timer_cpu == cpu_no()) {
@@ -74,12 +74,13 @@ void sys_ticks()
         // Update Wall time
         // Compute global load
         splock_unlock(&xtime_lock);
+        // return;
     } else {
         // kprintf(-1, "CPU.%d Ticks\n", cpu_no());
-        return;
+        // return;
     }
     async_timesup();
-    task_switch(TS_READY, 0);
+    scheduler_switch(TS_READY, 0);
 }
 
 

@@ -199,7 +199,7 @@ void irq_fault(const fault_t *fault)
     if (fault->raise != 0)
         task_kill(kCPU.running, fault->raise);
     if (task->status == TS_ABORTED)
-        task_switch(TS_ZOMBIE, -1);
+        scheduler_switch(TS_ZOMBIE, -1);
     // if (task->signals != 0)
     //     task_signals();
     // task->elapsed_system = time_elapsed(&task->elapsed_last);
@@ -219,7 +219,7 @@ void irq_pagefault(size_t vaddr, int reason)
     if (page_fault(/*task ? task->uspace: */NULL, vaddr, reason) != 0) {
         task_kill(kCPU.running, SIGSEGV);
         if (task->status == TS_ABORTED)
-            task_switch(TS_ZOMBIE, -1);
+            scheduler_switch(TS_ZOMBIE, -1);
         // if (task->signals != 0)
         //     task_signals();
     }
