@@ -51,7 +51,7 @@ void mmu_disable()
 }
 
 /* - */
-int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
+page_t mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
 {
     uint32_t *dir;
     int page_no;
@@ -69,7 +69,7 @@ int mmu_resolve(size_t vaddress, page_t paddress, int access, bool clean)
     if (paddress == 0)
         paddress = page_new();
     dir[page_no] = paddress | (access & 7);
-    return 0;
+    return paddress;
 }
 
 page_t mmu_read_(size_t vaddress, bool drop, bool clean)

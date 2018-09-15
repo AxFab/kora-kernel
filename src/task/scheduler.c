@@ -53,3 +53,45 @@ task_t *scheduler_next()
     return task;
 }
 
+/* */
+void scheduler_switch(int status, int retcode)
+{
+    assert(kCPU.irq_semaphore == 1);
+    assert(status >= TS_ZOMBIE && status <= TS_READY);
+    task_t *task = kCPU.running;
+    if (task) {
+        // kprintf(-1, "Leaving Task %d\n", task->pid);
+        splock_lock(&task->lock);
+        task->retcode = retcode;
+        if (cpu_save(task->state) != 0)
+            return;
+        // kprintf(-1, "Saved Task %d\n", task->pid);
+
+        // TODO Stop task chrono
+        if (task->status == TS_ABORTED) {
+            if (status == TS_BLOCKED) {
+                // TODO - We have advent structure to clean
+            }
+            status = TS_ZOMBIE;
+        }
+        if (status == TS_ZOMBIE) {
+            /* Quit the task */
+            async_raise(&task->wlist, 0);
+            // task_zombie(task);
+        } else if (status == TS_READY)
+            scheduler_add(task);
+        task->status = status;
+        splock_unlock(&task->lock);
+    }
+
+    task = scheduler_next();
+    kCPU.running = task;
+    irq_reset(false);
+    if (task == NULL)
+        cpu_halt();
+    // TODO Start task chrono!
+    if (task->usmem)
+        mmu_context(task->usmem);
+    // kprintf(-1, "Start Task %d\n", task->pid);
+    cpu_restore(task->state, 1);
+}

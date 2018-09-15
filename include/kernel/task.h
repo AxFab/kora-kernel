@@ -139,20 +139,14 @@ void task_signals();
 task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name);
 task_t *task_clone(task_t *model, int clone, int flags);
 task_t *task_search(pid_t pid);
-void task_switch(int status, int retcode);
 void task_show_all();
 
 _Noreturn void cpu_halt();
 
 void scheduler_add(task_t *item);
 void scheduler_rm(task_t *item);
-task_t *scheduler_next();
+void scheduler_switch(int status, int retcode);
 
-
-// void advent_awake(llhead_t *list, int err);
-// int advent_wait(splock_t *lock, llhead_t *list, long timeout_us);
-// int advent_wait_rd(rwlock_t *lock, llhead_t *list, long timeout_us);
-// void advent_timeout();
 
 /* Wait for an event to be emited */
 int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us);

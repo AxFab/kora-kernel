@@ -76,7 +76,7 @@ void mmu_enable()
 void mmu_leave() {}
 
 /* - */
-int mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access,
+page_t mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access,
                 bool clean)
 {
     assert((vaddress & (PAGE_SIZE - 1)) == 0);
@@ -113,7 +113,7 @@ int mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access,
     if (clean)
         memset((void *)vaddress, 0, PAGE_SIZE);
 
-    return 0;
+    return paddress;
 }
 
 /* - */
@@ -146,8 +146,9 @@ page_t mmu_drop(mspace_t *mspace, size_t vaddress, bool clean)
     return mmu_read_(vaddress, true, clean);
 }
 
-void mmu_protect(mspace_t *mspace, size_t address, size_t length, int access)
+page_t mmu_protect(mspace_t *mspace, size_t address, size_t length, int access)
 {
+    return mmu_read_(vaddress, false, false);
 }
 
 /* - */

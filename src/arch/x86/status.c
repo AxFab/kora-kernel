@@ -144,7 +144,7 @@ void cpu_exception_x86(int no, regs_t *regs)
         kpanic("Kernel code triggered an exception.\n");
     // TODO -- If a module is responsable, close this module and send an alert.
     // task_kill(kCPU.running, signal_exception_x86[no].signum);
-    // task_switch();
+    // scheduler_switch();
     for (;;);
 }
 

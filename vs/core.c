@@ -58,7 +58,7 @@ _Noreturn void kpanic(CSTR msg, ...)
 
 void kclock(struct timespec *ts)
 {
-    time64_t ticks = time64(); 
+    time64_t ticks = time64();
     ts->tv_sec = ticks / _PwNano_;
     ts->tv_nsec = ticks % _PwNano_;
 }
@@ -74,7 +74,7 @@ int cpu_no()
     return __cpu_no;
 }
 
-void irq_ack() 
+void irq_ack()
 {
 }
 
@@ -170,7 +170,7 @@ time64_t time64()
 
 	FILETIME ft;
 	GetSystemTimeAsFileTime(&ft);
-	
+
 	LARGE_INTEGER li;
 	li.LowPart = ft.dwLowDateTime;
 	li.HighPart = ft.dwHighDateTime;
@@ -185,8 +185,8 @@ time64_t time64()
 
 
 #if _FAKE_TASK
-_Noreturn void task_switch(int status, int retcode) 
-{ 
+_Noreturn void scheduler_switch(int status, int retcode)
+{
     assert(false);
     for(;;);
 }

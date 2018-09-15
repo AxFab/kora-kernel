@@ -150,7 +150,7 @@ void cpu_halt()
 static void _exit()
 {
     for (;;)
-        task_switch(TS_ZOMBIE, -42);
+        scheduler_switch(TS_ZOMBIE, -42);
 }
 
 void cpu_stack(task_t *task, size_t entry, size_t param)

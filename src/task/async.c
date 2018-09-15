@@ -85,7 +85,7 @@ int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us)
     if (lock != NULL)
         splock_unlock(lock);
     /* We have no locks but IRQs are still off, we can switch task */
-    task_switch(TS_BLOCKED, 0);
+    scheduler_switch(TS_BLOCKED, 0);
 
     /* We have been rescheduled */
     errno = advent->err;
@@ -107,7 +107,7 @@ int async_wait_rd(rwlock_t *lock, emitter_t *emitter, long timeout_us)
     if (lock != NULL)
         rwlock_rdunlock(lock);
     /* We have no locks but IRQs are still off, we can switch task */
-    task_switch(TS_BLOCKED, 0);
+    scheduler_switch(TS_BLOCKED, 0);
 
     /* We have been rescheduled */
     errno = advent->err;

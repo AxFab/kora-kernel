@@ -83,7 +83,6 @@
     <ClCompile Include="..\src\mem\vma.c" />
     <ClCompile Include="..\src\task\async.c" />
     <ClCompile Include="..\src\task\resx.c" />
-    <ClCompile Include="..\src\task\scheduler.c" />
     <ClCompile Include="..\src\task\task.c" />
     <ClCompile Include="..\src\task\ticks.c" />
     <ClCompile Include="..\src\vfs\device.c" />
@@ -94,6 +93,7 @@
     <ClCompile Include="..\src\vfs\parts.c" />
     <ClCompile Include="core.c" />
     <ClCompile Include="kernel_simu.c" />
+    <ClCompile Include="simulation.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\arch\x86_mcvs\bits\atomic.h" />

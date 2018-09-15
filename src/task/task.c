@@ -151,7 +151,6 @@ int task_kill(task_t *task, unsigned signum)
 //         task_stop(task, task->retcode);
 //         scheduler_next();
 //     }
-
 //     // TODO
 //     task->status = status;
 //     scheduler_rm(task);
@@ -188,7 +187,6 @@ int task_resume(task_t *task)
 //         }
 //         task->recieved_signal &= ~(1 << sn);
 //         sig_handler_t *sig = &task->shandler[sn];
-
 //         if (sn == SIGKILL) {
 //             kprintf(KLOG_TSK, "[TSK ] Task %d recived SIGKILL\n", task->pid);
 //             task_stop(task, -2);
@@ -250,48 +248,6 @@ static pid_t task_new_pid()
     return pid;
 }
 
-/* */
-void task_switch(int status, int retcode)
-{
-    assert(kCPU.irq_semaphore == 1);
-    assert(status >= TS_ZOMBIE && status <= TS_READY);
-    task_t *task = kCPU.running;
-    if (task) {
-        // kprintf(-1, "Leaving Task %d\n", task->pid);
-        splock_lock(&task->lock);
-        task->retcode = retcode;
-        if (cpu_save(task->state) != 0)
-            return;
-        // kprintf(-1, "Saved Task %d\n", task->pid);
-
-        // TODO Stop task chrono
-        if (task->status == TS_ABORTED) {
-            if (status == TS_BLOCKED) {
-                // TODO - We have advent structure to clean
-            }
-            status = TS_ZOMBIE;
-        }
-        if (status == TS_ZOMBIE) {
-            /* Quit the task */
-            async_raise(&task->wlist, 0);
-            // task_zombie(task);
-        } else if (status == TS_READY)
-            scheduler_add(task);
-        task->status = status;
-        splock_unlock(&task->lock);
-    }
-
-    task = scheduler_next();
-    kCPU.running = task;
-    irq_reset(false);
-    if (task == NULL)
-        cpu_halt();
-    // TODO Start task chrono!
-    if (task->usmem)
-        mmu_context(task->usmem);
-    // kprintf(-1, "Start Task %d\n", task->pid);
-    cpu_restore(task->state, 1);
-}
 
 task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
 {
@@ -432,3 +388,4 @@ void task_show_all()
     }
     splock_unlock(&tsk_lock);
 }
+

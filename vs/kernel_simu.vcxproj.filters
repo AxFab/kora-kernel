@@ -76,11 +76,11 @@
     <ClCompile Include="..\src\task\resx.c">
       <Filter>src\task</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\task\scheduler.c">
-      <Filter>src\task</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\task\task.c">
       <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="simulation.c">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

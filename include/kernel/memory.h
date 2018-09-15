@@ -70,13 +70,13 @@ void mmu_leave();
 /* - */
 void mmu_context(mspace_t *mspace);
 /* - */
-void mmu_resolve(size_t vaddr, page_t phys, int falgs);
+page_t mmu_resolve(size_t vaddr, page_t phys, int falgs);
 /* - */
 page_t mmu_read(size_t vaddr);
 /* - */
 page_t mmu_drop(size_t vaddr);
 /* - */
-void mmu_protect(size_t vaddr, int falgs);
+page_t mmu_protect(size_t vaddr, int falgs);
 /* - */
 void mmu_create_uspace(mspace_t *mspace);
 /* - */

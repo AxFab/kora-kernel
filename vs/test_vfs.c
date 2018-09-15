@@ -31,7 +31,7 @@ inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, void(*format)(inode_t *))
 
 void test_fs_teardown(inode_t *root)
 {
-	int res = vfs_mount(root);
+	int res = vfs_umount(root);
     ck_ok(res == 0 && errno == 0, "Unmount file system");
 	vfs_close(root);
 }
