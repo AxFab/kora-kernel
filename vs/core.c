@@ -190,6 +190,7 @@ _Noreturn void scheduler_switch(int status, int retcode)
     assert(false);
     for(;;);
 }
-
+void task_kill() {}
+void task_resume() {}
 
 #endif

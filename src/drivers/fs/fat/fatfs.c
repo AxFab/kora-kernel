@@ -22,7 +22,7 @@
 #include "fatfs.h"
 
 
-struct FAT_volume *fatfs_init(void *ptr, inode_t *dev) 
+struct FAT_volume *fatfs_init(void *ptr) 
 {
     struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
@@ -63,11 +63,10 @@ struct FAT_volume *fatfs_init(void *ptr, inode_t *dev)
     info->totalSize = (long long)info->DataSec * 512;
     info->usedSpace = 0;
     info->freeSpace = 0;
-    info->dev = dev;
     return info;
 }
 
-void fatfs_write_short_entry(struct FAT_ShortEntry *en, const char *name, int lba)
+void fatfs_write_shortname(struct FAT_ShortEntry *en, const char *name, int lba)
 {
 	if (strlen(name) <= 8/* ASCII */) {
 		memset(en->DIR_Name, ' ', sizeof(en->DIR_Name));
@@ -78,15 +77,34 @@ void fatfs_write_short_entry(struct FAT_ShortEntry *en, const char *name, int lb
 	en->DIR_Attr = true ? ATTR_DIRECTORY : ATTR_ARCHIVE;
 }
 
-void fatfs_mkdir(struct FAT_volume* info, inode_t* dir, int lba)
+void fatfs_settime(unsigned short *date, unsigned short *time, time64_t value)
 {
-	void *ptr = kmap(PAGE_SIZE, info->dev, lba * info->BytsPerSec, VMA_FILE_RW);
-	struct FAT_ShortEntry *en = (struct FAT_ShortEntry*)ptr;
-	fatfs_write_short_entry(en, ".", lba);
-	assert(en - ptr + sizeof(*en) <= PAGE_SIZE);
-    memset(en, 0, sizeof(*en));
-	kunmap(ptr, PAGE_SIZE);
 }
+
+int fatfs_mkdir(struct FAT_volume* info, FAT_inode_t* dir)
+{
+    size_t lba = 0; // Alloc LBA !
+    struct FAT_ShortEntry *en = (struct FAT_ShortEntry *)bio_access(info->io_data_rw, lba);
+    memset(en, 0, info->BytsPerSec * info->SecPerClus);
+    fatfs_write_shortname(en, ".", lba);
+    fatfs_settime(&en->DIR_CrtDate, &en->DIR_CrtTime, time64());
+    en->DIR_WrtDate = en->DIR_CrtDate;
+    en->DIR_WrtTime = en->DIR_CrtTime;
+    en->DIR_LstAccDate = en->DIR_CrtDate;
+    fatfs_write_shortname(++en, "..", dir->ino.lba);
+    fatfs_settime(&en->DIR_CrtDate, &en->DIR_CrtTime, dir->ino.ctime.tv_sec * _PwNano_ + dir->ino.ctime.tv_nsec);
+    fatfs_settime(&en->DIR_WrtDate, &en->DIR_WrtTime, dir->ino.mtime.tv_sec * _PwNano_ + dir->ino.mtime.tv_nsec);
+    return lba;
+}
+
+FAT_inode_t *fatfs_inode()
+{
+    FAT_inode_t *ino = (FAT_inode_t*)vfs_inode(0, 0, NULL, sizeof(FAT_inode_t));
+    return ino;
+}
+
+void fatfs_short_entry() {}
+void fatfs_read_shortname() {}
 
 // /* ----------------------------------------------------------------------- */
 // static char* FAT_build_short_name(struct FAT_ShortEntry *entrySh)

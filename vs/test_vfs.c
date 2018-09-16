@@ -25,7 +25,7 @@ inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, void(*format)(inode_t *))
 	format(disk);
 	
 	inode_t *root = vfs_mount(dev, fsmod->name);
-	ck_root(root != NULL  && errno == 0, "Mount newly formed disk");
+	ck_ok(root != NULL  && errno == 0, "Mount newly formed disk");
 	return root;
 }
 
@@ -37,14 +37,28 @@ void test_fs_teardown(inode_t *root)
 }
 
 
-void test_fs_basic(inode_t *ino)
+void test_fs_basic(inode_t *root)
 {
-	/*
-	lookup EMPTY
-	create EMPTY.txt
-	lookup EMPTT txt
-	close
-	close
+    inode_t *ino1 = vfs_lookup(root, "EMPTY.TXT");
+    ck_ok(ino1 == NULL && errno == ENOENT);
+
+    inode_t *ino2 = vfs_create(root, "EMPTY.TXT", S_IFREG, NULL, 0);
+    ck_ok(ino2 != NULL && errno == 0);
+
+    inode_t *ino3 = vfs_lookup(root, "EMPTY.TXT");
+    ck_ok(ino3 != NULL && errno == 0);
+    ck_ok(ino2 == ino3);
+    vfs_close(ino2);
+    vfs_close(ino3);
+
+    inode_t *ino4 = vfs_create(root, "FOLDER", S_IFDIR, NULL, 0);
+    ck_ok(ino4 != NULL && errno == 0);
+
+    inode_t *ino5 = vfs_create(ino4, "FILE.O", S_IFREG, NULL, 0);
+    ck_ok(ino5 != NULL && errno == 0);
+
+    inode_t *ino6 = vfs_search(root, root, "FOLDER/FILE.O", NULL);
+    /*
 	
 	create FOLDER
 	create FILE.O
@@ -61,6 +75,13 @@ void test_fs_basic(inode_t *ino)
 	*/
 }
 
+
+void test_fs(CSTR dev, kmod_t *fsmod, void(*format)(inode_t *))
+{
+    inode_t *ino = test_fs_setup(dev, fsmod, format);
+    test_fs_basic(ino);
+    test_fs_teardown(ino);
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

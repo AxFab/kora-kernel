@@ -32,7 +32,7 @@ struct FAT_diterator {
 	bio_t *io;
 };
 
-FAT_diterator *fatfs_diterator_open(FAT_inode_t *dir, bool write)
+FAT_diterator_t *fatfs_diterator_open(FAT_inode_t *dir, bool write)
 {
 	assert(dir != NULL);
 	assert(S_ISDIR(dir->ino.mode));
@@ -40,7 +40,7 @@ FAT_diterator *fatfs_diterator_open(FAT_inode_t *dir, bool write)
 	
 	FAT_diterator_t *it = (FAT_diterator_t*)kalloc(sizeof(FAT_diterator_t));
 	it->cluster_size = dir->vol->SecPerClus * dir->vol->BytsPerSec;
-	it->lba = dir->ino->lba;
+	it->lba = dir->ino.lba;
 	it->io = write ? dir->vol->io_data_rw : dir->vol->io_data_ro;
 	it->ptr = bio_access(it->io, it->lba);
 	it->entry = (struct FAT_ShortEntry*)it->ptr;
@@ -82,7 +82,7 @@ void fatfs_diterator_close(FAT_diterator_t *it)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-FAT_inode_t *fatfs_open(FAT_inode_t *ino, CSTR name, int mode, acl_t *acl, int flags)
+FAT_inode_t *fatfs_open(FAT_inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
 {
 	FAT_inode_t *ino;
 	FAT_diterator_t *it = fatfs_diterator_open(dir, !!(flags | VFS_CREAT));

@@ -44,7 +44,7 @@ inode_t *fatfs_mount(inode_t *dev)
         return NULL;
     }
 
-    info->io_head = bio_create(dev, VMA_FILE_RW, info->BytPerSec, 0);
+    info->io_head = bio_create(dev, VMA_FILE_RW, info->BytsPerSec, 0);
     const char *fsName = info->FATType == FAT32 ? "fat32" :
                          (info->FATType == FAT16 ?
                           "fat16" : "fat12");
@@ -64,8 +64,8 @@ inode_t *fatfs_mount(inode_t *dev)
     // fs->closedir = (fs_closedir)isofs_closedir;
     // fs->read_only = true;
     int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
-    info->io_data_rw = bio_create(dev, VMA_FILE_RW, info->BytPerSec * info->SecPerClus, origin_sector * info->BytPerSec);
-    info->io_data_ro = bio_create(dev, VMA_FILE_RO, info->BytPerSec * info->SecPerClus, origin_sector * info->BytPerSec);
+    info->io_data_rw = bio_create(dev, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
+    info->io_data_ro = bio_create(dev, VMA_FILE_RO, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
     vfs_mountpt(info->name, fsName, fs, (inode_t *)ino);
     kunmap(ptr, PAGE_SIZE);
     errno = 0;
