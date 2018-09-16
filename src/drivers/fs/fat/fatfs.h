@@ -47,7 +47,7 @@
 #define SECTOR_OF(v,s)    ((((s) - 2) * (v)->SecPerClus) + (v)->FirstDataSector)
 #define FSECTOR_FROM(v,s) ((((((((s) - (v)->FirstDataSector) / (v)->SecPerClus) + 2)) - 2) * (v)->SecPerClus) + (v)->FirstDataSector)
 
-#define FAT_TYPE(cl)  ((cl) < 4085 ? FAT12 : ((cl) < 65525 ? FAT16 : FAT32)))
+#define FAT_TYPE(cl)  ((cl) < 4085 ? FAT12 : ((cl) < 65525 ? FAT16 : FAT32))
 
 PACK(struct BPB_Struct {
     unsigned char BS_jmpBoot [3];
@@ -193,7 +193,7 @@ struct FAT_inode {
 };
 
 
-struct FAT_volume *fatfs_init(void *ptr,);
+struct FAT_volume *fatfs_init(void *ptr);
 FAT_inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, struct FAT_volume *info);
 FAT_inode_t *fatfs_open(FAT_inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
 

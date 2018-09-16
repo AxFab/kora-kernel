@@ -52,6 +52,24 @@
     <ClCompile Include="..\src\libc\time.c">
       <Filter>src\libc</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\core\bio.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\irq.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\libc\random.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\diterator.c">
+      <Filter>src\drivers\fatfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\format.c">
+      <Filter>src\drivers\fatfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\module.c">
+      <Filter>src\drivers\fatfs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">

@@ -66,7 +66,7 @@ int fatfs_format(inode_t *ino)
     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
 
     int cluster_count = ino->length / cluster_size;
-    int fatType = FAT_SIZE(cluster_count);
+    int fatType = FAT_TYPE(cluster_count);
     int fatSz = cluster_count / (sec_size * 8 / fatType);
     
     
@@ -80,7 +80,7 @@ int fatfs_format(inode_t *ino)
     // Disk Geometry
     bpb->BPB_SecPerTrk = 32;
     bpb->BPB_NumHeads = 64;
-    bpb->BPB_HiddSec = 0
+    bpb->BPB_HiddSec = 0;
 
     unsigned root_lba = 0;
     if (fatType != 32) {
@@ -146,7 +146,9 @@ int fatfs_format(inode_t *ino)
     }
     
     assert(root_lba == info->RootEntry);
-    
+    int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
+    bio_t *io_data = bio_create(ino, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
+    uint8_t *ptr_root = bio_access(io_data, 1);
     // ...
     struct FAT_ShortEntry *entry = (struct FAT_ShortEntry *)ptr_root;
     memset(entry, 0, sizeof(*entry));
