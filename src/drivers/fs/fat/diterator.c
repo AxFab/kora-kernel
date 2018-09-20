@@ -131,3 +131,29 @@ FAT_inode_t *fatfs_open(FAT_inode_t *dir, CSTR name, int mode, acl_t *acl, int f
 }
 
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+int fatfs_unlink(FAT_inode_t *ino, CSTR name)
+{
+	FAT_inode_t *ino;
+	FAT_diterator_t *it = fatfs_diterator_open(dir, true);
+	const int entries_per_cluster = dir->vol->BytsPerSec / sizeof(struct FAT_ShortEntry);
+	struct FAT_ShortEntry *entry;
+	while ((entry = fatfs_diterator_next(it)) != NULL) {
+		char shortname[14];
+		fatfs_read_shortname(entry, shortname);
+		if (strcmp(entry, shortname) != NULL) // TODO - Long name
+            continue;
+        if (entry->DIR_Attr & ATTR_DIRECTORY) {
+            // TODO - Check not empty
+        }
+        // TODO - Remove allocated cluster
+        entry->DIR_Attr = ATTR_DELETED;
+        fatfs_diterator_close(it);
+        bio_sync(dir->vol->io_head);
+        errno = 0;
+        return 0;
+	}
+    errno = ENOENT;
+    return -1;
+}
