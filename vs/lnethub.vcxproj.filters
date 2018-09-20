@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{cea44381-8516-4714-a366-998332053488}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{4977b94a-3c57-47bd-b79e-cd21fb686adc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bits">
+      <UniqueIdentifier>{ac18d516-23eb-487f-a8bf-8fb48b763d7d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\kora">
+      <UniqueIdentifier>{5927f6ec-a3e1-4eb6-8c3c-4ef0af54c800}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{a83f721e-1c8e-4ab4-a9ac-234d15f76029}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\libc">
+      <UniqueIdentifier>{d8c5988f-e3ac-470f-a497-d8908f14b250}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\arch\x86_mcvs\bits\atomic.h">
+      <Filter>include\bits</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\arch\x86_mcvs\bits\cdefs.h">
+      <Filter>include\bits</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\mcrs.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\socket.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\splock.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="rooter.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="socket.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="threads.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\libc\hmap.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="core.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\irq.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\debug.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

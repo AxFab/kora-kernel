@@ -19,6 +19,10 @@ struct msg {
 	int request, length;
 };
 
+#define MR_INIT  1
+#define MR_PACKET  2
+#define MR_LINK  3
+#define MR_UNLINK  4
 
 
 // Search the socket connected to this mac address
@@ -47,8 +51,8 @@ void send_host(int fd, msg_t *msg, char *frame)
 {
 	splock_lock(&mac_lock);
 	sock_send(fd, msg, sizeof(*msg));
-	if (msg.length != 0)
-      sock_send(fd, frame, msg.length);
+	if (msg->length != 0)
+      sock_send(fd, frame, msg->length);
 	splock_unlock(&mac_lock);
 }
 
@@ -63,7 +67,7 @@ int vfs_read() {}
 int vfs_write() {}
 
 // Handle the request of new host
-int handle(int fd)
+int handler(int fd)
 {
 	int target;
 	msg_t msg;

@@ -24,13 +24,13 @@
 #include <kora/splock.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
+
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #define SEEK_SET 0 /* Seek from beginning of file.  */
 #define SEEK_CUR 1 /* Seek from current position.  */
 #define SEEK_END 2 /* Seek from end of file.  */
-
-#define O_RDWR 2
 
 int open(const char *name, int flags);
 int read(int fd, char *buf, int len);
@@ -68,7 +68,7 @@ static void imgdk_open(int i)
     char fname[16];
     for (e = 0; e < 2; ++e) {
         snprintf(fname, 16, "sd%c.%s", 'A' + i, exts[e]);
-        int fd = open(fname, O_RDWR);
+        int fd = open(fname, O_RDWR | O_BINARY);
         if (fd == -1) {
             sdx[i].fd = -1;
             continue;
