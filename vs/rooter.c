@@ -1,11 +1,25 @@
 #include <string.h>
+#include <stdbool.h>
 #include <kora/socket.h>
+#include <kora/splock.h>
+#include <kora/hmap.h>
+#include <threads.h>
+#include <windows.h>
+#include <stdio.h>
 
 #define MTU 1500
 bool cancel = false;
 splock_t mac_lock;
 HMP_map mac_table;
-char *mac_broadcast = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+char mac_broadcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
+
+typedef struct msg msg_t;
+struct msg {
+	int request, length;
+};
+
+
 
 // Search the socket connected to this mac address
 int lookup(char *mac)
@@ -29,12 +43,12 @@ void new_host(int fd, char *mac)
 }
 
 // 
-void send_msg(int fd, msg_t *msg, char *frame)
+void send_host(int fd, msg_t *msg, char *frame)
 {
 	splock_lock(&mac_lock);
-	send(fd, msg, sizeof(*msg));
+	sock_send(fd, msg, sizeof(*msg));
 	if (msg.length != 0)
-      send(fd, frame, msg.length);
+      sock_send(fd, frame, msg.length);
 	splock_unlock(&mac_lock);
 }
 
@@ -43,15 +57,21 @@ void broadcast(int unless, msg_t *msg, char *frame)
 	
 }
 
+/* -=- */
+
+int vfs_read() {}
+int vfs_write() {}
+
 // Handle the request of new host
-void handle(int fd)
+int handle(int fd)
 {
+	int target;
 	msg_t msg;
 	char *frame = malloc(MTU);
 	for (;;) {
-		recv(fd, &msg, sizeof(msg));
+		sock_recv(fd, &msg, sizeof(msg));
         if (msg.length)
-            recv(fd, frame, msg.length);
+            sock_recv(fd, frame, msg.length);
         switch (msg.request) {
         case MR_INIT:
             msg.request = MR_LINK;
@@ -60,10 +80,10 @@ void handle(int fd)
             new_host(fd, frame);
             break;
         case MR_PACKET:
-            int target = lookup(frame);
+            target = lookup(frame);
             if (target > 0)
                send_host(target, &msg, frame);
-            else if (target == -1) {
+            else if (target == -1)
                 broadcast(fd, &msg, frame);
             break;
         }
@@ -72,20 +92,20 @@ void handle(int fd)
 	
 int main() 
 {
+	sock_init();
 	splock_init(&mac_lock);
-	hmp_init(&mac_table);
+	hmp_init(&mac_table, 16);
 	
-	// listen on TCP:8080
-	char addr[8];
-	net_address_ipv4_port(addr, "192.168.0.0/16", 8080);
-	int srv = open_server(NPC_IPv4_TCP, NAD_IPv4, addr, 128);
+	// listen on TCP:8080 for new host
+	int srv = sock_listen(NPC_IPv4_TCP, 0, NAD_IPv4, "192.168.0.0/16:14148");
 	
 	// Wait for new hosts 
+	printf("Waiting...\n");
 	while (!cancel) {
-		int fd = accept_socket(srv, 50);
+		int fd = sock_accept(srv, 50);
 		if (fd == 0)
 		    continue;
-		thread_start(handler, fd);
+		thrd_create(NULL, (thrd_start_t)handler, fd);
 	}
 	
 	// Broadcast unlink !
@@ -93,6 +113,7 @@ int main()
 	msg.request = MR_UNLINK;
 	msg.length = 0;
 	broadcast (0, &msg, NULL);
+	sock_fini();
 	return 0;
 }
 

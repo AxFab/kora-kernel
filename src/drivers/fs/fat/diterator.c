@@ -145,13 +145,13 @@ FAT_inode_t *fatfs_readdir(FAT_inode_t *dir, char *name, FAT_diterator_t *it)
 	
 	char shortname[14];
 	fatfs_read_shortname(entry, shortname);
-	strncpy(name, filename, FILENAME_MAX);
+	strncpy(name, shortname, FILENAME_MAX);
 	
 	const int entries_per_cluster = dir->vol-> BytsPerSec / sizeof(struct FAT_ShortEntry);
 	return fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->vol);
 }
 
-int fatfs_closedir(FAT_inode_t *dir, char *name, FAT_diterator_t *it)
+int fatfs_closedir(FAT_inode_t *dir, FAT_diterator_t *it)
 {
 	fatfs_diterator_close(it);
 	return 0;
@@ -168,7 +168,7 @@ int fatfs_unlink(FAT_inode_t *dir, CSTR name)
 	while ((entry = fatfs_diterator_next(it)) != NULL) {
 		char shortname[14];
 		fatfs_read_shortname(entry, shortname);
-		if (strcmp(entry, shortname) != 0) // TODO - Long name
+		if (strcmp(name, shortname) != 0) // TODO - Long name
             continue;
         if (entry->DIR_Attr & ATTR_DIRECTORY) {
             // TODO - Check not empty
