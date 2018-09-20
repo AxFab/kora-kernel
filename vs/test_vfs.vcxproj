@@ -71,10 +71,12 @@
     <ClCompile Include="..\src\core\debug.c" />
     <ClCompile Include="..\src\core\irq.c" />
     <ClCompile Include="..\src\drivers\disk\imgdk\imgdk.c" />
+    <ClCompile Include="..\src\drivers\fs\fat\dentry.c" />
     <ClCompile Include="..\src\drivers\fs\fat\diterator.c" />
     <ClCompile Include="..\src\drivers\fs\fat\fatfs.c" />
     <ClCompile Include="..\src\drivers\fs\fat\format.c" />
     <ClCompile Include="..\src\drivers\fs\fat\module.c" />
+    <ClCompile Include="..\src\drivers\fs\fat\table.c" />
     <ClCompile Include="..\src\files\ioblk.c" />
     <ClCompile Include="..\src\libc\bbtree.c" />
     <ClCompile Include="..\src\libc\hmap.c" />

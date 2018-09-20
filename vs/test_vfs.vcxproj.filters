@@ -70,6 +70,12 @@
     <ClCompile Include="..\src\drivers\fs\fat\module.c">
       <Filter>src\drivers\fatfs</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\dentry.c">
+      <Filter>src\drivers\fatfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\table.c">
+      <Filter>src\drivers\fatfs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">

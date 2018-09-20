@@ -41,7 +41,7 @@ typedef atomic_t once_flag;
 /* Indicates a thread error status */
 enum {
 	thrd_success = 0,
-	thrd_busy,
+	thrd_busy = 1,
     thrd_timedout,
     thrd_nomem,
     thrd_error = -1,

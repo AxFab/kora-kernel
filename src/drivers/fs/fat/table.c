@@ -16,8 +16,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
+ *
+ *      File system driver FAT12, FAT16, FAT32 and exFAT.
  */
-#include "elf.h"
+#include "fatfs.h"
 
 
 struct FAT_volume *fatfs_init(void *ptr) 
@@ -41,7 +43,7 @@ struct FAT_volume *fatfs_init(void *ptr)
     }
 
     info->CountofClusters = info->DataSec / bpb->BPB_SecPerClus;
-    info->FATType = (info->CountofClusters < 4085 ? FAT12 : (info->CountofClusters < 65525 ? FAT16 : FAT32));
+    info->FATType = FAT_TYPE(info->CountofClusters);
     if (info->FATType == FAT16) {
         info->RootEntry = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz16);
     } else {
@@ -67,9 +69,10 @@ struct FAT_volume *fatfs_init(void *ptr)
 void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous)
 {
 	for (int i = 0; i < 2; ++i) {
-		int lba = i * info->FatSz + 1;
-		int fat_bytes = ALIGN_UP(info->FatSz * info->BytsPerSec, PAGE_SIZE);
+		int lba = i * info->FATSz + 1;
+		int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
 		uint16_t *fat_table = (uint16_t*)bio_access(info->io_head, lba);
+		// TODO - Load next pages
 		if (previous > 0)
 		    fat_table[previous] = cluster;
 		fat_table[cluster] = 0xFFFF;
@@ -79,9 +82,10 @@ void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous
 
 unsigned fatfs_alloc_cluster_16(struct FAT_volume *info, int previous)
 {
-	int lba = i * info->FatSz + 1;
-	int fat_bytes = ALIGN_UP(info->FatSz * info->BytsPerSec, PAGE_SIZE);
+	int lba = i * info->FATSz + 1;
+	int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
 	uint16_t *fat_table = (uint16_t*)bio_access(info->io_head, lba);
+	// TODO - Load next pages
 	for (int i = 0; i < fat_bytes / 2; ++i) {
 		if (fat_table[i] == 0) {
 			fatfs_reserve_cluster_16(info, i, previous);

@@ -172,7 +172,7 @@ int vfs_unlink(inode_t *dir, CSTR name)
     }
 
     /* Reserve a cache directory entry */
-    dirent_t *ent = vfs_dirent_(dir, name, !(flags & VFS_BLOCK));
+    dirent_t *ent = vfs_dirent_(dir, name, true);
     if (ent == NULL) {
         assert(errno != 0);
         return NULL;

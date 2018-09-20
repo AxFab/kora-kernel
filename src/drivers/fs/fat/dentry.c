@@ -16,8 +16,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
+ *
+ *      File system driver FAT12, FAT16, FAT32 and exFAT.
  */
-#include "elf.h"
+#include "fatfs.h"
 
 void fatfs_settime(unsigned short *date, unsigned short *time, time64_t value)
 {
@@ -32,7 +34,7 @@ time64_t fatfs_gettime(unsigned short *date, unsigned short *time)
 {
 	struct tm datetime;
 	memset(&datetime, 0, sizeof(datetime));
-	datetime.tm_day = (*date) & 0x1F;
+	datetime.tm_mday = (*date) & 0x1F;
 	datetime.tm_mon = ((*date >> 5) & 0xF) - 1;
 	datetime.tm_year = (*date >> 9) + 80;
 	if (time) {
@@ -74,13 +76,13 @@ void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname)
 	strncpy(name, shortname, i);
 	name[i] = '\0';
 	memset(entry->DIR_Name, ' ', 11);
-	memcpy(entry->DIR_Name, name, MIN(8, strlen(name));
-	memcpy(&entry->DIR_Name[8], ext, MIN(3, strlen(ext));
+	memcpy(entry->DIR_Name, name, MIN(8, strlen(name)));
+	memcpy(&entry->DIR_Name[8], ext, MIN(3, strlen(ext)));
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-FAT_inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, struct FAT_volume_t *info)
+FAT_inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, struct FAT_volume *info)
 {
 	unsigned cluster = (entry->DIR_FstClusHi << 16) | entry->DIR_FstClusLo;
 	int mode = 0777;
@@ -92,9 +94,9 @@ FAT_inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, struct FAT_volume
 	FAT_inode_t *ino = (FAT_inode_t*)vfs_inode(no, mode, NULL, sizeof(FAT_inode_t));
 	ino->ino.length = entry->DIR_FileSize;
 	ino->ino.lba = cluster;
-	ino->ino.atime = fatfs_gettime(&entry->DIR_LstAccDate, NULL) / _PwNano_;
-	ino->ino.ctime = fatfs_gettime(&entry->DIR_CrtDate, &entry->DIR_CrtTime) / _PwNano_;
-	ino->ino.mtime = fatfs_gettime(&entry->DIR_WrtDate, &entry->DIR_WrtTime) / _PwNano_;
+	ino->ino.atime.tv_sec = fatfs_gettime(&entry->DIR_LstAccDate, NULL) / _PwNano_;
+	ino->ino.ctime.tv_sec = fatfs_gettime(&entry->DIR_CrtDate, &entry->DIR_CrtTime) / _PwNano_;
+	ino->ino.mtime.tv_sec = fatfs_gettime(&entry->DIR_WrtDate, &entry->DIR_WrtTime) / _PwNano_;
 	ino ->vol = info;
 	return ino;
 }
@@ -123,7 +125,7 @@ int fatfs_mkdir(struct FAT_volume *info, FAT_inode_t *dir)
 	int lba = fatfs_alloc_cluster_16(info, -1);
 	
 	struct FAT_ShortEntry *entry = (struct FAT_ShortEntry*)bio_access(info->io_data_rw, lba);
-	memset(entry, 0 info->BytsPerSec * info->SecPerClus);
+	memset(entry, 0, info->BytsPerSec * info->SecPerClus);
 	
 	/* Create . and .. entries */
 	fatfs_short_entry(entry, lba, S_IFDIR);

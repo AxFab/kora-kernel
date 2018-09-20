@@ -41,6 +41,7 @@
 #define ATTR_ARCHIVE      0x20
 #define ATTR_LONG_NAME      0x0F
 #define ATTR_LONG_NAME_MASK   0x3F
+#define ATTR_DELETED        0xE5
 
 
 #define CLUSTER_OF(v,s)   ((((s) - (v)->FirstDataSector) / (v)->SecPerClus) + 2)
@@ -198,7 +199,7 @@ struct FAT_inode {
 struct FAT_volume *fatfs_init(void *ptr);
 FAT_inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, struct FAT_volume *info);
 FAT_inode_t *fatfs_open(FAT_inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
-FAT_inode_t *fatfs_unlink(FAT_inode_t *dir, CSTR name);
+int fatfs_unlink(FAT_inode_t *dir, CSTR name);
 
 FAT_diterator_t *fatfs_opendir(FAT_inode_t *dir);
 FAT_inode_t *fatfs_readdir(FAT_inode_t *dir, char *name, FAT_diterator_t *it);
