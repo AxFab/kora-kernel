@@ -24,6 +24,10 @@
 uint8_t fatfs_noboot_code[] = {
 	0x0e, 0x1f, 0xbe, 0x5b, 0x7c, 0xac, 0x22, 0xc0, 0x74,
 	0x0b, 0x56, 0xb4, 0x0e, 0xbb, 0x07, 0x00, 0xcd, 0x10,
+	0x5e, 0xeb, 0xf0, 0x32, 0xe4, 0xcd, 0x16, 0xcd, 0x19,
+	0xeb, 0xfe, 0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73,
+	0x20, 0x6e, 0x6f, 0x74, 0x20, 0x61, 0x20, 0x62, 0x6f,
+	
 };
 
 struct disksize_secpercluster {
@@ -37,9 +41,9 @@ struct disksize_secpercluster dsk_table_fat16[] = {
 	{ 262144, 4 }, /* Up to 128 MB, 2k cluster */
 	{ 524288, 8 }, /* Up to 256 MB, 4k cluster */
 	{ 1048576, 16 }, /* Up to 512 MB, 8k cluster */
-	{ 2097152, 32 }, /* Up to 1 GB, 16k cluster - best FAT */
-	{ 4194304, 64 }, /* Up to 2 GB, 32k cluster */
-	{ ~0, 0 }, /* Laeger than 2 GB, error */
+	{ 2097152, 32 }, /* Up to 1 GB, 16k cluster - best FAT 32 */
+	{ 4194304, 64 }, /* Up to 2 GB, 32k cluster - best FAT 32 */
+	{ ~0, 0 }, /* Larger than 2 GB, error */
 };
 
 struct disksize_secpercluster dsk_table_fat32[] = {
@@ -120,7 +124,7 @@ int fatfs_format(inode_t *ino)
         bpb32->BS_VolID = rand32();
         memset(bpb->BS_VolLab, ' ', 11);
         memcpy(bpb->BS_VolLab, volume, MIN(strlen(volume), 11));
-        memcpy(bpb->BS_FilSysType, "FAT32   ", 8);
+        memcpy(bpb32->BS_FilSysType, "FAT32   ", 8);
         // root_lba
         // boot code
     }
@@ -133,7 +137,7 @@ int fatfs_format(inode_t *ino)
     
     // Write FAT16
     for (int i = 0; i < 2; ++i) {
-        int lba = i * info->FATSz + 1;
+        int lba = i * info->FATSz + 1; // TODO - resvd_sector_count;
         for (unsigned j = 0; j < info->FATSz; ++j) {
             uint16_t *fat_table = (uint16_t*)bio_access(io_head, lba + j);
             memset(fat_table, 0, sec_size);

@@ -38,6 +38,8 @@
 #define ALIGN_DW(v,a)      ((v)&(~(a-1)))
 #define IS_ALIGNED(v,a)      (((v)&((a)-1))==0)
 
+#define ADDR_OFF(a,o)  ((void*)(((char*)a)+(o)))
+
 #define MIN(a,b)    ((a)<=(b)?(a):(b))
 #define MAX(a,b)    ((a)>=(b)?(a):(b))
 #define MIN3(a,b,c)    MIN(a,MIN(b,c))

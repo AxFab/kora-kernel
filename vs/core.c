@@ -74,7 +74,7 @@ int cpu_no()
     return __cpu_no;
 }
 
-void irq_ack()
+void irq_ack(int no)
 {
 }
 
@@ -145,7 +145,7 @@ void kunmap(size_t addr, size_t length)
 #ifdef _FAKE_MEM
 page_t mmu_read(page_t addr) { return 0; }
 void page_release(page_t addr) {}
-int page_fault() { return -1; }
+int page_fault(mspace_t *mspace, size_t address, int reason) { return -1; }
 #endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -190,7 +190,14 @@ _Noreturn void scheduler_switch(int status, int retcode)
     assert(false);
     for(;;);
 }
-void task_kill() {}
-void task_resume() {}
+
+int task_resume(task_t *task)
+{
+	return -1;
+}
+
+void task_kill(task_t *task, int signum)
+{
+}
 
 #endif

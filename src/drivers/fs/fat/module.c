@@ -57,17 +57,17 @@ inode_t *fatfs_mount(inode_t *dev)
 
     fsvolume_t *fs = (fsvolume_t *)kalloc(sizeof(fsvolume_t));
     fs->open = (fs_open)fatfs_open;
+    fs->unlink = (fs_unlink)fatfs_unlink;
     // fs->read = (fs_read)isofs_read;
     fs->umount = (fs_umount)fatfs_umount;
-    // fs->opendir = (fs_opendir)isofs_opendir;
-    // fs->readdir = (fs_readdir)isofs_readdir;
-    // fs->closedir = (fs_closedir)isofs_closedir;
+    fs->opendir = (fs_opendir)fatfs_opendir;
+    fs->readdir = (fs_readdir)fatfs_readdir;
+    fs->closedir = (fs_closedir)fatfs_closedir;
     // fs->read_only = true;
     int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
     info->io_data_rw = bio_create(dev, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
     info->io_data_ro = bio_create(dev, VMA_FILE_RO, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
     vfs_mountpt(info->name, fsName, fs, (inode_t *)ino);
-    kunmap(ptr, PAGE_SIZE);
     errno = 0;
     return &ino->ino;
 }

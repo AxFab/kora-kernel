@@ -108,7 +108,7 @@ void bio_clean(bio_t *io, size_t lba)
 	}
 }
 
-void bio_destroy(bio_t *io)
+void bio_sync(bio_t *io)
 {
 	while (io->lru.count_ > 0) {
 	    bio_page_t *page = itemof(ll_pop_front(&io->lru), bio_page_t, node);
@@ -116,7 +116,11 @@ void bio_destroy(bio_t *io)
 		hmp_remove(&io->table, (char*)&page->lba, sizeof(page->lba));
 		kfree(page);
 	}
+}
 
+void bio_destroy(bio_t *io)
+{
+	bio_sync(io);
 	assert(io->table.count_ == 0);
 	hmp_destroy(&io->table, 0);
 	kfree(io);

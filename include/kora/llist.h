@@ -52,6 +52,8 @@ struct llnode {
 #define ll_previous(n,t,m)  itemof((n)->prev_,t,m)
 #define ll_next(n,t,m)  itemof((n)->next_,t,m)
 
+#define ll_index(h,v,t,m)  itemof(ll_index_(h,v),t,m)
+
 #define ll_each(h,v,t,m)  ((v)=ll_first(h,t,m);(v);(v)=(t*)ll_next(&(v)->m,t,m))
 #define ll_each_reverse(h,v,t,m)  ((v)=ll_last(h,t,m);(v);(v)=(t*)ll_previous(&(v)->m,t,m))
 
@@ -178,5 +180,12 @@ static inline void ll_remove(llhead_t *list, llnode_t *node)
     --list->count_;
 }
 
+static inline llnode_t *ll_index_(llhead_t *list, int idx)
+{
+	llnode_t *node = list->first_;
+	while (node && idx--)
+	    node = node->next_;
+	return node;
+}
 
 #endif  /* _KORA_LLIST_H */

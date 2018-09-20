@@ -186,6 +186,8 @@ struct FAT_volume {
 */
 
 typedef struct FAT_inode FAT_inode_t;
+typedef struct FAT_diterator  FAT_diterator_t;
+
 
 struct FAT_inode {
     inode_t ino;
@@ -196,6 +198,12 @@ struct FAT_inode {
 struct FAT_volume *fatfs_init(void *ptr);
 FAT_inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, struct FAT_volume *info);
 FAT_inode_t *fatfs_open(FAT_inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
+FAT_inode_t *fatfs_unlink(FAT_inode_t *dir, CSTR name);
 
+FAT_diterator_t *fatfs_opendir(FAT_inode_t *dir);
+FAT_inode_t *fatfs_readdir(FAT_inode_t *dir, char *name, FAT_diterator_t *it);
+int fatfs_closedir(FAT_inode_t *dir, FAT_diterator_t *it);
+
+#define FILENAME_MAX  256
 
 #endif /* _SRC_FATFS_H */
