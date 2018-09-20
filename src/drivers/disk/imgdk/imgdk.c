@@ -54,7 +54,7 @@ struct IMGDK_Drive sdx[4];
 
 const char *sdNames[] = { "sdA", "sdB", "sdC", "sdD" };
 const char *exts[] = { "img", "iso", };
-const char *class[] = { "IDE ATA", "IDE ATAPI", };
+const char *clazz[] = { "IDE ATA", "IDE ATAPI", };
 const int sdSize[] = { 512, 2048, };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -85,7 +85,7 @@ static void imgdk_open(int i)
         sdx[i].dev.dev.is_detached = false;
         sdx[i].dev.block = sdSize[e];
         sdx[i].dev.dev.vendor = "HostSimul";
-        sdx[i].dev.class = class[e];
+        sdx[i].dev.class = clazz[e];
         sdx[i].dev.read = imgdk_read;
         sdx[i].dev.write = imgdk_write;
 
@@ -155,7 +155,7 @@ void imgdk_release_dev(struct IMGDK_Drive *dev)
 void imgdk_setup()
 {
     size_t fp = fopen("sdA.img", "w");
-	fseek(fp, 10 * _Mib_ - 1, SEEK_END);
+	fseek(fp, 16 * _Mib_ - 1, SEEK_END);
 	fwrite(&fp, 1, 1, fp);
 	fclose(fp);
 	

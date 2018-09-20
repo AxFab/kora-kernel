@@ -31,6 +31,12 @@
 
 typedef const char *CSTR;
 
+#if defined(_WIN32)
+# define __STDI _ACRTIMP
+#else
+# define __STDI
+#endif
+
 void *kalloc(size_t size);
 void kfree(void *ptr);
 void kprintf(int log, const char *msg, ...);
@@ -52,11 +58,11 @@ void page_range(long long base, long long length);
 void kernel_tasklet(void *start, long arg, CSTR name);
 void kexit();
 
-int rand(void);
+__STDI int rand(void);
 uint16_t rand16();
 uint32_t rand32();
 uint64_t rand64();
-unsigned long strtoul(const char *nptr, char **endptr, int base);
+__STDI unsigned long strtoul(const char *nptr, char **endptr, int base);
 int snprintf(char *buf, int lg, const char * msg, ...);
 int vsnprintf(char *buf, int lg, const char * msg, va_list ap);
 int vprintf(const char *format, va_list ap);
@@ -65,8 +71,8 @@ int sprintf_s(char *buf, int lg, const char *msg, ...);
 # define snprintf(s,i,f,...) sprintf_s(s,i,f,__VA_ARGS__)
 #endif
 
-void *malloc(size_t size);
-void free(void *ptr);
+__STDI void *malloc(size_t size);
+__STDI void free(void *ptr);
 
 
 const char *ksymbol(void *eip);
@@ -161,6 +167,7 @@ _Noreturn void cpu_halt();
 bio_t *bio_create(inode_t *ino, int flags, int block, size_t offset);
 void *bio_access(bio_t *io, size_t lba);
 void bio_clean(bio_t *io, size_t lba);
+void bio_sync(bio_t *io);
 void bio_destroy(bio_t *io);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

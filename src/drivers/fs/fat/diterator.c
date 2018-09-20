@@ -21,8 +21,6 @@
  */
 #include "fatfs.h"
 
-typedef struct FAT_diterator  FAT_diterator_t;
-
 struct FAT_diterator {
 	uint8_t *ptr;
 	struct FAT_ShortEntry *entry;

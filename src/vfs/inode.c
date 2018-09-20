@@ -156,8 +156,46 @@ inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
 
 /* Link an inode (If supported) */
 int vfs_link(inode_t *dir, CSTR name, inode_t *ino);
+
 /* Unlink / delete an inode */
-int vfs_unlink(inode_t *dir, CSTR name);
+int vfs_unlink(inode_t *dir, CSTR name)
+{
+	inode_t *ino;
+    assert(name != NULL && strnlen(name, VFS_MAXNAME) < VFS_MAXNAME);
+    assert(dir->fs != NULL);
+    if (dir == NULL || !S_ISDIR(dir->mode)) {
+        errno = ENOTDIR;
+        return NULL;
+    } else if (dir->dev->read_only) {
+        errno = EROFS;
+        return NULL;
+    }
+
+    /* Reserve a cache directory entry */
+    dirent_t *ent = vfs_dirent_(dir, name, !(flags & VFS_BLOCK));
+    if (ent == NULL) {
+        assert(errno != 0);
+        return NULL;
+    }
+    
+    /* Can we ask the file-system */
+    fs_unlink unlink = dir->fs->unlink;
+    if (dir->dev->is_detached)
+        unlink = NULL;
+    if (unlink == NULL) {
+        errno = ENOSYS;
+        return NULL;
+    }
+
+    /* Request send to the file system */
+    int ret = unlink(dir, name);
+    if (ret == 0 || ent->ino == NULL)
+        vfs_rm_dirent_(ent);
+    else
+        rwlock_rdunlock(&ent->lock);
+    return ret;
+}
+
 /* Rename an inode (can use either link, rename or copy depending on fs) */
 int vfs_rename(inode_t *dir, CSTR name, inode_t *ino);
 
