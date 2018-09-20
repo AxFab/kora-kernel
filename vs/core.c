@@ -184,7 +184,8 @@ time64_t time64()
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-#if _FAKE_TASK
+#ifdef _FAKE_TASK
+
 _Noreturn void scheduler_switch(int status, int retcode)
 {
     assert(false);
