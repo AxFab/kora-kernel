@@ -71,7 +71,7 @@ void test_fs_basic(inode_t *root)
     char filename[256];
     void *ctx = vfs_opendir(ino4, NULL);
     ck_ok(ctx != NULL && errno == 0);
-    while ((ino7 = vfs_readdir(ctx, filename, ctx)) != NULL) {
+    while ((ino7 = vfs_readdir(ino4, filename, ctx)) != NULL) {
         ck_ok(ino7 != NULL && errno == 0);
         // ck_ok(ino7 == ino5);
         ino5 = NULL;

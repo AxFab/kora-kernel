@@ -61,7 +61,7 @@ struct FAT_ShortEntry *fatfs_diterator_next(FAT_diterator_t *it)
 			    return NULL;
 		}
 		
-		if (it->entry->DIR_Attr == ATTR_VOLUME_ID || it->entry->DIR_Attr == 0xE5)
+		if (it->entry->DIR_Attr == ATTR_VOLUME_ID || it->entry->DIR_Attr == ATTR_DELETED)
 		    continue;
 		if (it->entry->DIR_Attr == 0)
 		    return NULL;
@@ -75,6 +75,7 @@ void fatfs_diterator_close(FAT_diterator_t *it)
 {
 	if (it->lba != 0)
 	    bio_clean(it->io, it->lba);
+	bio_sync(it->io);
 	kfree(it);
 }
 
@@ -124,14 +125,41 @@ FAT_inode_t *fatfs_open(FAT_inode_t *dir, CSTR name, int mode, acl_t *acl, int f
 
     ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->vol);
     fatfs_diterator_close(it);
+    bio_sync(dir->vol->io_head);
     errno = 0;
     return ino;
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+FAT_diterator_t *fatfs_opendir(FAT_inode_t *dir)
+{
+	return fatfs_diterator_open(dir, false);
+}
+
+FAT_inode_t *fatfs_readdir(FAT_inode_t *dir, char *name, FAT_diterator_t *it)
+{
+	struct FAT_ShortEntry *entry = fatfs_diterator_next(it);
+	if (entry == NULL)
+	    return NULL;
+	
+	char shortname[14];
+	fatfs_read_shortname(entry, shortname);
+	strncpy(name, filename, FILENAME_MAX);
+	
+	const int entries_per_cluster = dir->vol-> BytsPerSec / sizeof(struct FAT_ShortEntry);
+	return fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->vol);
+}
+
+int fatfs_closedir(FAT_inode_t *dir, char *name, FAT_diterator_t *it)
+{
+	fatfs_diterator_close(it);
+	return 0;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int fatfs_unlink(FAT_inode_t *ino, CSTR name)
+int fatfs_unlink(FAT_inode_t *dir, CSTR name)
 {
 	FAT_inode_t *ino;
 	FAT_diterator_t *it = fatfs_diterator_open(dir, true);
@@ -140,12 +168,12 @@ int fatfs_unlink(FAT_inode_t *ino, CSTR name)
 	while ((entry = fatfs_diterator_next(it)) != NULL) {
 		char shortname[14];
 		fatfs_read_shortname(entry, shortname);
-		if (strcmp(entry, shortname) != NULL) // TODO - Long name
+		if (strcmp(entry, shortname) != 0) // TODO - Long name
             continue;
         if (entry->DIR_Attr & ATTR_DIRECTORY) {
             // TODO - Check not empty
         }
-        // TODO - Remove allocated cluster
+        // TODO - Remove allocated cluster    
         entry->DIR_Attr = ATTR_DELETED;
         fatfs_diterator_close(it);
         bio_sync(dir->vol->io_head);

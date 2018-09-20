@@ -43,7 +43,7 @@ int sock_accept(int srv, long timeout);
 int send(int sock, const void *buf, int lg);
 /* Read data of a socket (blocking) */
 int recv(int sock, void *buf, int lg); 
-/* Ask thr kernel to consider this socket as incoming once new data is received */
+/* Ask the kernel to consider this socket as incoming once new data is received */
 int sock_sleep(int sock);
 
 
