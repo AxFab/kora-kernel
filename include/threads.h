@@ -27,13 +27,14 @@
 
 #define thread_local __tls
 
-typedef struct _US_THREADS *thrd_t;
-typedef struct _US_MUTEX *mtx_t;
-typedef struct _US_CND *cnd_t
-typedef struct _US_TSS *tss_t;
-
-typedef int (*thrd_start_t)(void*);
+typedef int(*thrd_start_t)(void*);
 typedef void(*tss_dtor_t)(void*);
+
+typedef struct _US_THREAD *thrd_t;
+typedef struct _US_MUTEX *mtx_t;
+typedef struct _US_CND *cnd_t;
+typedef tss_dtor_t *tss_t;
+
 
 typedef atomic_t once_flag;
 #define ONCE_FLAG_INIT  0
@@ -66,7 +67,7 @@ int thrd_sleep(const struct timespec* duration, struct timespec* remaining);
 /* Yields the current time slice */
 void thrd_yield(void);
 /* Terminates the calling thread */
-Noreturn void thrd_exit(int res);
+_Noreturn void thrd_exit(int res);
 /* Detaches a thread */
 int thrd_detach(thrd_t thr);
 /* Blocks until a thread terminates */
@@ -80,7 +81,7 @@ int mtx_init(mtx_t* mutex, int type);
 /* Blocks locks a mutex */
 int mtx_lock(mtx_t* mutex);
 /* Blocks until locks a mutex or times out */
-int mtx_timedlock(mtx_t *restrict mutex, const struct timespec *restrict time_point);
+int mtx_timedlock(mtx_t *mutex, const struct timespec *time_point);
 /* Locks a mutex or returns without blocking if already locked */
 int mtx_trylock(mtx_t *mutex);
 /* Unlocks a mutex */
@@ -104,14 +105,14 @@ int cnd_broadcast(cnd_t *cond);
 /* Blocks on a condition variable */
 int cnd_wait(cnd_t* cond, mtx_t* mutex);
 /* Blocks on a condition variable, with a timeout */
-int cnd_timedwait(cnd_t* restrict cond, mtx_t* restrict mutex, const struct timespec* restrict time_point);
+int cnd_timedwait(cnd_t* cond, mtx_t* mutex, const struct timespec* time_point);
 /* Destroys a condition variable */
 void cnd_destroy(cnd_t* cond);
 
 /* Thread-local storage -=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Maximum number of times destructors are called */
-#define TSS_DTOR_ITERATIONS 1
+#define TSS_DTOR_ITERATIONS  5
 
 /* Creates thread-specific storage pointer with a given destructor */
 int tss_create(tss_t* tss_key, tss_dtor_t destructor);

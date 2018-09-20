@@ -20,7 +20,7 @@ static void thrd_init()
 {
 	tss_thread_init = true;
 	tss_create(&tss_key_thread, (tss_dtor_t)free);
-	ptrd_t thread = malloc(sizeof(* thread));
+    thrd_t thread = malloc(sizeof(* thread));
 	thread->handle = GetCurrentThread();
 	thread->id = GetThreadId(thread->handle);
 	tss_set(tss_key_thread, thread);
@@ -41,7 +41,7 @@ int thrd_create(thrd_t *thr, thrd_start_t func, void *arg)
 {
 	if (!tss_thread_init)
 	    thrd_init();
-	ptrd_t thread = malloc(sizeof(* thread));
+	thrd_t thread = malloc(sizeof(* thread));
 	thread->func = func;
 	thread->arg = arg;
 	thread->handle = CreateThread (0, 0, thrd_start, thread, 0, &thread->id);
@@ -78,10 +78,12 @@ void thrd_yield(void)
 }
 
 /* Terminates the calling thread */
-Noreturn void thrd_exit(int res)
+_Noreturn void thrd_exit(int res)
 {
-	tss_remove(tss_key_thread);
-	for (;;) ThreadTerminate(res);
+    thrd_t thread = thrd_current();
+    tss_delete(tss_key_thread);
+	TerminateThread(thread->handle, res);
+    abort();
 }
 
 /* Detaches a thread */
@@ -99,14 +101,48 @@ int thrd_join(thrd_t thr, int *res)
 
 
 
-
-
+__declspec(thread) HMP_map __tss_map;
+__declspec(thread) bool __tss_init = false;
 
 
 /* Creates thread-specific storage pointer with a given destructor */
-int tss_create(tss_t* tss_key, tss_dtor_t destructor);
-/* Reads from thread-specific storage */void *tss_get(tss_t tss_key);
+int tss_create(tss_t* tss_key, tss_dtor_t destructor)
+{
+    if (!__tss_init) {
+        hmp_init(&__tss_map, 16);
+        __tss_init = true;
+    }
+    *tss_key = malloc(1);
+    **tss_key = destructor;
+}
+
+/* Reads from thread-specific storage */
+void *tss_get(tss_t tss_key)
+{
+    if (!__tss_init) {
+        hmp_init(&__tss_map, 16);
+        __tss_init = true;
+    }
+    return hmp_get(&__tss_map, tss_key, sizeof(char*));
+}
+
 /* Write to thread-specific storage */
-int tss_set(tss_t tss_id, void *val);
+int tss_set(tss_t tss_id, void *val)
+{
+    if (!__tss_init) {
+        hmp_init(&__tss_map, 16);
+        __tss_init = true;
+    }
+    hmp_put(&__tss_map, tss_id, sizeof(char*), val);
+    return 0;
+}
+
 /* Releases the resources held by a given thread-specific pointer */
-void tss_delete(tss_t tss_id);
+void tss_delete(tss_t tss_id)
+{
+    void *data = tss_get(tss_id);
+    if (*tss_id != NULL)
+        (*tss_id)(data);
+    hmp_remove(&__tss_map, tss_id, sizeof(char*));
+}
+

@@ -32,7 +32,7 @@ struct kMmu kMMU;
 void memory_initialize()
 {
     kMMU.max_vma_size = _Gib_;
-    memset(MMU_BMP, 0xff, MMU_LG);
+    //memset(MMU_BMP, 0xff, MMU_LG);
     kMMU.upper_physical_page = 0;
     kMMU.pages_amount = 0;
     kMMU.free_pages = 0;

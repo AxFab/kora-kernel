@@ -40,9 +40,9 @@ int sock_listen(int protocole, int backlog, int addrtype, const char *buf);
 int sock_accept(int srv, long timeout);
 
 /* Write data to a socket */
-int send(int sock, const void *buf, int lg);
+int sock_send(int sock, const void *buf, int lg);
 /* Read data of a socket (blocking) */
-int recv(int sock, void *buf, int lg); 
+int sock_recv(int sock, void *buf, int lg);
 /* Ask the kernel to consider this socket as incoming once new data is received */
 int sock_sleep(int sock);
 
