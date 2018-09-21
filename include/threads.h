@@ -22,6 +22,7 @@
 
 #include <bits/cdefs.h>
 #include <bits/atomic.h>
+#include <time.h>
 
 #undef __STDC_NO_THREADS__
 

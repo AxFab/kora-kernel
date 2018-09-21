@@ -21,7 +21,6 @@
 #include <kernel/task.h>
 #include <kora/splock.h>
 #include <errno.h>
-#include <time.h>
 #include <limits.h>
 
 
@@ -36,17 +35,17 @@ struct _US_MUTEX {
 	emitter_t emitter;
 };
 
-int futex_waitfor(struct _US_MUTEX* mutex, const timespec *ts)
+int futex_wait(struct _US_MUTEX* mutex, const struct timespec *ts)
 {
 	time64_t until = 0;
 	for (;;) {
 		splock_lock(&mutex->splock);
-        if (atomic_cmpxchg(&ptr->counter, 0, 1) == 0) {
+        if (atomic_cmpxchg(&mutex->counter, 0, 1) == 0) {
             // Don't wait, you got it!
             splock_unlock(&mutex->splock);
             return 0;
         }
-        int res = async_wait(&mutex->splock, &mutex->emitter, until - time64();
+        int res = async_wait(&mutex->splock, &mutex->emitter, until - time64());
         if (res == EAGAIN) {
             splock_unlock(&mutex->splock);
             return -1;
@@ -69,7 +68,7 @@ int mtx_init(mtx_t* mutex, int flags)
 	ptr->counter = 0;
 	ptr->flags = flags;
 	ptr->thread = 0;
-	splock_lock(&ptr->lock);
+	splock_lock(&ptr->splock);
 	*mutex = ptr;
 	return 0;
 }
@@ -123,6 +122,7 @@ int mtx_unlock(mtx_t *mutex)
 	int prev = atomic_xchg(&ptr->counter, 0);
 	if (prev > 1)
 	    futex_raise(ptr);
+	return 0;
 }
 
 /* Destroys a mutex */
