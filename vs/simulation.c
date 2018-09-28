@@ -130,7 +130,7 @@ extern __declspec(thread) int __cpu_no;
 
 DWORD WINAPI new_cpu_thread(LPVOID lpParameter)
 {
-    task_t *task = (task_t*)lpParameter;
+    task_t *task = (task_t *)lpParameter;
     __cpu_no = task->pid;
     kCPU.running = NULL;
 

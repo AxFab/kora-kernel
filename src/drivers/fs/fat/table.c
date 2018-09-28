@@ -22,14 +22,13 @@
 #include "fatfs.h"
 
 
-struct FAT_volume *fatfs_init(void *ptr) 
+struct FAT_volume *fatfs_init(void *ptr)
 {
     struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
     if (bpb->BS_jmpBoot[0] != 0xE9 && !(bpb->BS_jmpBoot[0] == 0xEB &&
-        bpb->BS_jmpBoot[2] == 0x90)) {
+                                        bpb->BS_jmpBoot[2] == 0x90))
         return NULL;
-    }
 
     struct FAT_volume *info = (struct FAT_volume *)kalloc(sizeof(struct FAT_volume));
     info->RootDirSectors = ((bpb->BPB_RootEntCnt * 32) + (bpb->BPB_BytsPerSec - 1)) / bpb->BPB_BytsPerSec;
@@ -44,11 +43,10 @@ struct FAT_volume *fatfs_init(void *ptr)
 
     info->CountofClusters = info->DataSec / bpb->BPB_SecPerClus;
     info->FATType = FAT_TYPE(info->CountofClusters);
-    if (info->FATType == FAT16) {
+    if (info->FATType == FAT16)
         info->RootEntry = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz16);
-    } else {
+    else
         info->RootEntry = ((bpb32->BPB_RootClus - 2) * bpb->BPB_SecPerClus) + info->FirstDataSector;
-    }
     info->SecPerClus = bpb->BPB_SecPerClus;
     info->ResvdSecCnt = bpb->BPB_ResvdSecCnt;
     info->BytsPerSec = bpb->BPB_BytsPerSec;
@@ -68,33 +66,33 @@ struct FAT_volume *fatfs_init(void *ptr)
 
 void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous)
 {
-	for (int i = 0; i < 2; ++i) {
-		int lba = i * info->FATSz + 1;
-		int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
-		uint16_t *fat_table = (uint16_t*)bio_access(info->io_head, lba);
-		// TODO - Load next pages
-		if (previous > 0)
-		    fat_table[previous] = cluster;
-		fat_table[cluster] = 0xFFFF;
-		bio_clean(info->io_head, lba);
-	}
+    for (int i = 0; i < 2; ++i) {
+        int lba = i * info->FATSz + 1;
+        int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
+        uint16_t *fat_table = (uint16_t *)bio_access(info->io_head, lba);
+        // TODO - Load next pages
+        if (previous > 0)
+            fat_table[previous] = cluster;
+        fat_table[cluster] = 0xFFFF;
+        bio_clean(info->io_head, lba);
+    }
 }
 
 unsigned fatfs_alloc_cluster_16(struct FAT_volume *info, int previous)
 {
-	int lba = 1; // resvd_sector_count
-	int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
-	uint16_t *fat_table = (uint16_t*)bio_access(info->io_head, lba);
-	// TODO - Load next pages
-	for (int i = 0; i < fat_bytes / 2; ++i) {
-		if (fat_table[i] == 0) {
-			fatfs_reserve_cluster_16(info, i, previous);
-			bio_clean(info->io_head, lba);
-			return i;
-		}
-	}
-	bio_clean(info->io_head, lba);
-	return -1; // No space available
+    int lba = 1; // resvd_sector_count
+    int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
+    uint16_t *fat_table = (uint16_t *)bio_access(info->io_head, lba);
+    // TODO - Load next pages
+    for (int i = 0; i < fat_bytes / 2; ++i) {
+        if (fat_table[i] == 0) {
+            fatfs_reserve_cluster_16(info, i, previous);
+            bio_clean(info->io_head, lba);
+            return i;
+        }
+    }
+    bio_clean(info->io_head, lba);
+    return -1; // No space available
 }
 
 

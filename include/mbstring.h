@@ -36,7 +36,7 @@
 
 int mbtowc(wchar_t *wc, const char *str, size_t len);
 // size_t mbstowcs (wchar_t *ws, const char **str, size_t wn, mbstate_t *st);
-size_t mbstowcs (wchar_t *ws, const char *str, size_t wn);
+size_t mbstowcs(wchar_t *ws, const char *str, size_t wn);
 int mblen(const char *str, size_t len);
 
 #endif  /* _MBSTRING_H */

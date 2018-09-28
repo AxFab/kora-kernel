@@ -38,7 +38,7 @@ inode_t *fatfs_mount(inode_t *dev)
     uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, dev, 0, VMA_FILE_RO);
     struct FAT_volume *info = fatfs_init(ptr);
     kunmap(ptr, PAGE_SIZE);
-    if (info == NULL) { 
+    if (info == NULL) {
         errno = EBADF;
         return NULL;
     }

@@ -32,11 +32,12 @@ struct kMmu kMMU;
 void memory_initialize()
 {
     kMMU.max_vma_size = _Gib_;
-    //memset(MMU_BMP, 0xff, MMU_LG);
+    memset(MMU_BMP, 0xff, MMU_LG);
     kMMU.upper_physical_page = 0;
     kMMU.pages_amount = 0;
     kMMU.free_pages = 0;
     kMMU.page_size = PAGE_SIZE;
+    splock_init(&kMMU.kspace->lock);
 
     /* Init Kernel memory space structure */
     bbtree_init(&kernel_space.tree);
@@ -55,13 +56,11 @@ void memory_sweep()
 
 void memory_info()
 {
-    kprintf(KLOG_DBG, "MemTotal:      %s\n",
-            sztoa(kMMU.upper_physical_page * PAGE_SIZE));
+    kprintf(KLOG_DBG, "MemTotal:      %s\n", sztoa(kMMU.upper_physical_page * PAGE_SIZE));
     kprintf(KLOG_DBG, "MemFree:       %s\n", sztoa(kMMU.free_pages * PAGE_SIZE));
     kprintf(KLOG_DBG, "MemAvailable:  %s\n", sztoa(kMMU.pages_amount * PAGE_SIZE));
     kprintf(KLOG_DBG, "MemDetected:  %s\n", sztoa(kMMU.upper_physical_page * PAGE_SIZE));
-    kprintf(KLOG_DBG, "MemUsed:       %s\n",
-            sztoa((kMMU.pages_amount - kMMU.free_pages) * PAGE_SIZE));
+    kprintf(KLOG_DBG, "MemUsed:       %s\n", sztoa((kMMU.pages_amount - kMMU.free_pages) * PAGE_SIZE));
 }
 
 // Buffers:           53664 kB

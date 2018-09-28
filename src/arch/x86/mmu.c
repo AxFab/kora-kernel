@@ -77,7 +77,7 @@ void mmu_leave() {}
 
 /* - */
 page_t mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access,
-                bool clean)
+                   bool clean)
 {
     assert((vaddress & (PAGE_SIZE - 1)) == 0);
 

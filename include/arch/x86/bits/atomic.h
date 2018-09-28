@@ -27,12 +27,12 @@
 
 static inline void cpu_relax()
 {
-    asm volatile ("pause");
+    asm volatile("pause");
 }
 
 static inline void cpu_barrier()
 {
-    asm volatile ("");
+    asm volatile("");
 }
 
 void irq_reset(bool enable);
@@ -46,25 +46,25 @@ typedef volatile uint16_t atomic16_t;
 
 static inline void atomic16_inc(atomic16_t *ptr)
 {
-    asm volatile ("lock incw %0" : "=m"(*ptr));
+    asm volatile("lock incw %0" : "=m"(*ptr));
 }
 
 static inline void atomic16_dec(atomic16_t *ptr)
 {
-    asm volatile ("lock decw %0" : "=m"(*ptr));
+    asm volatile("lock decw %0" : "=m"(*ptr));
 }
 
 static inline uint16_t atomic16_xchg(atomic16_t *ptr, uint16_t value)
 {
     register atomic16_t ref = value;
-    asm volatile ("lock xchg %1, %0" : "=m" (*ptr), "=r" (ref) : "1" (value));
+    asm volatile("lock xchg %1, %0" : "=m"(*ptr), "=r"(ref) : "1"(value));
     return ref;
 }
 
 static inline uint16_t atomic16_xadd(atomic16_t *ptr, uint16_t value)
 {
     asm volatile("lock xaddw %%ax, %2;"
-                 :"=a" (value) :"a" (value), "m" (*ptr) :"memory");
+                 :"=a"(value) :"a"(value), "m"(*ptr) :"memory");
     return value;
 }
 
@@ -77,25 +77,25 @@ typedef volatile uint32_t atomic32_t;
 
 static inline void atomic32_inc(atomic32_t *ptr)
 {
-    asm volatile ("lock incl %0" : "=m"(*ptr));
+    asm volatile("lock incl %0" : "=m"(*ptr));
 }
 
 static inline void atomic32_dec(atomic32_t *ptr)
 {
-    asm volatile ("lock decl %0" : "=m"(*ptr));
+    asm volatile("lock decl %0" : "=m"(*ptr));
 }
 
 static inline uint32_t atomic32_xchg(atomic32_t *ptr, uint32_t value)
 {
     register atomic32_t ref = value;
-    asm volatile ("lock xchg %1, %0" : "=m" (*ptr), "=r" (ref) : "1" (value));
+    asm volatile("lock xchg %1, %0" : "=m"(*ptr), "=r"(ref) : "1"(value));
     return ref;
 }
 
 static inline uint32_t atomic32_xadd(atomic32_t *ptr, uint32_t value)
 {
     asm volatile("lock xaddl %%eax, %2;"
-                 :"=a" (value) :"a" (value), "m" (*ptr) :"memory");
+                 :"=a"(value) :"a"(value), "m"(*ptr) :"memory");
     return value;
 }
 
@@ -104,7 +104,7 @@ uint32_t atomic32_cmpxchg(atomic32_t *ptr, uint32_t reference,
                           uint32_t value)
 {
     asm volatile("lock cmpxchg %%eax, %2;"
-                 :"=a" (value) :"a" (value), "m" (*ptr) :"memory");
+                 :"=a"(value) :"a"(value), "m"(*ptr) :"memory");
     return value;
 }
 
@@ -114,12 +114,12 @@ typedef volatile uint64_t atomic64_t;
 
 static inline void atomic64_inc(atomic64_t *ptr)
 {
-    asm volatile ("lock incq %0" : "=m"(*ptr));
+    asm volatile("lock incq %0" : "=m"(*ptr));
 }
 
 static inline void atomic64_dec(atomic64_t *ptr)
 {
-    asm volatile ("lock decq %0" : "=m"(*ptr));
+    asm volatile("lock decq %0" : "=m"(*ptr));
 }
 
 uint64_t atomic64_xchg(atomic64_t *ptr, uint64_t value);

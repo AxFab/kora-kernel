@@ -53,7 +53,7 @@ void x86_enable_mmu();
 void x86_set_cr3(page_t dir);
 void x86_set_tss(int no);
 void x86_delay(int cns);
-void x86_cpuid(int, int, int*);
+void x86_cpuid(int, int, int *);
 
 void acpi_setup();
 

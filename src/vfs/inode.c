@@ -160,7 +160,7 @@ int vfs_link(inode_t *dir, CSTR name, inode_t *ino);
 /* Unlink / delete an inode */
 int vfs_unlink(inode_t *dir, CSTR name)
 {
-	inode_t *ino;
+    inode_t *ino;
     assert(name != NULL && strnlen(name, VFS_MAXNAME) < VFS_MAXNAME);
     assert(dir->fs != NULL);
     if (dir == NULL || !S_ISDIR(dir->mode)) {
@@ -177,7 +177,7 @@ int vfs_unlink(inode_t *dir, CSTR name)
         assert(errno != 0);
         return NULL;
     }
-    
+
     /* Can we ask the file-system */
     fs_unlink unlink = dir->fs->unlink;
     if (dir->dev->is_detached)

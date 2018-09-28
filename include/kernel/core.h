@@ -63,8 +63,8 @@ uint16_t rand16();
 uint32_t rand32();
 uint64_t rand64();
 __STDI unsigned long strtoul(const char *nptr, char **endptr, int base);
-int snprintf(char *buf, int lg, const char * msg, ...);
-int vsnprintf(char *buf, int lg, const char * msg, va_list ap);
+int snprintf(char *buf, int lg, const char *msg, ...);
+int vsnprintf(char *buf, int lg, const char *msg, va_list ap);
 int vprintf(const char *format, va_list ap);
 #if defined(_WIN32)
 int sprintf_s(char *buf, int lg, const char *msg, ...);

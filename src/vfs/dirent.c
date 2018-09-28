@@ -236,8 +236,8 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
 
 inode_t *vfs_lookup(inode_t *dir, CSTR name)
 {
-	assert(dir != NULL && name != NULL);
-	dirent_t *ent = vfs_lookup_(dir, name);
+    assert(dir != NULL && name != NULL);
+    dirent_t *ent = vfs_lookup_(dir, name);
     if (ent == NULL) {
         assert(errno != 0);
         return NULL;

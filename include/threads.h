@@ -28,8 +28,8 @@
 
 #define thread_local __tls
 
-typedef int(*thrd_start_t)(void*);
-typedef void(*tss_dtor_t)(void*);
+typedef int(*thrd_start_t)(void *);
+typedef void(*tss_dtor_t)(void *);
 
 typedef struct _US_THREAD *thrd_t;
 typedef struct _US_MUTEX *mtx_t;
@@ -42,8 +42,8 @@ typedef atomic_t once_flag;
 
 /* Indicates a thread error status */
 enum {
-	thrd_success = 0,
-	thrd_busy = 1,
+    thrd_success = 0,
+    thrd_busy = 1,
     thrd_timedout,
     thrd_nomem,
     thrd_error = -1,
@@ -51,9 +51,9 @@ enum {
 
 /* Defines the type of a mutex */
 enum {
-	mtx_plain = 0,
-    mtx_recursive = 2,
-    mtx_timed = 3,
+    mtx_plain = 0,
+    mtx_recursive = 1,
+    mtx_timed = 2,
 };
 
 /* Threads -=-=-=-=-=-=-=-=-=-=-=-= */
@@ -64,7 +64,7 @@ int thrd_equal(thrd_t lhs, thrd_t rhs);
 /* Obtains the current thread identifier */
 thrd_t thrd_current(void);
 /* Suspends execution of the calling thread for the given period of time */
-int thrd_sleep(const struct timespec* duration, struct timespec* remaining);
+int thrd_sleep(const struct timespec *duration, struct timespec *remaining);
 /* Yields the current time slice */
 void thrd_yield(void);
 /* Terminates the calling thread */
@@ -76,11 +76,11 @@ int thrd_join(thrd_t thr, int *res);
 
 
 /* Mutual exclusion -=-=-=-=-=-=-=-=-=-=-=-= */
-	
+
 /* Creates a mutex */
-int mtx_init(mtx_t* mutex, int type);
+int mtx_init(mtx_t *mutex, int type);
 /* Blocks locks a mutex */
-int mtx_lock(mtx_t* mutex);
+int mtx_lock(mtx_t *mutex);
 /* Blocks until locks a mutex or times out */
 int mtx_timedlock(mtx_t *mutex, const struct timespec *time_point);
 /* Locks a mutex or returns without blocking if already locked */
@@ -92,23 +92,23 @@ void mtx_destroy(mtx_t *mutex);
 
 
 /* Calls a function exactly once */
-void call_once(once_flag* flag, void (*func)(void));
+void call_once(once_flag *flag, void (*func)(void));
 
 
 /* Condition variables -=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Creates a condition variable */
-int cnd_init(cnd_t* cond);
+int cnd_init(cnd_t *cond);
 /* Unblocks one thread blocked on a condition variable */
 int cnd_signal(cnd_t *cond);
 /* Unblocks all threads blocked on a condition variable */
 int cnd_broadcast(cnd_t *cond);
 /* Blocks on a condition variable */
-int cnd_wait(cnd_t* cond, mtx_t* mutex);
+int cnd_wait(cnd_t *cond, mtx_t *mutex);
 /* Blocks on a condition variable, with a timeout */
-int cnd_timedwait(cnd_t* cond, mtx_t* mutex, const struct timespec* time_point);
+int cnd_timedwait(cnd_t *cond, mtx_t *mutex, const struct timespec *time_point);
 /* Destroys a condition variable */
-void cnd_destroy(cnd_t* cond);
+void cnd_destroy(cnd_t *cond);
 
 /* Thread-local storage -=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -116,7 +116,7 @@ void cnd_destroy(cnd_t* cond);
 #define TSS_DTOR_ITERATIONS  5
 
 /* Creates thread-specific storage pointer with a given destructor */
-int tss_create(tss_t* tss_key, tss_dtor_t destructor);
+int tss_create(tss_t *tss_key, tss_dtor_t destructor);
 /* Reads from thread-specific storage */
 void *tss_get(tss_t tss_key);
 /* Write to thread-specific storage */

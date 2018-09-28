@@ -212,5 +212,5 @@ void ap_setup()
     assert(kCPU.irq_semaphore == 1);
     irq_reset(false);
     cpu_halt();
-    for(;;);
+    for (;;);
 }
