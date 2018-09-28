@@ -63,8 +63,8 @@ void broadcast(int unless, msg_t *msg, char *frame)
 
 /* -=- */
 
-int vfs_read() {}
-int vfs_write() {}
+int vfs_read() { return 0; }
+int vfs_write() { return 0; }
 
 // Handle the request of new host
 int handler(int fd)
@@ -109,7 +109,7 @@ int main()
         int fd = sock_accept(srv, 50);
         if (fd == 0)
             continue;
-        thrd_create(NULL, (thrd_start_t)handler, fd);
+        thrd_create(NULL, (thrd_start_t)handler, (void*)fd);
     }
 
     // Broadcast unlink !

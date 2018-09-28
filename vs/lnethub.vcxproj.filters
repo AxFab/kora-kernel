@@ -50,14 +50,14 @@
     <ClCompile Include="..\src\libc\hmap.c">
       <Filter>src\libc</Filter>
     </ClCompile>
-    <ClCompile Include="core.c">
-      <Filter>src\core</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\core\irq.c">
       <Filter>src\core</Filter>
     </ClCompile>
     <ClCompile Include="..\src\core\debug.c">
       <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core.c">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

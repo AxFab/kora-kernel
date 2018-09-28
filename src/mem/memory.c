@@ -37,12 +37,12 @@ void memory_initialize()
     kMMU.pages_amount = 0;
     kMMU.free_pages = 0;
     kMMU.page_size = PAGE_SIZE;
-    splock_init(&kMMU.kspace->lock);
 
     /* Init Kernel memory space structure */
     bbtree_init(&kernel_space.tree);
     splock_init(&kernel_space.lock);
     kMMU.kspace = &kernel_space;
+    splock_init(&kMMU.kspace->lock);
 
     /* Enable MMU */
     mmu_enable();

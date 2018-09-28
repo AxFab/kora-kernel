@@ -64,7 +64,7 @@ thrd_t thrd_current(void)
 /* Suspends execution of the calling thread for the given period of time */
 int thrd_sleep(const struct timespec *duration, struct timespec *remaining)
 {
-    long dms = duration->tv_sec * 1000 + duration->tv_nsec / 1000000;
+    long long dms = duration->tv_sec * 1000 + duration->tv_nsec / 1000000;
     Sleep(dms);
     if (remaining) {
     }
@@ -112,8 +112,9 @@ int tss_create(tss_t *tss_key, tss_dtor_t destructor)
         hmp_init(&__tss_map, 16);
         __tss_init = true;
     }
-    *tss_key = malloc(1);
+    *tss_key = malloc(sizeof(void*));
     **tss_key = destructor;
+    return 0;
 }
 
 /* Reads from thread-specific storage */
@@ -123,7 +124,7 @@ void *tss_get(tss_t tss_key)
         hmp_init(&__tss_map, 16);
         __tss_init = true;
     }
-    return hmp_get(&__tss_map, tss_key, sizeof(char *));
+    return hmp_get(&__tss_map, (const char *)tss_key, sizeof(char *));
 }
 
 /* Write to thread-specific storage */
@@ -133,7 +134,7 @@ int tss_set(tss_t tss_id, void *val)
         hmp_init(&__tss_map, 16);
         __tss_init = true;
     }
-    hmp_put(&__tss_map, tss_id, sizeof(char *), val);
+    hmp_put(&__tss_map, (const char *)tss_id, sizeof(char *), val);
     return 0;
 }
 
@@ -143,6 +144,6 @@ void tss_delete(tss_t tss_id)
     void *data = tss_get(tss_id);
     if (*tss_id != NULL)
         (*tss_id)(data);
-    hmp_remove(&__tss_map, tss_id, sizeof(char *));
+    hmp_remove(&__tss_map, (const char *)tss_id, sizeof(char *));
 }
 
