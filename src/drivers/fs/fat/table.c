@@ -68,7 +68,7 @@ void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous
 {
     for (int i = 0; i < 2; ++i) {
         int lba = i * info->FATSz + 1;
-        int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
+        // int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
         uint16_t *fat_table = (uint16_t *)bio_access(info->io_head, lba);
         // TODO - Load next pages
         if (previous > 0)

@@ -14,7 +14,7 @@
 
 void imgdk_setup();
 
-inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, void(*format)(inode_t *))
+inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
 {
     // TODO - Clean FS and DEV list!
     imgdk_setup();
@@ -42,27 +42,27 @@ void test_fs_basic(inode_t *root)
     int ret;
     // Create and open file
     inode_t *ino1 = vfs_lookup(root, "EMPTY.TXT");
-    ck_ok(ino1 == NULL && errno == ENOENT);
+    ck_ok(ino1 == NULL && errno == ENOENT, "");
 
     inode_t *ino2 = vfs_create(root, "EMPTY.TXT", S_IFREG, NULL, 0);
-    ck_ok(ino2 != NULL && errno == 0);
+    ck_ok(ino2 != NULL && errno == 0, "");
 
     inode_t *ino3 = vfs_lookup(root, "EMPTY.TXT");
-    ck_ok(ino3 != NULL && errno == 0);
-    ck_ok(ino2 == ino3);
+    ck_ok(ino3 != NULL && errno == 0, "");
+    ck_ok(ino2 == ino3, "");
     vfs_close(ino2);
     vfs_close(ino3);
 
     // Create and open directory
     inode_t *ino4 = vfs_create(root, "FOLDER", S_IFDIR, NULL, 0);
-    ck_ok(ino4 != NULL && errno == 0);
+    ck_ok(ino4 != NULL && errno == 0, "");
 
     inode_t *ino5 = vfs_create(ino4, "FILE.O", S_IFREG, NULL, 0);
-    ck_ok(ino5 != NULL && errno == 0);
+    ck_ok(ino5 != NULL && errno == 0, "");
 
     inode_t *ino6 = vfs_search(root, root, "FOLDER/FILE.O", NULL);
-    ck_ok(ino6 != NULL && errno == 0);
-    ck_ok(ino6 == ino5);
+    ck_ok(ino6 != NULL && errno == 0, "");
+    ck_ok(ino6 == ino5, "");
     vfs_close(ino5);
     vfs_close(ino6);
 
@@ -70,15 +70,15 @@ void test_fs_basic(inode_t *root)
     inode_t *ino7;
     char filename[256];
     void *ctx = vfs_opendir(ino4, NULL);
-    ck_ok(ctx != NULL && errno == 0);
+    ck_ok(ctx != NULL && errno == 0, "");
     while ((ino7 = vfs_readdir(ino4, filename, ctx)) != NULL) {
-        ck_ok(ino7 != NULL && errno == 0);
+        ck_ok(ino7 != NULL && errno == 0, "");
         // ck_ok(ino7 == ino5);
         ino5 = NULL;
         vfs_close(ino7);
     }
     vfs_closedir(ino4, ctx);
-    ck_ok(errno == 0);
+    ck_ok(errno == 0, "");
 
     // Delete files and directories
     // ret = vfs_unlink(root, "FOLDER");
@@ -86,22 +86,22 @@ void test_fs_basic(inode_t *root)
 
     vfs_close(ino4);
     ino4 = vfs_lookup(root, "FOLDER");
-    ck_ok(ino4 != NULL && errno == 0);
+    ck_ok(ino4 != NULL && errno == 0, "");
 
     ret = vfs_unlink(ino4, "FILE.O");
-    ck_ok(ret == 0 && errno == 0);
+    ck_ok(ret == 0 && errno == 0, "");
     inode_t *ino8 = vfs_lookup(ino4, "FILE.O");
-    ck_ok(ino8 == NULL && errno == ENOENT);
+    ck_ok(ino8 == NULL && errno == ENOENT, "");
 
     ret = vfs_unlink(root, "FOLDER");
-    ck_ok(ret == 0 && errno == 0);
+    ck_ok(ret == 0 && errno == 0, "");
     inode_t *ino9 = vfs_lookup(root, "FOLDER");
-    ck_ok(ino9 == NULL && errno == ENOENT);
+    ck_ok(ino9 == NULL && errno == ENOENT, "");
     vfs_close(ino4);
 }
 
 
-void test_fs(CSTR dev, kmod_t *fsmod, void(*format)(inode_t *))
+void test_fs(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
 {
     inode_t *ino = test_fs_setup(dev, fsmod, format);
     test_fs_basic(ino);

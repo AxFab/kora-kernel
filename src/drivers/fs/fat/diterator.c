@@ -161,9 +161,9 @@ int fatfs_closedir(FAT_inode_t *dir, FAT_diterator_t *it)
 
 int fatfs_unlink(FAT_inode_t *dir, CSTR name)
 {
-    FAT_inode_t *ino;
+    // FAT_inode_t *ino;
     FAT_diterator_t *it = fatfs_diterator_open(dir, true);
-    const int entries_per_cluster = dir->vol->BytsPerSec / sizeof(struct FAT_ShortEntry);
+    // const int entries_per_cluster = dir->vol->BytsPerSec / sizeof(struct FAT_ShortEntry);
     struct FAT_ShortEntry *entry;
     while ((entry = fatfs_diterator_next(it)) != NULL) {
         char shortname[14];

@@ -196,8 +196,19 @@ struct FAT_inode {
 };
 
 
-struct FAT_volume *fatfs_init(void *ptr);
+
+void fatfs_settime(unsigned short *date, unsigned short *time, time64_t value);
+time64_t fatfs_gettime(unsigned short *date, unsigned short *time);
+void fatfs_read_shortname(struct FAT_ShortEntry *entry, char *shortname);
+void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname);
 FAT_inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, struct FAT_volume *info);
+void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, int mode);
+int fatfs_mkdir(struct FAT_volume *info, FAT_inode_t *dir);
+
+struct FAT_volume *fatfs_init(void *ptr);
+void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous);
+unsigned fatfs_alloc_cluster_16(struct FAT_volume *info, int previous);
+
 FAT_inode_t *fatfs_open(FAT_inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
 int fatfs_unlink(FAT_inode_t *dir, CSTR name);
 
