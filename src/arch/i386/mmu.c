@@ -90,13 +90,15 @@ page_t mmu_resolve(size_t vaddr, page_t phys, int flags)
     if (*dir == 0) {
         if (vaddr >= MMU_KSPACE_LOWER) {
             page_t *krn = MMU_KRN(vaddr);
-            if (*krn == 0)
+            if (*krn == 0) {
                 *krn = page_new() | MMU_K_RW;
+                memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
+            }
             *dir = *krn;
         } else {
             *dir = page_new() | MMU_U_RW;
+            memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
         }
-        memset((void*)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
     }
 
     if (*tbl == 0) {

@@ -89,7 +89,7 @@ static void imgdk_open(int i)
         sdx[i].dev.read = imgdk_read;
         sdx[i].dev.write = imgdk_write;
 
-        vfs_mkdev(sdNames[i], (device_t*)&sdx[i].dev, blk);
+        vfs_mkdev(sdNames[i], (device_t *)&sdx[i].dev, blk);
         vfs_close(blk);
         break;
     }
@@ -155,10 +155,10 @@ void imgdk_release_dev(struct IMGDK_Drive *dev)
 void imgdk_setup()
 {
     size_t fp = fopen("sdA.img", "w");
-	fseek(fp, 16 * _Mib_ - 1, SEEK_END);
-	fwrite(&fp, 1, 1, fp);
-	fclose(fp);
-	
+    fseek(fp, 16 * _Mib_ - 1, SEEK_END);
+    fwrite(&fp, 1, 1, fp);
+    fclose(fp);
+
     int i;
     for (i = 0; i < 4; ++i)
         imgdk_open(i);

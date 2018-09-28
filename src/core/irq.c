@@ -115,7 +115,7 @@ void sys_irq(int no) // TODO -- same as irq_enter without irq management
         kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d, no handlers.\n", no, cpu_no());
         return;
     }
-        kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d.\n", no, cpu_no());
+    kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d.\n", no, cpu_no());
     for ll_each(&irqv[no].list, record, irq_record_t, node)
         record->func(record->data);
     irq_ack(no);
@@ -194,7 +194,7 @@ void irq_fault(const fault_t *fault)
         kpanic("Kernel trigger an exception\n");
     }
 
-    kprintf(KLOG_IRQ, "Task.%d on CPU%d raise exception: %s\n", task->pid , cpu_no(), fault->name);
+    kprintf(KLOG_IRQ, "Task.%d on CPU%d raise exception: %s\n", task->pid, cpu_no(), fault->name);
     stackdump(8);
     if (fault->raise != 0)
         task_kill(kCPU.running, fault->raise);

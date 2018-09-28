@@ -5,26 +5,26 @@
 
 void sock_init()
 {
-	WSADATA WSAData;
-	WSAStartup(MAKEWORD(2, 0), &WSAData);
+    WSADATA WSAData;
+    WSAStartup(MAKEWORD(2, 0), &WSAData);
 }
 
 void sock_fini()
 {
-	WSACleanup();
+    WSACleanup();
 }
 
 /* Open a client socket to a server */
 int sock_open(int protocole, int addrtype, const char *buf)
 {
-	SOCKADDR_IN sin;
-	sin.sin_addr.s_addr = inet_addr("127.0.0.1");
-	sin.sin_family = AF_INET;
-	sin.sin_port = 14148;
-	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-    bind(sock, (SOCKADDR*)&sin, sizeof(sin));
+    SOCKADDR_IN sin;
+    sin.sin_addr.s_addr = inet_addr("127.0.0.1");
+    sin.sin_family = AF_INET;
+    sin.sin_port = 14148;
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+    bind(sock, (SOCKADDR *)&sin, sizeof(sin));
 
-    connect(sock, (SOCKADDR*)&sin, sizeof(sin));
+    connect(sock, (SOCKADDR *)&sin, sizeof(sin));
     return sock;
 }
 
@@ -36,7 +36,7 @@ int sock_listen(int protocole, int backlog, int addrtype, const char *buf)
     sin.sin_family = AF_INET;
     sin.sin_port = 14148;
     SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-    bind(sock, (SOCKADDR*)&sin, sizeof(sin));
+    bind(sock, (SOCKADDR *)&sin, sizeof(sin));
 
     listen(sock, backlog);
     return sock;
@@ -47,7 +47,7 @@ int sock_accept(int sock, long timeout)
 {
     SOCKADDR_IN csin;
     for (;;) {
-        SOCKET val = accept(sock, (SOCKADDR*)&csin, sizeof(csin));
+        SOCKET val = accept(sock, (SOCKADDR *)&csin, sizeof(csin));
         if (val != INVALID_SOCKET)
             return val;
     }

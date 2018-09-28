@@ -31,8 +31,7 @@
 
 void __perror_fail(int err, const char *file, int line, const char *msg)
 {
-    kprintf(KLOG_ERR, "ERROR] Process fails (%d) at %s:%d -- %s\n", err, file, line,
-            msg);
+    kprintf(KLOG_ERR, "ERROR] Process fails (%d) at %s:%d -- %s\n", err, file, line, msg);
 }
 
 /**
@@ -45,8 +44,7 @@ void __perror_fail(int err, const char *file, int line, const char *msg)
  */
 _Noreturn void __assert_fail(const char *expr, const char *file, int line)
 {
-    kprintf(KLOG_ERR, "Assertion failed CPU%d (%s) at %s:%d -- %s\n",
-        cpu_no(), expr, file, line);
+    kprintf(KLOG_ERR, "Assertion failed CPU%d (%s) at %s:%d -- %s\n",        cpu_no(), expr, file, line);
     task_t *task = kCPU.running;
     if (task)
         task_core(task);

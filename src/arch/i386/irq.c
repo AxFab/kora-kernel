@@ -62,7 +62,7 @@ extern size_t *apic_regs;
 void irq_ack(int no)
 {
     // if (no >= 16) {
-        apic_regs[APIC_EOI] = 0;
+    apic_regs[APIC_EOI] = 0;
     //     return;
     // }
     // if (no >= 8)

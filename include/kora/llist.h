@@ -182,10 +182,10 @@ static inline void ll_remove(llhead_t *list, llnode_t *node)
 
 static inline llnode_t *ll_index_(llhead_t *list, int idx)
 {
-	llnode_t *node = list->first_;
-	while (node && idx--)
-	    node = node->next_;
-	return node;
+    llnode_t *node = list->first_;
+    while (node && idx--)
+        node = node->next_;
+    return node;
 }
 
 #endif  /* _KORA_LLIST_H */

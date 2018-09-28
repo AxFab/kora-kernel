@@ -93,9 +93,9 @@ void grub_memory();
 typedef void (*entry_t)(size_t);
 
 typedef struct {
-	jmp_buf jbuf;
-	entry_t  entry;
-	size_t param;
+    jmp_buf jbuf;
+    entry_t  entry;
+    size_t param;
 } cpu_state_t;
 
 

@@ -16,31 +16,31 @@ void imgdk_setup();
 
 inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, void(*format)(inode_t *))
 {
-	// TODO - Clean FS and DEV list!
-	imgdk_setup();
-	fsmod->setup();
-	
-	inode_t *disk = vfs_search_device(dev);
-	ck_ok(disk != NULL && errno == 0, "Search disk");
-	format(disk);
-	
-	inode_t *root = vfs_mount(dev, fsmod->name);
-	ck_ok(root != NULL  && errno == 0, "Mount newly formed disk");
-	return root;
+    // TODO - Clean FS and DEV list!
+    imgdk_setup();
+    fsmod->setup();
+
+    inode_t *disk = vfs_search_device(dev);
+    ck_ok(disk != NULL && errno == 0, "Search disk");
+    format(disk);
+
+    inode_t *root = vfs_mount(dev, fsmod->name);
+    ck_ok(root != NULL  && errno == 0, "Mount newly formed disk");
+    return root;
 }
 
 void test_fs_teardown(inode_t *root)
 {
-	int res = vfs_umount(root);
+    int res = vfs_umount(root);
     ck_ok(res == 0 && errno == 0, "Unmount file system");
-	vfs_close(root);
+    vfs_close(root);
 }
 
 
 void test_fs_basic(inode_t *root)
 {
-	int ret;
-	// Create and open file
+    int ret;
+    // Create and open file
     inode_t *ino1 = vfs_lookup(root, "EMPTY.TXT");
     ck_ok(ino1 == NULL && errno == ENOENT);
 
@@ -65,7 +65,7 @@ void test_fs_basic(inode_t *root)
     ck_ok(ino6 == ino5);
     vfs_close(ino5);
     vfs_close(ino6);
-    
+
     // Browse directory
     inode_t *ino7;
     char filename[256];
@@ -87,12 +87,12 @@ void test_fs_basic(inode_t *root)
     vfs_close(ino4);
     ino4 = vfs_lookup(root, "FOLDER");
     ck_ok(ino4 != NULL && errno == 0);
-    
+
     ret = vfs_unlink(ino4, "FILE.O");
     ck_ok(ret == 0 && errno == 0);
     inode_t *ino8 = vfs_lookup(ino4, "FILE.O");
     ck_ok(ino8 == NULL && errno == ENOENT);
-    
+
     ret = vfs_unlink(root, "FOLDER");
     ck_ok(ret == 0 && errno == 0);
     inode_t *ino9 = vfs_lookup(root, "FOLDER");
@@ -115,7 +115,7 @@ int fatfs_format(inode_t *blk);
 
 START_TEST(test_fs_fat16)
 {
-	test_fs("sdA", &kmod_info_fatfs, fatfs_format);
+    test_fs("sdA", &kmod_info_fatfs, fatfs_format);
 }
 END_TEST
 
@@ -123,7 +123,7 @@ END_TEST
 
 int main(int argc, char **argv)
 {
-	CHECK_TSUITE("File System");
-	CHECK_TCASE(test_fs_fat16);
+    CHECK_TSUITE("File System");
+    CHECK_TCASE(test_fs_fat16);
     return 0;
 }

@@ -96,9 +96,9 @@ int task_stop(task_t *task, int code)
     splock_lock(&task->lock);
     if (task == kCPU.running) {
         // Nothing to do !?
-    } else if (task->status == TS_READY) {
+    } else if (task->status == TS_READY)
         scheduler_rm(task);
-    } else if (task->status == TS_RUNNING) {
+    else if (task->status == TS_RUNNING) {
         task->status = TS_ABORTED;
         task->retcode = code;
         splock_unlock(&task->lock);
@@ -106,17 +106,15 @@ int task_stop(task_t *task, int code)
     } else if (task->status == TS_ZOMBIE) {
         splock_unlock(&task->lock);
         return -1;
-    } else {
+    } else
         assert(false);
-    }
     task->status = TS_ZOMBIE;
     task->retcode = code;
     task_t *parent = task->parent;
     // TODO - All children become orphans
     splock_unlock(&task->lock);
-    if (parent) {
+    if (parent)
         task_kill(parent, SIGCHLD);
-    }
     // event_trigger(EV_TASK_DIE, task);
     // rcu_free(task);
     return 0;

@@ -84,28 +84,28 @@ bool krn_mmap_init = false;
 HMP_map krn_mmap;
 
 struct vma {
-	void *address;
-	size_t length;
-	off_t offset;
-	inode_t *ino;
-	int flags;
+    void *address;
+    size_t length;
+    off_t offset;
+    inode_t *ino;
+    int flags;
 };
 
 void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
 {
-	if (!IS_ALIGNED(length, PAGE_SIZE) || !IS_ALIGNED(length, PAGE_SIZE))
-		assert("unautorized operation");
-	if (!krn_mmap_init) {
-		hmp_init(&krn_mmap, 16);
-		krn_mmap_init = true;
-	}
+    if (!IS_ALIGNED(length, PAGE_SIZE) || !IS_ALIGNED(length, PAGE_SIZE))
+        assert("unautorized operation");
+    if (!krn_mmap_init) {
+        hmp_init(&krn_mmap, 16);
+        krn_mmap_init = true;
+    }
     void *ptr = _aligned_malloc(length, PAGE_SIZE);
-    struct vma *vma = (struct vma*)kalloc(sizeof(struct vma));
+    struct vma *vma = (struct vma *)kalloc(sizeof(struct vma));
     vma->length = length;
     vma->offset = offset;
     vma->ino = ino;
     vma->flags = flags;
-    hmp_put(&krn_mmap, (char*)&ptr, sizeof(void*), vma);
+    hmp_put(&krn_mmap, (char *)&ptr, sizeof(void *), vma);
     switch (flags & VMA_TYPE) {
     case VMA_FILE:
         assert(ino != NULL);
@@ -122,30 +122,36 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
 
 void kunmap(size_t addr, size_t length)
 {
-    struct vma *vma = (struct vma*)hmp_get(&krn_mmap, (char*)&addr, sizeof(void*));
+    struct vma *vma = (struct vma *)hmp_get(&krn_mmap, (char *)&addr, sizeof(void *));
     assert(vma != NULL);
     assert(vma->length == length);
-    hmp_remove(&krn_mmap, (char*)&addr, sizeof(void*));
+    hmp_remove(&krn_mmap, (char *)&addr, sizeof(void *));
     switch (vma->flags & VMA_TYPE) {
     case VMA_FILE:
         assert(vma->ino != NULL);
         if (vma->flags & VMA_WRITE)
-            vfs_write(vma->ino, (void*)addr, length, vma->offset);
+            vfs_write(vma->ino, (void *)addr, length, vma->offset);
         break;
     default:
         assert(false);
         break;
     }
     free(vma);
-    _aligned_free((void*)addr);
+    _aligned_free((void *)addr);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 #ifdef _FAKE_MEM
-page_t mmu_read(page_t addr) { return 0; }
+page_t mmu_read(page_t addr)
+{
+    return 0;
+}
 void page_release(page_t addr) {}
-int page_fault(mspace_t *mspace, size_t address, int reason) { return -1; }
+int page_fault(mspace_t *mspace, size_t address, int reason)
+{
+    return -1;
+}
 #endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -165,17 +171,17 @@ time64_t time64()
 #include <windows.h>
 time64_t time64()
 {
-	// January 1, 1970 (start of Unix epoch) in ticks
+    // January 1, 1970 (start of Unix epoch) in ticks
     const INT64 UNIX_START = 0x019DB1DED53E8000;
 
-	FILETIME ft;
-	GetSystemTimeAsFileTime(&ft);
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
 
-	LARGE_INTEGER li;
-	li.LowPart = ft.dwLowDateTime;
-	li.HighPart = ft.dwHighDateTime;
-	// Convert ticks since EPOCH into nano-seconds
-	return (li.QuadPart - UNIX_START) * 100;
+    LARGE_INTEGER li;
+    li.LowPart = ft.dwLowDateTime;
+    li.HighPart = ft.dwHighDateTime;
+    // Convert ticks since EPOCH into nano-seconds
+    return (li.QuadPart - UNIX_START) * 100;
 }
 #endif
 #endif
@@ -189,12 +195,12 @@ time64_t time64()
 _Noreturn void scheduler_switch(int status, int retcode)
 {
     assert(false);
-    for(;;);
+    for (;;);
 }
 
 int task_resume(task_t *task)
 {
-	return -1;
+    return -1;
 }
 
 void task_kill(task_t *task, int signum)
