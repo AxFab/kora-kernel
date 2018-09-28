@@ -2,7 +2,7 @@
 #define _SRC_ELF_H 1
 
 #include <kernel/core.h>
-#include <kora/stdef.h>
+#include <kora/stddef.h>
 #include <kora/mcrs.h>
 
 typedef struct elf_header elf_header_t;
@@ -84,11 +84,8 @@ PACK(struct elf_dynamic {
     size_t rel_ent;
     size_t plt_rel;
     size_t debug;
-    size_t init;
-    size_t fini;
     size_t text_rel;
     size_t jmp_rel;
-    size_t init;
     size_t reserved0;
     size_t init_array;
     size_t fini_array;

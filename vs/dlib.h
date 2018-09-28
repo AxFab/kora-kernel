@@ -2,7 +2,7 @@
 #define _SRC_DLIB 1
 
 #include <kernel/core.h>
-#include <kora/stdef.h>
+#include <kora/stddef.h>
 #include <kora/mcrs.h>
 
 typedef struct dynlib dynlib_t;

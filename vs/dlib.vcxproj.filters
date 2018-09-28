@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\core\debug.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\irq.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\libc\hmap.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="elf.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="dlib.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="tsDlib.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="core.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\arch\x86_mcvs\bits\cdefs.h">
+      <Filter>include\bits</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\arch\x86_mcvs\bits\atomic.h">
+      <Filter>include\bits</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\mcrs.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kora\splock.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="dlib.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="elf.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{1feb44e5-c5cc-4475-98e6-035ec5d0f265}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{bf0890b6-4aa2-4f2f-bfda-f5dae422f281}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\libc">
+      <UniqueIdentifier>{d67cc9c9-79ba-4acd-80de-c885f6e1df0f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{0ee85bb9-8b73-4323-b9be-3cc2d7463239}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bits">
+      <UniqueIdentifier>{8e285012-7001-4957-951a-e35986a52732}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\kora">
+      <UniqueIdentifier>{b1f6962a-4483-4749-9482-7140d97bf232}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -71,12 +71,17 @@
     <ClCompile Include="..\src\core\irq.c" />
     <ClCompile Include="..\src\libc\hmap.c" />
     <ClCompile Include="core.c" />
+    <ClCompile Include="dlib.c" />
+    <ClCompile Include="elf.c" />
+    <ClCompile Include="tsDlib.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\arch\x86_mcvs\bits\atomic.h" />
     <ClInclude Include="..\include\arch\x86_mcvs\bits\cdefs.h" />
     <ClInclude Include="..\include\kora\mcrs.h" />
     <ClInclude Include="..\include\kora\splock.h" />
+    <ClInclude Include="dlib.h" />
+    <ClInclude Include="elf.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
