@@ -160,22 +160,21 @@ int vfs_link(inode_t *dir, CSTR name, inode_t *ino);
 /* Unlink / delete an inode */
 int vfs_unlink(inode_t *dir, CSTR name)
 {
-    inode_t *ino;
     assert(name != NULL && strnlen(name, VFS_MAXNAME) < VFS_MAXNAME);
     assert(dir->fs != NULL);
     if (dir == NULL || !S_ISDIR(dir->mode)) {
         errno = ENOTDIR;
-        return NULL;
+        return -1;
     } else if (dir->dev->read_only) {
         errno = EROFS;
-        return NULL;
+        return -1;
     }
 
     /* Reserve a cache directory entry */
     dirent_t *ent = vfs_dirent_(dir, name, true);
     if (ent == NULL) {
         assert(errno != 0);
-        return NULL;
+        return -1;
     }
 
     /* Can we ask the file-system */
@@ -184,7 +183,7 @@ int vfs_unlink(inode_t *dir, CSTR name)
         unlink = NULL;
     if (unlink == NULL) {
         errno = ENOSYS;
-        return NULL;
+        return -1;
     }
 
     /* Request send to the file system */

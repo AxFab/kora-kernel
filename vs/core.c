@@ -12,6 +12,15 @@
 int __errno;
 splock_t klog_lock = INIT_SPLOCK;
 
+#if !defined(_WIN32)
+#define _valloc(s) valloc(s)
+#define _vfree(p) free(p)
+#else
+#define _valloc(s) _aligned_malloc(s, PAGE_SIZE)
+#define _vfree(p) _aligned_free(p)
+#endif
+
+
 int *__errno_location()
 {
     return &__errno;
@@ -67,7 +76,7 @@ void kclock(struct timespec *ts)
 
 struct kSys kSYS;
 
-__declspec(thread) int __cpu_no = 0;
+__thread int __cpu_no = 0;
 
 int cpu_no()
 {
@@ -99,7 +108,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
         hmp_init(&krn_mmap, 16);
         krn_mmap_init = true;
     }
-    void *ptr = _aligned_malloc(length, PAGE_SIZE);
+    void *ptr = _valloc(length);
     struct vma *vma = (struct vma *)kalloc(sizeof(struct vma));
     vma->length = length;
     vma->offset = offset;
@@ -120,7 +129,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     return ptr;
 }
 
-void kunmap(size_t addr, size_t length)
+void kunmap(void *addr, size_t length)
 {
     struct vma *vma = (struct vma *)hmp_get(&krn_mmap, (char *)&addr, sizeof(void *));
     assert(vma != NULL);
@@ -137,17 +146,17 @@ void kunmap(size_t addr, size_t length)
         break;
     }
     free(vma);
-    _aligned_free((void *)addr);
+    _vfree((void *)addr);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 #ifdef _FAKE_MEM
-page_t mmu_read(page_t addr)
+page_t mmu_read(size_t addr)
 {
     return 0;
 }
-void page_release(page_t addr) {}
+void page_release(size_t addr) {}
 int page_fault(mspace_t *mspace, size_t address, int reason)
 {
     return -1;

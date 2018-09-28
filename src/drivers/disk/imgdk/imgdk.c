@@ -32,12 +32,15 @@
 #define SEEK_CUR 1 /* Seek from current position.  */
 #define SEEK_END 2 /* Seek from end of file.  */
 
+#if defined _WIN32
 int open(const char *name, int flags);
+#else
+#define O_BINARY 0
+#endif
 int read(int fd, char *buf, int len);
 int write(int fd, const char *buf, int len);
 int lseek(int fd, off_t off, int whence);
 void close(int fd);
-
 size_t fopen(const char *name, const char *mode);
 int fwrite(void *buf, int e, int s, size_t fd);
 int fseek(size_t fp, off_t off, int whence);

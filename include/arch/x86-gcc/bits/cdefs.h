@@ -20,9 +20,8 @@
 #ifndef _BITS_CDEFS_H
 #define _BITS_CDEFS_H 1
 
-#define _Noreturn __declspec(noreturn)
-#define PACK(decl) __pragma(pack(push,1)) decl __pragma(pack(pop))
-#define __thread __declspec(thread)
+#define _Noreturn __attribute__((noreturn))
+#define PACK(decl) decl __attribute__((__packed__))
 #define unlikely(c) c
 #define likely(c) c
 
