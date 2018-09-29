@@ -167,7 +167,7 @@ int elf_parse(dynlib_t *dlib)
     /* Read relocation table */
     uint32_t *rel_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.rel / PAGE_SIZE), dynamic.rel % PAGE_SIZE);
     int ent_sz = dynamic.rel_ent / sizeof(uint32_t);
-    for (i = 0, n = dynamic.rel_sz / sizeof(uint32_t) - 1; i < n; ++i) {
+    for (i = 0, n = dynamic.rel_sz / sizeof(uint32_t) +3; i < n; ++i) {
         dynrel_t *rel = kalloc(sizeof(dynrel_t));
         ll_append(&dlib->relocations, &rel->node);
         elf_relocation(rel, &rel_tbl[i * ent_sz], &symbols);

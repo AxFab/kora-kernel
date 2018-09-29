@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <fcntl.h>
 
-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #define SEEK_SET 0 /* Seek from beginning of file.  */
 #define SEEK_CUR 1 /* Seek from current position.  */
@@ -68,6 +67,7 @@ static void imgdk_open(int i)
     char fname[16];
     for (e = 0; e < 2; ++e) {
         snprintf(fname, 16, "sd%c.%s", 'A' + i, exts[e]);
+        kprintf(-1, "Looking for %s...\n", fname);
         int fd = open(fname, O_RDWR | O_BINARY);
         if (fd == -1) {
             sdx[i].fd = -1;
