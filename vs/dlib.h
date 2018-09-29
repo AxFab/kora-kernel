@@ -23,6 +23,7 @@
 #include <kernel/core.h>
 #include <kora/stddef.h>
 #include <kora/mcrs.h>
+#include <kora/hmap.h>
 
 typedef struct dynlib dynlib_t;
 typedef struct dynsec dynsec_t;
@@ -89,6 +90,7 @@ struct process {
     llhead_t libraries;
     inode_t **paths;
     int path_sz;
+    HMP_map symbols;
 };
 
 

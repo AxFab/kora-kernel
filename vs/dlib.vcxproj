@@ -55,7 +55,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\include\arch\x86_mcvs;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4129;4273;4028</DisableSpecificWarnings>
-      <PreprocessorDefinitions>_MBCS;_VTAG_="0.0-VS";__VENDOR_UM;_FAKE_MEM;_FAKE_TIME;_FAKE_TASK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;_VTAG_="0.0-VS";__VENDOR_UM;_FAKE_MEM;_FAKE_TIME;_FAKE_TASK;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
