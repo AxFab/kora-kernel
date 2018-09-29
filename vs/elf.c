@@ -1,3 +1,22 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2018  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include "elf.h"
 #include "dlib.h"
 #include <errno.h>
@@ -33,7 +52,7 @@ int elf_check_header(elf_header_t *head)
     return 0;
 }
 
-char* rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx", };
+char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx", };
 
 void elf_section(elf_phead_t *ph, dynsec_t *section)
 {
@@ -139,7 +158,7 @@ int elf_parse(dynlib_t *dlib)
     llhead_t symbols = INIT_LLHEAD;
     elf_sym32_t *sym_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.sym_tab / PAGE_SIZE), dynamic.sym_tab % PAGE_SIZE);
     for (i = 1; sym_tbl[i].value < dlib->length; ++i) {
-    dynsym_t *sym = kalloc(sizeof(dynsym_t));
+        dynsym_t *sym = kalloc(sizeof(dynsym_t));
         ll_append(&symbols, &sym->node);
         elf_symbol(sym, &sym_tbl[i], strtab);
     }
@@ -149,7 +168,7 @@ int elf_parse(dynlib_t *dlib)
     uint32_t *rel_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.rel / PAGE_SIZE), dynamic.rel % PAGE_SIZE);
     int ent_sz = dynamic.rel_ent / sizeof(uint32_t);
     for (i = 0, n = dynamic.rel_sz / sizeof(uint32_t) - 1; i < n; ++i) {
-    dynrel_t *rel = kalloc(sizeof(dynrel_t));
+        dynrel_t *rel = kalloc(sizeof(dynrel_t));
         ll_append(&dlib->relocations, &rel->node);
         elf_relocation(rel, &rel_tbl[i * ent_sz], &symbols);
         rel += dynamic.rel_ent / sizeof(uint32_t);
@@ -158,7 +177,7 @@ int elf_parse(dynlib_t *dlib)
 
     /* Organize symbols */
     while (symbols.count_ > 0) {
-    dynsym_t *sym = ll_dequeue(&symbols, dynsym_t, node);
+        dynsym_t *sym = ll_dequeue(&symbols, dynsym_t, node);
         if (sym->address != 0)
             ll_append(&dlib->intern_symbols, &sym->node);
         else

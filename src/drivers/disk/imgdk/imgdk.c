@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015  <Fabien Bavent>
+ *  Copyright (C) 2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -41,10 +41,7 @@ int read(int fd, char *buf, int len);
 int write(int fd, const char *buf, int len);
 int lseek(int fd, off_t off, int whence);
 void close(int fd);
-size_t fopen(const char *name, const char *mode);
-int fwrite(void *buf, int e, int s, size_t fd);
-int fseek(size_t fp, off_t off, int whence);
-int fclose(size_t fd);
+
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 struct IMGDK_Drive {
@@ -157,10 +154,11 @@ void imgdk_release_dev(struct IMGDK_Drive *dev)
 
 void imgdk_setup()
 {
-    size_t fp = fopen("sdA.img", "w");
-    fseek(fp, 16 * _Mib_ - 1, SEEK_END);
-    fwrite(&fp, 1, 1, fp);
-    fclose(fp);
+    int zero = 0;
+    int fd = open("sdA.img", O_RDWR | O_BINARY | O_CREAT);
+    lseek(fd, 16 * _Mib_ - 1, SEEK_END);
+    write(fd, &zero, 1);
+    close(fd);
 
     int i;
     for (i = 0; i < 4; ++i)
