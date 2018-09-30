@@ -127,7 +127,7 @@ struct task {
 #define TSK_USER_SPACE  0x001
 
 
-void task_start(task_t *task, size_t entry, long args);
+void task_start(task_t *task, void *entry, void *args);
 int task_stop(task_t *task, int code);
 int task_kill(task_t *task, unsigned signum);
 int task_resume(task_t *task);

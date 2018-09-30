@@ -73,7 +73,7 @@ void task_core(task_t *task)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-void task_start(task_t *task, size_t entry, long args)
+void task_start(task_t *task, void *entry, void *args)
 {
     if (task->status != TS_ZOMBIE) {
         kprintf(KLOG_ERR, "[TASK] Try to grab a used task.");
@@ -87,7 +87,7 @@ void task_start(task_t *task, size_t entry, long args)
                                   0, VMA_STACK_RW);
     }
 
-    cpu_stack(task, entry, args);
+    cpu_stack(task, (size_t)entry, (size_t)args);
     scheduler_add(task);
 }
 

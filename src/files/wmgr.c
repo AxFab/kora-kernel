@@ -144,7 +144,7 @@ desktop_t *wmgr_desktop()
         desktop->height = screen->height;
     }
     current_desktop = desktop;
-    kernel_tasklet(wmgr_tasket, (long)desktop, "Desktop");
+    kernel_tasklet(wmgr_tasket, desktop, "Desktop");
     return desktop;
 }
 

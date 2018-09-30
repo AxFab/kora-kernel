@@ -136,7 +136,7 @@ struct ATA_Drive {
     uint32_t commandsets_;
     uint32_t size_;
     char     model_[44];
-    device_t dev;
+    blkdev_t dev;
 };
 
 struct ATA_Drive sdx[4];
@@ -522,14 +522,14 @@ void ATA_setup()
             inode_t *blk = vfs_inode(i, S_IFBLK | 0500, NULL, 0);
             blk->length = sdx[i].size_;
             blk->lba = i;
-            sdx[i].dev.read_only = true;
+            sdx[i].dev.dev.read_only = true;
             sdx[i].dev.block = sdx[i].type_ == IDE_ATA ? 512 : 2048;
-            sdx[i].dev.vendor = sdx[i].model_;
+            sdx[i].dev.dev.vendor = sdx[i].model_;
             sdx[i].dev.class = IDE_ATA ? "IDE ATA" : "IDE ATAPI";
             sdx[i].dev.read = ATA_read;
             sdx[i].dev.write = ATA_write;
 
-            vfs_mkdev(sdNames[i], &sdx[i].dev, blk);
+            vfs_mkdev(sdNames[i], &sdx[i].dev.dev, blk);
             vfs_close(blk);
         }
     }
@@ -546,4 +546,4 @@ void ATA_teardown()
 }
 
 
-MODULE(ide_ata, MOD_AGPL, ATA_setup, ATA_teardown);
+MODULE(ide_ata, ATA_setup, ATA_teardown);

@@ -91,10 +91,10 @@ void kernel_module(kmod_t *mod)
     sys_exit(0, 0);
 }
 
-void kernel_tasklet(void *start, long arg, CSTR name)
+void kernel_tasklet(void *start, void *arg, CSTR name)
 {
     task_t *task = task_create(NULL, NULL, 0, name);
-    task_start(task, (size_t)start, arg);
+    task_start(task, start, arg);
 }
 
 extern int no_dbg;
@@ -143,7 +143,29 @@ void kernel_master()
     }
     kprintf(-1, "Master found the device\n");
 
+    // vfs_mount(root, "dev", NULL, "devfs");
+    // vfs_mount(root, "tmp", NULL, "tmpfs");
+
+    // Look for home file system
     inode_t *root = vfs_mount("sdC", "isofs");
+    if (root == NULL) {
+        kprintf(-1, "Expected mount point over 'sdC' !\n");
+        sys_exit(0, 0);
+    }
+
+
+    // inode_t *ino = vfs_search(root, root, "bin/init", NULL);
+    // if (ino == NULL) {
+    //     kprintf(-1, "Expected file 'bin/init'.\n");
+    //     return;
+    // }
+    // task_t *task0 = task_create(NULL, root, TSK_USER_SPACE, "init");
+    // if (elf_open(task0, ino) != 0) {
+    //     kprintf(-1, "Unable to execute file\n");
+    // }
+
+    // vfs_close(root);
+    // vfs_close(ino);
 
     kprintf(-1, "Master mounted root: %p\n", root);
     async_wait(NULL, NULL, 10000);
@@ -162,46 +184,9 @@ void kernel_master()
 
 }
 
-void kernel_init()
+long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
-    // Start plug and play demon
-    // ...
-
-    // Look for modules
-#if defined(__VENDOR_PC)
-    // KSETUP(ps2);
-    // KSETUP(ide_ata);
-    // KSETUP(e1000);
-    // KSETUP(vbox);
-    // KSETUP(ac97);
-    // KSETUP(vga);
-#elif defined(__VENDOR_UM)
-    // KSETUP(imgdk);
-#endif
-    // KSETUP(isofs);
-    // KSETUP(fatfs);
-
-    // vfs_mount(root, "dev", NULL, "devfs");
-    // vfs_mount(root, "tmp", NULL, "tmpfs");
-
-    // Look for home file system
-    // inode_t *root = vfs_mount("sdC", "isofs");
-    // if (root == NULL) {
-    //     kprintf(-1, "Expected mount point over 'sdC' !\n");
-    //     return;
-    // }
-    // inode_t *ino = vfs_search(root, root, "bin/init", NULL);
-    // if (ino == NULL) {
-    //     kprintf(-1, "Expected file 'bin/init'.\n");
-    //     return;
-    // }
-    // task_t *task0 = task_create(NULL, root, TSK_USER_SPACE, "init");
-    // if (elf_open(task0, ino) != 0) {
-    //     kprintf(-1, "Unable to execute file\n");
-    // }
-
-    // vfs_close(root);
-    // vfs_close(ino);
+    kprintf(-1, "Syscall\n");
 }
 
 void kernel_start()
@@ -226,14 +211,8 @@ void kernel_start()
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    kernel_tasklet(ktsk1, 1, "Dbg_task1");
-    kernel_tasklet(ktsk2, 2, "Dbg_task2");
-    kernel_tasklet(ktsk3, 3, "Dbg_task3");
-    // kernel_tasklet(kernel_init, 0, "Kernel init");
-    // kernel_tasklet(kernel_shell, 0, "Kernel shell");
-    // kernel_tasklet(kernel_desktop, 0, "Kernel desktop");
-    kernel_tasklet(kernel_top, 5, "Dbg top 5s");
-    kernel_tasklet(kernel_master, 0, "Master");
+    kernel_tasklet(kernel_top, (void*)5, "Dbg top 5s");
+    kernel_tasklet(kernel_master, NULL, "Master");
 
     // no_dbg = 0;
     // int clock_irq = 2;

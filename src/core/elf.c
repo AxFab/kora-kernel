@@ -88,7 +88,7 @@ int elf_open(task_t *task, inode_t *ino)
     }
 
     if (head->type_ == ET_EXEC)
-        task_start(task, head->entry_, 0);
+        task_start(task, (void*)head->entry_, NULL);
 
     kunmap(head, PAGE_SIZE);
     errno = 0;
