@@ -6,10 +6,15 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_vfs", "test_vfs.vcxproj", "{31C749A7-D99D-422A-B361-4A8ED37B45A2}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kernel_simu", "kernel_simu.vcxproj", "{4CB7CC80-A792-80F6-40D9-D37B45A24A8E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{BD998BF9-42FA-4654-8868-7A78F9AA340D} = {BD998BF9-42FA-4654-8868-7A78F9AA340D}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lnethub", "lnethub.vcxproj", "{D1C2A4FD-128D-48C1-972F-82C572EB2E49}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dlib", "dlib.vcxproj", "{5343844B-A07D-4EA9-A417-354E234C38E9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kernel_simu_modules", "kernel_simu_modules.vcxproj", "{BD998BF9-42FA-4654-8868-7A78F9AA340D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -49,6 +54,14 @@ Global
 		{5343844B-A07D-4EA9-A417-354E234C38E9}.Release|x64.Build.0 = Debug|x64
 		{5343844B-A07D-4EA9-A417-354E234C38E9}.Release|x86.ActiveCfg = Debug|Win32
 		{5343844B-A07D-4EA9-A417-354E234C38E9}.Release|x86.Build.0 = Debug|Win32
+		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Debug|x64.ActiveCfg = Debug|x64
+		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Debug|x64.Build.0 = Debug|x64
+		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Debug|x86.ActiveCfg = Debug|Win32
+		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Debug|x86.Build.0 = Debug|Win32
+		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Release|x64.ActiveCfg = Release|x64
+		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Release|x64.Build.0 = Release|x64
+		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Release|x86.ActiveCfg = Release|Win32
+		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

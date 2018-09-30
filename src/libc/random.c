@@ -45,11 +45,11 @@ int rand_r(unsigned int *seed)
     return (int)(s & RAND_MAX);
 }
 
-/* Pseudo-random generator */
+/* Pseudo-random generator
 int rand(void)
 {
     return rand_r(&__seed);
-}
+} */
 
 uint64_t rand64()
 {

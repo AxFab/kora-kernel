@@ -25,6 +25,7 @@
 #include <threads.h>
 #include <windows.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #define MTU 1500
 bool cancel = false;
@@ -58,8 +59,9 @@ int lookup(char *mac)
 }
 
 // Register a new host with this mac address
-void new_host(int fd, char *mac)
+void new_host(int fd, uint8_t *mac)
 {
+    printf("New host %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     splock_lock(&mac_lock);
     hmp_put(&mac_table, mac, 6, (void *)fd);
     splock_unlock(&mac_lock);
@@ -132,7 +134,7 @@ int main()
     printf("Waiting...\n");
     while (!cancel) {
         int fd = sock_accept(srv, 50);
-        if (fd == 0)
+        if (fd == -1)
             continue;
         thrd_create(NULL, (thrd_start_t)handler, (void *)fd);
     }

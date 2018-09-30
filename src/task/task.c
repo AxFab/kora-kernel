@@ -117,6 +117,10 @@ int task_stop(task_t *task, int code)
         task_kill(parent, SIGCHLD);
     // event_trigger(EV_TASK_DIE, task);
     // rcu_free(task);
+    if (task == kCPU.running) {
+        kCPU.running = NULL;
+        scheduler_switch(TS_ZOMBIE, 0);
+    }
     return 0;
 }
 

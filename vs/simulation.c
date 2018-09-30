@@ -64,12 +64,15 @@ task_t *scheduler_next()
     return task;
 }
 
+
+__thread bool can_quit = false;
 /* */
 void scheduler_switch(int status, int retcode)
 {
     for (;;) {
-        assert(kCPU.irq_semaphore == 1);
+        assert(kCPU.irq_semaphore == 1 || kCPU.irq_semaphore == 0);
         assert(status >= TS_ZOMBIE && status <= TS_READY);
+        irq_reset(false);
         task_t *task = kCPU.running;
         if (task) {
             // kprintf(-1, "Leaving Task %d\n", task->pid);
@@ -98,8 +101,11 @@ void scheduler_switch(int status, int retcode)
 
         task = scheduler_next();
         kCPU.running = task;
-        irq_reset(false);
         if (task == NULL) {
+            task = task_search(cpu_no());
+            if (can_quit && (task == NULL || task->status == TS_ZOMBIE)) {
+                TerminateThread(GetCurrentThread(), 0);
+            }
             Sleep(2);
             kCPU.running = NULL;
             irq_disable();
@@ -110,8 +116,10 @@ void scheduler_switch(int status, int retcode)
             mmu_context(task->usmem);
         // kprintf(-1, "Start Task %d\n", task->pid)
 
-        if (task->pid == cpu_no())
+        if (task->pid == cpu_no()) {
+            can_quit = true;
             longjmp(task->state.jbuf, 1);
+        }
 
         Sleep(2);
         splock_lock(&task->lock);
@@ -148,6 +156,7 @@ DWORD WINAPI new_cpu_thread(LPVOID lpParameter)
     }
     return 0;
 }
+
 
 void cpu_stack(task_t *task, size_t entry, size_t param)
 {

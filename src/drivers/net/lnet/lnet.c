@@ -17,41 +17,75 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <WinSock2.h>
 #include <kernel/net.h>
-#include <kora/socket.h>
+#include <threads.h>
+#include "lnet.h"
+#pragma comment(lib, "ws2_32.lib")
+
+#define send(s,m,l) send(s,m,l,0)
+#define recv(s,m,l) recv(s,m,l,0)
 
 void lnet_link(lnet_dev_t *ifnet)
 {
-    msg_t msg;
-    msg.request = MR_REQUEST;
-    msg.length = 0;
+    if (ifnet->fd == 0) {
+        return;
+    }
+    lnet_msg_t msg;
+    msg.request = MR_INIT;
+    msg.length = ETH_ALEN;
     send(ifnet->fd, &msg, sizeof(msg));
+    send(ifnet->fd, &ifnet->n.eth_addr, ETH_ALEN);
 }
 
 void lnet_send(lnet_dev_t *ifnet, skb_t *skb)
 {
-    msg_t msg;
+    lnet_msg_t msg;
     msg.request = MR_PACKET;
     msg.length = skb->length;
     send(ifnet->fd, &msg, sizeof(msg));
-    send(ifnet->fd, skb->data, skb->length);
+    send(ifnet->fd, skb->buf, skb->length);
 }
 
 void lnet_idle(lnet_dev_t *ifnet)
 {
-    msg_t msg;
+    lnet_msg_t msg;
     char *frame = kalloc(ifnet->n.mtu);
-    while (ifnet->n.is_connected) {
-        recv(ifnet->fd, &msg, sizeof(msg));
-        if (msg.length != 0)
-            recv(ifnet->fd, frame, msg.length);
-        switch (msg.request) {
-        case MR_REGISTERED:
-            ifnet->n.flags |= NET_UP;
-            break;
-        case MR_PACKET:
-            net_recv(&ifnet.n, frame, msg.length);
-            break;
+    for (;;Sleep(3000)) {
+        if (ifnet->fd == 0) {
+
+            SOCKADDR_IN sin;
+            sin.sin_addr.s_addr = inet_addr("127.0.0.1");
+            sin.sin_family = AF_INET;
+            sin.sin_port = 14148;
+            SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+            if (sock == -1)
+                continue;
+            sin.sin_port = 14149;
+            if (bind(sock, (SOCKADDR *)&sin, sizeof(sin)) != 0)
+                continue;
+            sin.sin_port = 14148;
+            if (connect(sock, (SOCKADDR *)&sin, sizeof(sin)) != 0)
+                continue;
+            ifnet->fd = sock;
+        }
+
+        while (ifnet->fd) {
+            recv(ifnet->fd, &msg, sizeof(msg));
+            if (msg.length != 0)
+                recv(ifnet->fd, frame, msg.length);
+            switch (msg.request) {
+            case MR_LINK:
+                ifnet->n.flags |= NET_CONNECTED;
+                break;
+            case MR_PACKET:
+                net_recv(&ifnet->n, frame, msg.length);
+                break;
+            case MR_UNLINK:
+                close(ifnet->fd);
+                ifnet->fd = 0;
+                break;
+            }
         }
     }
     kfree(frame);
@@ -59,22 +93,29 @@ void lnet_idle(lnet_dev_t *ifnet)
 
 void lnet_setup()
 {
-    char addr[10];
-    net_address_ipv4_port(addr, "192.168.0.1", 8080);
-    int fd = open_socket(NPC_IPv4_TCP, NAD_IPv4, addr);
-    if (fd == 0)
-        return;
+#ifdef _WIN32
+    WSADATA WSAData;
+    WSAStartup(MAKEWORD(2, 0), &WSAData);
+#endif
 
-    lnet_dev_t *ifnet = net_device();
-    ifnet->n.link = link;
-    ifnet->n.send = send;
-    ifnet->n.is_connected = true;
-    thread_start(net_idle, fd);
+    lnet_dev_t *ifnet = kalloc(sizeof(lnet_dev_t));
+    for (int i = 0; i < ETH_ALEN; ++i)
+        ifnet->n.eth_addr[i] = rand();
+    ifnet->n.mtu = 1500;
+    ifnet->n.link = lnet_link;
+    ifnet->n.send = lnet_send;
+    thrd_t thrd;
+    thrd_create(&thrd, lnet_idle, ifnet);
+    net_device(ifnet);
 }
 
 void lnet_teardown()
 {
-    ifnet->n.is_connected = false;
-    close(ifnet->fd);
+#ifdef _WIN32
+    WSACleanup();
+#endif
 }
 
+
+
+MODULE(lnet, lnet_setup, lnet_teardown);

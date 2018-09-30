@@ -5,9 +5,9 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -19,32 +19,32 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{31C749A7-D99D-422A-B361-4A8ED37B45A2}</ProjectGuid>
-    <RootNamespace>test_vfs</RootNamespace>
+    <ProjectGuid>{BD998BF9-42FA-4654-8868-7A78F9AA340D}</ProjectGuid>
+    <RootNamespace>kernel_simu_modules</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -58,7 +58,7 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -83,7 +83,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\include\arch\x86_mcvs;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4129;4273;4028</DisableSpecificWarnings>
-      <PreprocessorDefinitions>_MBCS;_FAKE_MEM;_FAKE_TIME;_FAKE_TASK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -91,13 +91,35 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_MBCS;_FAKE_MEM;_FAKE_TIME;_FAKE_TASK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\core\bio.c" />
-    <ClCompile Include="..\src\core\debug.c" />
-    <ClCompile Include="..\src\core\irq.c" />
     <ClCompile Include="..\src\drivers\disk\imgdk\imgdk.c" />
     <ClCompile Include="..\src\drivers\fs\fat\dentry.c" />
     <ClCompile Include="..\src\drivers\fs\fat\diterator.c" />
@@ -106,57 +128,13 @@
     <ClCompile Include="..\src\drivers\fs\fat\module.c" />
     <ClCompile Include="..\src\drivers\fs\fat\table.c" />
     <ClCompile Include="..\src\drivers\fs\isofs\isofs.c" />
-    <ClCompile Include="..\src\files\ioblk.c" />
-    <ClCompile Include="..\src\libc\bbtree.c" />
-    <ClCompile Include="..\src\libc\hmap.c" />
-    <ClCompile Include="..\src\libc\random.c" />
-    <ClCompile Include="..\src\libc\string.c" />
-    <ClCompile Include="..\src\libc\time.c" />
-    <ClCompile Include="..\src\task\async.c" />
-    <ClCompile Include="..\src\vfs\device.c" />
-    <ClCompile Include="..\src\vfs\directory.c" />
-    <ClCompile Include="..\src\vfs\dirent.c" />
-    <ClCompile Include="..\src\vfs\inode.c" />
-    <ClCompile Include="..\src\vfs\mount.c" />
-    <ClCompile Include="..\src\vfs\parts.c" />
-    <ClCompile Include="core.c" />
-    <ClCompile Include="test_vfs.c" />
+    <ClCompile Include="..\src\drivers\net\lnet\lnet.c" />
+    <ClCompile Include="threads.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\arch\x86_mcvs\bits\atomic.h" />
-    <ClInclude Include="..\include\arch\x86_mcvs\bits\cdefs.h" />
-    <ClInclude Include="..\include\assert.h" />
-    <ClInclude Include="..\include\ctype.h" />
-    <ClInclude Include="..\include\errno.h" />
-    <ClInclude Include="..\include\kernel\core.h" />
-    <ClInclude Include="..\include\kernel\device.h" />
-    <ClInclude Include="..\include\kernel\files.h" />
-    <ClInclude Include="..\include\kernel\input.h" />
-    <ClInclude Include="..\include\kernel\memory.h" />
-    <ClInclude Include="..\include\kernel\net.h" />
-    <ClInclude Include="..\include\kernel\scall.h" />
-    <ClInclude Include="..\include\kernel\task.h" />
-    <ClInclude Include="..\include\kernel\types.h" />
-    <ClInclude Include="..\include\kernel\vfs.h" />
-    <ClInclude Include="..\include\kernel\vma.h" />
-    <ClInclude Include="..\include\kora\allocator.h" />
-    <ClInclude Include="..\include\kora\bbtree.h" />
-    <ClInclude Include="..\include\kora\format.h" />
-    <ClInclude Include="..\include\kora\hmap.h" />
-    <ClInclude Include="..\include\kora\iofile.h" />
-    <ClInclude Include="..\include\kora\llist.h" />
-    <ClInclude Include="..\include\kora\mcrs.h" />
-    <ClInclude Include="..\include\kora\rwlock.h" />
-    <ClInclude Include="..\include\kora\splock.h" />
-    <ClInclude Include="..\include\kora\stddef.h" />
-    <ClInclude Include="..\include\kora\syscalls.h" />
-    <ClInclude Include="..\include\mbstring.h" />
-    <ClInclude Include="..\include\string.h" />
-    <ClInclude Include="..\include\sys\errno.h" />
-    <ClInclude Include="..\include\sys\signum.h" />
-    <ClInclude Include="..\include\time.h" />
     <ClInclude Include="..\src\drivers\fs\fat\fatfs.h" />
     <ClInclude Include="..\src\drivers\fs\isofs\isofs.h" />
+    <ClInclude Include="..\src\drivers\net\lnet\lnet.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

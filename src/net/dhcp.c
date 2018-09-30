@@ -622,7 +622,7 @@ static int dhcp_serve(skb_t *skb, dhcp_server_t *srv, dhcp_info_t *info)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-#define DHCP_DELAY  (5 * USEC_PER_SEC)
+#define DHCP_DELAY  (5 * USEC_PER_SEC / 1000)
 
 static int dhcp2boot[] = {
     0,

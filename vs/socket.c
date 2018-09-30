@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kora/socket.h>
-#include <winsock2.h>
+#include <WinSock2.h>
 #include <windows.h>
 #pragma comment(lib, "ws2_32.lib")
 
@@ -65,8 +65,9 @@ int sock_listen(int protocole, int backlog, int addrtype, const char *buf)
 int sock_accept(int sock, long timeout)
 {
     SOCKADDR_IN csin;
+    int sz = sizeof(csin);
     for (;;) {
-        SOCKET val = accept(sock, (SOCKADDR *)&csin, sizeof(csin));
+        SOCKET val = accept(sock, (SOCKADDR *)&csin, &sz);
         if (val != INVALID_SOCKET)
             return val;
     }

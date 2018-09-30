@@ -73,10 +73,22 @@ struct kCpu kCPU0;
 
 llhead_t modules = INIT_LLHEAD;
 
+int sys_exit(pid_t pid, int ret)
+{
+    task_t *task = pid == 0 ? kCPU.running : task_search(pid);
+    if (task == NULL)
+        return -1;
+    task_stop(task, ret);
+    return 0;
+}
+
+/**/
 void kernel_module(kmod_t *mod)
 {
-    ll_append(&modules, &mod->node);
+    // ll_append(&modules, &mod->node);
     mod->setup();
+    kprintf(-1, "End of setup for driver %s\n", mod->name);
+    sys_exit(0, 0);
 }
 
 void kernel_tasklet(void *start, long arg, CSTR name)
@@ -118,6 +130,36 @@ void kernel_top(long sec)
         async_wait(NULL, NULL, sec * 1000000);
         task_show_all();
     }
+}
+
+void kernel_master()
+{
+    async_wait(NULL, NULL, 5000);
+    for (;;) {
+        inode_t *dev = vfs_search_device("sdC");
+        if (dev != NULL)
+            break;
+        async_wait(NULL, NULL, 10000);
+    }
+    kprintf(-1, "Master found the device\n");
+
+    inode_t *root = vfs_mount("sdC", "isofs");
+
+    kprintf(-1, "Master mounted root: %p\n", root);
+    async_wait(NULL, NULL, 10000);
+
+    inode_t *ino;
+    char name[256];
+    void *dir = vfs_opendir(root, NULL);
+    while ((ino = vfs_readdir(root, name, dir)) != NULL)
+    {
+        kprintf(-1, " %p   /%s\n", ino, name);
+
+    }
+    for (;;) {
+        async_wait(NULL, NULL, 1000000);
+    }
+
 }
 
 void kernel_init()
@@ -191,6 +233,7 @@ void kernel_start()
     // kernel_tasklet(kernel_shell, 0, "Kernel shell");
     // kernel_tasklet(kernel_desktop, 0, "Kernel desktop");
     kernel_tasklet(kernel_top, 5, "Dbg top 5s");
+    kernel_tasklet(kernel_master, 0, "Master");
 
     // no_dbg = 0;
     // int clock_irq = 2;
