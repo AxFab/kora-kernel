@@ -55,7 +55,7 @@ void platform_setup();
 page_t mmu_read(size_t vaddr);
 void page_range(long long base, long long length);
 
-void kernel_tasklet(void *start, long arg, CSTR name);
+void kernel_tasklet(void *start, void *arg, CSTR name);
 void kexit();
 
 __STDI int rand(void);

@@ -86,12 +86,12 @@ void async_wait(splock_t *lock, llhead_t *list, long timeout_us)
 }
 
 
-void kernel_tasklet(void *start, long arg, CSTR name)
+void kernel_tasklet(void *start, void *arg, CSTR name)
 {
     if ((void *)arg == &eth1)
-        pthread_create(&thread1, NULL, (pfunc_t)net_start, (void *)arg);
+        pthread_create(&thread1, NULL, (pfunc_t)net_start, arg);
     else if ((void *)arg == &eth2)
-        pthread_create(&thread2, NULL, (pfunc_t)net_start, (void *)arg);
+        pthread_create(&thread2, NULL, (pfunc_t)net_start, arg);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

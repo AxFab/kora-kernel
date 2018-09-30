@@ -267,8 +267,8 @@ int net_device(netdev_t *ifnet)
     char tmp[20];
     kprintf(-1, "Network interface (eth%d) - MAC: \e[92m%s\e[0m\n", ifnet->no,
             net_ethstr(tmp, ifnet->eth_addr));
-
-    kernel_tasklet(&net_tasklet, (long)ifnet, "Ethernet eth%d");
+    snprintf(tmp, 20, "Ethernet.#%d", ifnet->no);
+    kernel_tasklet(&net_tasklet, ifnet, tmp);
     return 0;
 }
 

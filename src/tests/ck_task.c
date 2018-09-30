@@ -55,10 +55,10 @@ int vfs_read(inode_t *ino)
 }
 // void vfs_close() {}
 
-void kernel_tasklet(void *start, long arg, CSTR name)
+void kernel_tasklet(void *start, void *arg, CSTR name)
 {
     task_t *task = task_create(NULL, NULL, 0, name);
-    task_start(task, (size_t)start, arg);
+    task_start(task, start, arg);
 }
 
 void task_1(long arg)
@@ -101,8 +101,8 @@ void test_01()
     int loop = 50;
     clock_init();
     if (cpu_save(state) == 0) {
-        kernel_tasklet(task_1, 1, "T1");
-        kernel_tasklet(task_2, 2, "T2");
+        kernel_tasklet(task_1, (void*)1, "T1");
+        kernel_tasklet(task_2, (void*)2, "T2");
 
     }
 

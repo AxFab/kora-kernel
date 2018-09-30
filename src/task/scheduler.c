@@ -56,8 +56,9 @@ task_t *scheduler_next()
 /* */
 void scheduler_switch(int status, int retcode)
 {
-    assert(kCPU.irq_semaphore == 1);
+    assert(kCPU.irq_semaphore == 1 || kCPU.irq_semaphore == 0);
     assert(status >= TS_ZOMBIE && status <= TS_READY);
+    irq_reset(false);
     task_t *task = kCPU.running;
     if (task) {
         // kprintf(-1, "Leaving Task %d\n", task->pid);
@@ -86,7 +87,6 @@ void scheduler_switch(int status, int retcode)
 
     task = scheduler_next();
     kCPU.running = task;
-    irq_reset(false);
     if (task == NULL)
         cpu_halt();
     // TODO Start task chrono!
