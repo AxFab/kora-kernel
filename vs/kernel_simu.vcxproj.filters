@@ -82,6 +82,39 @@
     <ClCompile Include="simulation.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\net\arp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\dhcp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\dns.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\eth.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\host.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\icmp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\ip4.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\net.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\ntp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\tcp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\net\udp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\kora\allocator.h">
@@ -220,6 +253,9 @@
     </Filter>
     <Filter Include="src\mem">
       <UniqueIdentifier>{3c7e79a7-82bb-4a8c-942a-273f097b3e97}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\net">
+      <UniqueIdentifier>{19d51f17-a28f-4ecb-af7f-2158fd21ab3b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{2a1fd43b-e10f-4e4e-b70f-522d678d331d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\imgdk">
+      <UniqueIdentifier>{c8c44d70-c443-4d84-8cb9-08edf720fb36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\fatfs">
+      <UniqueIdentifier>{8f7fa41b-5786-4726-b518-ea40a3aa7ee8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\isofs">
+      <UniqueIdentifier>{dab4faad-78fe-4a38-9481-e520317594b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\lnet">
+      <UniqueIdentifier>{260dfd98-3ea4-4b4f-90d8-7ace8d421fd6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\drivers\disk\imgdk\imgdk.c">
+      <Filter>src\imgdk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\dentry.c">
+      <Filter>src\fatfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\diterator.c">
+      <Filter>src\fatfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\fatfs.c">
+      <Filter>src\fatfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\format.c">
+      <Filter>src\fatfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\module.c">
+      <Filter>src\fatfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\fat\table.c">
+      <Filter>src\fatfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\isofs\isofs.c">
+      <Filter>src\isofs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\drivers\net\lnet\lnet.c">
+      <Filter>src\lnet</Filter>
+    </ClCompile>
+    <ClCompile Include="threads.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\drivers\fs\fat\fatfs.h">
+      <Filter>src\fatfs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\drivers\fs\isofs\isofs.h">
+      <Filter>src\isofs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\drivers\net\lnet\lnet.h">
+      <Filter>src\lnet</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

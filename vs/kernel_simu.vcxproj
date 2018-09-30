@@ -43,6 +43,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)\obj\$(Platform)\$(ProjectName)\</IntDir>
+    <LibraryPath>C:\Users\Fabien\develop\kora-kernel\vs\bin\Win32\kernel_simu_modules;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(ProjectName)\</OutDir>
@@ -57,6 +58,9 @@
       <DisableSpecificWarnings>4129;4273;4028</DisableSpecificWarnings>
       <PreprocessorDefinitions>_MBCS;_VTAG_="0.0-VS";__VENDOR_UM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>kernel_simu_modules.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -81,6 +85,17 @@
     <ClCompile Include="..\src\mem\mspace.c" />
     <ClCompile Include="..\src\mem\pages.c" />
     <ClCompile Include="..\src\mem\vma.c" />
+    <ClCompile Include="..\src\net\arp.c" />
+    <ClCompile Include="..\src\net\dhcp.c" />
+    <ClCompile Include="..\src\net\dns.c" />
+    <ClCompile Include="..\src\net\eth.c" />
+    <ClCompile Include="..\src\net\host.c" />
+    <ClCompile Include="..\src\net\icmp.c" />
+    <ClCompile Include="..\src\net\ip4.c" />
+    <ClCompile Include="..\src\net\net.c" />
+    <ClCompile Include="..\src\net\ntp.c" />
+    <ClCompile Include="..\src\net\tcp.c" />
+    <ClCompile Include="..\src\net\udp.c" />
     <ClCompile Include="..\src\task\async.c" />
     <ClCompile Include="..\src\task\resx.c" />
     <ClCompile Include="..\src\task\task.c" />

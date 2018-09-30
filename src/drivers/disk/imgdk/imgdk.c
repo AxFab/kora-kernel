@@ -67,7 +67,6 @@ static void imgdk_open(int i)
     char fname[16];
     for (e = 0; e < 2; ++e) {
         snprintf(fname, 16, "sd%c.%s", 'A' + i, exts[e]);
-        kprintf(-1, "Looking for %s...\n", fname);
         int fd = open(fname, O_RDWR | O_BINARY);
         if (fd == -1) {
             sdx[i].fd = -1;
@@ -152,14 +151,19 @@ void imgdk_release_dev(struct IMGDK_Drive *dev)
     dev->fd = -1;
 }
 
+void imgdk_create(CSTR name, size_t size) {
+    int zero = 0;
+    int fd = open(name, O_RDWR | O_BINARY | O_CREAT);
+    if (fd != -1) {
+        lseek(fd, size - 1, SEEK_SET);
+        write(fd, &zero, 1);
+        close(fd);
+    }
+}
+
 void imgdk_setup()
 {
-    int zero = 0;
-    int fd = open("sdA.img", O_RDWR | O_BINARY | O_CREAT);
-    lseek(fd, 16 * _Mib_ - 1, SEEK_END);
-    write(fd, &zero, 1);
-    close(fd);
-
+    imgdk_create("sdA.img", 16 * _Mib_);
     int i;
     for (i = 0; i < 4; ++i)
         imgdk_open(i);

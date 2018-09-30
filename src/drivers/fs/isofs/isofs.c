@@ -69,8 +69,14 @@ int isofs_closedir(ISO_inode_t *dir, ISO_dirctx_t *ctx)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-ISO_inode_t *isofs_lookup(ISO_inode_t *dir, const char *name)
+ISO_inode_t *isofs_open(ISO_inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
+// ISO_inode_t *isofs_lookup(ISO_inode_t *dir, const char *name)
 {
+    if (!(flags & VFS_OPEN)) {
+        errno = EROFS;
+        return NULL;
+    }
+
     int lba = dir->ino.lba;
     uint8_t *address = kmap(8192, dir->vol->dev, lba * 2048, VMA_FILE_RO);
 
@@ -111,6 +117,12 @@ ISO_inode_t *isofs_lookup(ISO_inode_t *dir, const char *name)
 
     kunmap(address, 8192);
     kfree(filename);
+    
+    if (flags & VFS_CREAT) {
+        errno = EROFS;
+        return NULL;
+    }
+
     errno = ENOENT;
     return NULL;
 }
@@ -237,14 +249,14 @@ inode_t *isofs_mount(inode_t *dev)
     ino->vol = volume;
     ino->vol->dev = vfs_open(dev);
 
-    mountfs_t *fs = (mountfs_t *)kalloc(sizeof(mountfs_t));
-    fs->lookup = (fs_lookup)isofs_lookup;
+    fsvolume_t *fs = (fsvolume_t *)kalloc(sizeof(fsvolume_t));
+    fs->open = (fs_open)isofs_open;
     fs->read = (fs_read)isofs_read;
     fs->umount = (fs_umount)isofs_umount;
     fs->opendir = (fs_opendir)isofs_opendir;
     fs->readdir = (fs_readdir)isofs_readdir;
     fs->closedir = (fs_closedir)isofs_closedir;
-    fs->read_only = true;
+    fs->dev.read_only = true;
 
     vfs_mountpt(volume->name, "isofs", fs, (inode_t *)ino);
     return &ino->ino;
@@ -281,5 +293,5 @@ void isofs_teardown()
     unregister_fs("isofs");
 }
 
-MODULE(isofs, MOD_AGPL, isofs_setup, isofs_teardown);
+MODULE(isofs, isofs_setup, isofs_teardown);
 

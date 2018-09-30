@@ -76,6 +76,9 @@
     <ClCompile Include="..\src\drivers\fs\fat\table.c">
       <Filter>src\drivers\fatfs</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\drivers\fs\isofs\isofs.c">
+      <Filter>src\drivers\isofs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
@@ -119,6 +122,9 @@
     </Filter>
     <Filter Include="include\sys">
       <UniqueIdentifier>{6ab813d7-3c3b-45c1-86aa-d94c52846d81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\drivers\isofs">
+      <UniqueIdentifier>{ecc7e1b6-db64-4592-865e-55bd54e325a0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -220,6 +226,9 @@
     </ClInclude>
     <ClInclude Include="..\src\drivers\fs\fat\fatfs.h">
       <Filter>src\drivers\fatfs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\drivers\fs\isofs\isofs.h">
+      <Filter>src\drivers\isofs</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
