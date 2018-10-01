@@ -43,7 +43,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)\obj\$(Platform)\$(ProjectName)\</IntDir>
-    <LibraryPath>C:\Users\Fabien\develop\kora-kernel\vs\bin\Win32\kernel_simu_modules;$(LibraryPath)</LibraryPath>
+    <LibraryPath>.\bin\Win32\kernel_simu_modules;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(ProjectName)\</OutDir>
