@@ -168,8 +168,8 @@ int main()
     for ll_each(&dlib.sections, section, dynsec_t, node) {
         size_t start = (size_t)base + section->lower + section->offset;
         printf("Copy section at %p \n", start);
-        int length = section->upper - section->lower;
-        for (int i = 0, n = length / PAGE_SIZE; i < n; ++i) {
+        int i, length = section->upper - section->lower; 
+        for (i = 0, n = length / PAGE_SIZE; i < n; ++i) {
             int lba = i + section->lower / PAGE_SIZE;
             printf("    section page %p from lba %d\n", (size_t)base + section->lower + i * PAGE_SIZE + section->offset, lba);
             uint8_t *ptr = bio_access(dlib.io, lba);
