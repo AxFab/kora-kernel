@@ -48,12 +48,13 @@ int sys_close(int fd)
 
 int sys_read(int fd, const struct iovec *vec, unsigned long vlen)
 {
+	unsigned i;
     task_t *task = kCPU.running;
     inode_t *ino = resx_get(task->resx, fd);
     if (ino == NULL)
         return -1;
     int bytes = 0, ret;
-    for (unsigned i = 0; i < vlen; ++i) {
+    for (i = 0; i < vlen; ++i) {
         switch (ino->mode & S_IFMT) {
         case S_IFREG:
         case S_IFBLK:
@@ -78,12 +79,13 @@ int sys_read(int fd, const struct iovec *vec, unsigned long vlen)
 
 int sys_write(int fd, const struct iovec *vec, unsigned long vlen)
 {
+	unsigned i;
     task_t *task = kCPU.running;
     inode_t *ino = resx_get(task->resx, fd);
     if (ino == NULL)
         return -1;
     int bytes = 0, ret;
-    for (unsigned i = 0; i < vlen; ++i) {
+    for (i = 0; i < vlen; ++i) {
         switch (ino->mode & S_IFMT) {
         case S_IFREG:
         case S_IFBLK:
