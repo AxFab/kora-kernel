@@ -27,7 +27,7 @@
 #define END_TEST  }
 #define ck_ok(n,m)  do { if (!(n)) __assert_fail("Test fails: " #n " - " m, __FILE__, __LINE__); } while(0)
 #define CHECK_TCASE(n)  n()
-#define CHECK_TSUITE(m)  kprintf(-1, (m))
+#define CHECK_TSUITE(m)  kprintf(-1, m "\n")
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -92,7 +92,7 @@ void test_fs_basic(inode_t *root)
     ck_ok(ctx != NULL && errno == 0, "");
     while ((ino7 = vfs_readdir(ino4, filename, ctx)) != NULL) {
         ck_ok(ino7 != NULL && errno == 0, "");
-        // ck_ok(ino7 == ino5);
+        ck_ok(ino7 == ino5);
         ino5 = NULL;
         vfs_close(ino7);
     }
@@ -100,8 +100,8 @@ void test_fs_basic(inode_t *root)
     ck_ok(errno == 0, "");
 
     // Delete files and directories
-    // ret = vfs_unlink(root, "FOLDER");
-    // ck_ok(ret == -1 && errno == ENOTEMPTY);
+    ret = vfs_unlink(root, "FOLDER");
+    ck_ok(ret == -1 && errno == ENOTEMPTY);
 
     vfs_close(ino4);
     ino4 = vfs_lookup(root, "FOLDER");
@@ -120,10 +120,27 @@ void test_fs_basic(inode_t *root)
 }
 
 
+void test_fs_rdwr(inode_t *root)
+{
+    inode_t *ino1 = vfs_create(root, "FILE_S.TXT", S_IFNET, NULL, 0);
+    ck_ok(ino1 != NULL && errno == 0, "");
+    
+    // vfs_trunc(ino1, 348); // Less than a sector
+    
+    inode_t *ino2 = vfs_create(root, "FILE_L.TXT", S_IFNET, NULL, 0);
+    ck_ok(ino2 != NULL && errno == 0, "");
+    
+    // vfs_trunc(ino2, 75043); // Much larger file
+    
+    vfs_close(ino1);
+    vfs_close(ino2);
+}
+
 void test_fs(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
 {
     inode_t *ino = test_fs_setup(dev, fsmod, format);
     test_fs_basic(ino);
+    test_fs_rdwr(ino);
     test_fs_teardown(ino);
 }
 

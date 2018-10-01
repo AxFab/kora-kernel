@@ -131,11 +131,11 @@ int fatfs_mkdir(struct FAT_volume *info, FAT_inode_t *dir)
 
     /* Create . and .. entries */
     fatfs_short_entry(entry, lba, S_IFDIR);
-    memcpy(entry->DIR_Name, ".          ", 11);
+    memcpy(entry->DIR_Name, FAT_DIRNAME_CURRENT, 11);
     ++entry;
 
     fatfs_short_entry(entry, dir->ino.lba, S_IFDIR);
-    memcpy(entry->DIR_Name, "..         ", 11);
+    memcpy(entry->DIR_Name, FAT_DIRNAME_PARENT, 11);
     bio_clean(info->io_data_rw, lba);
     return lba;
 }

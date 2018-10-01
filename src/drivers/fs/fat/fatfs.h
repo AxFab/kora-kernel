@@ -157,34 +157,8 @@ struct FAT_volume {
     bio_t *io_data_ro;
 };
 
-/* FAT FS SRC
-  alloc.c
-    int alloc_cluster(info, int prev, size_t size);
-    int compute_space(info)
-  dir.c
-     mkdir(info, dir, ino, name);
-     unlink(info, dir, name);
-     opendir
-     readdir
-     closedir
-     ...
-  data.c
-     read
-     write
-     chmod
-     utimes
-
-  volume.c
-     read_info();
-  setup.c
-    setup
-    teardown
-    format
-    mount
-    umount
-  fat.h
-
-*/
+#define FAT_DIRNAME_CURRENT  ".          "
+#define FAT_DIRNAME_PARENT  "..         "
 
 typedef struct FAT_inode FAT_inode_t;
 typedef struct FAT_diterator  FAT_diterator_t;

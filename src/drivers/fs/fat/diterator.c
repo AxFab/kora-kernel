@@ -67,6 +67,10 @@ struct FAT_ShortEntry *fatfs_diterator_next(FAT_diterator_t *it)
             return NULL;
         if ((it->entry->DIR_Attr & ATTR_LONG_NAME_MASK) == ATTR_LONG_NAME)
             continue; // TODO - Prepare long name
+        if (memcmp(it->entry->DIR_Name, FAT_DIRNAME_CURRENT, 11) == 0)
+            continue;
+        if (memcmp(it->entry->DIR_Name, FAT_DIRNAME_PARENT, 11) == 0)
+            continue;
         return it->entry;
     }
 }
@@ -161,9 +165,8 @@ int fatfs_closedir(FAT_inode_t *dir, FAT_diterator_t *it)
 
 int fatfs_unlink(FAT_inode_t *dir, CSTR name)
 {
-    // FAT_inode_t *ino;
     FAT_diterator_t *it = fatfs_diterator_open(dir, true);
-    // const int entries_per_cluster = dir->vol->BytsPerSec / sizeof(struct FAT_ShortEntry);
+    const int entries_per_cluster = dir->vol->BytsPerSec / sizeof(struct FAT_ShortEntry);
     struct FAT_ShortEntry *entry;
     while ((entry = fatfs_diterator_next(it)) != NULL) {
         char shortname[14];
@@ -171,7 +174,17 @@ int fatfs_unlink(FAT_inode_t *dir, CSTR name)
         if (strcmp(name, shortname) != 0) // TODO - Long name
             continue;
         if (entry->DIR_Attr & ATTR_DIRECTORY) {
-            // TODO - Check not empty
+            // Check directory's empty
+            FAT_inode_t *ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->vol);
+            FAT_diterator_t *ino_it = fatfs_diterator_open(ino, false);
+            struct FAT_ShortEntry *ino_en = fatfs_diterator_next(ino_it);
+            fatfs_diterator_close(ino_it);
+            vfs_close(ino);
+            if (ino_en != NULL) {
+                fatfs_diterator_close(it);
+                errno = ENOTEMPTY;
+                return -1;
+            }
         }
         // TODO - Remove allocated cluster
         entry->DIR_Attr = ATTR_DELETED;
