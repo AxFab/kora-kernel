@@ -145,9 +145,11 @@ int fatfs_format(inode_t *ino)
     assert(info);
 
     // Write FAT16
-    for (int i = 0; i < 2; ++i) {
+    int i;
+    unsigned j;
+    for (i = 0; i < 2; ++i) {
         int lba = i * info->FATSz + 1; // TODO - resvd_sector_count;
-        for (unsigned j = 0; j < info->FATSz; ++j) {
+        for (j = 0; j < info->FATSz; ++j) {
             uint16_t *fat_table = (uint16_t *)bio_access(io_head, lba + j);
             memset(fat_table, 0, sec_size);
             if (j == 0) {

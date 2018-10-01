@@ -170,6 +170,7 @@ struct FAT_inode {
 };
 
 
+int fatfs_truncate(FAT_inode_t *ino, off_t length);
 
 void fatfs_settime(unsigned short *date, unsigned short *time, time64_t value);
 time64_t fatfs_gettime(unsigned short *date, unsigned short *time);

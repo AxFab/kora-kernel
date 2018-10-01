@@ -127,7 +127,7 @@ int vfs_chmod(inode_t *ino, int mode);
 /* Update meta-data, times */
 int vfs_chtimes(inode_t *ino, struct timespec *ts, int flags);
 /* Update meta-data, size */
-int vfs_chsize(inode_t *ino, off_t size);
+int vfs_truncate(inode_t *ino, off_t lengtg);
 
 /* Check if a user have access to a file */
 int vfs_access(inode_t *ino, int access, acl_t *acl);

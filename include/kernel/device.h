@@ -36,6 +36,8 @@ typedef int (*fs_write)(inode_t *ino, const void *buf, size_t len, off_t off);
 typedef inode_t *(*fs_open)(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
 typedef int (*fs_unlink)(inode_t *dir, CSTR name);
 
+typedef int (*fs_truncate)(inode_t *ino, off_t length);
+
 typedef void *(*fs_opendir)(inode_t *ino);
 typedef inode_t *(*fs_readdir)(inode_t *ino, char *name, void *ctx);
 typedef int (*fs_closedir)(inode_t *ino, void *ctx);
@@ -128,6 +130,8 @@ struct fsvolume {
     fs_open open;
     fs_unlink unlink;
     fs_umount umount;
+    
+    fs_truncate truncate;
 
     fs_opendir opendir;
     fs_readdir readdir;

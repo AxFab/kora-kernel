@@ -218,8 +218,30 @@ int vfs_chown(inode_t *ino, acl_t *acl);
 int vfs_chmod(inode_t *ino, int mode);
 /* Update meta-data, times */
 int vfs_chtimes(inode_t *ino, struct timespec *ts, int flags);
+
 /* Update meta-data, size */
-int vfs_chsize(inode_t *ino, off_t size);
+int vfs_truncate(inode_t *ino, off_t length)
+{
+	if (ino == NULL || !S_ISREG(ino->mode)) {
+		errno = EINVAL;
+		return -1;
+	} else if (ino->dev->read_only) {
+        errno = EINVAL;
+		return -1;
+	}
+	
+	/* Can we ask the file-system */
+    fs_truncate truncate = dir->fs->truncate;
+    if (ino->dev->is_detached)
+        truncate = NULL;
+    if (truncate == NULL) {
+        errno = ENOSYS;
+        return -1;
+    }
+
+    /* Request send to the file system */
+    return truncate(ino, length);
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

@@ -42,7 +42,7 @@ FAT_diterator_t *fatfs_diterator_open(FAT_inode_t *dir, bool write)
     it->io = write ? dir->vol->io_data_rw : dir->vol->io_data_ro;
     it->ptr = bio_access(it->io, it->lba);
     it->entry = (struct FAT_ShortEntry *)it->ptr;
-    it->idx = 0;
+    it->idx = -1;
     it->entry--;
     return it;
 }
@@ -55,6 +55,7 @@ int fatfs_diterator_next_cluster(FAT_diterator_t *it)
 struct FAT_ShortEntry *fatfs_diterator_next(FAT_diterator_t *it)
 {
     it->entry++;
+    it->idx++;
     for (;; it->idx++, it->entry++) {
         if ((uint8_t *)it->entry - it->ptr > it->cluster_size) {
             if (fatfs_diterator_next_cluster(it) != 0)
