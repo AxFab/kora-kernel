@@ -12,12 +12,12 @@ jobs:
       env:
       - target=x86-pc-kora
       install:
-      - sudo apt-get install -y nasm gcc-8-i686-pc-linux-gnu
-      - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8-i686-pc-linux-gnu 90
+      - sudo apt-get install -y nasm
+#      - sudo apt-get install gcc-8-i686-pc-linux-gnu
+#      - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8-i686-pc-linux-gnu 90
       script: 
-      - ln -s ../`uname -m`/bits/ include/arch/um/bits
       - make clean
-      - make kImage
+#      - make kImage
     - stage: test
       install:
       - sudo apt-get install -y lcov valgrind
