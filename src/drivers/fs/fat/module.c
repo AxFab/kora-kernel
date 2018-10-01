@@ -54,6 +54,7 @@ inode_t *fatfs_mount(inode_t *dev)
     fsvolume_t *fs = (fsvolume_t *)kalloc(sizeof(fsvolume_t));
     fs->open = (fs_open)fatfs_open;
     fs->unlink = (fs_unlink)fatfs_unlink;
+    fs->truncate = (fs_truncate)fatfs_truncate;
     // fs->read = (fs_read)isofs_read;
     fs->umount = (fs_umount)fatfs_umount;
     fs->opendir = (fs_opendir)fatfs_opendir;

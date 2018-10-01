@@ -21,5 +21,56 @@
  */
 #include "fatfs.h"
 
-#if 0
-#endif
+int fatfs_truncate(FAT_inode_t *ino, off_t length)
+{
+	const int entry_per_cluster = ino->vol->BytsPerSec / sizeof(struct FAT_ShortEntry);
+	int lba = ino->ino.no / entry_per_cluster;
+	struct FAT_ShortEntry *entry = bio_access(ino->vol->io_data_rw, lba);
+	entry += ino->ino.no % entry_per_cluster;
+	assert((entry->DIR_Attr & ATTR_ARCHIVE) != 0);
+	
+	int cluster_sz = ino->vol->SecPerClus * 512;
+	int n, i = 0;
+	int lg = ALIGN_UP(entry->DIR_FileSize, cluster_sz) / cluster_sz;
+	int mx = ALIGN_UP(length, cluster_sz) / cluster_sz;
+	
+	if (mx > dir->vol->CountOfClusters) {
+	    // TODO - Count used space
+	    errno = ENOSPC;
+	    return -1;
+    } else if (lg == mx) {
+        entry->DIR_FileSize = length;
+        fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, time64());
+        // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, time64()); -- on unix but not windows
+        bio_clean(ino->vol->io_data_rw, lba);
+        return 0;
+    }
+    
+    int cluster = entry->DIR_FstClusLo;
+    if (cluster == 0) {
+        assert(lg == 0);
+        cluster = fatfs_alloc_cluster_16(ino->vol, -1);
+        entry->DIR_FstClusLo = cluster;
+        i = 1;
+    }
+    
+    int prev =
+    for (n = MIN(lg, mx); i < n; ++i) {
+        prev = cluster;
+        // cluster = fatfs_next_cluster_16(cluster);
+    }
+    for (; i < mx; ++i) {
+        cluster = fatfs_alloc_cluster_16(cluster);
+    }
+    for (; i < lg; ++i) {
+        // cluster = fatfs_release_cluster_16(cluster);
+    }
+    
+    entry->DIR_FileSize = length;
+    fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, time64());
+    // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, time64()); -- on unix but not windows
+    bio_clean(ino->vol->io_data_rw, lba);
+    bio_sync(ino->vol->io_data_rw);
+    return 0;
+}
+

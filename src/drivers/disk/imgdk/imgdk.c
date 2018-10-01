@@ -96,8 +96,10 @@ static void imgdk_open(int i)
 
 static void imgdk_exit(int i)
 {
-    if (sdx[i].fd >= 0)
+    if (sdx[i].fd >= 0) {
+        close(sdx[i].fd);
         vfs_rmdev(sdNames[i]);
+    }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
