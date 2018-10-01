@@ -153,10 +153,10 @@ void imgdk_release_dev(struct IMGDK_Drive *dev)
 
 void imgdk_create(CSTR name, size_t size) {
     int zero = 0;
-    int fd = open(name, O_RDWR | O_BINARY | O_CREAT);
+    int fd = open(name, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC);
     if (fd != -1) {
         lseek(fd, size - 1, SEEK_SET);
-        write(fd, &zero, 1);
+j        write(fd, &zero, 1);
         close(fd);
     }
 }
