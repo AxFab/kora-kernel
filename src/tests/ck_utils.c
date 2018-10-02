@@ -1038,6 +1038,7 @@ int main(int argc, char **argv)
     //     errors = srunner_ntests_failed(sr);
     //     srunner_free(sr);
     //     return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return 0;
 }
 
 void *heap_map(size_t length)
