@@ -159,7 +159,7 @@ inode_t *fatfs_readdir(inode_t *dir, char *name, FAT_diterator_t *it)
     return fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, info);
 }
 
-int fatfs_closedir(FAT_inode_t *dir, FAT_diterator_t *it)
+int fatfs_closedir(inode_t *dir, FAT_diterator_t *it)
 {
     fatfs_diterator_close(it);
     return 0;

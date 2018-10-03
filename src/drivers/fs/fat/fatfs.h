@@ -165,7 +165,7 @@ typedef struct FAT_diterator  FAT_diterator_t;
 
 
 
-int fatfs_truncate(FAT_inode_t *ino, off_t length);
+int fatfs_truncate(inode_t *ino, off_t length);
 
 void fatfs_settime(unsigned short *date, unsigned short *time, time64_t value);
 time64_t fatfs_gettime(unsigned short *date, unsigned short *time);

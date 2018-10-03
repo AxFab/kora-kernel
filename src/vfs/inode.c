@@ -231,7 +231,7 @@ int vfs_truncate(inode_t *ino, off_t length)
 	}
 	
 	/* Can we ask the file-system */
-    fs_truncate truncate = dir->fs->truncate;
+    fs_truncate truncate = ino->fs->truncate;
     if (ino->dev->is_detached)
         truncate = NULL;
     if (truncate == NULL) {

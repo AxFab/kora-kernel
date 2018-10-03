@@ -46,21 +46,6 @@ core_src-y += $(wildcard $(srcdir)/vfs/*.c)
 core_src-y += $(wildcard $(srcdir)/net/*.c)
 
 
-# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-# We create the `kernel` delivery
-# kSim_src-y += $(wildcard $(srcdir)/arch/um/*.asm)
-kSim_src-y += $(wildcard $(srcdir)/arch/um2/*.c)
-kSim_src-y += $(wildcard $(srcdir)/libc/*.c)
-kSim_src-y += $(wildcard $(srcdir)/scall/*.c)
-kSim_src-y += $(drv_src-y) $(core_src-y)
-kSim_omit-y += $(srcdir)/core/common.c
-kSim_omit-y += $(srcdir)/core/seat.c $(srcdir)/core/termio.c
-kSim_omit-y += $(srcdir)/libc/format_vfprintf.c $(srcdir)/libc/format_print.c
-kSim_omit-y += $(srcdir)/libc/format_vfscanf.c $(srcdir)/libc/format_scan.c
-$(eval $(call link,kSim,std))
-DV_UTILS += $(bindir)/kSim
-
-
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # We create the `kernel` delivery
