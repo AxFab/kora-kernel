@@ -35,7 +35,7 @@ void imgdk_setup();
 
 inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
 {
-    // TODO - Clean FS and DEV list!
+    // TODO - Clean FS and DEV list! (BSS of driver !?)
     imgdk_setup();
     fsmod->setup();
 

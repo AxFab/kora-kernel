@@ -86,12 +86,14 @@ struct inode {
 
     atomic32_t rcu;
     atomic32_t links;
-    union {
+    llhead_t dlist; // List of dirent_t;
+    int block;
+    
+    void *info; // Place holder for driver info
+    union { // Place holder for file info
         void *object;
     };
-    llhead_t dlist; // List of dirent_t;
-
-    union {
+    union { // Place holder for underlying device info
         device_t *dev;
         blkdev_t *blk;
         chardev_t *chr;

@@ -141,7 +141,7 @@ int fatfs_format(inode_t *ino)
     ptr[510] = 0x55;
     ptr[511] = 0xaa;
 
-    struct FAT_volume *info = fatfs_init(ptr);
+    FAT_volume_t *info = fatfs_init(ptr);
     assert(info);
 
     // Write FAT16
