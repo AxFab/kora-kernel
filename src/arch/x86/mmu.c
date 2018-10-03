@@ -17,212 +17,188 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/memory.h>
 #include <kernel/core.h>
-#include <kernel/mmu.h>
-#include <kora/mcrs.h>
+#include <kernel/cpu.h>
+#include <kernel/memory.h>
 #include <kora/allocator.h>
-#include <kora/bbtree.h>
-#include <kora/splock.h>
-#include <assert.h>
-#include <errno.h>
 #include <string.h>
 
+#define MMU_KRN(vaddr)  (page_t*)(0xFFBFF000 | (((vaddr) >> 20) & ~3))
+#define MMU_DIR(vaddr)  (page_t*)(0xFFFFF000 | (((vaddr) >> 20) & ~3))
+#define MMU_TBL(vaddr)  (page_t*)(0xFFC00000 | (((vaddr) >> 10) & ~3))
 
-extern uint32_t *grub_table;
-void x86_enable_MMU();
+#define MMU_KRN_DIR_PG  ((page_t*)0x2000)
+#define MMU_KRN_TBL_PG  ((page_t*)0x3000)
 
-/* - */
+
+static int mmu_flags(size_t vaddr, int flags)
+{
+    int pgf = 1;
+    if (flags & VMA_WRITE)
+        pgf |= 0x2;
+    if (vaddr < MMU_KSPACE_LOWER)
+        pgf |= 0x4;
+    else
+        pgf |= 0x8;
+    if (flags & VMA_UNCACHABLE)
+        pgf |= 0x10;
+    return pgf;
+}
+
+/* Kernel prepare and initiate virtual memory */
 void mmu_enable()
 {
-    // List available memory
-    uint32_t *ram_table = (uint32_t *)grub_table[12];
-    for (; *ram_table == 0x14; ram_table += 6) {
-        int64_t base = (int64_t)ram_table[1] | ((int64_t)ram_table[2] << 32);
-        int64_t length = (int64_t)ram_table[3] | ((int64_t)ram_table[4] << 32);
+    unsigned i;
+    // Setup first heap arena [1Mib - 2Mib]
+    setup_allocator((void *)(1024 * _Kib_), 1024 * _Kib_);
 
-        if (base < 2 * _Mib_) { // First 2 Mb are reserved for kernel code
-            length -= 2 * _Mib_ - base;
-            base = 2 * _Mib_;
-        }
+    // Record physical available memory
+    grub_memory();
 
-        if (length > 0 && ram_table[5] == 1)
-            page_range(base, length);
-    }
-
-    // Use 1.5 Mb to 2 Mb as initial heap arena
-    setup_allocator((void *)(1536 * _Kib_), 512 * _Kib_);
-
-
-    int i;
-    // Prepare Kernel pages
-    page_t *dir = (page_t *)KRN_PG_DIR;
-    page_t *tbl = (page_t *)KRN_PG_TBL;
+    // Prepare kernel PGD
+    page_t *dir = MMU_KRN_DIR_PG;
+    page_t *tbl = MMU_KRN_TBL_PG;
     memset(dir, 0, PAGE_SIZE);
     memset(tbl, 0, PAGE_SIZE);
-    dir[1022] = KRN_PG_DIR | MMU_K_RW;
-    dir[1023] = KRN_PG_DIR | MMU_K_RW;
-    dir[0] = KRN_PG_TBL | MMU_K_RW;
-    for (i = 0; i < 512; ++i)
+    dir[1023] = dir[1022] = (page_t)dir | MMU_K_RW;
+    dir[0] = (page_t)tbl | MMU_K_RW;
+    for (i = 0; i < 1024; ++i)
         tbl[i] = (i * PAGE_SIZE) | MMU_K_RW;
 
     kMMU.kspace->lower_bound = MMU_KSPACE_LOWER;
     kMMU.kspace->upper_bound = MMU_KSPACE_UPPER;
-
-    // Active change
-    x86_enable_MMU();
+    kMMU.kspace->directory = (page_t)MMU_KRN_DIR_PG;
+    x86_enable_mmu();
 }
 
-void mmu_leave() {}
-
-/* - */
-page_t mmu_resolve(mspace_t *mspace, size_t vaddress, page_t paddress, int access,
-                   bool clean)
+/* Disallocate properly kernel ressources, mostly for checks */
+void mmu_leave()
 {
-    assert((vaddress & (PAGE_SIZE - 1)) == 0);
+    unsigned i;
+    page_t *dir = MMU_KRN_DIR_PG;
+    for (i = MMU_KTBL_LOW ; i < MMU_KTBL_HIGH; ++i) {
+        if (dir[i])
+            page_release(dir[i] & (PAGE_SIZE - 1));
+    }
+}
 
-    int dir = (vaddress >> 22) & 0x3ff;
-    // int tbl = (vaddress >> 12) & 0x3ff;
-    int flags = 0;
+/* Resolve a single missing virtual page */
+page_t mmu_resolve(size_t vaddr, page_t phys, int flags)
+{
+    page_t *dir = MMU_DIR(vaddr);
+    page_t *tbl = MMU_TBL(vaddr);
+    if (*dir == 0) {
+        if (vaddr >= MMU_KSPACE_LOWER) {
+            page_t *krn = MMU_KRN(vaddr);
+            if (*krn == 0) {
+                *krn = page_new() | MMU_K_RW;
+                memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
+            }
+            *dir = *krn;
+        } else {
+            *dir = page_new() | MMU_U_RW;
+            memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
+        }
+    }
 
-    page_t *table = NULL;
-    if (vaddress >= MMU_KSPACE_LOWER && vaddress < MMU_KSPACE_UPPER) {
-        table = MMU_K_DIR;
-        flags = access & VMA_WRITE ? MMU_K_RW : MMU_K_RO;
-        if (access & VMA_UNCACHABLE)
-            flags |= 0x10;
-    } else if (vaddress >= MMU_USPACE_LOWER &&
-               vaddress < MMU_USPACE_UPPER) {
-        table = MMU_U_DIR;
-        flags = access & VMA_WRITE ? MMU_U_RW : MMU_U_RO;
+    if (*tbl == 0) {
+        if (phys == 0)
+            phys = page_new();
+        *tbl = phys | mmu_flags(vaddr, flags);
     } else
-        kpanic("Wrong memory mapping request");
-
-    if (paddress == 0)
-        paddress = page_new();
-
-    if (table[dir] == 0) {
-        table[dir] = page_new() | (flags & ~0x10) | MMU_WRITE;
-        if (table == MMU_K_DIR)
-            MMU_U_DIR[dir] = MMU_K_DIR[dir];
-    }
-
-    if (MMU_PAGES(vaddress) == 0)
-        MMU_PAGES(vaddress) = paddress | flags;
-
-    if (clean)
-        memset((void *)vaddress, 0, PAGE_SIZE);
-
-    return paddress;
+        assert(vaddr >= MMU_KSPACE_LOWER);
+    return (*tbl) & ~(PAGE_SIZE - 1);
 }
 
-/* - */
-static page_t mmu_read_(size_t vaddress, bool drop, bool clean)
+/* Get physical address for virtual provided one */
+page_t mmu_read(size_t vaddr)
 {
-    vaddress = ALIGN_DW(vaddress, PAGE_SIZE);
-    page_t *dir = (page_t *)(0xFFFFF000 | ((vaddress >> 20) & ~3));
-    page_t *tbl = (page_t *)(0xFFC00000 | ((vaddress >> 10) & ~3));
-    if (*dir == 0 || *tbl == 0)
+    page_t *dir = MMU_DIR(vaddr);
+    page_t *tbl = MMU_TBL(vaddr);
+    if ((*dir & 1) == 0 || ((*tbl & 1) == 0))
         return 0;
-    if (clean)
-        memset((void *)vaddress, 0, PAGE_SIZE);
-    if (drop) {
-        asm volatile(
-            "movl %0,%%eax\n"
-            "invlpg (%%eax)\n"
-            :: "r"(vaddress) : "%eax");
-        *tbl = 0;
-    }
-    return *tbl & (~(PAGE_SIZE - 1));
+    return *tbl & ~(PAGE_SIZE - 1);
 }
 
-page_t mmu_read(mspace_t *mspace, size_t vaddress)
+/* Release a virtual page, returns physical one in case release is required */
+page_t mmu_drop(size_t vaddr)
 {
-    return mmu_read_(vaddress, false, false);
+    page_t *dir = MMU_DIR(vaddr);
+    page_t *tbl = MMU_TBL(vaddr);
+    if ((*dir & 1) == 0 || ((*tbl & 1) == 0))
+        return 0;
+    page_t pg = *tbl & ~(PAGE_SIZE - 1);
+    *tbl = 0;
+    asm volatile(
+        "movl %0,%%eax\n"
+        "invlpg (%%eax)\n"
+        :: "r"(vaddr) : "%eax");
+    return pg;
 }
 
-page_t mmu_drop(mspace_t *mspace, size_t vaddress, bool clean)
+/* Change access settimgs for a virtual page */
+page_t mmu_protect(size_t vaddr, int flags)
 {
-    return mmu_read_(vaddress, true, clean);
+    page_t *dir = MMU_DIR(vaddr);
+    page_t *tbl = MMU_TBL(vaddr);
+    if ((*dir & 1) == 0 || ((*tbl & 1) == 0))
+        return 0;
+    page_t pg = *tbl & ~(PAGE_SIZE - 1);
+    *tbl = pg | mmu_flags(vaddr, flags);
+    asm volatile(
+        "movl %0,%%eax\n"
+        "invlpg (%%eax)\n"
+        :: "r"(vaddr) : "%eax");
+    return pg;
 }
-
-page_t mmu_protect(mspace_t *mspace, size_t address, size_t length, int access)
-{
-    return mmu_read_(vaddress, false, false);
-}
-
-/* - */
-static page_t mmu_directory()
-{
-    int i;
-    page_t dir_page = page_new();
-    page_t *dir = kmap(PAGE_SIZE, NULL, dir_page, VMA_PHYS);
-    for (i = 0; i < KRN_SP_LOWER / 4; ++i)
-        dir[i] = 0;
-    for (i = KRN_SP_LOWER / 4; i <= KRN_SP_UPPER / 4; ++i) {
-        dir[i] = ((page_t *)KRN_PG_DIR)[i]; // | MMU_K_RW;
-    }
-    dir[1023] = dir_page | MMU_K_RW;
-    dir[1022] = KRN_PG_DIR | MMU_K_RW;
-    dir[0] = ((page_t *)KRN_PG_DIR)[0] | MMU_K_RW;
-    kunmap(dir, PAGE_SIZE);
-    return dir_page;
-}
-
 
 void mmu_create_uspace(mspace_t *mspace)
 {
+    page_t dir_pg = page_new();
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
+    memset(dir, 0,  PAGE_SIZE);
+    dir[1023] = dir_pg | MMU_K_RW;
+    dir[1022] = (page_t)MMU_KRN_DIR_PG | MMU_K_RW;
+    dir[0] = (page_t)MMU_KRN_TBL_PG | MMU_K_RW;
+    // TODO - COPY KERNEL HEAP TABLE PAGES
+    kunmap(dir, PAGE_SIZE);
+
     mspace->lower_bound = MMU_USPACE_LOWER;
     mspace->upper_bound = MMU_USPACE_UPPER;
-    mspace->directory = mmu_directory();
+    mspace->directory = dir_pg;
 }
 
 void mmu_destroy_uspace(mspace_t *mspace)
 {
-    const size_t T = 4 * _Mib_;
     unsigned i;
-    /* Free all pages used as table */
-    page_t *dir = kmap(PAGE_SIZE, NULL, mspace->directory, VMA_PHYS);
-    for (i = mspace->lower_bound / T; i < mspace->upper_bound / T; ++i) {
-        page_t tbl = dir[i] & ~(PAGE_SIZE - 1);
-        if (tbl != 0)
-            page_release(tbl);
+    page_t dir_pg = mspace->directory;
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
+
+    for (i = MMU_UTBL_LOW ; i < MMU_UTBL_HIGH; ++i) {
+        if (dir[i])
+            page_release(dir[i] & (PAGE_SIZE - 1));
     }
     kunmap(dir, PAGE_SIZE);
-    /* Free the directory page */
-    page_release(mspace->directory);
+    page_release(dir_pg);
 }
 
 void mmu_context(mspace_t *mspace)
 {
-
+    page_t dir = mspace->directory;
+    x86_set_cr3(dir);
 }
 
-void mmu_dump_x86()
+void mmu_explain(size_t vaddr)
 {
-    int i, j;
-    uint32_t *dir = (uint32_t *)0xFFFFF000;
-    kprintf(KLOG_DBG, "-- Pages dump\n");
-    for (i = 1; i < 1024; ++i) {
-        if (dir[i] != 0) {
-            kprintf(KLOG_DBG, "  %3x - %08x\n", i << 2, dir[i]);
-            uint32_t *tbl = (uint32_t *)(0xFFC00000 | (i << 12));
-            for (j = 0; j < 1024; ++j) {
-                if (tbl[j] != 0)
-                    kprintf(KLOG_DBG, "   |- %3x - %08x\n", (i << 12) | (j << 2), tbl[j]);
-            }
-        }
-    }
-}
-
-void mmu_explain_x86(size_t a)
-{
-    size_t d = 0xFFFFF000 | ((a >> 20) & ~3);
-    size_t t = 0xFFC00000 | ((a >> 10) & ~3);
-    kprintf(KLOG_DBG, "Address <%08x> - [DIR=%08x:%08x]", a, d, *(int *)d);
-    if (*(int *)d != 0)
-        kprintf(KLOG_DBG, " - [TBL=%08x:%08x]\n", t, *(int *)t);
-
+    page_t *dir = MMU_DIR(vaddr);
+    page_t *tbl = MMU_TBL(vaddr);
+    if (*dir)
+        kprintf(KLOG_DBG, " @"FPTR" -> {"FPTR":"FPTR"} / {"FPTR":"FPTR"}\n", vaddr, dir,
+                *dir, tbl, *tbl);
     else
-        kprintf(KLOG_DBG, "\n");
+        kprintf(KLOG_DBG, " @"FPTR" -> {"FPTR":"FPTR"}\n", vaddr, dir, *dir);
+}
+
+void mmu_dump()
+{
 }
