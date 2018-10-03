@@ -81,7 +81,7 @@ void *bio_access(bio_t *io, size_t lba)
     if (page == NULL) {
         page = (bio_page_t *)kalloc(sizeof(bio_page_t));
         page->lba = lba;
-        page->base = kmap(io->map_size, io->ino, lba * io->ino->blk->block, io->map_flags);
+        page->base = kmap(io->map_size, io->ino, lba * (io->block / io->factor), io->map_flags);
         hmp_put(&io->table, (char *)&lba, sizeof(lba), page);
     } else if (page->rcu == 0)
         ll_remove(&io->lru, &page->node);

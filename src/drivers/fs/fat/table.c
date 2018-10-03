@@ -22,7 +22,7 @@
 #include "fatfs.h"
 
 
-struct FAT_volume *fatfs_init(void *ptr)
+FAT_volume_t *fatfs_init(void *ptr)
 {
     struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
@@ -30,7 +30,7 @@ struct FAT_volume *fatfs_init(void *ptr)
                                         bpb->BS_jmpBoot[2] == 0x90))
         return NULL;
 
-    struct FAT_volume *info = (struct FAT_volume *)kalloc(sizeof(struct FAT_volume));
+    FAT_volume_t *info = (FAT_volume_t *)kalloc(sizeof(FAT_volume_t));
     info->RootDirSectors = ((bpb->BPB_RootEntCnt * 32) + (bpb->BPB_BytsPerSec - 1)) / bpb->BPB_BytsPerSec;
     info->FATSz = (bpb->BPB_FATSz16 != 0 ? bpb->BPB_FATSz16 : bpb32->BPB_FATSz32);
     info->FirstDataSector = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * info->FATSz) + info->RootDirSectors;
@@ -64,7 +64,7 @@ struct FAT_volume *fatfs_init(void *ptr)
     return info;
 }
 
-void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous)
+void fatfs_reserve_cluster_16(FAT_volume_t *info, int cluster, int previous)
 {
 	int i;
     for (i = 0; i < 2; ++i) {
@@ -79,7 +79,7 @@ void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous
     }
 }
 
-unsigned fatfs_alloc_cluster_16(struct FAT_volume *info, int previous)
+unsigned fatfs_alloc_cluster_16(FAT_volume_t *info, int previous)
 {
 	int i;
     int lba = 1; // resvd_sector_count

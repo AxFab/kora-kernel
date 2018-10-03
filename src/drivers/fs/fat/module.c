@@ -21,9 +21,12 @@
  */
 #include "fatfs.h"
 
-int fatfs_umount(FAT_inode_t *ino)
+int fatfs_umount(inode_t *ino)
 {
-    // vfs_close(ino->vol->dev);
+    FAT_volume_t *info = (FAT_volume_t)ino->info;
+    bio_destroy(info->io_data_ro);
+    bio_destroy(info->io_data_rw);
+    bio_destroy(info->io_head);
     kfree(ino->vol);
     return 0;
 }
@@ -36,7 +39,7 @@ inode_t *fatfs_mount(inode_t *dev)
     }
 
     uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, dev, 0, VMA_FILE_RO);
-    struct FAT_volume *info = fatfs_init(ptr);
+    FAT_volume_t *info = fatfs_init(ptr);
     kunmap(ptr, PAGE_SIZE);
     if (info == NULL) {
         errno = EBADF;
@@ -45,11 +48,10 @@ inode_t *fatfs_mount(inode_t *dev)
 
     info->io_head = bio_create(dev, VMA_FILE_RW, info->BytsPerSec, 0);
     const char *fsName = info->FATType == FAT32 ? "fat32" : (info->FATType == FAT16 ? "fat16" : "fat12");
-    FAT_inode_t *ino = (FAT_inode_t *)vfs_inode(0, S_IFDIR | 0777, NULL, sizeof(FAT_inode_t));
-    ino->ino.length = 0;
-    ino->ino.lba = 1;
-    ino->vol = info;
-    // ino->vol->dev = vfs_open(dev);
+    inode_t *ino = vfs_inode(0, S_IFDIR | 0777, NULL, sizeof(FAT_inode_t));
+    ino->length = 0;
+    ino->lba = 1;
+    ino->info = info;
 
     fsvolume_t *fs = (fsvolume_t *)kalloc(sizeof(fsvolume_t));
     fs->open = (fs_open)fatfs_open;
@@ -66,7 +68,7 @@ inode_t *fatfs_mount(inode_t *dev)
     info->io_data_ro = bio_create(dev, VMA_FILE_RO, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
     vfs_mountpt(info->name, fsName, fs, (inode_t *)ino);
     errno = 0;
-    return &ino->ino;
+    return ino;
 }
 
 
