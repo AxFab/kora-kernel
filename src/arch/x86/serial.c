@@ -19,6 +19,9 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
+#include <kernel/device.h>
+#include <errno.h>
+
 
 #define PORT_COM1 0x3f8   /* COM1 */
 #define PORT_COM2 0x2f8   /* COM2 */
@@ -26,6 +29,7 @@
 #define PORT_COM4 0x2e8   /* COM4 */
 
 int serial_ports[] = { PORT_COM1, PORT_COM2, PORT_COM3, PORT_COM4 };
+inode_t *serial_inos[] = { NULL, NULL, NULL, NULL };
 
 /*
   On PORT+3
@@ -43,22 +47,7 @@ int serial_ports[] = { PORT_COM1, PORT_COM2, PORT_COM3, PORT_COM4 };
 
 // You use IRQ #4 for COM ports 1 or 3, and IRQ #3 for COM ports 2 or 4
 
-static int serial_read_all(int port, void *fifo)
-{
-    char byte;
-    if ((inb(port + 5) & 1) != 0) {
-        while ((inb(port + 5) & 1) != 0) {
-            byte = inb(port);
-            // fifo_write(NULL, &byte, 1); NON-BLOCKING !!!
-            ((void)fifo);
-            ((void)byte);
-        }
-        return 0;
-    }
-    return -1;
-}
-
-static void serial_init(int port)
+static void com_init(int port)
 {
     outb(port + 1, 0x00);  // Disable all interrupts
     outb(port + 3, 0x80);  // Enable DLAB (set baud rate divisor)
@@ -70,69 +59,120 @@ static void serial_init(int port)
     outb(port + 4, 0x0B);  // IRQs enabled, RTS/DSR set
 }
 
-
-char serial_read(int port)
+static int com_read(int port, inode_t *ino)
 {
-    // Wait for a signal to be received
-    while ((inb(port + 5) & 1) == 0);
-    return inb(port);
+    char byte;
+    if ((inb(port + 5) & 1) != 0) {
+        while ((inb(port + 5) & 1) != 0) {
+            byte = inb(port);
+            (void)byte;
+            // chardev_push(ino, &byte, 1);
+        }
+        return 0;
+    }
+    return -1;
 }
 
-void serial_write(int port, char a)
+int com_output(int no, const char *buf, int len)
 {
-    // Wait transmition is clear
-    while ((inb(port + 5) & 0x20) == 0);
-    outb(port, a);
+    int port = serial_ports[no];
+    for (; len-- > 0; buf++) {
+        // Wait transmition is clear
+        while ((inb(port + 5) & 0x20) == 0);
+        outb(port, *buf);
+    }
+    errno = 0;
+    return 0;
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+void com_early_init()
+{
+    int i;
+    for (i = 0; i < 4; ++i)
+        com_init(serial_ports[i]);
+}
+
+
+void com_irq(int o)
+{
+    com_read(serial_ports[o], serial_inos[o]);
+    com_read(serial_ports[o + 2], serial_inos[o + 2]);
+}
+
+int com_write(inode_t *ino, char *buf, int len)
+{
+    return com_output(ino->no, buf, len);
+}
+
+int com_ioctl(inode_t *ino)
+{
+    errno = ENOSYS;
+    return -1;
 }
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int SRL_irq(int o)
-{
-    if (serial_read_all(serial_ports[o], NULL) == 0)
-        return 0;
+chardev_t com_devs[] = {
+    {
+        .dev = {
+            .ioctl = (dev_ioctl)com_ioctl,
+        },
+        .dname = "COM1",
+        .class = "Serial port",
+        .write = (chr_write)com_write,
+    },
+    {
+        .dev = {
+            .ioctl = (dev_ioctl)com_ioctl,
+        },
+        .dname = "COM2",
+        .class = "Serial port",
+        .write = (chr_write)com_write,
+    },
+    {
+        .dev = {
+            .ioctl = (dev_ioctl)com_ioctl,
+        },
+        .dname = "COM3",
+        .class = "Serial port",
+        .write = (chr_write)com_write,
+    },
+    {
+        .dev = {
+            .ioctl = (dev_ioctl)com_ioctl,
+        },
+        .dname = "COM4",
+        .class = "Serial port",
+        .write = (chr_write)com_write,
+    },
+};
 
-    else if (serial_read_all(serial_ports[o + 2], NULL) == 0)
-        return 0;
-    return -1;
-}
 
-int SRL_setup()
+void com_setup()
 {
     int i;
-    for (i = 0; i < 4; ++i)
-        serial_init(serial_ports[i]);
-
-    // irq_register(3, (irq_handler_t)SRL_irq, (void*)1);
-    // irq_register(4, (irq_handler_t)SRL_irq, (void*)0);
-    return 0;
-}
-
-int SRL_teardown()
-{
-    // irq_unregister(3, (irq_handler_t)SRL_irq, (void*)1);
-    // irq_unregister(4, (irq_handler_t)SRL_irq, (void*)0);
-    return 0;
-}
-
-
-int TXT_ansi_escape(const char *msg);
-
-void SRL_write(const char *msg, size_t lg)
-{
-    const char *st = msg;
-    for (; msg - st < (int)lg; ++msg) {
-        if (*msg == '\r' || *msg == '\n' || *msg == '\t')
-            serial_write(PORT_COM1, *msg);
-
-        else if (*msg == '\e' && msg[1] == '[')
-            msg += TXT_ansi_escape(msg);
-
-        else if (*msg < 0x20) {
-            // Ignore
-        } else
-            serial_write(PORT_COM1, *msg);
+    char name[8];
+    for (i = 0; i < 4; ++i) {
+        snprintf(name, 8, "com%d", i + 1);
+        inode_t *ino = vfs_inode(i, S_IFCHR | 0700, NULL, 0);
+        serial_inos[i] = ino;
+        vfs_mkdev(name, &com_devs[i].dev, ino);
     }
+    irq_register(3, (irq_handler_t)com_irq, (void *)1);
+    irq_register(4, (irq_handler_t)com_irq, (void *)0);
 }
+
+void com_teardown()
+{
+    int i;
+    irq_unregister(3, (irq_handler_t)com_irq, (void *)1);
+    irq_unregister(4, (irq_handler_t)com_irq, (void *)0);
+    for (i = 0; i < 4; ++i)
+        vfs_close(serial_inos[i]);
+}
+
+MODULE(serial, com_setup, com_teardown);
 

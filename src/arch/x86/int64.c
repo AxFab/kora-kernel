@@ -20,7 +20,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// ---------------------------------------------------------------------------
 uint64_t __udivmoddi4(uint64_t num, uint64_t den, uint64_t *rem_p)
 {
     uint64_t quot = 0, qbit = 1;
@@ -51,8 +50,6 @@ uint64_t __udivmoddi4(uint64_t num, uint64_t den, uint64_t *rem_p)
     return quot;
 }
 
-
-// ---------------------------------------------------------------------------
 int64_t __divdi3(int64_t num, int64_t den)
 {
     int minus = 0;
@@ -76,8 +73,6 @@ int64_t __divdi3(int64_t num, int64_t den)
     return v;
 }
 
-
-// ---------------------------------------------------------------------------
 int64_t __moddi3(int64_t num, int64_t den)
 {
     int minus = 0;
@@ -101,15 +96,11 @@ int64_t __moddi3(int64_t num, int64_t den)
     return v;
 }
 
-
-// ---------------------------------------------------------------------------
 uint64_t __udivdi3(uint64_t num, uint64_t den)
 {
     return __udivmoddi4(num, den, NULL);
 }
 
-
-// ---------------------------------------------------------------------------
 uint64_t __umoddi3(uint64_t num, uint64_t den)
 {
     uint64_t v;
@@ -117,6 +108,8 @@ uint64_t __umoddi3(uint64_t num, uint64_t den)
     __udivmoddi4(num, den, &v);
     return v;
 }
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 int abs(int value)
 {
@@ -167,8 +160,3 @@ lldiv_t lldiv(long long numer, long long denom)
     return rc;
 }
 
-
-
-
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------

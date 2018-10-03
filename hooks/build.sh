@@ -42,7 +42,7 @@ setup_deb() {
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 run_x86 () {
     x86
-    qemu-system-i368 --cdrom KoraOs.iso --serial stdio --smp 2
+    qemu-system-i386 --cdrom KoraOs.iso --serial stdio --smp 2
 }
 
 run_raspberry-pi2 () {
@@ -51,6 +51,7 @@ run_raspberry-pi2 () {
 }
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+export iso_name=KoraOs.iso
 
 raspberry-pi2 () {
     export target=arm-raspberry2-none
@@ -60,9 +61,12 @@ raspberry-pi2 () {
 }
 
 x86 () {
-    export target=i386-pc-none
-#    export CROSS=i686-elf-
-    export iso_name=KoraOs.iso
+    export target=x86-pc-none
+    case "`uname -m`"
+    in
+        i386|i486|i686) unset CROSS ;;
+        *) export CROSS=i386-elf- ;;
+    esac
 
     make -f $SRC_KRN/Makefile kImage
 
@@ -71,24 +75,25 @@ x86 () {
     mkdir -p iso/usr/{bin,include,lib,man}
     # mkdir -p iso/{dev,mnt,proc,sys,tmp}
 
+
     # Import files
     cp $SRC_KRN/bin/kImage iso/boot/kImage
-    # cp ../lib/* iso/lib/*
-    # cp ../bin/* iso/bin/*
-    # size iso/bin/*
-
-    # Create grub config
     mkdir -p iso/boot/grub
-    cat >  iso/boot/grub/grub.cfg << EOF
-set default="0"
-set timeout="0"
+    
+    if [ -z $isomode ]
+    then
+        # Create ISO (Option 1)
+        echo "    ISO $iso_name (option 1)"
+        cp $SRC_KRN/hooks/grub.cfg iso/boot/grub/
+        grub-mkrescue -o "$iso_name" iso
+    else
+        # Create ISO (Option 2)
+        echo "    ISO $iso_name (option 2)"
+        cp $SRC_KRN/hooks/stage2_eltorito iso/boot/grub/
+        cp $SRC_KRN/hooks/menu.lst iso/boot/grub/
+        genisoimage -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o "$iso_name" iso
+    fi
 
-menuentry "Kora x86" {
-  multiboot /boot/kImage
-}
-EOF
-
-    grub-mkrescue -o "$iso_name" iso 2>/dev/null >/dev/null
     ls -lh "$iso_name"
 }
 
