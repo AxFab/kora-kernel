@@ -7,13 +7,12 @@ build:
   before_script:
     - apt update && apt install -y binutils make gcc nasm
     - ./hooks/toolchain.sh install
-    - ln -s x86 include/arch/i386
   script:
     - make clean
-    - make CROSS=./opt/bin/i386-elf- target=i386-pc-kora kImage
-#  artifacts:
-#    paths:
-#      - bin/kImage-x86
+    - make CROSS=./opt/bin/i386-elf- target=x86-pc-kora kImage
+  artifacts:
+    paths:
+      - bin/kImage
 
 test:
   stage: test

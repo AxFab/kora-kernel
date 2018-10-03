@@ -10,11 +10,10 @@ jobs:
   include:
     - stage: build
       env:
-      - target=i386-pc-kora
+      - target=x86-pc-kora
       - CROSS=./opt/bin/i386-elf-
       install:
       - sudo apt-get install -y nasm
-      - ln -s x86 include/arch/i386
       script:
       - make clean
       - make kImage
