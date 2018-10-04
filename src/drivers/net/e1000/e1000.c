@@ -79,7 +79,6 @@ typedef struct E1000_inet {
 int e1000_send(E1000_inet_t *ifnet, skb_t *skb)
 {
     kprintf(KLOG_DBG, "REQUEST SEND NETWORK %s (%d)\n", skb->log, skb->length);
-    kdump(skb->buf, skb->length);
     splock_lock(&ifnet->lock);
     struct PCI_device *pci = ifnet->pci;
     ifnet->tx_index = PCI_rd32(pci, 0, REG_TDT);
@@ -98,7 +97,9 @@ int e1000_irq_handler(E1000_inet_t *ifnet)
 {
     struct PCI_device *pci = ifnet->pci;
     uint32_t status = PCI_rd32(pci, 0, 0xc0);
-    // kprintf(KLOG_DBG, "%s IRQ status: 0x%08x\n", ifnet->name, status);
+
+    irq_ack(pci->irq);
+
     if (status == 0)
         return -1;
 
@@ -106,30 +107,31 @@ int e1000_irq_handler(E1000_inet_t *ifnet)
     //     kpritnf(KLOG_DBG, "%s - Packet transmited with success\n", ifnet->name);
     if (status & 0x04) {
         // ifnet->dev.flags |= NET_CONNECTED;
-        // int link_up = PCI_rd32(pci, 0, REG_STATUS) & (1 << 1)
-        kprintf(KLOG_DBG, "%s - Link status change!\n", ifnet->name);
+        int link_up = PCI_rd32(pci, 0, REG_STATUS) & (1 << 1);
+        kprintf(KLOG_DBG, "%s - Link status change: %d!\n", ifnet->name, link_up);
     } else if (status & 0x10) {
         kprintf(KLOG_DBG, "%s - Min thresohold RX hit \n", ifnet->name);
         // Send ICMP command 3 !?
     } else if (status & 0x40)
         kprintf(KLOG_DBG, "%s - Receive buffers overrun\n", ifnet->name);
 
-    else if (status & 0x80) {
-        kprintf(KLOG_DBG, "%s - Receive ticks \n", ifnet->name);
-        // uint16_t old_idx;
-        // while (ifnet->rx_descs[ifnet->rx_index].status & 1) {
-        // uint8_t *buffer =
-        //     ifnet->rx_bufs[card->rx_cur]; // (uint8_t*)card->rx_descs[card->rx_cur].address;
-        // uint16_t length = card->rx_descs[card->rx_cur].length;
+    else if (status & 0xC0) {
+        for (;;) {
+            ifnet->rx_index = PCI_rd32(pci, 0, REG_RDT);
+            if (ifnet->rx_index == PCI_rd32(pci, 0, REG_RDH))
+                break;
+            ifnet->rx_index = (ifnet->rx_index + 1) % ifnet->rx_count;
+            if ((ifnet->rx_base[ifnet->rx_index].status & 1) == 0)
+                break;
 
-        // kprintf(KLOG_DBG, "E1000] Received packet (%d bytes)\n", length);
-        // net_receive(ndev, buffer, length); // Inject new packet on network stack
-
-        // card->rx_descs[card->rx_cur].status = 0;
-        // old_cur = card->rx_cur;
-        // card->rx_cur = (card->rx_cur + 1) % card->rx_count;
-        // PCI_write(card->pci, REG_RDT, old_cur);
-        // }
+            // Inject new packet on network stack
+            uint8_t *buffer = ifnet->rx_virt[ifnet->rx_index]; 
+            uint16_t length = ifnet->rx_base[ifnet->rx_index].length;
+            kprintf(KLOG_DBG, "RECEIVE NETWORK PACKET (%d bytes)\n", length);
+            net_recv(ifnet, buffer, length); 
+            ifnet->rx_base[ifnet->rx_index].status = 0;
+            PCI_wr32(pci, 0, REG_RDT, ifnet->rx_index);
+        }
     }
     return 0;
 }
