@@ -56,9 +56,8 @@ int udp_receive(skb_t *skb, unsigned length)
         return -1;
     uint16_t checksum = header->checksum;
     header->checksum = 0;
-    if (checksum != ip4_checksum(skb,
-                                 sizeof(UDP_header_t) + 8)) /* TODO - ip options */
-        return -1;
+    // if (checksum != ip4_checksum(skb, sizeof(UDP_header_t) + 8)) /* TODO - ip options */
+        // return -1;
     if (length != htonw(header->length))
         return -1;
     length -= sizeof(UDP_header_t);
@@ -66,6 +65,7 @@ int udp_receive(skb_t *skb, unsigned length)
     case UDP_PORT_NTP:
         return ntp_receive(skb, length);
     case UDP_PORT_DHCP:
+    case UDP_PORT_DHCP_S:
         return dhcp_receive(skb, length);
     case UDP_PORT_DNS:
         return dns_receive(skb, length);

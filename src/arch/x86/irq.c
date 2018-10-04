@@ -61,13 +61,16 @@ fault_t x86_exceptions[] = {
 extern size_t *apic_regs;
 void irq_ack(int no)
 {
-    // if (no >= 16) {
-    apic_regs[APIC_EOI] = 0;
-    //     return;
-    // }
-    // if (no >= 8)
-    //     outb(PIC2_CMD, PIC_EOI);
-    // outb(PIC1_CMD, PIC_EOI);
+    if (apic_regs != NULL) {
+        if (no >= 16) {
+            apic_regs[APIC_EOI] = 0;
+            return;
+        }   
+    } else {
+        if (no >= 8)
+            outb(PIC2_CMD, PIC_EOI);
+        outb(PIC1_CMD, PIC_EOI);
+    }
 }
 
 /* Disable a specific IRQ */
