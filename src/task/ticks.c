@@ -74,11 +74,9 @@ void sys_ticks()
         // Update Wall time
         // Compute global load
         splock_unlock(&xtime_lock);
-        // return;
-    } else {
-        // kprintf(-1, "CPU.%d Ticks\n", cpu_no());
-        // return;
     }
+    if (kCPU.flags & CPU_NO_TASK)
+        return;
     async_timesup();
     scheduler_switch(TS_READY, 0);
 }

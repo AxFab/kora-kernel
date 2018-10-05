@@ -117,19 +117,18 @@ void test_fs_mknod(inode_t *root)
 void test_fs_rdwr(inode_t *root)
 {
 	int ret;
-    inode_t *ino1 = vfs_create(root, "FILE_S.TXT", S_IFNET, NULL, 0);
+    inode_t *ino1 = vfs_create(root, "FILE_S.TXT", S_IFREG, NULL, 0);
     ck_ok(ino1 != NULL && errno == 0, "");
-    
-    ret = vfs_trunc(ino1, 348); // Less than a sector
+    ret = vfs_truncate(ino1, 348); // Less than a sector
     ck_ok(ret == 0 && errno == 0, "");
     
-    inode_t *ino2 = vfs_create(root, "FILE_L.TXT", S_IFNET, NULL, 0);
+    inode_t *ino2 = vfs_create(root, "FILE_L.TXT", S_IFREG, NULL, 0);
     ck_ok(ino2 != NULL && errno == 0, "");
-    ret = vfs_trunc(ino2, 75043); // Much larger file
+    ret = vfs_truncate(ino2, 75043); // Much larger file
     ck_ok(ret == 0 && errno == 0, "");
-    inode_t *ino3 = vfs_create(root, "FILE_XL.TXT", S_IFNET, NULL, 0);
+    inode_t *ino3 = vfs_create(root, "FILE_XL.TXT", S_IFREG, NULL, 0);
     ck_ok(ino3 != NULL && errno == 0, ""); 
-    ret = vfs_trunc(ino3, 2000 * _Mib_); // Much larger file
+    ret = vfs_truncate(ino3, 2000 * _Mib_); // Much larger file
     ck_ok(ret != 0 && errno == ENOSPC, "");
     
     vfs_close(ino1);

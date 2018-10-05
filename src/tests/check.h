@@ -27,7 +27,6 @@
 #include <setjmp.h>
 #include <errno.h>
 
-void abort();
 void nanosleep(struct timespec *, struct timespec *);
 
 #define START_TEST(n) void n() {
@@ -39,6 +38,16 @@ void nanosleep(struct timespec *, struct timespec *);
 void kprintf(int no, const char *fmt, ...);
 void *kalloc(size_t lg);
 void kfree(void *ptr);
+
+#if !defined(_WIN32)
+# define _valloc(s)  valloc(s)
+# define _vfree(p)  free(p)
+#else
+# define _valloc(s)  _aligned_malloc(s, PAGE_SIZE)
+# define _vfree(p)  _aligned_free(p)
+#endif
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 typedef struct SRunner {
     int count;
@@ -54,6 +63,8 @@ typedef struct TCase {
     int count;
     int success;
 } TCase;
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 #define CK_NORMAL  0
 
