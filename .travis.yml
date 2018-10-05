@@ -4,7 +4,6 @@ language: c
 before_install:
   - sudo apt-get update
   - sudo apt-get install -y binutils gcc make
-  - ./scripts/toolchain.sh install
 
 jobs:
   include:
@@ -14,6 +13,7 @@ jobs:
       - CROSS=./opt/bin/i386-elf-
       install:
       - sudo apt-get install -y nasm
+      - ./scripts/toolchain.sh install
       script:
       - make clean
       - make kImage
