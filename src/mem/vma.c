@@ -186,7 +186,8 @@ int vma_protect(mspace_t *mspace, vma_t *vma, int flags)
     }
 
     /* Change access flags */
-    for (size_t off = 0; off < vma->length; off += PAGE_SIZE)
+    size_t off;
+    for (off = 0; off < vma->length; off += PAGE_SIZE)
         mmu_protect(vma->node.value_ + off, flags);
     vma->flags &= ~VMA_RIGHTS;
     vma->flags |= flags;

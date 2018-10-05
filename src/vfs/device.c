@@ -24,6 +24,13 @@
 llhead_t dev_list = INIT_LLHEAD;
 
 
+extern bool fs_init;
+void vfs_reset()
+{
+    fs_init = false;
+    memset(&dev_list, 0, sizeof(dev_list));
+}
+
 device_t *vfs_lookup_device_(CSTR name)
 {
     device_t *dev;

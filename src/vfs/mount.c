@@ -28,6 +28,7 @@ device_t *vfs_lookup_device_(CSTR name);
 bool fs_init = false;
 HMP_map fs_hmap;
 
+
 void register_fs(CSTR name, fs_mount mount)
 {
     if (!fs_init) {
