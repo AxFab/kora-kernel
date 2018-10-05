@@ -66,7 +66,8 @@ struct FAT_volume *fatfs_init(void *ptr)
 
 void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous)
 {
-    for (int i = 0; i < 2; ++i) {
+	int i;
+    for (i = 0; i < 2; ++i) {
         int lba = i * info->FATSz + 1;
         // int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
         uint16_t *fat_table = (uint16_t *)bio_access(info->io_head, lba);
@@ -80,11 +81,12 @@ void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous
 
 unsigned fatfs_alloc_cluster_16(struct FAT_volume *info, int previous)
 {
+	int i;
     int lba = 1; // resvd_sector_count
     int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
     uint16_t *fat_table = (uint16_t *)bio_access(info->io_head, lba);
     // TODO - Load next pages
-    for (int i = 0; i < fat_bytes / 2; ++i) {
+    for (i = 0; i < fat_bytes / 2; ++i) {
         if (fat_table[i] == 0) {
             fatfs_reserve_cluster_16(info, i, previous);
             bio_clean(info->io_head, lba);
