@@ -6,7 +6,7 @@ build:
   stage: build
   before_script:
     - apt update && apt install -y binutils make gcc nasm
-    - ./hooks/toolchain.sh install
+    - ./scripts/toolchain.sh install
   script:
     - make clean
     - make CROSS=./opt/bin/i386-elf- target=x86-pc-kora kImage
@@ -19,8 +19,7 @@ test:
   before_script:
     - apt update && apt install -y binutils make gcc nasm lcov valgrind
   script:
-    - ln -s ../`uname -m`/bits/ include/arch/um/bits
     - make clean
     - make check
-    - sh ./hooks/coverage.sh || true
+    - sh ./scripts/coverage.sh || true
 

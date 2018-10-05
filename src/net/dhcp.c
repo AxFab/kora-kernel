@@ -236,7 +236,6 @@ static skb_t *dhcp_header(netdev_t *ifnet, const uint8_t *ip, uint32_t uid,
         return NULL;
     uint16_t port_local = opcode == 1 ? UDP_PORT_DHCP : UDP_PORT_DHCP_S;
     uint16_t port_remote = opcode == 2 ? UDP_PORT_DHCP : UDP_PORT_DHCP_S;
-    kprintf(-1, "DCHP PORT %d -- %d -> %d \n", opcode, port_local, port_remote);
     if (udp_header(skb, ip, sizeof(DHCP_header_t) + 4 + options_len, port_local, port_remote) != 0) {
         net_trash(skb);
         return NULL;

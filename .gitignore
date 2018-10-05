@@ -26,17 +26,19 @@
 !include/**/*.h
 !src/**/*.c
 !src/**/*.h
-!hooks/**/*.sh
-!src/arch/**/*.ld
-!src/arch/**/*.asm
-!src/arch/**/*.s
+!scripts/**/*.sh
+!arch/**/*.ld
+!arch/**/include/**/*.h
+!arch/**/src/**/*.asm
+!arch/**/src/**/*.s
+!arch/**/src/**/*.c
+!arch/**/src/**/*.h
 
 # Exceptions
-!hooks/license.h
+!doc/snippet/**/*
+!scripts/cfg/**/*
 
 # Visual studio
-!vs/*.sln
-!vs/*.c
-!vs/*.h
-!vs/*.vcxproj
-!vs/*.vcxproj.*
+!scripts/vs/*.sln
+!scripts/vs/*.vcxproj
+!scripts/vs/*.vcxproj.*
