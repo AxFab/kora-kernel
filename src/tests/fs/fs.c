@@ -19,23 +19,15 @@
  */
 #include <kernel/vfs.h>
 #include <kernel/device.h>
-#include <errno.h>
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-#define START_TEST(n)  void n() {
-#define END_TEST  }
-#define ck_ok(n,m)  do { if (!(n)) __assert_fail("Test fails: " #n " - " m, __FILE__, __LINE__); } while(0)
-#define CHECK_TCASE(n)  n()
-#define CHECK_TSUITE(m)  kprintf(-1, m "\n")
+#include "../check.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void imgdk_setup();
+void imgdk_teardown();
 
 inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
 {
-    // TODO - Clean FS and DEV list! (BSS of driver !?)
     imgdk_setup();
     fsmod->setup();
 
@@ -53,10 +45,12 @@ void test_fs_teardown(inode_t *root)
     int res = vfs_umount(root);
     ck_ok(res == 0 && errno == 0, "Unmount file system");
     vfs_close(root);
+    imgdk_teardown();
+    vfs_reset();
 }
 
 
-void test_fs_basic(inode_t *root)
+void test_fs_mknod(inode_t *root)
 {
     int ret;
     // Create and open file
@@ -92,7 +86,7 @@ void test_fs_basic(inode_t *root)
     ck_ok(ctx != NULL && errno == 0, "");
     while ((ino7 = vfs_readdir(ino4, filename, ctx)) != NULL) {
         ck_ok(ino7 != NULL && errno == 0, "");
-        ck_ok(ino7 == ino5);
+        ck_ok(ino7 == ino5, "");
         ino5 = NULL;
         vfs_close(ino7);
     }
@@ -101,7 +95,7 @@ void test_fs_basic(inode_t *root)
 
     // Delete files and directories
     ret = vfs_unlink(root, "FOLDER");
-    ck_ok(ret == -1 && errno == ENOTEMPTY);
+    ck_ok(ret == -1 && errno == ENOTEMPTY, "");
 
     vfs_close(ino4);
     ino4 = vfs_lookup(root, "FOLDER");
@@ -143,30 +137,36 @@ void test_fs_rdwr(inode_t *root)
     vfs_close(ino3);
 }
 
-void test_fs(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
-{
-    inode_t *ino = test_fs_setup(dev, fsmod, format);
-    test_fs_basic(ino);
-    test_fs_rdwr(ino);
-    test_fs_teardown(ino);
-}
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 extern kmod_t kmod_info_fatfs;
 int fatfs_format(inode_t *blk);
 
-START_TEST(test_fs_fat16)
+START_TEST(test_fat16_mknod)
 {
-    test_fs("sdA", &kmod_info_fatfs, fatfs_format);
+    inode_t *ino = test_fs_setup("sdA", &kmod_info_fatfs, fatfs_format);
+    test_fs_mknod(ino);
+    test_fs_teardown(ino);
+}
+END_TEST
+
+START_TEST(test_fat16_rdwr)
+{
+    inode_t *ino = test_fs_setup("sdA", &kmod_info_fatfs, fatfs_format);
+    test_fs_rdwr(ino);
+    test_fs_teardown(ino);
 }
 END_TEST
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int main(int argc, char **argv)
+
+void fixture_rwfs(Suite *s)
 {
-    CHECK_TSUITE("File System");
-    CHECK_TCASE(test_fs_fat16);
-    return 0;
+    TCase *tc;
+
+    tc = tcase_create("FAT16");
+    tcase_add_test(tc, test_fat16_mknod);
+    tcase_add_test(tc, test_fat16_rdwr);
+    suite_add_tcase(s, tc);
 }
