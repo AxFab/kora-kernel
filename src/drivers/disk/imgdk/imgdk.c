@@ -96,8 +96,11 @@ static void imgdk_open(int i)
 
 static void imgdk_exit(int i)
 {
-    if (sdx[i].fd >= 0)
+    if (sdx[i].fd >= 0) {
+        close(sdx[i].fd);
+        memset(&sdx[i], 0, sizeof(*sdx));
         vfs_rmdev(sdNames[i]);
+    }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -158,6 +161,8 @@ void imgdk_create(CSTR name, size_t size) {
         lseek(fd, size - 1, SEEK_SET);
         write(fd, &zero, 1);
         close(fd);
+    } else {
+        
     }
 }
 

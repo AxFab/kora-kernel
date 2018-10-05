@@ -85,7 +85,7 @@ ckFs_src-y += $(srcdir)/tests/_stub/mem.c
 ckFs_omit-y += $(srcdir)/libc/mutex.c
 ckFs_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckFs,chk))
-DV_CHECK += $(bindir)/ckFs
+# DV_CHECK += $(bindir)/ckFs
 
 # -------------------------
 
