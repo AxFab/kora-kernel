@@ -57,14 +57,14 @@ For the moment drivers must be embedded on the kernel. Some configuration can be
 
 > _comming soon_
 
- - GCC, `./hooks/cross_gcc.sh`
+ - GCC, `./scripts/cross_gcc.sh`
  - Download for `x86-64` host at 
 
 ## building the system
 
 > _Incomplete section_
 
- - ISO cdrom x86: `./hooks/build.sh x86` (will require `xorriso` and `grub`)
+ - ISO cdrom x86: `./scripts/build.sh x86` (will require `xorriso` and `grub`)
 
 > **Commom issues:**
 >

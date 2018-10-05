@@ -4,7 +4,7 @@ language: c
 before_install:
   - sudo apt-get update
   - sudo apt-get install -y binutils gcc make
-  - ./hooks/toolchain.sh install
+  - ./scripts/toolchain.sh install
 
 jobs:
   include:
@@ -21,8 +21,7 @@ jobs:
       install:
       - sudo apt-get install -y lcov valgrind
       script:
-      - ln -s ../`uname -m`/bits/ include/arch/um/bits
       - make clean
       - make check
       after_script:
-      - sh ./hooks/coverage.sh || true
+      - sh ./scripts/coverage.sh || true

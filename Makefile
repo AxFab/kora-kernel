@@ -73,10 +73,11 @@ endif
 # D E L I V E R I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 define obj
 	$(patsubst $(srcdir)/%.c,$(outdir)/$(1)/%.$(3),   \
-	$(patsubst $(srcdir)/%.cpp,$(outdir)/$(1)/%.$(3), \
 	$(patsubst $(srcdir)/%.asm,$(outdir)/$(1)/%.$(3), \
+	$(patsubst $(topdir)/%.c,$(outdir)/$(1)/%.$(3), \
+	$(patsubst $(topdir)/%.asm,$(outdir)/$(1)/%.$(3), \
 		$(filter-out $($(2)_omit-y),$($(2)_src-y))      \
-	)))
+	))))
 endef
 
 define libs
@@ -114,10 +115,10 @@ endef
 define kimg
 DEPS += $(call obj,$2,$1,d)
 $1: $(bindir)/$1
-$(bindir)/$1: $(call obj,$2,$1,o) # $(outdir)/_$(target_arch)/crtk.o
+$(bindir)/$1: $(call obj,$2,$1,o)
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  "$$@
-	$(V) $(LD) -T $(srcdir)/arch/$(target_arch)/kernel.ld $($(1)_LFLAGS) -o $$@ $(call obj,$2,$1,o)
+	$(V) $(LD) -T $(topdir)/arch/$(target_arch)/kernel.ld $($(1)_LFLAGS) -o $$@ $(call obj,$2,$1,o)
 endef
 
 define ccpl
@@ -126,6 +127,15 @@ $(outdir)/$(1)/%.o: $(srcdir)/%.c
 	$(Q) echo "    CC  "$$@
 	$(V) $(CC) -c $($(1)_CFLAGS) -o $$@ $$<
 $(outdir)/$(1)/%.d: $(srcdir)/%.c
+	$(S) mkdir -p $$(dir $$@)
+	$(Q) echo "    CM  "$$@
+	$(V) $(CC) -M $($(1)_CFLAGS) -o $$@ $$<
+	@ sed "s%.*\.o%$$(@:.d=.o)%" -i $$@
+$(outdir)/$(1)/%.o: $(topdir)/%.c
+	$(S) mkdir -p $$(dir $$@)
+	$(Q) echo "    CC  "$$@
+	$(V) $(CC) -c $($(1)_CFLAGS) -o $$@ $$<
+$(outdir)/$(1)/%.d: $(topdir)/%.c
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    CM  "$$@
 	$(V) $(CC) -M $($(1)_CFLAGS) -o $$@ $$<
