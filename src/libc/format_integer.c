@@ -34,7 +34,7 @@
 
 #define SIZE_MAX ULONG_MAX
 /* TODO define somewhere else */
-
+#define UNSIGNED_MINUS(v)  ((~(v))-1)
 
 #define LOWER 0x20
 
@@ -149,14 +149,14 @@ long strtol(const char *nptr, char **endptr, int base)
 
     } else {
 
-        if (value > (-(__ulong)LONG_MIN)) {
+        if (value > (__ulong)(-LONG_MIN)) {
             errno = EOVERFLOW;
             if (endptr)
                 (*endptr) = (char *)nptr;
             return 0;
         }
 
-        return (long) - value;
+        return (long)UNSIGNED_MINUS(value);
     }
 }
 
@@ -210,7 +210,7 @@ int atoi(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
-    return (int)(sign == '+') ? value : -value;
+    return (int)(sign == '+') ? value : UNSIGNED_MINUS(value);
 }
 
 /* Convert a string to an integer */
@@ -218,7 +218,7 @@ long atol(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
-    return (long)(sign == '+') ? value : -value;
+    return (long)(sign == '+') ? value : UNSIGNED_MINUS(value);
 }
 
 #ifdef __USE_C99

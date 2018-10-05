@@ -101,7 +101,7 @@ void lnet_setup()
     int i;
     lnet_dev_t *ifnet = kalloc(sizeof(lnet_dev_t));
     for (i = 0; i < ETH_ALEN; ++i)
-        ifnet->n.eth_addr[i] = rand();
+        ifnet->n.eth_addr[i] = rand16();
     ifnet->n.mtu = 1500;
     ifnet->n.link = lnet_link;
     ifnet->n.send = lnet_send;
