@@ -51,7 +51,6 @@ core_src-y += $(wildcard $(srcdir)/net/*.c)
 
 
 
-
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # We create the `kernel` delivery
 kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.asm)

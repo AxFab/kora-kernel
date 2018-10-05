@@ -23,11 +23,11 @@
 
 int fatfs_umount(inode_t *ino)
 {
-    FAT_volume_t *info = (FAT_volume_t)ino->info;
+    FAT_volume_t *info = (FAT_volume_t*)ino->info;
     bio_destroy(info->io_data_ro);
     bio_destroy(info->io_data_rw);
     bio_destroy(info->io_head);
-    kfree(ino->vol);
+    kfree(info);
     return 0;
 }
 
@@ -48,7 +48,7 @@ inode_t *fatfs_mount(inode_t *dev)
 
     info->io_head = bio_create(dev, VMA_FILE_RW, info->BytsPerSec, 0);
     const char *fsName = info->FATType == FAT32 ? "fat32" : (info->FATType == FAT16 ? "fat16" : "fat12");
-    inode_t *ino = vfs_inode(0, S_IFDIR | 0777, NULL, sizeof(FAT_inode_t));
+    inode_t *ino = vfs_inode(0, S_IFDIR | 0777, NULL, 0);
     ino->length = 0;
     ino->lba = 1;
     ino->info = info;

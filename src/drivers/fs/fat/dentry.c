@@ -95,7 +95,7 @@ inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, FAT_volume_t *info)
 
     inode_t *ino = vfs_inode(no, mode, NULL, 0);
     ino->length = entry->DIR_FileSize;
-    ino->.lba = cluster;
+    ino->lba = cluster;
     ino->atime.tv_sec = fatfs_gettime(&entry->DIR_LstAccDate, NULL) / _PwNano_;
     ino->ctime.tv_sec = fatfs_gettime(&entry->DIR_CrtDate, &entry->DIR_CrtTime) / _PwNano_;
     ino->mtime.tv_sec = fatfs_gettime(&entry->DIR_WrtDate, &entry->DIR_WrtTime) / _PwNano_;
