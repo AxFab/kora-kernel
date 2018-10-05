@@ -21,20 +21,21 @@
  */
 #include "fatfs.h"
 
-int fatfs_truncate(FAT_inode_t *ino, off_t length)
+int fatfs_truncate(inode_t *ino, off_t length)
 {
-	const int entry_per_cluster = ino->vol->BytsPerSec / sizeof(struct FAT_ShortEntry);
-	int lba = ino->ino.no / entry_per_cluster;
-	struct FAT_ShortEntry *entry = bio_access(ino->vol->io_data_rw, lba);
-	entry += ino->ino.no % entry_per_cluster;
+    FAT_volume_t *info = (FAT_volume_t*)ino->info;
+	const int entry_per_cluster = info->BytsPerSec / sizeof(struct FAT_ShortEntry);
+	int lba = ino->no / entry_per_cluster;
+	struct FAT_ShortEntry *entry = bio_access(info->io_data_rw, lba);
+	entry += ino->no % entry_per_cluster;
 	assert((entry->DIR_Attr & ATTR_ARCHIVE) != 0);
 	
-	int cluster_sz = ino->vol->SecPerClus * 512;
-	int n, i = 0;
-	int lg = ALIGN_UP(entry->DIR_FileSize, cluster_sz) / cluster_sz;
-	int mx = ALIGN_UP(length, cluster_sz) / cluster_sz;
+	unsigned cluster_sz = info->SecPerClus * 512;
+	unsigned n, i = 0;
+	unsigned lg = ALIGN_UP(entry->DIR_FileSize, cluster_sz) / cluster_sz;
+	unsigned mx = ALIGN_UP(length, cluster_sz) / cluster_sz;
 	
-	if (mx > dir->vol->CountOfClusters) {
+	if (mx > info->CountofClusters) {
 	    // TODO - Count used space
 	    errno = ENOSPC;
 	    return -1;
@@ -42,35 +43,35 @@ int fatfs_truncate(FAT_inode_t *ino, off_t length)
         entry->DIR_FileSize = length;
         fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, time64());
         // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, time64()); -- on unix but not windows
-        bio_clean(ino->vol->io_data_rw, lba);
+        bio_clean(info->io_data_rw, lba);
         return 0;
     }
     
     int cluster = entry->DIR_FstClusLo;
     if (cluster == 0) {
         assert(lg == 0);
-        cluster = fatfs_alloc_cluster_16(ino->vol, -1);
+        cluster = fatfs_alloc_cluster_16(info, -1);
         entry->DIR_FstClusLo = cluster;
         i = 1;
     }
     
-    int prev =
+    int prev = -1;
     for (n = MIN(lg, mx); i < n; ++i) {
         prev = cluster;
-        // cluster = fatfs_next_cluster_16(cluster);
+        // cluster = fatfs_next_cluster_16(info, cluster);
     }
     for (; i < mx; ++i) {
-        cluster = fatfs_alloc_cluster_16(cluster);
+        cluster = fatfs_alloc_cluster_16(info, cluster);
     }
     for (; i < lg; ++i) {
-        // cluster = fatfs_release_cluster_16(cluster);
+        // cluster = fatfs_release_cluster_16(info, cluster);
     }
     
     entry->DIR_FileSize = length;
     fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, time64());
     // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, time64()); -- on unix but not windows
-    bio_clean(ino->vol->io_data_rw, lba);
-    bio_sync(ino->vol->io_data_rw);
+    bio_clean(info->io_data_rw, lba);
+    bio_sync(info->io_data_rw);
     return 0;
 }
 
