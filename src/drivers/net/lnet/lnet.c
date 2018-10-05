@@ -98,8 +98,9 @@ void lnet_setup()
     WSAStartup(MAKEWORD(2, 0), &WSAData);
 #endif
 
+    int i;
     lnet_dev_t *ifnet = kalloc(sizeof(lnet_dev_t));
-    for (int i = 0; i < ETH_ALEN; ++i)
+    for (i = 0; i < ETH_ALEN; ++i)
         ifnet->n.eth_addr[i] = rand();
     ifnet->n.mtu = 1500;
     ifnet->n.link = lnet_link;

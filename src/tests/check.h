@@ -24,51 +24,110 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <errno.h>
 #include <setjmp.h>
+#include <errno.h>
 
 void abort();
 void nanosleep(struct timespec *, struct timespec *);
 
 #define START_TEST(n) void n() {
 #define END_TEST }
-#define ck_case(n) ck_case_(#n, n)
 #define ck_assert(e) do { if (!(e)) ck_fails(#e, __FILE__, __LINE__); } while(0)
+#define ck_ok(e,m)  ck_assert(e)
+#define tcase_add_test(t,f)  tcase_add_test_(t,#f,f) 
 
 void kprintf(int no, const char *fmt, ...);
+void *kalloc(size_t lg);
+void kfree(void *ptr);
 
-int cases_count = 0;
-jmp_buf case_jmp;
+typedef struct SRunner {
+    int count;
+    int success;
+} SRunner;
 
-static inline void ck_end()
+typedef struct Suite {
+    int count;
+    int success;
+} Suite;
+
+typedef struct TCase {
+    int count;
+    int success;
+} TCase;
+
+#define CK_NORMAL  0
+
+extern jmp_buf __tcase_jump;
+
+static inline SRunner *srunner_create()
 {
-    kprintf(-1, "  Total of %d tests passed with success.\n", cases_count);
+    SRunner *runner = kalloc(sizeof(SRunner));
+    return runner;
 }
 
-static inline void ck_suite(const char *name)
+static inline void srunner_free(SRunner *runner)
+{
+    kfree(runner);
+}
+
+static inline int srunner_ntests_failed(SRunner *runner)
+{
+    return runner->count - runner->success;
+}
+
+static inline void srunner_run_all(SRunner *runner, int flags)
+{
+    if (runner->count == runner->success)
+        kprintf(-1, "  \033[92mTotal of %d unit-tests passed with success.\033[0m\n", runner->count);
+    else
+        kprintf(-1, "  \033[91mTest failure, only %d of %d tests succeed (%d%%).\033[0m\n", runner->success, runner->count, runner->success * 100 / runner->count);
+}
+
+static inline void srunner_add_suite(SRunner *runner, Suite *suite)
+{
+    runner->count += suite->count;
+    runner->success += suite->success;
+    kfree(suite);
+}
+
+
+static inline Suite *suite_create(const char* name)
 {
     kprintf(-1, "\033[1;36m%s\033[0m\n", name);
-}
-static inline void ck_fixture(const char *name)
-{
-    kprintf(-1, "  \033[1;37m%s\033[0m\n", name);
+    Suite *suite = kalloc(sizeof(Suite));
+    return suite;
 }
 
-static inline void ck_case_(const char *name, void(*func)())
+static inline TCase *tcase_create(const char* name)
 {
-    cases_count++;
-    if (setjmp(case_jmp) == 0) {
-        func();
+    kprintf(-1, "  \033[1;35m%s\033[0m\n", name);
+    TCase *tcase = kalloc(sizeof(TCase));
+    return tcase;
+}
+
+static inline void tcase_add_test_(TCase *tc, const char *name, void(*test)())
+{
+    tc->count++;
+    if (setjmp(__tcase_jump) == 0) {
+        test();
         kprintf(-1, "\033[90m%24s %s%s\033[0m\n", name, "\033[32m", "OK");
+        tc->success++;
     } else
         kprintf(-1, "\033[90m%24s %s%s\033[0m\n", name, "\033[31m", "FAILS");
 }
 
+static inline void suite_add_tcase(Suite *suite, TCase *tcase)
+{
+    suite->count += tcase->count;
+    suite->success += tcase->success;
+    kfree(tcase);
+}
+
+
 static inline void ck_fails(const char *expr, const char *file, int line)
 {
-    kprintf(-1, "Check fails at %s l.%d: %s\n", file, line, expr);
-    longjmp(case_jmp, 1);
-    abort();
+    kprintf(-1, "\033[91mCheck fails at %s l.%d: %s\033[0m\n", file, line, expr);
+    longjmp(__tcase_jump, 1);
 }
 
 

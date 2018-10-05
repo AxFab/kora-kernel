@@ -142,21 +142,24 @@ static int dhcp_parse(skb_t *skb, dhcp_info_t *info, int length)
     while (length > 2) {
         net_read(skb, options, 2);
         length -= 2 + options[1];
-        if (options[1] >= 30)
-            return -1;
+        if (options[1] >= 30) {
+            char *bf = kalloc(options[1]);
+            net_read(skb, bf, options[1]);
+            kfree(bf);
+        }
         switch (options[0]) {
         case DHCP_OPT_SUBNETMASK:
-            if (options[1] != 4)
+            if (options[1] != IP4_ALEN)
                 return -1;
             net_read(skb, info->submask_ip, IP4_ALEN);
             break;
         case DHCP_OPT_ROOTER:
-            if (options[1] != 4)
+            if (options[1] != IP4_ALEN)
                 return -1;
             net_read(skb, info->rooter_ip, IP4_ALEN);
             break;
         case DHCP_OPT_DNSIP:
-            if (options[1] != 4)
+            if (options[1] != IP4_ALEN)
                 return -1;
             net_read(skb, info->dns_ip, IP4_ALEN);
             break;
@@ -167,12 +170,12 @@ static int dhcp_parse(skb_t *skb, dhcp_info_t *info, int length)
             dhcp_readstr(skb, options, &info->domain);
             break;
         case DHCP_OPT_BROADCAST:
-            if (options[1] != 4)
+            if (options[1] != IP4_ALEN)
                 return -1;
             net_read(skb, info->broadcast_ip, IP4_ALEN);
             break;
         case DHCP_OPT_QRYIP:
-            if (options[1] != 4)
+            if (options[1] != IP4_ALEN)
                 return -1;
             net_read(skb, info->query_ip, IP4_ALEN);
             break;
@@ -186,7 +189,7 @@ static int dhcp_parse(skb_t *skb, dhcp_info_t *info, int length)
             net_read(skb, &info->msg_type, 1); // SIZE
             break;
         case DHCP_OPT_SERVERIP:
-            if (options[1] != 4)
+            if (options[1] != IP4_ALEN)
                 return -1;
             net_read(skb, info->dhcp_ip, IP4_ALEN);
             break;
@@ -231,8 +234,9 @@ static skb_t *dhcp_header(netdev_t *ifnet, const uint8_t *ip, uint32_t uid,
     skb_t *skb = net_packet(ifnet, 576);
     if (skb == NULL)
         return NULL;
-    if (udp_header(skb, ip, sizeof(DHCP_header_t) + options_len, UDP_PORT_DHCP,
-                   UDP_PORT_DHCP_S) != 0) {
+    uint16_t port_local = opcode == 1 ? UDP_PORT_DHCP : UDP_PORT_DHCP_S;
+    uint16_t port_remote = opcode == 2 ? UDP_PORT_DHCP : UDP_PORT_DHCP_S;
+    if (udp_header(skb, ip, sizeof(DHCP_header_t) + 4 + options_len, port_local, port_remote) != 0) {
         net_trash(skb);
         return NULL;
     }
@@ -397,7 +401,7 @@ static int dhcp_on_offer(skb_t *skb, dhcp_info_t *info)
     }
 
     host_register(skb->eth_addr, info->dhcp_ip, NULL, info->domain, HOST_TEMPORARY);
-    // If not interested, decline ASAP
+    // TODO -- If not interested, decline ASAP
     /*
     if (ifnet->dhcp_mode == DHCP_REQUEST) {
         // Store as backup plan, refuse later!
@@ -709,7 +713,6 @@ int dhcp_receive(skb_t *skb, unsigned length)
     uint32_t magic = DHCP_MAGIC;
     if (net_read(skb, &magic, 4) != 0 || magic != DHCP_MAGIC)
         return -1;
-
     dhcp_info_t info;
     memset(&info, 0, sizeof(info));
     memcpy(info.client_mac, header->chaddr, ETH_ALEN);

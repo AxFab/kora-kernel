@@ -30,7 +30,7 @@ After the build, if you're here to get dirty, think about `qemu` and `gdb`.
 > **Note:** A clean build is fast but make will require `*.d` files on a second run, which will increase build time. It's perfectly normal and most makefiles always build them anyway. You can avoid this by a `make clean` or use the option `NODEPS=1`. To ignore `*.d` files. Be aware of the effects of each command.
 
 ```bash
-make [kImg]         # Will build the kernel image as './bin/kImg
+make [kImage]         # Will build the kernel image as './bin/kImage
 make check          # Will run every tests available
 make cov_ck*        # Will run coverage on a test program
 make kSim           # Will build a kernel simulator program for advanced testing
@@ -57,13 +57,18 @@ For the moment drivers must be embedded on the kernel. Some configuration can be
 
 > _comming soon_
 
- - GCC, `./hooks/cross_gcc.sh`
+ - GCC, `./scripts/cross_gcc.sh`
+ - Download for `x86-64` host at 
 
 ## building the system
 
 > _Incomplete section_
 
- - ISO cdrom x86: `./hooks/build.sh x86` (will require `xorriso` and `grub`)
+ - ISO cdrom x86: `./scripts/build.sh x86` (will require `xorriso` and `grub`)
+
+> **Commom issues:**
+>
+> - If you get the error `mformat invocation failed`, you will need to install `mtools` as an extra package.
 
 # Features
 
@@ -85,7 +90,7 @@ Note that Tty is not a file type on Kora, and video streams have no equivalent i
 
 All those files and devices can be access through an evolved VFS (virtual file system) with good caching facilities.
 
-The network stack support the protocols: Ethernet, ARP, IPv4, ICMP, DHCP, <s>DNS, UDP, TCP and NTP</s>.
+The network stack support the protocols: Ethernet, ARP, IPv4, ICMP, DHCP, ~~DNS, UDP, TCP and NTP~~.
 However IP config is still lacking which make use of the network still difficult.
 
 ## Drivers
@@ -99,10 +104,12 @@ Here's a list of yet provided drivers:
 
 ## Commands
 
+> _Incomplete section_
 
 
 ## Syscalls
 
+> _Incomplete section_
 
 
 ## Library port
@@ -110,12 +117,12 @@ Here's a list of yet provided drivers:
 Even if writing his personal system allow to re-think and rewrite everything it will still be a bit pointless if no other code could run on this system.
 With new functionality and support, I'm able to start porting and testing third-party libraries on my own system. Here's a list of successful port on Kora :
 
- - <s>openlibm</s>
+ - ~~openlibm~~
 
 > A package manager is under planning to make use of those libraries.
 
 # To know more
 
  - Take a look at `doc/` folder
- - [Github wiki][https://github.com/axfab/kora-os/wiki]
- - Reach me on [Slack][http://koraos.slack.com]
+ - [Github wiki](https://github.com/axfab/kora-os/wiki) _Still not ready yet!_
+ - Reach me on [Slack](http://koraos.slack.com)
