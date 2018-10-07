@@ -159,12 +159,21 @@ vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length)
 int vma_close(mspace_t *mspace, vma_t *vma, int arg)
 {
     (void)arg;
+    size_t off;
     assert(splock_locked(&mspace->lock));
     int type = vma->flags & VMA_TYPE;
-    if (type == VMA_FILE) {
+    switch (type) {
+        case VMA_PHYS:
+            for (off = 0; off < vma->length; off += PAGE_SIZE)
+                mmu_drop(vma->node.value_ + off);
+            break;
+        case VMA_FILE:
+            break;
+        default:
+            page_sweep(mspace, vma->node.value_, vma->length, true);
+            break;
+    }
 
-    } else if ((vma->flags & VMA_SHARED) == 0 && type != VMA_PHYS)
-        page_sweep(mspace, vma->node.value_, vma->length, true);
     if (vma->ino)
         vfs_close(vma->ino);
     bbtree_remove(&mspace->tree, vma->node.value_);

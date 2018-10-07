@@ -64,6 +64,5 @@ void ac97_teardown()
 }
 
 
-MODULE(ac97, MOD_AGPL, ac97_setup, ac97_teardown);
-// MOD_REQUIRE(pci);
+MODULE(ac97, ac97_setup, ac97_teardown);
 
