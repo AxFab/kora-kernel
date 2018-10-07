@@ -34,7 +34,7 @@
 
 #define SIZE_MAX ULONG_MAX
 /* TODO define somewhere else */
-#define UNSIGNED_MINUS(v)  ((~(v))-1)
+#define UNSIGNED_MINUS(v)  ((~(v))+1)
 
 #define LOWER 0x20
 

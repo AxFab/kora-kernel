@@ -254,9 +254,13 @@ KMODULE(isofs);
 KMODULE(fatfs);
 KMODULE(e1000);
 
+void grub_load_modules();
+
 void platform_setup()
 {
     pci_setup();
+
+    grub_load_modules();
 
     // Load fake disks drivers
     kernel_tasklet(kernel_module, &kmod_info_ide_ata, kmod_info_ide_ata.name);

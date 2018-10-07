@@ -77,7 +77,12 @@ x86 () {
 
 
     # Import files
-    cp $SRC_KRN/bin/kImage iso/boot/kImage
+    cp -v $SRC_KRN/bin/kImage iso/boot/kImage
+    if [ -f $SRC_KRN/src/drivers/drivers.tar ]
+    then
+        cp -v $SRC_KRN/src/drivers/drivers.tar iso/boot/x86.miniboot.tar
+    fi
+
     mkdir -p iso/boot/grub
     
     if [ -z $isomode ]

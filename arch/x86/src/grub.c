@@ -55,6 +55,12 @@ PACK(struct grub_info {
     uint8_t framebuffer_type;
 }) *grub_table;
 
+struct grub_module {
+    void *start;
+    void *end;
+    char *string;
+};
+
 #define GRUB_MEM_BOUND  (1 << 0)
 #define GRUB_BOOT_DEVICE  (1 << 1)
 #define GRUB_CMDLINE  (1 << 2)
@@ -70,22 +76,25 @@ int grub_init(void *table)
     com_early_init();
 
     // Those call to kprintf crash under VirtualBox!
-    // if (grub_table->flags & GRUB_BOOT_LOADER)
-    //     kprintf(KLOG_MSG, "Boot Loader: %s\n", grub_table->boot_loader);
+#if 1
+    if (grub_table->flags & GRUB_BOOT_LOADER)
+        kprintf(KLOG_MSG, "Boot Loader: %s\n", grub_table->boot_loader);
 
-    // if (grub_table->flags & GRUB_CMDLINE)
-    //     kprintf(KLOG_MSG, "Command line: %s\n", grub_table->cmdline);
+    if (grub_table->flags & GRUB_CMDLINE)
+        kprintf(KLOG_MSG, "Command line: %s\n", grub_table->cmdline);
 
-    // if (grub_table->flags & GRUB_BOOT_DEVICE) {
-    //     if (grub_table->boot_dev == 0x80)   // 1000b
-    //         kprintf(KLOG_MSG, "Booting device: HDD\n");
+    if (grub_table->flags & GRUB_BOOT_DEVICE) {
+        if (grub_table->boot_dev == 0x80)   // 1000b
+            kprintf(KLOG_MSG, "Booting device: HDD\n");
 
-    //     else if (grub_table->boot_dev == 0xe0)   // 1110b
-    //         kprintf(KLOG_MSG, "Booting device: CD\n");
+        else if (grub_table->boot_dev == 0xe0)   // 1110b
+            kprintf(KLOG_MSG, "Booting device: CD\n");
 
-    //     else
-    //         kprintf(KLOG_MSG, "Booting device: Unknown <%2x>\n", grub_table->boot_dev);
-    // }
+        else
+            kprintf(KLOG_MSG, "Booting device: Unknown <%2x>\n", grub_table->boot_dev);
+    }
+
+#endif
 
 
     return 0;
@@ -110,5 +119,56 @@ void grub_memory()
 
         if (length > 0 && ram[5] == 1)
             page_range(base, length);
+    }
+}
+
+#include <kernel/vfs.h>
+#include <kora/llist.h>
+// #include <kernel/bio.h>
+
+inode_t *tar_mount(void *base, void *end, CSTR name);
+typedef struct dynlib dynlib_t;
+
+struct dynlib {
+    char *name;
+    int rcu;
+    size_t entry;
+    size_t init;
+    size_t fini;
+    size_t base;
+    size_t length;
+    bio_t *io;
+    llnode_t node;
+    llhead_t sections;
+    llhead_t depends;
+    llhead_t intern_symbols;
+    llhead_t extern_symbols;
+    llhead_t relocations;
+};
+
+void grub_load_modules()
+{
+    unsigned i;
+    if (grub_table->flags & GRUB_MODULES) {
+        kprintf(KLOG_MSG, "Module loaded %d\n", grub_table->mods_count);
+        struct grub_module *mods = (struct grub_module *)grub_table->mods_addr;
+        for (i = 0; i < grub_table->mods_count; ++i) {
+            kprintf(KLOG_MSG, "Mod [%p - %p] %s \n", mods->start, mods->end, mods->string);
+            inode_t *root = tar_mount(mods->start, mods->end, mods->string);
+
+            kprintf(KLOG_MSG, "READ DIR \n");
+
+            inode_t *ino;
+            char filename[100];
+            void *ctx = vfs_opendir(root, NULL);
+            while ((ino = vfs_readdir(root, filename, ctx)) != NULL) {
+                dynlib_t dlib;
+                // inode_t *ino, int flags, int block, size_t offset);
+                dlib.io = bio_create(ino, VMA_FILE_RO, PAGE_SIZE, 0);
+                kprintf(-1, " -Open: %s   %d  %d\n", filename, ino->length, ino->lba);
+                elf_parse(&dlib);
+            }
+            vfs_closedir(root, ctx);
+        }
     }
 }

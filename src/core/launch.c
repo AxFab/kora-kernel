@@ -99,30 +99,6 @@ void kernel_tasklet(void *start, void *arg, CSTR name)
 
 extern int no_dbg;
 
-void ktsk1()
-{
-    for (;;) {
-        async_wait(NULL, NULL, 1000000);
-        kprintf(-1, "Task1\n");
-    }
-}
-
-void ktsk2()
-{
-    for (;;) {
-        async_wait(NULL, NULL, 1000000);
-        kprintf(-1, "Task2\n");
-    }
-}
-
-void ktsk3()
-{
-    for (;;) {
-        async_wait(NULL, NULL, 1000000);
-        kprintf(-1, "Task3\n");
-    }
-}
-
 void kernel_top(long sec)
 {
     async_wait(NULL, NULL, 10000);
@@ -187,7 +163,9 @@ void kernel_master()
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
     kprintf(-1, "Syscall\n");
+    return -1;
 }
+
 
 void kernel_start()
 {
