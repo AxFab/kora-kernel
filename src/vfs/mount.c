@@ -103,7 +103,7 @@ inode_t *vfs_mount(CSTR dev, CSTR fs)
         return NULL;
     }
 
-    kprintf(KLOG_MSG, "Mount %s as \e[35m%s\e[0m (%s)\n", dev, ino->fs->name,
+    kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", dev, ino->fs->name,
             ino->fs->fsname);
     errno = 0;
     return ino;

@@ -17,21 +17,17 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <errno.h>
-#include <kernel/core.h>
+#include <kernel/memory.h>
+#include <kernel/mmu.h>
 #include "../check.h"
+#include <errno.h>
 
-_Noreturn void scheduler_switch(int status, int retcode)
+page_t mmu_read(size_t addr)
 {
-    assert(false);
-    for (;;);
+    return 0;
 }
-
-int task_resume(task_t *task)
+void page_release(size_t addr) {}
+int page_fault(mspace_t *mspace, size_t address, int reason)
 {
     return -1;
-}
-
-void task_kill(task_t *task, int signum)
-{
 }

@@ -28,6 +28,9 @@
     <Filter Include="src\task">
       <UniqueIdentifier>{158ec96f-97eb-4dd5-956e-e5ac2827c862}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\tests">
+      <UniqueIdentifier>{cfe52098-deef-49a9-9f0d-5c6e3ead042a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\vfs\device.c">
@@ -47,18 +50,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\vfs\parts.c">
       <Filter>src\vfs</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\tests\fs\_check.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\tests\fs\fs.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\tests\_stub\core.c">
-      <Filter>src\core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\tests\_stub\irq.c">
-      <Filter>src\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\core\bio.c">
       <Filter>src\core</Filter>
@@ -81,22 +72,37 @@
     <ClCompile Include="..\..\..\src\libc\string.c">
       <Filter>src\libc</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\tests\_stub\time.c">
-      <Filter>src\core</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\task\async.c">
       <Filter>src\task</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\tests\_stub\task.c">
+    <ClCompile Include="..\..\..\src\tests\fs\_check.c">
+      <Filter>src\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\fs\ck_fs.c">
+      <Filter>src\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c">
       <Filter>src\core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\tests\_stub\mem.c">
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_task.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\core\irq.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_time.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_mem.c">
       <Filter>src\core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\vfs\vfs.h">
       <Filter>src\vfs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\tests\check.h">
+      <Filter>src\tests</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

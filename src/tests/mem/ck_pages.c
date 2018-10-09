@@ -21,7 +21,6 @@
 #include <kernel/memory.h>
 #include <kora/mcrs.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <errno.h>
 #include "../check.h"
 

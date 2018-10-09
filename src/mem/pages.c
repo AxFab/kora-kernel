@@ -136,13 +136,13 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
     int ret = 0;
     vma_t *vma = mspace_search_vma(mspace, address);
     if (vma == NULL) {
-        kprintf(KLOG_PF, "\e[91m#PF\e[31m Forbidden address "FPTR"!\e[0m\n", address);
+        kprintf(KLOG_PF, "\033[91m#PF\033[31m Forbidden address %p!\033[0m\n", address);
         return -1;
     }
 
     if (reason & PGFLT_WRITE && !(vma->flags & VMA_WRITE)
         && !(vma->flags & VMA_COPY_ON_WRITE)) {
-        kprintf(KLOG_PF, "\e[91m#PF\e[31m Forbidden writing at "FPTR"!\e[0m\n",
+        kprintf(KLOG_PF, "\033[91m#PF\033[31m Forbidden writing at %p!\033[0m\n",
                 address);
         splock_unlock(&vma->mspace->lock);
         return -1; // Writing is forbidden
@@ -153,7 +153,7 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
         ret = vma_resolve(vma, address, PAGE_SIZE);
     }
     if (ret != 0) {
-        kprintf(KLOG_PF, "\e[91m#PF\e[31m Unable to resolve page at "FPTR"!\e[0m\n",
+        kprintf(KLOG_PF, "\033[91m#PF\033[31m Unable to resolve page at %p!\033[0m\n",
                 address);
         splock_unlock(&vma->mspace->lock);
         return -1;
@@ -161,9 +161,9 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
     if (reason & PGFLT_WRITE && (vma->flags & VMA_COPY_ON_WRITE))
         ret = vma_copy_on_write(vma, address, PAGE_SIZE);
     if (ret != 0)
-        kprintf(KLOG_PF, "\e[91m#PF\e[31m Error on copy and write at "FPTR"!\e[0m\n",
+        kprintf(KLOG_PF, "\033[91m#PF\033[31m Error on copy and write at %p!\033[0m\n",
                 address);
-    kprintf(KLOG_PF, "\e[91m#PF\e[0m Page at "FPTR"!\e[0m\n", address);
+    kprintf(KLOG_PF, "\033[91m#PF\033[0m Page at %p!\033[0m\n", address);
     splock_unlock(&vma->mspace->lock);
     return 0;
 }

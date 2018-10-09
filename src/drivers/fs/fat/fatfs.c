@@ -37,6 +37,7 @@ int fatfs_truncate(inode_t *ino, off_t length)
 	
 	if (mx > info->CountofClusters) {
 	    // TODO - Count used space
+        bio_clean(info->io_data_rw, lba);
 	    errno = ENOSPC;
 	    return -1;
     } else if (lg == mx) {

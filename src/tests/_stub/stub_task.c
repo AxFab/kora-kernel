@@ -18,16 +18,20 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <errno.h>
-#include <kernel/memory.h>
-#include <kernel/mmu.h>
+#include <kernel/core.h>
 #include "../check.h"
 
-page_t mmu_read(size_t addr)
+_Noreturn void scheduler_switch(int status, int retcode)
 {
-    return 0;
+    assert(false);
+    for (;;);
 }
-void page_release(size_t addr) {}
-int page_fault(mspace_t *mspace, size_t address, int reason)
+
+int task_resume(task_t *task)
 {
-    return -1;
+    return - 1;
+}
+
+void task_kill(task_t *task, int signum)
+{
 }

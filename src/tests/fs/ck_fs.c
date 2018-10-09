@@ -45,8 +45,8 @@ void test_fs_teardown(inode_t *root)
     int res = vfs_umount(root);
     ck_ok(res == 0 && errno == 0, "Unmount file system");
     vfs_close(root);
-    imgdk_teardown();
     vfs_reset();
+    imgdk_teardown();
 }
 
 
@@ -113,8 +113,31 @@ void test_fs_mknod(inode_t *root)
     vfs_close(ino4);
 }
 
-
 void test_fs_rdwr(inode_t *root)
+{
+    int ret;
+    char *buf = malloc(100);
+    // Create and open file
+    inode_t *ino1 = vfs_create(root, "TEXT.TXT", S_IFREG | 0644, NULL, 0);
+    ck_ok(ino1 != NULL && errno == 0, "");
+
+    ret = vfs_read(ino1, buf, 100, 0);
+    ck_ok(ret == -1 && errno == 0, "");
+
+    ret = vfs_truncate(ino1, 32);
+    ck_ok(ret == 0 && errno == 0, "");
+
+    ret = vfs_write(ino1, "Hello world!", 12, 0);
+    ck_ok(ret == 12 && errno == 0, "");
+
+    buf[12] = 'Z';
+    buf[13] = '\0';
+    ret = vfs_read(ino1, buf, 100, 0);
+    ck_ok(ret == 12 && errno == 0, "");
+    ck_ok(strncmp("Hello world!Z", buf, 15) == 0, "");
+}
+
+void test_fs_truncate(inode_t *root)
 {
 	int ret;
     inode_t *ino1 = vfs_create(root, "FILE_S.TXT", S_IFREG, NULL, 0);
@@ -153,6 +176,14 @@ START_TEST(test_fat16_rdwr)
 {
     inode_t *ino = test_fs_setup("sdA", &kmod_info_fatfs, fatfs_format);
     test_fs_rdwr(ino);
+    test_fs_teardown(ino);
+}
+END_TEST
+
+START_TEST(test_fat16_truncate)
+{
+    inode_t *ino = test_fs_setup("sdA", &kmod_info_fatfs, fatfs_format);
+    test_fs_truncate(ino);
     test_fs_teardown(ino);
 }
 END_TEST
