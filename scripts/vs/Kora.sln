@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 14 for Windows Desktop
+# Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_vfs", "test_vfs.vcxproj", "{31C749A7-D99D-422A-B361-4A8ED37B45A2}"
@@ -15,6 +15,12 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dlib", "dlib.vcxproj", "{5343844B-A07D-4EA9-A417-354E234C38E9}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kernel_simu_modules", "kernel_simu_modules.vcxproj", "{BD998BF9-42FA-4654-8868-7A78F9AA340D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fsystem", "fsystem\fsystem.vcxproj", "{461027F7-634B-4DBB-A251-E23DBCFD0F98}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ckFs", "ckFs\ckFs.vcxproj", "{AA8FC77A-88A5-4936-A223-32467F8D2D64}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "drivers", "drivers\drivers.vcxproj", "{FA4BDD75-7C7B-451C-AEE0-2D24CA46B760}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -62,6 +68,30 @@ Global
 		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Release|x64.Build.0 = Release|x64
 		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Release|x86.ActiveCfg = Release|Win32
 		{BD998BF9-42FA-4654-8868-7A78F9AA340D}.Release|x86.Build.0 = Release|Win32
+		{461027F7-634B-4DBB-A251-E23DBCFD0F98}.Debug|x64.ActiveCfg = Debug|x64
+		{461027F7-634B-4DBB-A251-E23DBCFD0F98}.Debug|x64.Build.0 = Debug|x64
+		{461027F7-634B-4DBB-A251-E23DBCFD0F98}.Debug|x86.ActiveCfg = Debug|Win32
+		{461027F7-634B-4DBB-A251-E23DBCFD0F98}.Debug|x86.Build.0 = Debug|Win32
+		{461027F7-634B-4DBB-A251-E23DBCFD0F98}.Release|x64.ActiveCfg = Release|x64
+		{461027F7-634B-4DBB-A251-E23DBCFD0F98}.Release|x64.Build.0 = Release|x64
+		{461027F7-634B-4DBB-A251-E23DBCFD0F98}.Release|x86.ActiveCfg = Release|Win32
+		{461027F7-634B-4DBB-A251-E23DBCFD0F98}.Release|x86.Build.0 = Release|Win32
+		{AA8FC77A-88A5-4936-A223-32467F8D2D64}.Debug|x64.ActiveCfg = Debug|x64
+		{AA8FC77A-88A5-4936-A223-32467F8D2D64}.Debug|x64.Build.0 = Debug|x64
+		{AA8FC77A-88A5-4936-A223-32467F8D2D64}.Debug|x86.ActiveCfg = Debug|Win32
+		{AA8FC77A-88A5-4936-A223-32467F8D2D64}.Debug|x86.Build.0 = Debug|Win32
+		{AA8FC77A-88A5-4936-A223-32467F8D2D64}.Release|x64.ActiveCfg = Release|x64
+		{AA8FC77A-88A5-4936-A223-32467F8D2D64}.Release|x64.Build.0 = Release|x64
+		{AA8FC77A-88A5-4936-A223-32467F8D2D64}.Release|x86.ActiveCfg = Release|Win32
+		{AA8FC77A-88A5-4936-A223-32467F8D2D64}.Release|x86.Build.0 = Release|Win32
+		{FA4BDD75-7C7B-451C-AEE0-2D24CA46B760}.Debug|x64.ActiveCfg = Debug|x64
+		{FA4BDD75-7C7B-451C-AEE0-2D24CA46B760}.Debug|x64.Build.0 = Debug|x64
+		{FA4BDD75-7C7B-451C-AEE0-2D24CA46B760}.Debug|x86.ActiveCfg = Debug|Win32
+		{FA4BDD75-7C7B-451C-AEE0-2D24CA46B760}.Debug|x86.Build.0 = Debug|Win32
+		{FA4BDD75-7C7B-451C-AEE0-2D24CA46B760}.Release|x64.ActiveCfg = Release|x64
+		{FA4BDD75-7C7B-451C-AEE0-2D24CA46B760}.Release|x64.Build.0 = Release|x64
+		{FA4BDD75-7C7B-451C-AEE0-2D24CA46B760}.Release|x86.ActiveCfg = Release|Win32
+		{FA4BDD75-7C7B-451C-AEE0-2D24CA46B760}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
