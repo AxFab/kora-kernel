@@ -40,5 +40,5 @@
 
 # Visual studio
 !scripts/vs/*.sln
-!scripts/vs/*.vcxproj
-!scripts/vs/*.vcxproj.*
+!scripts/vs/**/*.vcxproj
+!scripts/vs/**/*.vcxproj.*
