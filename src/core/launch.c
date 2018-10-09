@@ -172,7 +172,7 @@ void kernel_start()
     kSYS.cpus = &kCPU0;
     irq_reset(false);
     irq_disable();
-    kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
+    kprintf(KLOG_MSG, "\033[97mKoraOS\033[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
 
     assert(kCPU.irq_semaphore == 1);
     memory_initialize();
@@ -184,7 +184,7 @@ void kernel_start()
     cpu_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    kprintf(KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
+    kprintf(KLOG_MSG, "\n\033[94m  Greetings...\033[0m\n\n");
 
     platform_setup();
     assert(kCPU.irq_semaphore == 1);

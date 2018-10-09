@@ -32,14 +32,6 @@
 int __errno;
 splock_t klog_lock = INIT_SPLOCK;
 
-#if !defined(_WIN32)
-#define _valloc(s) valloc(s)
-#define _vfree(p) free(p)
-#else
-#define _valloc(s) _aligned_malloc(s, PAGE_SIZE)
-#define _vfree(p) _aligned_free(p)
-#endif
-
 
 int *__errno_location()
 {
@@ -54,8 +46,7 @@ _Noreturn void __assert_fail(CSTR expr, CSTR file, int line)
 
 void __perror_fail(int err, const char *file, int line, const char *msg)
 {
-    kprintf(KLOG_ERR, "ERROR] Process fails (%d) at %s:%d -- %s\n", err, file, line,
-            msg);
+    kprintf(KLOG_ERR, "ERROR] Process fails (%d) at %s:%d -- %s\n", err, file, line, msg);
     longjmp(__tcase_jump, 1);
 }
 
@@ -193,59 +184,19 @@ void heap_unmap(void *adddress, size_t length)
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+#include <Windows.h>
 
-#ifdef _FAKE_TIME
-#if !defined(_WIN32)
-time64_t time64()
+void nanosleep(struct timespec *tm, struct timespec *rs)
 {
-    clock_t ticks = clock();
-    if (_PwNano_ > CLOCKS_PER_SEC)
-        ticks *= _PwNano_ / CLOCKS_PER_SEC;
-    else
-        ticks /= CLOCKS_PER_SEC / _PwNano_;
-    return ticks;
+    time64_t start = time64();
+    Sleep(tm->tv_sec * 1000 + tm->tv_nsec / 1000000);
+    time64_t elasped = start - time64();
+    elasped = tm->tv_sec * _PwNano_ + tm->tv_nsec - elasped;
+    if (elasped < 0) {
+        rs->tv_sec = 0;
+        rs->tv_nsec = 0;
+    } else {
+        rs->tv_sec = elasped / _PwNano_;
+        rs->tv_nsec = elasped % _PwNano_;
+    }
 }
-#else
-#include <windows.h>
-time64_t time64()
-{
-    // January 1, 1970 (start of Unix epoch) in ticks
-    const INT64 UNIX_START = 0x019DB1DED53E8000;
-
-    FILETIME ft;
-    GetSystemTimeAsFileTime(&ft);
-
-    LARGE_INTEGER li;
-    li.LowPart = ft.dwLowDateTime;
-    li.HighPart = ft.dwHighDateTime;
-    // Convert ticks since EPOCH into nano-seconds
-    return (li.QuadPart - UNIX_START) * 100;
-}
-#endif
-#endif
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-#ifdef _FAKE_TASK
-
-_Noreturn void scheduler_switch(int status, int retcode)
-{
-    assert(false);
-    for (;;);
-}
-
-int task_resume(task_t *task)
-{
-    return -1;
-}
-
-void task_kill(task_t *task, int signum)
-{
-}
-
-#endif
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-

@@ -106,7 +106,7 @@ void lnet_setup()
     ifnet->n.link = lnet_link;
     ifnet->n.send = lnet_send;
     thrd_t thrd;
-    thrd_create(&thrd, lnet_idle, ifnet);
+    thrd_create(&thrd, (thrd_start_t)lnet_idle, ifnet);
     net_device(ifnet);
 }
 

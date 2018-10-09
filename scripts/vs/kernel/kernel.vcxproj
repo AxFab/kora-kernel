@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{AA8FC77A-88A5-4936-A223-32467F8D2D64}</ProjectGuid>
-    <RootNamespace>ckFs</RootNamespace>
+    <ProjectGuid>{982B1476-4D66-4A32-A636-A28645F993E3}</ProjectGuid>
+    <RootNamespace>kernel</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -80,6 +80,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;_VTAG_="0.0-VS";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>fsystem.lib;drivers.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -101,6 +102,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;_VTAG_="0.0-VS";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -126,18 +128,36 @@
     <ClCompile Include="..\..\..\src\core\bio.c" />
     <ClCompile Include="..\..\..\src\core\debug.c" />
     <ClCompile Include="..\..\..\src\core\irq.c" />
+    <ClCompile Include="..\..\..\src\core\launch.c" />
     <ClCompile Include="..\..\..\src\files\ioblk.c" />
     <ClCompile Include="..\..\..\src\libc\bbtree.c" />
     <ClCompile Include="..\..\..\src\libc\hmap.c" />
     <ClCompile Include="..\..\..\src\libc\random.c" />
     <ClCompile Include="..\..\..\src\libc\string.c" />
+    <ClCompile Include="..\..\..\src\mem\memory.c" />
+    <ClCompile Include="..\..\..\src\mem\mspace.c" />
+    <ClCompile Include="..\..\..\src\mem\pages.c" />
+    <ClCompile Include="..\..\..\src\mem\vma.c" />
+    <ClCompile Include="..\..\..\src\net\arp.c" />
+    <ClCompile Include="..\..\..\src\net\dhcp.c" />
+    <ClCompile Include="..\..\..\src\net\dns.c" />
+    <ClCompile Include="..\..\..\src\net\eth.c" />
+    <ClCompile Include="..\..\..\src\net\host.c" />
+    <ClCompile Include="..\..\..\src\net\icmp.c" />
+    <ClCompile Include="..\..\..\src\net\ip4.c" />
+    <ClCompile Include="..\..\..\src\net\net.c" />
+    <ClCompile Include="..\..\..\src\net\ntp.c" />
+    <ClCompile Include="..\..\..\src\net\tcp.c" />
+    <ClCompile Include="..\..\..\src\net\udp.c" />
     <ClCompile Include="..\..\..\src\task\async.c" />
-    <ClCompile Include="..\..\..\src\tests\fs\ck_fs.c" />
-    <ClCompile Include="..\..\..\src\tests\fs\_check.c" />
+    <ClCompile Include="..\..\..\src\task\resx.c" />
+    <ClCompile Include="..\..\..\src\task\task.c" />
+    <ClCompile Include="..\..\..\src\task\ticks.c" />
+    <ClCompile Include="..\..\..\src\tests\kernel.c" />
+    <ClCompile Include="..\..\..\src\tests\_mcvs\scheduler.c" />
+    <ClCompile Include="..\..\..\src\tests\_mcvs\threads.c" />
     <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_mem.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_task.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_time.c" />
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_mmu.c" />
     <ClCompile Include="..\..\..\src\vfs\device.c" />
     <ClCompile Include="..\..\..\src\vfs\directory.c" />
     <ClCompile Include="..\..\..\src\vfs\dirent.c" />
@@ -146,16 +166,8 @@
     <ClCompile Include="..\..\..\src\vfs\parts.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\tests\check.h" />
+    <ClInclude Include="..\..\..\src\mem\mspace.h" />
     <ClInclude Include="..\..\..\src\vfs\vfs.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\drivers\drivers.vcxproj">
-      <Project>{fa4bdd75-7c7b-451c-aee0-2d24ca46b760}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\fsystem\fsystem.vcxproj">
-      <Project>{461027f7-634b-4dbb-a251-e23dbcfd0f98}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

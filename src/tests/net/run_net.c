@@ -21,7 +21,7 @@
 #include <kernel/net.h>
 #include <string.h>
 #include <time.h>
-#include <pthread.h>
+#include <threads.h>
 #include "../check.h"
 
 
@@ -31,11 +31,11 @@ typedef void *(*pfunc_t)(void *);
 jmp_buf __tcase_jump;
 
 netdev_t eth1;
-pthread_t thread1;
+thrd_t thread1;
 uint8_t mac1[ETH_ALEN] = { 0x08, 0x04, 0x06, 0x46, 0xef, 0xc3 };
 
 netdev_t eth2;
-pthread_t thread2;
+thrd_t thread2;
 uint8_t mac2[ETH_ALEN] = { 0x08, 0x07, 0x02, 0x91, 0xa3, 0x6d };
 uint8_t ip2[IP4_ALEN] = { 192, 168, 0, 1 };
 
@@ -49,7 +49,7 @@ void net_tasklet(netdev_t *);
 void net_start(netdev_t *ifnet)
 {
     net_tasklet(ifnet);
-    pthread_exit(NULL);
+    thrd_exit(0);
 }
 
 void async_wait(splock_t *lock, llhead_t *list, long timeout_us)
@@ -77,9 +77,9 @@ void async_wait(splock_t *lock, llhead_t *list, long timeout_us)
 void kernel_tasklet(void *start, void *arg, CSTR name)
 {
     if ((void *)arg == &eth1)
-        pthread_create(&thread1, NULL, (pfunc_t)net_start, arg);
+        thrd_create(&thread1, (pfunc_t)net_start, arg);
     else if ((void *)arg == &eth2)
-        pthread_create(&thread2, NULL, (pfunc_t)net_start, arg);
+        thrd_create(&thread2, (pfunc_t)net_start, arg);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -134,7 +134,8 @@ int main()
     eth2.dhcp_srv = dhcp_create_server(ip2, 8);
     net_device(&eth2);
 
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
+    int ret;
+    thrd_join(thread1, &ret);
+    thrd_join(thread2, &ret);
     return 0;
 }

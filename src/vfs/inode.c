@@ -264,8 +264,8 @@ int vfs_read(inode_t *ino, void *buf, size_t len, off_t off)
 {
     assert(ino != NULL);
     assert(buf != NULL && len != 0);
-    assert(((size_t)buf & (PAGE_SIZE - 1)) == 0);
-    assert((len & (PAGE_SIZE - 1)) == 0);
+    // assert(((size_t)buf & (PAGE_SIZE - 1)) == 0);
+    // assert((len & (PAGE_SIZE - 1)) == 0);
 
     fs_read read = NULL;
     if (S_ISREG(ino->mode)) {
