@@ -166,7 +166,7 @@ void imgdk_create(CSTR name, size_t size) {
 
 void imgdk_setup()
 {
-    imgdk_create("sdA.img", 16 * _Mib_);
+    // imgdk_create("sdA.img", 16 * _Mib_);
     int i;
     for (i = 0; i < 4; ++i)
         imgdk_open(i);

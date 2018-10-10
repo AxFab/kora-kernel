@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{6977f226-76a2-4ba1-98a4-98e2972ab744}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{8cc9207b-4404-45a7-8ffb-91b4ffd25b01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\files">
+      <UniqueIdentifier>{4dcd31a3-d951-4b07-93d9-edadf3f10ee7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\tests">
+      <UniqueIdentifier>{9bdd71c9-4ec5-4dd5-8e62-70df79270743}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{5b53b1ea-8a76-49e4-800c-764809d92e00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\libc">
+      <UniqueIdentifier>{e785ddfa-cc43-4009-b889-e79996a0ca42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\task">
+      <UniqueIdentifier>{2c270042-c0de-4154-92c0-66f198d82dc1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\files\pipe.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\files\_check.c">
+      <Filter>src\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\files\ck_pipe.c">
+      <Filter>src\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\core\debug.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\irq.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_task.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_time.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_vfs.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\libc\hmap.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\task\async.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

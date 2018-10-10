@@ -147,7 +147,7 @@ int pipe_write(pipe_t *pipe, const char *buf, int len, int flags)
             return -1;
         }
         while (len > pipe->size)
-            pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size);
+            pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size));
         while (len > pipe->size - pipe->avail)
             async_wait(&pipe->lock, &pipe->wlist, -1);
     }
