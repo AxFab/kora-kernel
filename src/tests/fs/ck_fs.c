@@ -40,12 +40,13 @@ inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
     return root;
 }
 
-void test_fs_teardown(inode_t *root)
+void test_fs_teardown(inode_t *root, kmod_t *fsmod)
 {
     int res = vfs_umount(root);
     ck_ok(res == 0 && errno == 0, "Unmount file system");
     vfs_close(root);
     vfs_reset();
+    fsmod->teardown();
     imgdk_teardown();
 }
 
@@ -144,16 +145,16 @@ void test_fs_truncate(inode_t *root)
     ck_ok(ino1 != NULL && errno == 0, "");
     ret = vfs_truncate(ino1, 348); // Less than a sector
     ck_ok(ret == 0 && errno == 0, "");
-    
+
     inode_t *ino2 = vfs_create(root, "FILE_L.TXT", S_IFREG, NULL, 0);
     ck_ok(ino2 != NULL && errno == 0, "");
     ret = vfs_truncate(ino2, 75043); // Much larger file
     ck_ok(ret == 0 && errno == 0, "");
     inode_t *ino3 = vfs_create(root, "FILE_XL.TXT", S_IFREG, NULL, 0);
-    ck_ok(ino3 != NULL && errno == 0, ""); 
+    ck_ok(ino3 != NULL && errno == 0, "");
     ret = vfs_truncate(ino3, 2000 * _Mib_); // Much larger file
     ck_ok(ret != 0 && errno == ENOSPC, "");
-    
+
     vfs_close(ino1);
     vfs_close(ino2);
     vfs_close(ino3);
@@ -168,7 +169,7 @@ START_TEST(test_fat16_mknod)
 {
     inode_t *ino = test_fs_setup("sdA", &kmod_info_fatfs, fatfs_format);
     test_fs_mknod(ino);
-    test_fs_teardown(ino);
+    test_fs_teardown(ino, &kmod_info_fatfs);
 }
 END_TEST
 
@@ -176,7 +177,7 @@ START_TEST(test_fat16_rdwr)
 {
     inode_t *ino = test_fs_setup("sdA", &kmod_info_fatfs, fatfs_format);
     test_fs_rdwr(ino);
-    test_fs_teardown(ino);
+    test_fs_teardown(ino, &kmod_info_fatfs);
 }
 END_TEST
 
@@ -184,7 +185,7 @@ START_TEST(test_fat16_truncate)
 {
     inode_t *ino = test_fs_setup("sdA", &kmod_info_fatfs, fatfs_format);
     test_fs_truncate(ino);
-    test_fs_teardown(ino);
+    test_fs_teardown(ino, &kmod_info_fatfs);
 }
 END_TEST
 
@@ -197,6 +198,7 @@ void fixture_rwfs(Suite *s)
 
     tc = tcase_create("FAT16");
     tcase_add_test(tc, test_fat16_mknod);
-    tcase_add_test(tc, test_fat16_rdwr);
+    // tcase_add_test(tc, test_fat16_rdwr);
+    tcase_add_test(tc, test_fat16_truncate);
     suite_add_tcase(s, tc);
 }

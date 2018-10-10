@@ -22,6 +22,16 @@
 #include "../check.h"
 
 
+#if defined _WIN32
+int open(const char *name, int flags);
+#else
+#define O_BINARY 0
+#endif
+int read(int fd, char *buf, int len);
+int write(int fd, const char *buf, int len);
+int lseek(int fd, off_t off, int whence);
+void close(int fd);
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 START_TEST(test_pipe)

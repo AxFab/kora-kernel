@@ -33,8 +33,6 @@ extern unsigned char mmu_bmp[];
 
 #include <setjmp.h>
 
-#define FPTR "%08p"
-
 typedef void (*entry_t)(size_t);
 
 typedef struct {

@@ -37,18 +37,18 @@ START_TEST(test_pages_001)
     ck_assert(kMMU.free_pages < __um_pages_available);
     irq_reset(true);
 
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get 16 pages "FPTR"\n", page_get(1, 16));
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
-    kprintf(KLOG_DBG, "Get page "FPTR"\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get 16 pages %p\n", page_get(1, 16));
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
+    kprintf(KLOG_DBG, "Get page %p\n", page_new());
 
     memory_info();
 
