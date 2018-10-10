@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kernel", "kernel\kernel.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ckNet", "ckNet\ckNet.vcxproj", "{B1C4EB67-FA4B-4DDB-A95C-E4D1C668DEE8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ckFiles", "ckFiles\ckFiles.vcxproj", "{F0EF4F9B-99C1-4CCF-9D2E-6834F61C5C60}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -81,6 +83,14 @@ Global
 		{B1C4EB67-FA4B-4DDB-A95C-E4D1C668DEE8}.Release|x64.Build.0 = Release|x64
 		{B1C4EB67-FA4B-4DDB-A95C-E4D1C668DEE8}.Release|x86.ActiveCfg = Release|Win32
 		{B1C4EB67-FA4B-4DDB-A95C-E4D1C668DEE8}.Release|x86.Build.0 = Release|Win32
+		{F0EF4F9B-99C1-4CCF-9D2E-6834F61C5C60}.Debug|x64.ActiveCfg = Debug|x64
+		{F0EF4F9B-99C1-4CCF-9D2E-6834F61C5C60}.Debug|x64.Build.0 = Debug|x64
+		{F0EF4F9B-99C1-4CCF-9D2E-6834F61C5C60}.Debug|x86.ActiveCfg = Debug|Win32
+		{F0EF4F9B-99C1-4CCF-9D2E-6834F61C5C60}.Debug|x86.Build.0 = Debug|Win32
+		{F0EF4F9B-99C1-4CCF-9D2E-6834F61C5C60}.Release|x64.ActiveCfg = Release|x64
+		{F0EF4F9B-99C1-4CCF-9D2E-6834F61C5C60}.Release|x64.Build.0 = Release|x64
+		{F0EF4F9B-99C1-4CCF-9D2E-6834F61C5C60}.Release|x86.ActiveCfg = Release|Win32
+		{F0EF4F9B-99C1-4CCF-9D2E-6834F61C5C60}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
