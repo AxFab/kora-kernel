@@ -25,7 +25,7 @@
 START_TEST(test_arena_001)
 {
     heap_arena_t arena;
-    void *ptr = valloc(4096);
+    void *ptr = _valloc(4096);
     void *limit = (char *)ptr + 4096;
     setup_arena(&arena, (size_t)ptr, 4096, 4096, HEAP_PARANO | HEAP_CHECK);
 
@@ -49,14 +49,14 @@ START_TEST(test_arena_001)
     void *p4 = malloc_r(&arena, 128);
     ck_assert(p4 >= ptr && p4 < limit);
 
-    free(ptr);
+    _vfree(ptr);
 }
 END_TEST
 
 START_TEST(test_arena_002)
 {
     heap_arena_t arena;
-    void *ptr = valloc(4096);
+    void *ptr = _valloc(4096);
     void *limit = (char *)ptr + 4096;
     setup_arena(&arena, (size_t)ptr, 4096, 4096, HEAP_PARANO | HEAP_CHECK);
 
@@ -92,14 +92,14 @@ START_TEST(test_arena_002)
     free_r(&arena, p3);
     free_r(&arena, p6);
 
-    free(ptr);
+    _vfree(ptr);
 }
 END_TEST
 
 START_TEST(test_arena_003)
 {
     heap_arena_t arena;
-    void *ptr = valloc(4096);
+    void *ptr = _valloc(4096);
     void *limit = (char *)ptr + 4096;
     setup_arena(&arena, (size_t)ptr, 4096, 4096, HEAP_PARANO | HEAP_CHECK);
 
@@ -150,13 +150,13 @@ START_TEST(test_arena_003)
 
     free_r(&arena, p6);
 
-    free(ptr);
+    _vfree(ptr);
 }
 END_TEST
 
 START_TEST(test_heap_001)
 {
-    void *ptr = valloc(4096);
+    void *ptr = _valloc(4096);
     void *limit = (char *)ptr + 4096;
     setup_allocator(ptr, 4096);
 
@@ -183,7 +183,7 @@ START_TEST(test_heap_001)
     free_p(p4);
 
     sweep_allocator();
-    free(ptr);
+    _vfree(ptr);
 }
 END_TEST
 
