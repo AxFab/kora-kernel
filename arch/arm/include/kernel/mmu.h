@@ -69,8 +69,6 @@ typedef unsigned long long page_t; */
 #define MMU_U_DIR  ((page_t*)0xfffff000)
 
 
-
-#define FPTR "%08p"
 typedef size_t cpu_state_t[6];
 
 

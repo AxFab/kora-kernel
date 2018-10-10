@@ -156,17 +156,18 @@ void imgdk_release_dev(struct IMGDK_Drive *dev)
 
 void imgdk_create(CSTR name, size_t size) {
     int zero = 0;
-    int fd = open(name, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC);
+    int fd = open(name, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, 0644);
     if (fd != -1) {
         lseek(fd, size - 1, SEEK_SET);
-        write(fd, &zero, 1);
+        write(fd, (char*)&zero, 1);
         close(fd);
-    }
+    } else
+        kprintf(-1, "Unable to create image disk %s\n", name);
 }
 
 void imgdk_setup()
 {
-    // imgdk_create("sdA.img", 16 * _Mib_);
+    imgdk_create("sdA.img", 16 * _Mib_);
     int i;
     for (i = 0; i < 4; ++i)
         imgdk_open(i);

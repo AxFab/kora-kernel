@@ -88,7 +88,7 @@ struct inode {
     atomic32_t links;
     llhead_t dlist; // List of dirent_t;
     int block;
-    
+
     void *info; // Place holder for driver info
     union { // Place holder for file info
         void *object;
@@ -149,7 +149,7 @@ void *vfs_opendir(inode_t *dir, acl_t *acl);
 inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx);
 int vfs_closedir(inode_t *dir, void *ctx);
 
-
+void vfs_reset();
 int vfs_fdisk(CSTR dname, long parts, long *sz);
 
 #endif /* _KERNEL_VFS_H */

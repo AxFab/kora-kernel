@@ -185,6 +185,7 @@ void heap_unmap(void *adddress, size_t length)
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+#if defined(_WIN32)
 #include <Windows.h>
 
 void nanosleep(struct timespec *tm, struct timespec *rs)
@@ -201,3 +202,4 @@ void nanosleep(struct timespec *tm, struct timespec *rs)
         rs->tv_nsec = elasped % _PwNano_;
     }
 }
+#endif

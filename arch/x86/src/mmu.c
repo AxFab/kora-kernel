@@ -193,10 +193,10 @@ void mmu_explain(size_t vaddr)
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if (*dir)
-        kprintf(KLOG_DBG, " @"FPTR" -> {"FPTR":"FPTR"} / {"FPTR":"FPTR"}\n", vaddr, dir,
+        kprintf(KLOG_DBG, " @%p -> {%p:%p} / {%p:%p}\n", vaddr, dir,
                 *dir, tbl, *tbl);
     else
-        kprintf(KLOG_DBG, " @"FPTR" -> {"FPTR":"FPTR"}\n", vaddr, dir, *dir);
+        kprintf(KLOG_DBG, " @%p -> {%p:%p}\n", vaddr, dir, *dir);
 }
 
 void mmu_dump()

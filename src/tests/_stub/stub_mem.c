@@ -26,7 +26,11 @@ page_t mmu_read(size_t addr)
 {
     return 0;
 }
-void page_release(size_t addr) {}
+
+void page_release(page_t address)
+{
+}
+
 int page_fault(mspace_t *mspace, size_t address, int reason)
 {
     return -1;
