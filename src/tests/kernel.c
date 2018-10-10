@@ -90,6 +90,7 @@ int main()
 {
     kernel_start();
     assert(kCPU.irq_semaphore == 0);
+    kCPU.flags |= CPU_NO_TASK;
     if (setjmp(__tcase_jump) != 0)
         return -1;
     for (;;) {

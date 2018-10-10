@@ -143,6 +143,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
         vfs_read(ino, ptr, length, offset);
         break;
     case VMA_STACK:
+    case VMA_PIPE:
         break;
     default:
         assert(false);

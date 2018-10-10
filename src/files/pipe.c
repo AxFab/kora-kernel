@@ -44,7 +44,7 @@ static int pipe_resize_unlock_(pipe_t *pipe, int size)
 {
     if (size < pipe->avail || size > pipe->max_size)
         return -1;
-    char *remap = kalloc(size); //kmap(size, NULL, 0, VMA_PIPE_RW);
+    char *remap = kmap(size, NULL, 0, VMA_PIPE_RW);
 
     if (size > pipe->size) {
         // TODO - Move pages will be faster!
@@ -63,12 +63,14 @@ static int pipe_resize_unlock_(pipe_t *pipe, int size)
         }
         pipe->rpen = remap + (pipe->rpen - pipe->base);
         pipe->wpen = remap + (pipe->wpen - pipe->base);
-    } else {
+    } else if (size > pipe->avail) {
         memcpy(remap, pipe->rpen, pipe->avail);
         pipe->rpen = remap;
         pipe->wpen = remap + pipe->avail;
-    }
-    kfree(pipe->base); // kunmap(pipe->base, pipe->size);
+    } else
+        return -1;
+
+    kunmap(pipe->base, pipe->size);
     pipe->base = remap;
     pipe->size = size;
     pipe->end = pipe->base + size;
@@ -97,9 +99,9 @@ static int pipe_erase_unlock_(pipe_t *pipe, int len)
 pipe_t *pipe_create()
 {
     pipe_t *pipe = (pipe_t *)kalloc(sizeof(pipe_t));
-    pipe->size = 16; // PAGE_SIZE; // TODO -- Read config!
-    pipe->max_size = 64; // * PAGE_SIZE;
-    pipe->base = kalloc(pipe->size);// kmap(pipe->size, NULL, 0, VMA_PIPE_RW);
+    pipe->size = PAGE_SIZE; // TODO -- Read config!
+    pipe->max_size = 64 * PAGE_SIZE;
+    pipe->base = kmap(pipe->size, NULL, 0, VMA_PIPE_RW);
     pipe->avail = 0;
     pipe->rpen = pipe->base;
     pipe->wpen = pipe->base;
@@ -109,7 +111,7 @@ pipe_t *pipe_create()
 
 void pipe_destroy(pipe_t *pipe)
 {
-    kfree(pipe->base); // kunmap(pipe->base, pipe->size);
+    kunmap(pipe->base, pipe->size);
     kfree(pipe);
 }
 
@@ -135,20 +137,26 @@ int pipe_write(pipe_t *pipe, const char *buf, int len, int flags)
 {
     int bytes = 0;
     splock_lock(&pipe->lock);
-    if (flags & (IO_NO_BLOCK | IO_ATOMIC) && len > pipe->size - pipe->avail) {
+    if (flags & IO_NO_BLOCK && len > pipe->size - pipe->avail) {
         splock_unlock(&pipe->lock);
         errno = EWOULDBLOCK;
         return -1;
+    } else if (flags & IO_ATOMIC) {
+        if (len > pipe->max_size) {
+            errno = E2BIG;
+            return -1;
+        }
+        while (len > pipe->size)
+            pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size);
+        while (len > pipe->size - pipe->avail)
+            async_wait(&pipe->lock, &pipe->wlist, -1);
     }
     while (len > 0) {
         int cap = MIN3(len, pipe->end - pipe->wpen, pipe->size - pipe->avail);
         if (cap == 0) {
             if (pipe->size < pipe->max_size) {
-                // kdump(pipe->base, pipe->size);
-                // kprintf(KLOG_DBG, "Bf\n");
+
                 pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size));
-                // kdump(pipe->base, pipe->size);
-                // kprintf(KLOG_DBG, "Af\n");
                 continue;
             }
             async_raise(&pipe->rlist, 0);
@@ -180,10 +188,17 @@ int pipe_read(pipe_t *pipe, char *buf, int len, int flags)
 {
     int bytes = 0;
     splock_lock(&pipe->lock);
-    if (flags & (IO_NO_BLOCK | IO_ATOMIC) && len > pipe->avail) {
+    if (flags & IO_NO_BLOCK && len > pipe->avail) {
         splock_unlock(&pipe->lock);
         errno = EWOULDBLOCK;
         return -1;
+    } else if (flags & IO_ATOMIC) {
+        if (len > pipe->max_size) {
+            errno = E2BIG;
+            return -1;
+        }
+        while (len > pipe->avail)
+            async_wait(&pipe->lock, &pipe->rlist, -1);
     }
     while (len > 0) {
         int cap = MIN3(len, pipe->end - pipe->rpen, pipe->avail);
@@ -212,9 +227,3 @@ int pipe_read(pipe_t *pipe, char *buf, int len, int flags)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-
-// int tty_write(tty_t *tty, char *buf, int len)
-// {
-//     pipe_write(tty->out, buf, len, IO_CONSUME);
-//     tty->last
-// }

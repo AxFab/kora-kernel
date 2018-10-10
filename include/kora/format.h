@@ -24,7 +24,6 @@
 
 #include <kora/stddef.h>
 #include <kora/iofile.h>
-#include <bits/types.h>
 #include <stdarg.h>
 
 /* Write formated string from a string */
