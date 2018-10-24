@@ -37,11 +37,14 @@ inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
 
     inode_t *root = vfs_mount(dev, fsmod->name);
     ck_ok(root != NULL  && errno == 0, "Mount newly formed disk");
+
+    vfs_show_devices();
     return root;
 }
 
 void test_fs_teardown(inode_t *root, kmod_t *fsmod)
 {
+    vfs_show_devices();
     int res = vfs_umount(root);
     ck_ok(res == 0 && errno == 0, "Unmount file system");
     vfs_close(root);
