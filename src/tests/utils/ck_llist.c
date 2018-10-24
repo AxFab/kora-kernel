@@ -99,7 +99,7 @@ END_TEST
 
 void fixture_llist(Suite *s)
 {
-    TCase *tc = tcase_create("Doulby-linked List");
+    TCase *tc = tcase_create("Doubly-linked List");
     tcase_add_test(tc, test_llist_001);
     tcase_add_test(tc, test_llist_002);
     suite_add_tcase(s, tc);

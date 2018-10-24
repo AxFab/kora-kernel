@@ -37,7 +37,6 @@ void vfs_show_devices()
 {
     device_t *dev;
     for ll_each(&dev_list, dev, device_t, node) {
-
         kprintf(-1, "DEV '%s' (RCU:%d)\n", dev->name, dev->ino->rcu);
     }
 }
