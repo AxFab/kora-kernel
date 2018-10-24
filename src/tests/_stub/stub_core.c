@@ -164,12 +164,21 @@ void kunmap(void *addr, size_t length)
         if (vma->flags & VMA_WRITE)
             vfs_write(vma->ino, (void *)addr, length, vma->offset);
         break;
+    case VMA_STACK:
+    case VMA_PIPE:
+        break;
     default:
         assert(false);
         break;
     }
     free(vma);
     _vfree((void *)addr);
+}
+
+void ck_reset()
+{
+    hmp_destroy(&krn_mmap, 0);
+    krn_mmap_init = false;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

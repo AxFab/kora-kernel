@@ -122,6 +122,7 @@ $(eval $(call link,ckFile,chk))
 ckMem_src-y += $(wildcard $(srcdir)/mem/*.c)
 ckMem_src-y += $(srcdir)/libc/bbtree.c
 ckMem_src-y += $(srcdir)/libc/hmap.c
+ckMem_src-y += $(srcdir)/libc/mutex.c
 ckMem_src-y += $(srcdir)/core/debug.c
 ckMem_src-y += $(wildcard $(srcdir)/task/async.c)
 ckMem_src-y += $(wildcard $(srcdir)/tests/mem/*.c)

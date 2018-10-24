@@ -44,11 +44,11 @@ START_TEST(test_pipe)
     bytes = pipe_write(pipe, "Hello world!\n\n", 14, IO_NO_BLOCK);
     ck_assert(bytes == 14 && errno == 0);
 
-    int fd = open("../../../src/tests/lorem.txt", O_RDONLY | O_BINARY);
-    if (fd == -1)
-        return;
+    int fd = open("src/tests/lorem.txt", O_RDONLY | O_BINARY);
+    assert(fd != -1);
     buf = kalloc(4096);
     int lg = read(fd, buf, 4096);
+    close(fd);
 
     bytes = pipe_write(pipe, buf, lg, IO_NO_BLOCK);
     ck_assert(bytes == lg && errno == 0);
@@ -56,7 +56,9 @@ START_TEST(test_pipe)
     bytes = pipe_write(pipe, buf, lg, IO_NO_BLOCK);
     ck_assert(bytes == -1 && errno == EWOULDBLOCK);
 
-
+    pipe_destroy(pipe);
+    free(buf);
+    ck_reset();
 }
 END_TEST
 
