@@ -148,12 +148,13 @@ void kernel_master()
 
     inode_t *ino;
     char name[256];
-    void *dir = vfs_opendir(root, NULL);
-    while ((ino = vfs_readdir(root, name, dir)) != NULL)
+    void *dir_ctx = vfs_opendir(root, NULL);
+    while ((ino = vfs_readdir(root, name, dir_ctx)) != NULL)
     {
         kprintf(-1, " %p   /%s\n", ino, name);
-
     }
+    vfs_closedir(root, dir_ctx);
+
     for (;;) {
         async_wait(NULL, NULL, 1000000);
     }

@@ -46,10 +46,12 @@ int rand_r(unsigned int *seed)
 }
 
 /* Pseudo-random generator */
+#ifndef _WIN32
 int rand(void)
 {
     return rand_r(&__seed);
 }
+#endif
 
 uint64_t rand64()
 {
