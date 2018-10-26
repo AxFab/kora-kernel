@@ -169,6 +169,14 @@
     <ClInclude Include="..\..\..\src\mem\mspace.h" />
     <ClInclude Include="..\..\..\src\vfs\vfs.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\drivers\drivers.vcxproj">
+      <Project>{fa4bdd75-7c7b-451c-aee0-2d24ca46b760}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\fsystem\fsystem.vcxproj">
+      <Project>{461027f7-634b-4dbb-a251-e23dbcfd0f98}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
