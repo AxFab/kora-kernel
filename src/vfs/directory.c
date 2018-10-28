@@ -25,20 +25,20 @@
 
 void *vfs_opendir(inode_t *dir, acl_t *acl)
 {
-    if (dir == NULL || !S_ISDIR(dir->mode)) {
+    if (dir == NULL || !VFS_ISDIR(dir)) {
         errno = ENOTDIR;
         return NULL;
     } else if (vfs_access(dir, R_OK, acl) != 0) {
         assert(errno == EACCES);
         return NULL;
-    } else if (dir->fs->opendir == NULL ||
-               dir->fs->readdir == NULL ||
-               dir->fs->closedir == NULL) {
+    } else if (dir->ops->opendir == NULL ||
+               dir->ops->readdir == NULL ||
+               dir->ops->closedir == NULL) {
         errno = ENOSYS;
         return NULL;
     }
 
-    void *ctx = dir->fs->opendir(dir);
+    void *ctx = dir->ops->opendir(dir);
     return ctx;
 }
 
@@ -47,12 +47,12 @@ inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx)
     if (dir == NULL || ctx == NULL) {
         errno = EINVAL;
         return NULL;
-    } else if (dir->fs->readdir == NULL) {
+    } else if (dir->ops->readdir == NULL) {
         errno = ENOSYS;
         return NULL;
     }
 
-    inode_t *ino = dir->fs->readdir(dir, name, ctx);
+    inode_t *ino = dir->ops->readdir(dir, name, ctx);
     if (ino == NULL)
         return NULL;
 
@@ -75,12 +75,12 @@ int vfs_closedir(inode_t *dir, void *ctx)
     if (dir == NULL || ctx == NULL) {
         errno = EINVAL;
         return -1;
-    } else if (dir->fs->closedir == NULL) {
+    } else if (dir->ops->closedir == NULL) {
         errno = ENOSYS;
         return -1;
     }
 
-    int ret = dir->fs->closedir(dir, ctx);
+    int ret = dir->ops->closedir(dir, ctx);
     // assert(ret == 0 ^^ errno == 0);
     return ret;
 }

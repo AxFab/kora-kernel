@@ -96,6 +96,12 @@
     <ClCompile Include="..\..\..\src\tests\_stub\stub_mem.c">
       <Filter>src\core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\data.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\files\map.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\vfs\vfs.h">
@@ -103,6 +109,75 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\tests\check.h">
       <Filter>src\tests</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\core.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\device.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\files.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\input.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\memory.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\net.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\scall.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\task.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\types.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\vfs.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\vma.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\allocator.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\bbtree.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\format.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\hmap.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\iofile.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\llist.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\mcrs.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\rwlock.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\socket.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\splock.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\stddef.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\syscalls.h">
+      <Filter>include\kora</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

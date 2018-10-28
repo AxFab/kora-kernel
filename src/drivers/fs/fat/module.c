@@ -31,6 +31,32 @@ int fatfs_umount(inode_t *ino)
     return 0;
 }
 
+fs_ops_t fatfs_ops = {
+    .open = fatfs_open,
+    .unlink = fatfs_unlink,
+};
+
+ino_ops_t fatfs_reg_ops = {
+    .close = fatfs_close,
+    .truncate = fatfs_truncate,
+};
+
+ino_ops_t fatfs_dir_ops = {
+    .close = fatfs_close,
+    .truncate = fatfs_truncate,
+    .opendir = fatfs_opendir,
+    .readdir = fatfs_readdir,
+    .closedir = fatfs_closedir,
+};
+
+ino_ops_t fatfs_vol_ops = {
+    .close = fatfs_umount,
+    .truncate = fatfs_truncate,
+    .opendir = fatfs_opendir,
+    .readdir = fatfs_readdir,
+    .closedir = fatfs_closedir,
+};
+
 inode_t *fatfs_mount(inode_t *dev)
 {
     if (dev == NULL) {
@@ -48,25 +74,17 @@ inode_t *fatfs_mount(inode_t *dev)
 
     info->io_head = bio_create(dev, VMA_FILE_RW, info->BytsPerSec, 0);
     const char *fsName = info->FATType == FAT32 ? "fat32" : (info->FATType == FAT16 ? "fat16" : "fat12");
-    inode_t *ino = vfs_inode(0, S_IFDIR | 0777, NULL, 0);
+    inode_t *ino = vfs_inode(0, FL_VOL, NULL);
     ino->length = 0;
     ino->lba = 1;
-    ino->info = info;
+    ino->und.vol->info = info;
+    ino->und.vol->ops = &fatfs_ops;
+    ino->und.vol->volfs = fsName;
+    ino->und.vol->volname = strdup(info->name);
 
-    fsvolume_t *fs = (fsvolume_t *)kalloc(sizeof(fsvolume_t));
-    fs->open = (fs_open)fatfs_open;
-    fs->unlink = (fs_unlink)fatfs_unlink;
-    fs->truncate = (fs_truncate)fatfs_truncate;
-    // fs->read = (fs_read)isofs_read;
-    fs->umount = (fs_umount)fatfs_umount;
-    fs->opendir = (fs_opendir)fatfs_opendir;
-    fs->readdir = (fs_readdir)fatfs_readdir;
-    fs->closedir = (fs_closedir)fatfs_closedir;
-    // fs->read_only = true;
     int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
     info->io_data_rw = bio_create(dev, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
     info->io_data_ro = bio_create(dev, VMA_FILE_RO, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
-    vfs_mountpt(info->name, fsName, fs, (inode_t *)ino);
     errno = 0;
     return ino;
 }

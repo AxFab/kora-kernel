@@ -39,9 +39,6 @@
     <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c">
       <Filter>src\core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\tests\_stub\irq.c">
-      <Filter>src\core</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\tests\_stub\stub_task.c">
       <Filter>src\core</Filter>
     </ClCompile>
@@ -56,6 +53,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\task\async.c">
       <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_irq.c">
+      <Filter>src\core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

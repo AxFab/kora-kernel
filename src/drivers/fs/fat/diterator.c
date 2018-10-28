@@ -33,7 +33,7 @@ struct FAT_diterator {
 FAT_diterator_t *fatfs_diterator_open(inode_t *dir, bool write)
 {
     assert(dir != NULL);
-    assert(S_ISDIR(dir->mode));
+    assert(VFS_ISDIR(dir));
     assert(dir->lba != 0);
 
     FAT_volume_t *info = (FAT_volume_t *)dir->info;
@@ -87,7 +87,7 @@ void fatfs_diterator_close(FAT_diterator_t *it)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t *fatfs_open(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
+inode_t *fatfs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
 {
     inode_t *ino;
     FAT_diterator_t *it = fatfs_diterator_open(dir, !!(flags | VFS_CREAT));
@@ -124,9 +124,9 @@ inode_t *fatfs_open(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
     if (entry == NULL) {
         // TODO - alloc cluster
     }
-    int alloc_lba = S_ISDIR(mode) ? fatfs_mkdir(info, dir) : 0;
+    int alloc_lba = type == FL_DIR ? fatfs_mkdir(info, dir) : 0;
 
-    fatfs_short_entry(entry, alloc_lba, mode);
+    fatfs_short_entry(entry, alloc_lba, type);
     fatfs_write_shortname(entry, name);
     memset(&entry[1], 0, sizeof(*entry)); // TODO - not behind cluster
 

@@ -19,6 +19,38 @@
  */
 #include "isofs.h"
 
+#define ISOFS_SECTOR_SIZE  2048
+
+void isofs_close(inode_t *ino);
+ISO_dirctx_t *isofs_opendir(inode_t *dir);
+int isofs_closedir(inode_t *dir, ISO_dirctx_t *ctx);
+inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags);
+inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx);
+int isofs_read(inode_t *ino, void *buffer, size_t length, off_t offset);
+page_t isofs_fetch(inode_t *ino, off_t off);
+void isofs_release(inode_t *ino, off_t off, page_t pg);
+
+
+
+fs_ops_t isofs_ops = {
+    .open = isofs_open,
+};
+
+ino_ops_t iso_reg_ops = {
+    .close = isofs_close,
+    .fetch = isofs_fetch,
+    .release = isofs_release,
+};
+
+ino_ops_t iso_dir_ops = {
+    .close = isofs_close,
+    .opendir = isofs_opendir,
+    .readdir = isofs_readdir,
+    .closedir = isofs_closedir,
+};
+
+
+
 /* Copy the filename read from a directory entry */
 static void isofs_filename(ISOFS_entry_t *entry, char *name)
 {
@@ -34,33 +66,58 @@ static void isofs_filename(ISOFS_entry_t *entry, char *name)
 }
 
 /* */
-static ISO_inode_t *isofs_inode(ISO_info_t *vol, ISOFS_entry_t *entry,
-                                acl_t *acl)
+static inode_t *isofs_inode(volume_t *volume, ISOFS_entry_t *entry)
 {
-
-    int mode = entry->fileFlag & 2 ? S_IFDIR | 0755 : S_IFREG | 0644;
-    ISO_inode_t *ino = (ISO_inode_t *)vfs_inode(entry->locExtendLE, mode,
-                       acl, sizeof(ISO_inode_t));
-    ino->ino.length = entry->dataLengthLE;
-    ino->ino.lba = entry->locExtendLE;
-    ino->vol = vol;
+    ftype_t type = entry->fileFlag & 2 ? FL_DIR : FL_REG;
+    inode_t *ino = vfs_inode(entry->locExtendLE, type, volume);
+    ino->length = entry->dataLengthLE;
+    ino->lba = entry->locExtendLE;
+    struct tm tm;
+    tm.tm_year = entry->recordYear;
+    tm.tm_mon = entry->recordMonth;
+    tm.tm_mday = entry->recordDay;
+    tm.tm_hour = entry->recordHour;
+    tm.tm_min = entry->recordMinute;
+    tm.tm_sec = entry->recordSecond;
+    ino->ctime = mktime(&tm) * _PwNano_;
+    ino->btime = ino->ctime;
+    ino->atime = ino->ctime;
+    ino->mtime = ino->ctime;
+    if (type == FL_REG) {
+        ino->info = map_create(ino, isofs_read, NULL);
+        ino->ops = &iso_reg_ops;
+    } else {
+        ino->ops = &iso_dir_ops;
+    }
     return ino;
 }
 
 
+void isofs_close(inode_t *ino)
+{
+    if (ino->type == FL_REG)
+        map_destroy(ino->info);
+    else if (ino->type == FL_VOL) {
+        kfree(ino->und.vol->volname);
+        kfree(ino->und.vol);
+    }
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-ISO_dirctx_t *isofs_opendir(ISO_inode_t *dir)
+ISO_dirctx_t *isofs_opendir(inode_t *dir)
 {
     ISO_dirctx_t *ctx = (ISO_dirctx_t *)kalloc(sizeof(ISO_dirctx_t));
     errno = 0;
     return ctx;
 }
 
-int isofs_closedir(ISO_inode_t *dir, ISO_dirctx_t *ctx)
+int isofs_closedir(inode_t *dir, ISO_dirctx_t *ctx)
 {
+    struct ISO_info *info = (struct ISO_info *)dir->und.vol->info;
     if (ctx->base != NULL)
-        kunmap(ctx->base, 8192);
+        bio_clean(info->io, ctx->lba);
+        // kunmap(ctx->base, 8192);
     kfree(ctx);
     errno = 0;
     return 0;
@@ -69,16 +126,17 @@ int isofs_closedir(ISO_inode_t *dir, ISO_dirctx_t *ctx)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-ISO_inode_t *isofs_open(ISO_inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
-// ISO_inode_t *isofs_lookup(ISO_inode_t *dir, const char *name)
+inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
 {
     if (!(flags & VFS_OPEN)) {
         errno = EROFS;
         return NULL;
     }
 
-    int lba = dir->ino.lba;
-    uint8_t *address = kmap(8192, dir->vol->dev, lba * 2048, VMA_FILE_RO);
+    int lba = dir->lba;
+    struct ISO_info *info = (struct ISO_info *)dir->und.vol->info;
+    uint8_t *address = bio_access(info->io, lba);
+    // kmap(8192, dir->und.vol->dev, lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
 
     /* Skip the first two entries */
     ISOFS_entry_t *entry = (ISOFS_entry_t *)address;
@@ -93,8 +151,9 @@ ISO_inode_t *isofs_open(ISO_inode_t *dir, CSTR name, int mode, acl_t *acl, int f
 
         /* Compare filenames */
         if (strcmp(name, filename) == 0) {
-            ISO_inode_t *ino = isofs_inode(dir->vol, entry, NULL);
-            kunmap(address, 8192);
+            inode_t *ino = isofs_inode(dir->und.vol, entry);
+            bio_clean(info->io, lba);
+            // kunmap(address, 8192);
             kfree(filename);
             errno = 0;
             return ino;
@@ -102,20 +161,23 @@ ISO_inode_t *isofs_open(ISO_inode_t *dir, CSTR name, int mode, acl_t *acl, int f
 
         /* Move pointer to next entry, eventualy continue directory mapping. */
         entry = ISOFS_nextEntry(entry);
-        bool remap = (size_t)entry >= (size_t)address + 8192;
+        bool remap = (size_t)entry >= (size_t)address + PAGE_SIZE;
         if (!remap)
-            remap = (size_t)entry + entry->lengthRecord > (size_t)address + 8192;
+            remap = (size_t)entry + entry->lengthRecord > (size_t)address + 2 * ISOFS_SECTOR_SIZE;
 
         if (remap) {
-            size_t off = (size_t)entry - (size_t)address - 4096;
+            size_t off = (size_t)entry - (size_t)address - ISOFS_SECTOR_SIZE;
+            bio_clean(info->io, lba);
             lba += 2;
-            kunmap(address, 8192);
-            address = kmap(8192, dir->vol->dev, lba * 2048, VMA_FILE_RO);
+            // kunmap(address, 8192);
+            address = bio_access(info->io, lba);
+            // address = kmap(8192, dir->und.vol->dev, lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
             entry = (ISOFS_entry_t *)((size_t)address + off);
         }
     }
 
-    kunmap(address, 8192);
+    bio_clean(info->io, lba);
+    // kunmap(address, 8192);
     kfree(filename);
     
     if (flags & VFS_CREAT) {
@@ -127,12 +189,14 @@ ISO_inode_t *isofs_open(ISO_inode_t *dir, CSTR name, int mode, acl_t *acl, int f
     return NULL;
 }
 
-ISO_inode_t *isofs_readdir(ISO_inode_t *dir, char *name, ISO_dirctx_t *ctx)
+inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx)
 {
+    struct ISO_info *info = (struct ISO_info *)dir->und.vol->info;
     if (ctx->lba == 0)
-        ctx->lba = dir->ino.lba;
+        ctx->lba = dir->lba;
     if (ctx->base == NULL)
-        ctx->base = kmap(8192, dir->vol->dev, ctx->lba * 2048, VMA_FILE_RO);
+        ctx->base = bio_access(info->io, ctx->lba);
+        // ctx->base = kmap(8192, dir->und.vol->dev, ctx->lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO); // TODO - NOT ALIGNED !!
 
     /* Skip the first two entries */
     ISOFS_entry_t *entry = (ISOFS_entry_t *)(&ctx->base[ctx->off]);
@@ -142,19 +206,20 @@ ISO_inode_t *isofs_readdir(ISO_inode_t *dir, char *name, ISO_dirctx_t *ctx)
             entry = ISOFS_nextEntry(entry);
             continue;
         }
-        ISO_inode_t *ino = isofs_inode(dir->vol, entry, NULL);
+        inode_t *ino = isofs_inode(dir->und.vol->dev, entry);
 
         /* Move pointer to next entry, eventualy continue directory mapping. */
         entry = ISOFS_nextEntry(entry);
-        bool remap = (size_t)entry >= (size_t)ctx->base + 8192;
+        bool remap = (size_t)entry >= (size_t)ctx->base + 2 * ISOFS_SECTOR_SIZE;
         if (!remap)
-            remap = (size_t)entry + entry->lengthRecord > (size_t)ctx->base + 8192;
+            remap = (size_t)entry + entry->lengthRecord > (size_t)ctx->base + 2 * ISOFS_SECTOR_SIZE;
 
         ctx->off = (size_t)entry - (size_t)ctx->base;
         if (remap) {
-            ctx->off -= 4096;
-            ctx->lba += 2;
-            kunmap(ctx->base, 8192);
+            ctx->off -= ISOFS_SECTOR_SIZE;
+            bio_clean(info->io, ctx->lba);
+            // kunmap(ctx->base, 8192);
+            ctx->lba ++;
             ctx->base = NULL;
         }
 
@@ -166,6 +231,22 @@ ISO_inode_t *isofs_readdir(ISO_inode_t *dir, char *name, ISO_dirctx_t *ctx)
     return NULL;
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+int isofs_read(inode_t *ino, void *buffer, size_t length, off_t offset)
+{
+    return vfs_read(ino->und.vol->dev, buffer, length, ino->lba * ISOFS_SECTOR_SIZE + offset);
+}
+
+page_t isofs_fetch(inode_t *ino, off_t off)
+{
+    return map_fetch(ino->info, off, 0, isofs_read);
+}
+
+void isofs_release(inode_t *ino, off_t off, page_t pg)
+{
+    return map_release(ino->info, off, 0);
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -173,115 +254,90 @@ inode_t *isofs_mount(inode_t *dev)
 {
     int i;
     int lba = 16;
-    struct ISO_info *volume = NULL;
+    struct ISO_info *info = NULL;
     if (dev == NULL) {
         errno = ENODEV;
         return NULL;
     }
 
-    uint8_t *address = (uint8_t *)kmap(8192, dev, lba * 2048, VMA_FILE_RO);
+    uint8_t *address = (uint8_t *)kmap(8192, dev, lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
     int addressLba = 16;
     int addressCnt = 4;
     for (lba = 16; ; ++lba) {
 
         if ((lba - addressLba) >= addressCnt) {
-            kunmap(address, addressCnt * 2048);
+            kunmap(address, addressCnt * ISOFS_SECTOR_SIZE);
             addressLba = lba;
-            address = (uint8_t *)kmap(addressCnt * 2048, dev, addressLba * 2048,
-                                      VMA_FILE_RO);
+            address = (uint8_t *)kmap(addressCnt * ISOFS_SECTOR_SIZE, dev, addressLba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
         }
 
-        ISOFS_descriptor_t *descriptor = (ISOFS_descriptor_t *)&address[(lba -
-                                         addressLba) * 2048];
+        ISOFS_descriptor_t *descriptor = (ISOFS_descriptor_t *)&address[(lba - addressLba) * ISOFS_SECTOR_SIZE];
         if ((descriptor->magicInt[0] & 0xFFFFFF00) != ISOFS_STD_ID1 ||
             (descriptor->magicInt[1] & 0x0000FFFF) != ISOFS_STD_ID2 ||
-            (descriptor->type != ISOFS_VOLDESC_PRIM && !volume)) {
-            if (volume)
-                kfree(volume);
+            (descriptor->type != ISOFS_VOLDESC_PRIM && !info)) {
+            if (info)
+                kfree(info);
 
             kprintf(KLOG_DBG, " isofs -- Not a volume descriptor at lba %d\n", lba);
-            kunmap(address, addressCnt * 2048);
+            kunmap(address, addressCnt * ISOFS_SECTOR_SIZE);
             errno = EBADF;
             return NULL;
         }
 
         if (descriptor->type == ISOFS_VOLDESC_PRIM) {
-            volume = (struct ISO_info *)kalloc(sizeof(struct ISO_info));
-            volume->bootable = 0;
-            volume->created = 0;
-            volume->sectorSize = descriptor->logicBlockSizeLE;
-            volume->sectorCount = descriptor->volSpaceSizeLE;
-            volume->lbaroot = descriptor->rootDir.locExtendLE;
-            volume->lgthroot = descriptor->rootDir.dataLengthLE;
+            info = (struct ISO_info *)kalloc(sizeof(struct ISO_info));
+            info->bootable = 0;
+            info->created = 0;
+            info->sectorSize = descriptor->logicBlockSizeLE;
+            info->sectorCount = descriptor->volSpaceSizeLE;
+            info->lbaroot = descriptor->rootDir.locExtendLE;
+            info->lgthroot = descriptor->rootDir.dataLengthLE;
+            info->io = bio_create2(dev, VMA_FILE_RO, 2048, 0, 1);
+            // descriptor->applicationId
 
-            // for (i = 127; i >= 0 && descriptor->applicationId[i] == ' '; --i) {
-            //   descriptor->applicationId[i] = '\0'; // TODO -- Horrible !
-            // }
-
-            for (i = 31; i >= 0 && descriptor->volname[i] == ' '; --i) {
-                descriptor->volname [i] = '\0'; // TODO -- Horrible !
-            }
-
-            strcpy(volume->name, descriptor->volname);
+            memcpy(info->name, descriptor->volname, 32);
+            info->name[32] = '\0';
+            i = 31;
+            while (i >= 0 && info->name[i] == ' ')
+                info->name[i--] = '\0';
 
         } else if (descriptor->type == ISOFS_VOLDESC_BOOT)
-            volume->bootable = !0;
+            info->bootable = !0;
 
         else if (descriptor->type == ISOFS_VOLDESC_TERM)
             break;
 
         else {
-            if (volume)
-                kfree(volume);
+            if (info)
+                kfree(info);
             kprintf(KLOG_DBG, " isofs -- Bad volume descriptor id %d\n", descriptor->type);
-            kunmap(address, addressCnt * 2048);
+            kunmap(address, addressCnt * ISOFS_SECTOR_SIZE);
             errno = EBADF;
             return NULL;
         }
     }
-    kunmap(address, addressCnt * 2048);
+    kunmap(address, addressCnt * ISOFS_SECTOR_SIZE);
 
 
-    ISO_inode_t *ino = (ISO_inode_t *)vfs_inode(volume->lbaroot, S_IFDIR | 0755,
-                       NULL, sizeof(ISO_inode_t));
-    ino->ino.length = volume->lgthroot;
-    ino->ino.lba = volume->lbaroot;
-    ino->vol = volume;
-    ino->vol->dev = vfs_open(dev);
-
-    fsvolume_t *fs = (fsvolume_t *)kalloc(sizeof(fsvolume_t));
-    fs->open = (fs_open)isofs_open;
-    fs->read = (fs_read)isofs_read;
-    fs->umount = (fs_umount)isofs_umount;
-    fs->opendir = (fs_opendir)isofs_opendir;
-    fs->readdir = (fs_readdir)isofs_readdir;
-    fs->closedir = (fs_closedir)isofs_closedir;
-    fs->dev.read_only = true;
-
-    vfs_mountpt(volume->name, "isofs", fs, (inode_t *)ino);
-    return &ino->ino;
+    inode_t *ino = vfs_inode(info->lbaroot, FL_VOL, NULL);
+    ino->length = info->lgthroot;
+    ino->lba = info->lbaroot;
+    ino->und.vol->flags = VFS_RDONLY;
+    ino->und.vol->volfs = "isofs";
+    ino->und.vol->volname = strdup(info->name);
+    ino->und.vol->dev = vfs_open(dev);
+    ino->und.vol->info = info;
+    ino->ops = &iso_dir_ops;
+    return ino;
 }
 
-int isofs_umount(ISO_inode_t *ino)
+int isofs_umount(inode_t *ino)
 {
-    vfs_close(ino->vol->dev);
-    kfree(ino->vol);
     return 0;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int isofs_read(ISO_inode_t *ino, void *buffer, size_t length, off_t offset)
-{
-    int lba = ino->ino.lba;
-    return vfs_read(ino->vol->dev, buffer, length, lba * 2048 + offset);
-}
-
-int isofs_not_allowed()
-{
-    errno = EROFS;
-    return -1;
-}
 
 void isofs_setup()
 {

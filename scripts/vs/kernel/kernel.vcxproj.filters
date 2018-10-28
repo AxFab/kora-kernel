@@ -147,6 +147,12 @@
     <ClCompile Include="..\..\..\src\tests\_stub\stub_mmu.c">
       <Filter>src\core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\files\map.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\data.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\vfs\vfs.h">

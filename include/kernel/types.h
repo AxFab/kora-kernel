@@ -57,9 +57,7 @@ typedef struct mspace mspace_t;
 // Files
 typedef struct inode inode_t;
 typedef struct device device_t;
-typedef struct fsvolume fsvolume_t;
-typedef struct blkdev blkdev_t;
-typedef struct chardev chardev_t;
+typedef struct volume volume_t;
 
 // Network
 typedef struct netdev netdev_t;
@@ -95,11 +93,9 @@ struct emitter {
     // TODO - Add lock as soon as we dont required global lock.
 };
 
-typedef struct blk_ops blk_ops_t;
-typedef struct chr_ops chr_ops_t;
+typedef struct ino_ops ino_ops_t;
+typedef struct dev_ops dev_ops_t;
 typedef struct fs_ops fs_ops_t;
-typedef struct vds_ops vds_ops_t;
-typedef struct net_ops net_ops_t;
 
 
 #endif  /* _KERNEL_TYPES */

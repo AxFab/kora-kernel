@@ -140,12 +140,24 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     switch (flags & VMA_TYPE) {
     case VMA_FILE:
         assert(ino != NULL);
-        vfs_read(ino, ptr, length, offset);
+        off_t off = offset;
+        void *buf = ptr;
+        while (length > 0) {
+            page_t pg = mem_fetch(ino, off);
+            memcpy(buf, (void*)pg, PAGE_SIZE);
+            mem_release(ino, off, pg);
+            length -= PAGE_SIZE;
+            off += PAGE_SIZE;
+            buf = ADDR_OFF(buf, PAGE_SIZE);
+        }
         break;
     case VMA_STACK:
     case VMA_PIPE:
         break;
-    default:
+    case VMA_PHYS:
+        assert(offset == 0);
+        break;
+    default :
         assert(false);
         break;
     }
@@ -161,11 +173,21 @@ void kunmap(void *addr, size_t length)
     switch (vma->flags & VMA_TYPE) {
     case VMA_FILE:
         assert(vma->ino != NULL);
-        if (vma->flags & VMA_WRITE)
-            vfs_write(vma->ino, (void *)addr, length, vma->offset);
+        if (vma->flags & VMA_WRITE) {
+            while (vma->length > 0) {
+                page_t pg = mem_fetch(vma->ino, vma->offset);
+                memcpy((void*)pg, addr, PAGE_SIZE);
+                mem_sync(vma->ino, vma->offset, pg);
+                mem_release(vma->ino, vma->offset, pg);
+                length -= PAGE_SIZE;
+                vma->offset += PAGE_SIZE;
+                addr = ADDR_OFF(addr, PAGE_SIZE);
+            }
+        }
         break;
     case VMA_STACK:
     case VMA_PIPE:
+    case VMA_PHYS:
         break;
     default:
         assert(false);

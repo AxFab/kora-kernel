@@ -72,6 +72,13 @@ bio_t *bio_create(inode_t *ino, int flags, int block, size_t offset)
     return io;
 }
 
+bio_t *bio_create2(inode_t *ino, int flags, int block, size_t offset, int extra)
+{
+    bio_t *io = bio_create(ino, flags, block, offset);
+    io->map_size = ALIGN_UP(io->map_size + extra * io->block, PAGE_SIZE);
+    return io;
+}
+
 void *bio_access(bio_t *io, size_t lba)
 {
     lba = lba * io->factor + io->offset;

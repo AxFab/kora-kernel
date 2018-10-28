@@ -127,6 +127,7 @@
     <ClCompile Include="..\..\..\src\core\debug.c" />
     <ClCompile Include="..\..\..\src\core\irq.c" />
     <ClCompile Include="..\..\..\src\files\ioblk.c" />
+    <ClCompile Include="..\..\..\src\files\map.c" />
     <ClCompile Include="..\..\..\src\libc\bbtree.c" />
     <ClCompile Include="..\..\..\src\libc\hmap.c" />
     <ClCompile Include="..\..\..\src\libc\random.c" />
@@ -138,6 +139,7 @@
     <ClCompile Include="..\..\..\src\tests\_stub\stub_mem.c" />
     <ClCompile Include="..\..\..\src\tests\_stub\stub_task.c" />
     <ClCompile Include="..\..\..\src\tests\_stub\stub_time.c" />
+    <ClCompile Include="..\..\..\src\vfs\data.c" />
     <ClCompile Include="..\..\..\src\vfs\device.c" />
     <ClCompile Include="..\..\..\src\vfs\directory.c" />
     <ClCompile Include="..\..\..\src\vfs\dirent.c" />
@@ -146,6 +148,29 @@
     <ClCompile Include="..\..\..\src\vfs\parts.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\include\kernel\core.h" />
+    <ClInclude Include="..\..\..\include\kernel\device.h" />
+    <ClInclude Include="..\..\..\include\kernel\files.h" />
+    <ClInclude Include="..\..\..\include\kernel\input.h" />
+    <ClInclude Include="..\..\..\include\kernel\memory.h" />
+    <ClInclude Include="..\..\..\include\kernel\net.h" />
+    <ClInclude Include="..\..\..\include\kernel\scall.h" />
+    <ClInclude Include="..\..\..\include\kernel\task.h" />
+    <ClInclude Include="..\..\..\include\kernel\types.h" />
+    <ClInclude Include="..\..\..\include\kernel\vfs.h" />
+    <ClInclude Include="..\..\..\include\kernel\vma.h" />
+    <ClInclude Include="..\..\..\include\kora\allocator.h" />
+    <ClInclude Include="..\..\..\include\kora\bbtree.h" />
+    <ClInclude Include="..\..\..\include\kora\format.h" />
+    <ClInclude Include="..\..\..\include\kora\hmap.h" />
+    <ClInclude Include="..\..\..\include\kora\iofile.h" />
+    <ClInclude Include="..\..\..\include\kora\llist.h" />
+    <ClInclude Include="..\..\..\include\kora\mcrs.h" />
+    <ClInclude Include="..\..\..\include\kora\rwlock.h" />
+    <ClInclude Include="..\..\..\include\kora\socket.h" />
+    <ClInclude Include="..\..\..\include\kora\splock.h" />
+    <ClInclude Include="..\..\..\include\kora\stddef.h" />
+    <ClInclude Include="..\..\..\include\kora\syscalls.h" />
     <ClInclude Include="..\..\..\src\tests\check.h" />
     <ClInclude Include="..\..\..\src\vfs\vfs.h" />
   </ItemGroup>
