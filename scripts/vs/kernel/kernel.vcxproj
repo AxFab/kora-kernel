@@ -130,6 +130,7 @@
     <ClCompile Include="..\..\..\src\core\irq.c" />
     <ClCompile Include="..\..\..\src\core\launch.c" />
     <ClCompile Include="..\..\..\src\files\ioblk.c" />
+    <ClCompile Include="..\..\..\src\files\map.c" />
     <ClCompile Include="..\..\..\src\libc\bbtree.c" />
     <ClCompile Include="..\..\..\src\libc\hmap.c" />
     <ClCompile Include="..\..\..\src\libc\random.c" />
@@ -158,6 +159,7 @@
     <ClCompile Include="..\..\..\src\tests\_mcvs\threads.c" />
     <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c" />
     <ClCompile Include="..\..\..\src\tests\_stub\stub_mmu.c" />
+    <ClCompile Include="..\..\..\src\vfs\data.c" />
     <ClCompile Include="..\..\..\src\vfs\device.c" />
     <ClCompile Include="..\..\..\src\vfs\directory.c" />
     <ClCompile Include="..\..\..\src\vfs\dirent.c" />

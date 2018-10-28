@@ -61,7 +61,7 @@ void test_fs_mknod(inode_t *root)
     inode_t *ino1 = vfs_lookup(root, "EMPTY.TXT");
     ck_ok(ino1 == NULL && errno == ENOENT, "");
 
-    inode_t *ino2 = vfs_create(root, "EMPTY.TXT", S_IFREG, NULL, 0);
+    inode_t *ino2 = vfs_create(root, "EMPTY.TXT", FL_REG, NULL, 0);
     ck_ok(ino2 != NULL && errno == 0, "");
 
     inode_t *ino3 = vfs_lookup(root, "EMPTY.TXT");
@@ -71,10 +71,10 @@ void test_fs_mknod(inode_t *root)
     vfs_close(ino3);
 
     // Create and open directory
-    inode_t *ino4 = vfs_create(root, "FOLDER", S_IFDIR, NULL, 0);
+    inode_t *ino4 = vfs_create(root, "FOLDER", FL_DIR, NULL, 0);
     ck_ok(ino4 != NULL && errno == 0, "");
 
-    inode_t *ino5 = vfs_create(ino4, "FILE.O", S_IFREG, NULL, 0);
+    inode_t *ino5 = vfs_create(ino4, "FILE.O", FL_REG, NULL, 0);
     ck_ok(ino5 != NULL && errno == 0, "");
 
     inode_t *ino6 = vfs_search(root, root, "FOLDER/FILE.O", NULL);
@@ -122,7 +122,7 @@ void test_fs_rdwr(inode_t *root)
     int ret;
     char *buf = malloc(100);
     // Create and open file
-    inode_t *ino1 = vfs_create(root, "TEXT.TXT", S_IFREG | 0644, NULL, 0);
+    inode_t *ino1 = vfs_create(root, "TEXT.TXT", FL_REG | 0644, NULL, 0);
     ck_ok(ino1 != NULL && errno == 0, "");
 
     ret = vfs_read(ino1, buf, 100, 0);
@@ -144,16 +144,16 @@ void test_fs_rdwr(inode_t *root)
 void test_fs_truncate(inode_t *root)
 {
 	int ret;
-    inode_t *ino1 = vfs_create(root, "FILE_S.TXT", S_IFREG, NULL, 0);
+    inode_t *ino1 = vfs_create(root, "FILE_S.TXT", FL_REG, NULL, 0);
     ck_ok(ino1 != NULL && errno == 0, "");
     ret = vfs_truncate(ino1, 348); // Less than a sector
     ck_ok(ret == 0 && errno == 0, "");
 
-    inode_t *ino2 = vfs_create(root, "FILE_L.TXT", S_IFREG, NULL, 0);
+    inode_t *ino2 = vfs_create(root, "FILE_L.TXT", FL_REG, NULL, 0);
     ck_ok(ino2 != NULL && errno == 0, "");
     ret = vfs_truncate(ino2, 75043); // Much larger file
     ck_ok(ret == 0 && errno == 0, "");
-    inode_t *ino3 = vfs_create(root, "FILE_XL.TXT", S_IFREG, NULL, 0);
+    inode_t *ino3 = vfs_create(root, "FILE_XL.TXT", FL_REG, NULL, 0);
     ck_ok(ino3 != NULL && errno == 0, "");
     ret = vfs_truncate(ino3, 2000 * _Mib_); // Much larger file
     ck_ok(ret != 0 && errno == ENOSPC, "");

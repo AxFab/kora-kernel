@@ -32,6 +32,8 @@
 #define VFS_CREAT  0x02
 #define VFS_BLOCK  0x04
 
+#define VFS_RDONLY  0x001
+
 #define INO_ATIME  0x10
 #define INO_MTIME  0x20
 #define INO_CTIME  0x40
@@ -40,66 +42,97 @@
 #define INO_CANONALIZE  0x01
 #define INO_ABSOLUTE  0x02
 
+#define VFS_ISDIR(ino)  (ino->type == FL_DIR || ino->type == FL_VOL)
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 #define X_OK 1
 #define W_OK 2
 #define R_OK 4
 
-#define S_IFREG  (0x8000)
-#define S_IFBLK  (0x6000)
-#define S_IFDIR  (0x4000)
-#define S_IFCHR  (0x2000)
-#define S_IFIFO  (0x1000)
-#define S_IFLNK  (0xA000)
-#define S_IFSOCK (0xC000)
-#define S_IFWIN  (0xD000)
+typedef enum ftype ftype_t;
 
-#define S_IFMT   (0xF000)
+enum ftype {
+    FL_INVAL = 0,
+    FL_REG,  /* Regular file (FS) */
+    FL_BLK,  /* Block device */
+    FL_PIPE,  /* Pipe */
+    FL_CHR,  /* Char device */
+    FL_NET,  /* Network interface */
+    FL_SOCK,  /* Network socket */
+    FL_LNK,  /* Symbolic link (FS) */
+    FL_INFO,  /* Information file */
+    FL_SFC,  /* Application surface */
+    FL_VDO,  /* Video stream */
+    FL_DIR,  /* Directory (FS) */
+    FL_VOL,  /* File system volume */
+    FL_TTY,  /* Terminal (Virtual) */
+    FL_WIN,  /* Window (Virtual) */
+};
 
-#define S_ISREG(m)  (((m) & S_IFMT) == S_IFREG)
-#define S_ISBLK(m)  (((m) & S_IFMT) == S_IFBLK)
-#define S_ISDIR(m)  (((m) & S_IFMT) == S_IFDIR)
-#define S_ISCHR(m)  (((m) & S_IFMT) == S_IFCHR)
-#define S_ISIFO(m)  (((m) & S_IFMT) == S_IFIFO)
-#define S_ISLNK(m)  (((m) & S_IFMT) == S_IFLNK)
-#define S_ISSOCK(m)  (((m) & S_IFMT) == S_IFSOCK)
-#define S_ISWIN(m)  (((m) & S_IFMT) == S_IFWIN)
-
-#define S_ISGID  01000
-#define S_IXGRP  02000
-#define S_ISVTX  04000
+struct acl
+{
+    unsigned uid;
+    unsigned gid;
+    unsigned short mode;
+};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+struct ino_ops {
+    // All
+    int(*fcntl)(inode_t *ino, int cmd, void *params);
+    int(*close)(inode_t *ino);
+    // Mapping
+    page_t(*fetch)(inode_t *ino, off_t off);
+    void(*sync)(inode_t *ino, off_t off, page_t pg);
+    void(*release)(inode_t *ino, off_t off, page_t pg);
+    // Fifo
+    int(*read)(inode_t *ino, const char *buf, size_t len, int flags);
+    int(*write)(inode_t *ino, char *buf, size_t len, int flags);
+    void(*reset)(inode_t *ino);
+    // Directory
+    void *(*opendir)(inode_t *dir);
+    inode_t *(*readdir)(inode_t *dir, char *name, void *ctx);
+    int(*closedir)(inode_t *dir, void *ctx);
+    // Regular file
+    off_t(*truncate)(inode_t *ino, off_t length);
+    // Framebuffer
+    void(*flip)(inode_t *ino);
+    void(*resize)(inode_t *ino, int width, int height);
+    void(*copy)(inode_t *dst, inode_t *src, int x, int y, int lf, int tp, int rg, int bt);
+};
+
 struct inode {
-    long no;
-    int mode;
+    unsigned no;
+    int flags;
     size_t lba;
     off_t length;
-    // uid_t uid;
-    // uid_t gid;
-    struct timespec ctime;
-    struct timespec atime;
-    struct timespec mtime;
-    struct timespec btime;
+    ftype_t type;
+    acl_t *acl;
+    time64_t btime;
+    time64_t ctime;
+    time64_t mtime;
+    time64_t atime;
+    atomic_t rcu;
+    splock_t lock;
 
-    atomic32_t rcu;
-    atomic32_t links;
+    atomic_t links;
     llhead_t dlist; // List of dirent_t;
-    int block;
 
     void *info; // Place holder for driver info
-    union { // Place holder for file info
-        void *object;
-    };
+    ino_ops_t *ops;
+
     union { // Place holder for underlying device info
-        device_t *dev;
-        blkdev_t *blk;
-        chardev_t *chr;
-        fsvolume_t *fs;
-        netdev_t *ifnet;
-    };
+        volume_t *vol; // FL_REG, FL_DIR, FL_LNK, FL_VOL
+        device_t *dev; // FL_BLK, FL_CHR, FL_VDO
+        // pipe_t *pipe; // FL_PIPE
+        // ifnet_t *ifnet; // FL_NET
+        socket_t *socket; // FL_SOCK
+        // desktop_t *desktop; // FL_WIN, FL_TTY
+    } und;
+
+    llnode_t lnode;
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

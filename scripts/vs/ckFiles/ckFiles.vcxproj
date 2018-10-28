@@ -120,8 +120,8 @@
     <ClCompile Include="..\..\..\src\task\async.c" />
     <ClCompile Include="..\..\..\src\tests\files\ck_pipe.c" />
     <ClCompile Include="..\..\..\src\tests\files\_check.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\irq.c" />
     <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c" />
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_irq.c" />
     <ClCompile Include="..\..\..\src\tests\_stub\stub_task.c" />
     <ClCompile Include="..\..\..\src\tests\_stub\stub_time.c" />
     <ClCompile Include="..\..\..\src\tests\_stub\stub_vfs.c" />

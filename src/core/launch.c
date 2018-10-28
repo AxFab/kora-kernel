@@ -187,6 +187,7 @@ void kernel_start()
 
     kprintf(KLOG_MSG, "\n\033[94m  Greetings...\033[0m\n\n");
 
+    vfs_init();
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 

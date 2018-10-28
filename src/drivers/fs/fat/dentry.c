@@ -84,31 +84,35 @@ void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, FAT_volume_t *info)
+inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume)
 {
     unsigned cluster = (entry->DIR_FstClusHi << 16) | entry->DIR_FstClusLo;
-    int mode = 0777;
+    ftype_t type = FL_INVAL;
     if (entry->DIR_Attr & ATTR_DIRECTORY)
-        mode |= S_IFDIR;
+        type = FL_DIR;
     else if (entry->DIR_Attr & ATTR_ARCHIVE)
-        mode |= S_IFREG;
+        type = FL_REG;
 
-    inode_t *ino = vfs_inode(no, mode, NULL, 0);
+    inode_t *ino = vfs_inode(no, type, volume);
     ino->length = entry->DIR_FileSize;
     ino->lba = cluster;
-    ino->atime.tv_sec = fatfs_gettime(&entry->DIR_LstAccDate, NULL) / _PwNano_;
-    ino->ctime.tv_sec = fatfs_gettime(&entry->DIR_CrtDate, &entry->DIR_CrtTime) / _PwNano_;
-    ino->mtime.tv_sec = fatfs_gettime(&entry->DIR_WrtDate, &entry->DIR_WrtTime) / _PwNano_;
-    ino->info = info;
+    ino->atime = fatfs_gettime(&entry->DIR_LstAccDate, NULL);
+    ino->ctime = fatfs_gettime(&entry->DIR_CrtDate, &entry->DIR_CrtTime);
+    ino->mtime = fatfs_gettime(&entry->DIR_WrtDate, &entry->DIR_WrtTime);
     return ino;
 }
 
-void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, int mode)
+int fatfs_close(inode_t *ino) 
+{
+
+}
+
+void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t type)
 {
     memset(entry, 0, sizeof(*entry));
-    if (S_ISDIR(mode))
+    if (type == FL_DIR)
         entry->DIR_Attr = ATTR_DIRECTORY;
-    else if (S_ISREG(mode))
+    else if (type == FL_REG)
         entry->DIR_Attr = ATTR_ARCHIVE;
 
     fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, time64());
@@ -130,11 +134,11 @@ int fatfs_mkdir(FAT_volume_t *info, inode_t *dir)
     memset(entry, 0, info->BytsPerSec * info->SecPerClus);
 
     /* Create . and .. entries */
-    fatfs_short_entry(entry, lba, S_IFDIR);
+    fatfs_short_entry(entry, lba, FL_DIR);
     memcpy(entry->DIR_Name, FAT_DIRNAME_CURRENT, 11);
     ++entry;
 
-    fatfs_short_entry(entry, dir->lba, S_IFDIR);
+    fatfs_short_entry(entry, dir->lba, FL_DIR);
     memcpy(entry->DIR_Name, FAT_DIRNAME_PARENT, 11);
     bio_clean(info->io_data_rw, lba);
     return lba;

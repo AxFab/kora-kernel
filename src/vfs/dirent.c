@@ -37,7 +37,7 @@
  */
 dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
 {
-    assert(dir != NULL && S_ISDIR(dir->mode));
+    assert(dir != NULL && VFS_ISDIR(dir));
     assert(name != NULL && strnlen(name, VFS_MAXNAME) < VFS_MAXNAME);
 
     /* Build a unique key for the directory */
@@ -46,9 +46,9 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
     ((int *)key)[0] = dir->no;
     strcpy(&key[4], name);
 
-    fsvolume_t *fs = dir->fs;
+    volume_t *fs = dir->und.vol;
 
-    splock_lock(&fs->dev.lock);
+    splock_lock(&fs->lock);
     dirent_t *ent = (dirent_t *)hmp_get(&fs->hmap, key, lg);
     if (ent) {
         // Remove from LRU
@@ -68,7 +68,7 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
     } else if (ent->ino == NULL) {
         // if (!block) {
         kfree(key);
-        splock_unlock(&fs->dev.lock);
+        splock_unlock(&fs->lock);
         errno = EWOULDBLOCK;
         return NULL;
         // }
@@ -76,7 +76,7 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
         // TODO - Wait until
     }
     kfree(key);
-    splock_unlock(&fs->dev.lock);
+    splock_unlock(&fs->lock);
     return ent;
 }
 
@@ -99,15 +99,15 @@ void vfs_rm_dirent_(dirent_t *ent)
 {
     assert(ent != NULL);
 
-    fsvolume_t *fs = ent->parent->fs;
-    splock_lock(&fs->dev.lock);
+    volume_t *fs = ent->parent->und.vol;
+    splock_lock(&fs->lock);
     hmp_remove(&fs->hmap, ent->key, ent->lg);
     rwlock_rdunlock(&ent->lock);
     // TODO -- Wake up other !
     rwlock_wrlock(&ent->lock);
     // kfree(&ent);
 
-    splock_unlock(&fs->dev.lock);
+    splock_unlock(&fs->lock);
 }
 
 void vfs_dirent_rcu_(inode_t *ino)
@@ -116,10 +116,10 @@ void vfs_dirent_rcu_(inode_t *ino)
 }
 
 
-void vfs_sweep(fsvolume_t *fs, int max)
+void vfs_sweep(volume_t *fs, int max)
 {
     /* Lock so that nobody can access new dirent_t */
-    splock_lock(&fs->dev.lock);
+    splock_lock(&fs->lock);
     dirent_t *ent = ll_first(&fs->lru, dirent_t, lru);
     while (max > 0 && ent) {
         /* Check nobody is currently using this entry */
@@ -137,7 +137,7 @@ void vfs_sweep(fsvolume_t *fs, int max)
         --max;
     }
     if (ent != NULL)
-        splock_unlock(&fs->dev.lock);
+        splock_unlock(&fs->lock);
 }
 
 
@@ -146,23 +146,19 @@ void vfs_sweep(fsvolume_t *fs, int max)
 
 void vfs_record_(inode_t *dir, inode_t *ino)
 {
-    assert(dir != NULL && S_ISDIR(dir->mode));
+    assert(dir != NULL && VFS_ISDIR(dir));
     assert(ino != NULL);
     assert(ino->rcu == 1);
     assert(ino->links == 0);
     assert(ino->no != 0);
-    atomic_inc(&dir->fs->rcu);
-    ino->fs = dir->fs;
+    assert(ino->ops != NULL);
 }
 
 dirent_t *vfs_lookup_(inode_t *dir, CSTR name)
 {
-    assert(dir != NULL && S_ISDIR(dir->mode));
+    assert(dir != NULL && VFS_ISDIR(dir));
 
-    fs_open open = dir->fs->open;
-    if (dir->fs->dev.is_detached)
-        open = NULL;
-    if (open == NULL) {
+    if (dir->und.vol->ops->open == NULL) {
         errno = ENOSYS;
         return NULL;
     }
@@ -198,14 +194,14 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
     char *fname = strtok_r(path_cpy, "/\\", &rent);
     ino = vfs_open(ino);
     while (fname != NULL) {
-        if (S_ISLNK(ino->mode)) {
+        if (ino->type == FL_LNK) {
             // TODO -- Follow symbolic link
             (*links)++;
             vfs_close(ino);
             kfree(path_cpy);
             errno = ENOSYS;
             return NULL;
-        } else if (!S_ISDIR(ino->mode)) {
+        } else if (!VFS_ISDIR(ino)) {
             vfs_close(ino);
             kfree(path_cpy);
             errno = ENOTDIR;

@@ -67,10 +67,11 @@ struct disksize_secpercluster dsk_table_fat32[] = {
 
 int fatfs_format(inode_t *ino)
 {
+    assert(ino->type == FL_BLK);
     // TODO -- config
     const char *volume = "TestDrive";
     int cluster_size = 2048;
-    int sec_size = ino->blk->block;
+    int sec_size = ino->und.dev->block;
 
     bio_t *io_head = bio_create(ino, VMA_FILE_RW, sec_size, 0);
     uint8_t *ptr = bio_access(io_head, 0);

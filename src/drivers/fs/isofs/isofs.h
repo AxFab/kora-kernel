@@ -109,7 +109,6 @@ PACK(struct ISOFS_descriptor {
 });
 
 
-typedef struct ISO_inode ISO_inode_t;
 typedef struct ISO_info ISO_info_t;
 typedef struct ISO_dirctx ISO_dirctx_t;
 
@@ -120,13 +119,8 @@ struct ISO_info {
     int lgthroot;
     int sectorCount;
     int sectorSize;
-    inode_t *dev;
     char name[128];
-};
-
-struct ISO_inode {
-    inode_t ino;
-    ISO_info_t *vol;
+    bio_t *io;
 };
 
 struct ISO_dirctx {
@@ -137,13 +131,10 @@ struct ISO_dirctx {
 
 
 
-ISO_inode_t *isofs_lookup(ISO_inode_t *dir, const char *name);
-ISO_inode_t *isofs_readdir(ISO_inode_t *dir, char *name, ISO_dirctx_t *ctx);
-
+inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx);
 
 inode_t *isofs_mount(inode_t *dev);
-int isofs_umount(ISO_inode_t *ino);
-int isofs_read(ISO_inode_t *ino, void *buffer, size_t length, off_t offset);
-int isofs_not_allowed();
+int isofs_umount(inode_t *ino);
+int isofs_read(inode_t *ino, void *buffer, size_t length, off_t offset);
 
 #endif  /* _SRC_ISOFS_H */
