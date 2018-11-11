@@ -28,6 +28,7 @@ void imgdk_teardown();
 
 inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
 {
+    vfs_init();
     imgdk_setup();
     fsmod->setup();
 
@@ -47,10 +48,9 @@ void test_fs_teardown(inode_t *root, kmod_t *fsmod)
     vfs_show_devices();
     int res = vfs_umount(root);
     ck_ok(res == 0 && errno == 0, "Unmount file system");
-    vfs_close(root);
-    vfs_reset();
     fsmod->teardown();
     imgdk_teardown();
+    vfs_fini();
 }
 
 
@@ -125,18 +125,18 @@ void test_fs_rdwr(inode_t *root)
     inode_t *ino1 = vfs_create(root, "TEXT.TXT", FL_REG | 0644, NULL, 0);
     ck_ok(ino1 != NULL && errno == 0, "");
 
-    ret = vfs_read(ino1, buf, 100, 0);
+    ret = vfs_read(ino1, buf, 100, 0, 0);
     ck_ok(ret == -1 && errno == 0, "");
 
     ret = vfs_truncate(ino1, 32);
     ck_ok(ret == 0 && errno == 0, "");
 
-    ret = vfs_write(ino1, "Hello world!", 12, 0);
+    ret = vfs_write(ino1, "Hello world!", 12, 0, 0);
     ck_ok(ret == 12 && errno == 0, "");
 
     buf[12] = 'Z';
     buf[13] = '\0';
-    ret = vfs_read(ino1, buf, 100, 0);
+    ret = vfs_read(ino1, buf, 100, 0, 0);
     ck_ok(ret == 12 && errno == 0, "");
     ck_ok(strncmp("Hello world!Z", buf, 15) == 0, "");
 }

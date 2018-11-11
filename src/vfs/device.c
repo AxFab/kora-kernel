@@ -31,6 +31,11 @@ void vfs_init()
     splock_init(&devices_lock);
 }
 
+void vfs_fini()
+{
+    hmp_destroy(&devices_map, 0);
+}
+
 void vfs_show_devices()
 {
     inode_t *ino;
@@ -54,10 +59,10 @@ int vfs_mkdev(inode_t *ino, CSTR name)
     assert(ino != NULL && name != NULL);
     if (ino->type == FL_BLK && ino->length)
         kprintf(KLOG_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->und.dev->devclass,
-            ino->und.dev->vendor ? ino->und.dev->vendor : "", sztoa(ino->length), name);
-    else 
+            ino->und.dev->model ? ino->und.dev->model : "", sztoa(ino->length), name);
+    else
         kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->und.dev->devclass,
-            ino->und.dev->vendor ? ino->und.dev->vendor : "", name);
+            ino->und.dev->model ? ino->und.dev->model : "", name);
 
     vfs_open(ino);
     splock_lock(&devices_lock);

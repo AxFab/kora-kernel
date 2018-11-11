@@ -25,6 +25,8 @@
 
 struct _US_THREAD {
     pthread_t handler;
+    thrd_start_t func;
+    void *arg;
 };
 
 void free(void*);
@@ -43,6 +45,14 @@ static void thrd_init()
 }
 
 
+void thrd_start(thrd_t thread)
+{
+    tss_set(tss_key_thread, thread);
+    thread->func(thread->arg);
+    tss_delete(tss_key_thread);
+    free(thread);
+}
+
 
 /* Creates a thread */
 int thrd_create(thrd_t *thr, thrd_start_t func, void *arg)
@@ -50,7 +60,9 @@ int thrd_create(thrd_t *thr, thrd_start_t func, void *arg)
     if (!tss_thread_init)
         thrd_init();
     thrd_t thread = malloc(sizeof(* thread));
-    pthread_create(&thread->handler, NULL, func, arg);
+    thread->func = func;
+    thread->arg = arg;
+    pthread_create(&thread->handler, NULL, (thrd_start_t)thrd_start, thread);
     return 0;
 }
 

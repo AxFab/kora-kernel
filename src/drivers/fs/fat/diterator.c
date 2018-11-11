@@ -107,7 +107,7 @@ inode_t *fatfs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
             return NULL;
         }
 
-        ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, info);
+        ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->und.vol, info);
         fatfs_diterator_close(it);
         errno = 0;
         return ino;
@@ -130,7 +130,7 @@ inode_t *fatfs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
     fatfs_write_shortname(entry, name);
     memset(&entry[1], 0, sizeof(*entry)); // TODO - not behind cluster
 
-    ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, info);
+    ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->und.vol, info);
     fatfs_diterator_close(it);
     bio_sync(info->io_head);
     errno = 0;
@@ -156,7 +156,7 @@ inode_t *fatfs_readdir(inode_t *dir, char *name, FAT_diterator_t *it)
 
     FAT_volume_t *info = (FAT_volume_t *)dir->info;
     const int entries_per_cluster = info-> BytsPerSec / sizeof(struct FAT_ShortEntry);
-    return fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, info);
+    return fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->und.vol, info);
 }
 
 int fatfs_closedir(inode_t *dir, FAT_diterator_t *it)
@@ -180,7 +180,7 @@ int fatfs_unlink(inode_t *dir, CSTR name)
             continue;
         if (entry->DIR_Attr & ATTR_DIRECTORY) {
             // Check directory's empty
-            inode_t *ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, info);
+            inode_t *ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->und.vol, info);
             FAT_diterator_t *ino_it = fatfs_diterator_open(ino, false);
             struct FAT_ShortEntry *ino_en = fatfs_diterator_next(ino_it);
             fatfs_diterator_close(ino_it);

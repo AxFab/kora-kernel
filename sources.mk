@@ -70,11 +70,11 @@ DV_UTILS += $(bindir)/kImage
 
 ckFiles_src-y += $(srcdir)/libc/bbtree.c
 ckFiles_src-y += $(srcdir)/libc/hmap.c
-ckFiles_src-y += $(srcdir)/files/ioblk.c
 ckFiles_src-y += $(srcdir)/files/pipe.c
 ckFiles_src-y += $(srcdir)/task/async.c
 ckFiles_src-y += $(wildcard $(srcdir)/tests/files/*.c)
 ckFiles_src-y += $(srcdir)/tests/_stub/stub_core.c
+ckFiles_src-y += $(srcdir)/tests/_stub/stub_map.c
 ckFiles_src-y += $(srcdir)/tests/_stub/stub_mem.c
 ckFiles_src-y += $(srcdir)/tests/_stub/stub_irq.c
 ckFiles_src-y += $(srcdir)/tests/_stub/stub_vfs.c
@@ -90,7 +90,6 @@ ckFs_src-y += $(wildcard $(srcdir)/libc/*.c)
 ckFs_src-y += $(wildcard $(srcdir)/vfs/*.c)
 ckFs_src-y += $(wildcard $(srcdir)/core/bio.c)
 ckFs_src-y += $(wildcard $(srcdir)/core/debug.c)
-ckFs_src-y += $(wildcard $(srcdir)/files/ioblk.c)
 ckFs_src-y += $(wildcard $(srcdir)/task/async.c)
 ckFs_src-y += $(wildcard $(srcdir)/drivers/fs/fat/*.c)
 ckFs_src-y += $(wildcard $(srcdir)/drivers/fs/isofs/*.c)
@@ -98,6 +97,7 @@ ckFs_src-y += $(wildcard $(srcdir)/drivers/disk/imgdk/*.c)
 ckFs_src-y += $(wildcard $(srcdir)/tests/fs/*.c)
 ckFs_src-y += $(srcdir)/tests/_stub/stub_core.c
 ckFs_src-y += $(srcdir)/tests/_stub/stub_irq.c
+ckFs_src-y += $(srcdir)/tests/_stub/stub_map.c
 ckFs_src-y += $(srcdir)/tests/_stub/stub_mem.c
 ckFs_src-y += $(srcdir)/tests/_stub/stub_task.c
 ckFs_src-y += $(srcdir)/tests/_stub/stub_time.c
@@ -105,17 +105,6 @@ ckFs_omit-y += $(srcdir)/libc/mutex.c
 ckFs_LFLAGS += $(LFLAGS) $(COV_FLAGS)
 $(eval $(call link,ckFs,chk))
 DV_CHECK += $(bindir)/ckFs
-
-# -------------------------
-
-ckFile_src-y += $(wildcard $(srcdir)/files/*.c)
-ckFile_omit-y += $(srcdir)/files/wmgr.c
-ckFile_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
-ckFile_src-y += $(srcdir)/core/debug.c  $(srcdir)/arch/um2/cpu.c
-ckFile_src-y += $(srcdir)/tests/ck_file.c
-ckFile_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-$(eval $(call link,ckFile,chk))
-# DV_CHECK += $(bindir)/ckFile
 
 # -------------------------
 
