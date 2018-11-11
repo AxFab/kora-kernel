@@ -25,6 +25,10 @@
 
 
 
+
+typedef struct map_page map_page_t;
+typedef struct map_cache map_cache_t;
+
 typedef struct surface surface_t;
 typedef struct line line_t;
 typedef struct tty tty_t;
@@ -93,6 +97,14 @@ int pipe_erase(pipe_t *pipe, int len);
 int pipe_write(pipe_t *pipe, const char *buf, int len, int flags);
 int pipe_read(pipe_t *pipe, char *buf, int len, int flags);
 
+
+
+
+map_cache_t *map_create(inode_t *ino, void *read, void *write);
+void map_destroy(map_cache_t *cache);
+page_t map_fetch(map_cache_t *cache, off_t off);
+void map_sync(map_cache_t *cache, off_t off, page_t pg);
+void map_release(map_cache_t *cache, off_t off, page_t pg);
 
 
 

@@ -65,10 +65,10 @@ struct tar_info {
 
 } tinfo;
 
-inode_t *tar_inode(tar_entry_t *entry, int length)
+inode_t *tar_inode(volume_t *vol, tar_entry_t *entry, int length)
 {
     int lba = ((void*)entry - tinfo.start);
-    inode_t *ino = vfs_inode(lba / TAR_BLOCK_SIZE + 2, S_IFREG | 0777, NULL, 0);
+    inode_t *ino = vfs_inode(lba / TAR_BLOCK_SIZE + 2, FL_REG, vol);
     ino->length = length;
     ino->lba = lba;
     return ino;
@@ -132,7 +132,7 @@ inode_t *tar_readdir(inode_t *dir, char *name, void *ctx)
             break;
     }
     strncpy(name, entry->name, 255);
-    inode_t *ino = tar_inode(entry, length);
+    inode_t *ino = tar_inode(dir->und.vol, entry, length);
     return ino;
 }
 
@@ -144,25 +144,34 @@ int tar_closedir(inode_t *dir, void *ctx)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+ino_ops_t tar_reg_ops = {
+};
+
+ino_ops_t tar_dir_ops = {
+
+    .opendir = tar_opendir,
+    .readdir = tar_readdir,
+    .closedir = tar_closedir,
+};
+
+fs_ops_t tar_fs_ops = {
+    .open = tar_open,
+};
+
+
 inode_t *tar_mount(void *base, void *end, CSTR name)
 {
     tinfo.start = base;
     tinfo.length = end - base;
 
-    inode_t *ino = vfs_inode(1, S_IFDIR | 0777, NULL, 0);
+    inode_t *ino = vfs_inode(1, FL_VOL, NULL);
     ino->length = 0;
     ino->lba = 0;
-    // info
+    ino->ops = &tar_dir_ops;
+    ino->und.vol->ops = &tar_fs_ops;
+    ino->und.vol->volname = strdup(name);
+    ino->und.vol->volfs = "tarfs";
 
-    fsvolume_t *fs = (fsvolume_t *)kalloc(sizeof(fsvolume_t));
-    fs->open = (fs_open)tar_open;
-    fs->read = (fs_read)tar_read;
-    fs->umount = (fs_umount)tar_umount;
-    fs->opendir = (fs_opendir)tar_opendir;
-    fs->readdir = (fs_readdir)tar_readdir;
-    fs->closedir = (fs_closedir)tar_closedir;
-
-    vfs_mountpt(name, "tarfs", fs, (inode_t *)ino);
     errno = 0;
     return ino;
 }
