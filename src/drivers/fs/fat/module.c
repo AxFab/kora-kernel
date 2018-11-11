@@ -81,6 +81,8 @@ inode_t *fatfs_mount(inode_t *dev)
     ino->und.vol->ops = &fatfs_ops;
     ino->und.vol->volfs = fsName;
     ino->und.vol->volname = strdup(info->name);
+    ino->info = info;
+    ino->ops = &fatfs_dir_ops;
 
     int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
     info->io_data_rw = bio_create(dev, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);

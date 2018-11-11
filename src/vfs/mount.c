@@ -83,7 +83,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs)
 
 int vfs_umount(inode_t *ino)
 {
-    assert(ino == FL_VOL);
+    assert(ino->type == FL_VOL);
     volume_t *fs = ino->und.vol;
 
     errno = 0;

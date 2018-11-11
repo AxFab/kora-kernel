@@ -88,7 +88,9 @@ static void imgdk_open(int i)
             blk->und.dev->flags = VFS_RDONLY;
         blk->und.dev->block = sdSize[e];
         blk->und.dev->vendor = (char*)"HostSimul";
+        blk->und.dev->model = "HostSimul";
         blk->und.dev->devclass = (char*)clazz[e];
+        blk->und.dev->devname = sdNames[i];
         blk->und.dev->ops = &imgdk_dev_ops;
         blk->ops = &imgdk_ino_ops;
         blk->info = map_create(blk, imgdk_read, imgdk_write);
@@ -112,7 +114,7 @@ int imgdk_ioctl(inode_t *ino, int cmd, long *params)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset)
+int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset)
 {
     int fd = ino->no;
     errno = 0;
@@ -125,7 +127,7 @@ static int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset)
     return 0;
 }
 
-static int imgdk_write(inode_t *ino, const void *data, size_t size, off_t offset)
+int imgdk_write(inode_t *ino, const void *data, size_t size, off_t offset)
 {
     int fd = ino->no;
     assert((ino->flags & VFS_RDONLY) == 0);

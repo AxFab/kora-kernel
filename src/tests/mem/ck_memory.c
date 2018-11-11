@@ -20,16 +20,33 @@
 #include <kernel/core.h>
 #include <kora/mcrs.h>
 #include <kernel/memory.h>
+#include <kernel/vfs.h>
 #include "../check.h"
 
 extern size_t __um_mspace_pages_count;
 extern size_t __um_pages_available;
 
+page_t test_mem_fetch(inode_t *ino, off_t off) {
+    return 1 * PAGE_SIZE;
+}
+
+void test_mem_sync(inode_t *ino, off_t off, page_t pg) {
+}
+
+void test_mem_release(inode_t *ino, off_t off, page_t pg) {
+}
+
+ino_ops_t __test_blk_ops = {
+    .fetch = test_mem_fetch,
+    .sync = test_mem_sync,
+    .release = test_mem_release,
+};
 
 /* Various dummy tests with kernel space only */
 START_TEST(test_01)
 {
-    inode_t *ino = 0;// vfs_inode(0, )
+    inode_t *ino = vfs_inode(1, FL_BLK, NULL);
+    ino->ops = &__test_blk_ops;
     __um_mspace_pages_count = 32; // Each memory space will be 32 pages
     __um_pages_available = 64; // We have a total of 64 pages available
     memory_initialize();
@@ -96,6 +113,7 @@ START_TEST(test_01)
 
     memory_sweep();
     ck_assert(kMMU.free_pages == __um_pages_available);
+    vfs_close(ino);
 }
 END_TEST
 

@@ -143,9 +143,9 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
         off_t off = offset;
         void *buf = ptr;
         while (length > 0) {
-            page_t pg = mem_fetch(ino, off);
+            page_t pg = ino->ops->fetch(ino, off);
             memcpy(buf, (void*)pg, PAGE_SIZE);
-            mem_release(ino, off, pg);
+            ino->ops->release(ino, off, pg);
             length -= PAGE_SIZE;
             off += PAGE_SIZE;
             buf = ADDR_OFF(buf, PAGE_SIZE);
@@ -174,14 +174,17 @@ void kunmap(void *addr, size_t length)
     case VMA_FILE:
         assert(vma->ino != NULL);
         if (vma->flags & VMA_WRITE) {
+            off_t off = vma->offset;
+            void *padd = addr;
+            inode_t *ino = vma->ino;
             while (vma->length > 0) {
-                page_t pg = mem_fetch(vma->ino, vma->offset);
-                memcpy((void*)pg, addr, PAGE_SIZE);
-                mem_sync(vma->ino, vma->offset, pg);
-                mem_release(vma->ino, vma->offset, pg);
-                length -= PAGE_SIZE;
-                vma->offset += PAGE_SIZE;
-                addr = ADDR_OFF(addr, PAGE_SIZE);
+                page_t pg = ino->ops->fetch(ino, off);
+                memcpy((void*)pg, padd, PAGE_SIZE);
+                ino->ops->sync(ino, off, pg);
+                ino->ops->release(ino, off, pg);
+                vma->length -= PAGE_SIZE;
+                off += PAGE_SIZE;
+                padd = ADDR_OFF(padd, PAGE_SIZE);
             }
         }
         break;

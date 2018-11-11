@@ -84,7 +84,10 @@ void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume)
+extern ino_ops_t fatfs_reg_ops;
+extern ino_ops_t fatfs_dir_ops;
+
+inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume, FAT_volume_t *info)
 {
     unsigned cluster = (entry->DIR_FstClusHi << 16) | entry->DIR_FstClusLo;
     ftype_t type = FL_INVAL;
@@ -96,13 +99,18 @@ inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume)
     inode_t *ino = vfs_inode(no, type, volume);
     ino->length = entry->DIR_FileSize;
     ino->lba = cluster;
+    ino->info = info;
     ino->atime = fatfs_gettime(&entry->DIR_LstAccDate, NULL);
     ino->ctime = fatfs_gettime(&entry->DIR_CrtDate, &entry->DIR_CrtTime);
     ino->mtime = fatfs_gettime(&entry->DIR_WrtDate, &entry->DIR_WrtTime);
+    if (entry->DIR_Attr & ATTR_DIRECTORY)
+        ino->ops = &fatfs_dir_ops;
+    else if (entry->DIR_Attr & ATTR_ARCHIVE)
+        ino->ops = &fatfs_reg_ops;
     return ino;
 }
 
-int fatfs_close(inode_t *ino) 
+int fatfs_close(inode_t *ino)
 {
 
 }
