@@ -179,7 +179,7 @@ inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
     bio_clean(info->io, lba);
     // kunmap(address, 8192);
     kfree(filename);
-    
+
     if (flags & VFS_CREAT) {
         errno = EROFS;
         return NULL;
@@ -235,7 +235,7 @@ inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx)
 
 int isofs_read(inode_t *ino, void *buffer, size_t length, off_t offset)
 {
-    return vfs_read(ino->und.vol->dev, buffer, length, ino->lba * ISOFS_SECTOR_SIZE + offset);
+    return vfs_read(ino->und.vol->dev, buffer, length, ino->lba * ISOFS_SECTOR_SIZE + offset, 0);
 }
 
 page_t isofs_fetch(inode_t *ino, off_t off)

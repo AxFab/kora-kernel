@@ -26,6 +26,7 @@
 #include <threads.h>
 #include <errno.h>
 
+#if 0
 typedef struct map_ops map_ops_t;
 typedef struct map_cache map_cache_t;
 typedef struct map_page map_page_t;
@@ -172,3 +173,4 @@ void map_sync(map_cache_t *cache)
     }
 }
 
+#endif

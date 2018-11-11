@@ -20,10 +20,7 @@
 #include <kernel/core.h>
 #include <kernel/vfs.h>
 #include <kernel/device.h>
-
-
-typedef struct map_page map_page_t;
-typedef struct map_cache map_cache_t;
+#include <kernel/files.h>
 
 struct map_page {
     bbnode_t bnode;
@@ -40,14 +37,6 @@ struct map_cache {
     bbtree_t tree;
     splock_t lock;
  };
-
-map_cache_t *map_create(inode_t *ino, void *read, void *write);
-void map_destroy(map_cache_t *cache);
-
-page_t map_fetch(map_cache_t *cache, off_t off);
-void map_sync(map_cache_t *cache, off_t off, page_t pg);
-void map_release(map_cache_t *cache, off_t off, page_t pg);
-
 
 
 map_cache_t *map_create(inode_t *ino, void *read, void *write)
@@ -71,22 +60,30 @@ void map_destroy(map_cache_t *cache)
 
 page_t map_fetch(map_cache_t *cache, off_t off)
 {
+    assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
     void *ptr = kmap(PAGE_SIZE, NULL, 0, VMA_PHYSIQ);
+    assert(kCPU.irq_semaphore == 0);
     cache->read(cache->ino, ptr, PAGE_SIZE, off);
-    return (void*)ptr;
+    assert(kCPU.irq_semaphore == 0);
+    page_t pg = mmu_read(ptr);
+    kunmap(ptr, PAGE_SIZE);
+    return pg;
 }
 
 void map_sync(map_cache_t *cache, off_t off, page_t pg)
 {
+    assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
-    void *ptr = (void*)pg;
+    void *ptr = kmap(PAGE_SIZE, NULL, (off_t)pg, VMA_PHYSIQ);
+    assert(kCPU.irq_semaphore == 0);
     cache->write(cache->ino, ptr, PAGE_SIZE, off);
+    assert(kCPU.irq_semaphore == 0);
+    kunmap(ptr, PAGE_SIZE);
 }
 
 void map_release(map_cache_t *cache, off_t off, page_t pg)
 {
     assert(IS_ALIGNED(off, PAGE_SIZE));
-    kunmap((void*)pg, PAGE_SIZE);
 }
 

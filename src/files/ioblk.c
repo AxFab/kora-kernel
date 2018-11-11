@@ -50,7 +50,7 @@ struct blkcache {
 static int ioblk_sync_(blkpage_t *page)
 {
     void *map = kmap(PAGE_SIZE, NULL, page->phys, VMA_PHYSIQ);
-    int ret = vfs_write(page->ino, map, PAGE_SIZE, (off_t)page->bnode.value_);
+    int ret = vfs_write(page->ino, map, PAGE_SIZE, (off_t)page->bnode.value_, 0);
     assert((ret == 0) != (errno != 0));
     kunmap(map, PAGE_SIZE);
     if (ret == 0)
@@ -63,7 +63,7 @@ static int ioblk_sync_(blkpage_t *page)
 static int ioblk_fetch_(blkpage_t *page)
 {
     void *map = kmap(PAGE_SIZE, NULL, 0, VMA_PHYSIQ);
-    int ret = vfs_read(page->ino, map, PAGE_SIZE, (off_t)page->bnode.value_);
+    int ret = vfs_read(page->ino, map, PAGE_SIZE, (off_t)page->bnode.value_, 0);
     assert((ret == 0) != (errno != 0));
     if (ret == 0)
         page->phys = mmu_read((size_t)map);

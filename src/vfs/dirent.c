@@ -169,7 +169,7 @@ dirent_t *vfs_lookup_(inode_t *dir, CSTR name)
         return NULL;
     } else if (ent->ino == NULL) {
         // TODO -- We can't - lock on entry (rdlock) !?
-        inode_t *ino = open(dir, name, 0, NULL, VFS_OPEN);
+        inode_t *ino = dir->und.vol->ops->open(dir, name, 0, NULL, VFS_OPEN);
         if (ino == NULL) {
             assert(errno != 0);
             vfs_rm_dirent_(ent);

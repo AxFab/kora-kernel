@@ -168,6 +168,12 @@ int vma_close(mspace_t *mspace, vma_t *vma, int arg)
                 mmu_drop(vma->node.value_ + off);
             break;
         case VMA_FILE:
+            for (off = 0; off < vma->length; off += PAGE_SIZE) {
+                // TODO -- Look if page is dirty
+                page_t pg = mmu_read(vma->node.value_ + off);
+                mmu_drop(vma->node.value_ + off);
+                vma->ino->ops->release(vma->ino, off, pg);
+            }
             break;
         default:
             page_sweep(mspace, vma->node.value_, vma->length, true);
@@ -239,8 +245,12 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     case VMA_FILE:
         while (length > 0) {
             inode_t *ino = vma->ino;
+            if (ino->ops->fetch == NULL) {
+                errno = ENOSYS;
+                return -1;
+            }
             splock_unlock(&vma->mspace->lock);
-            page_t pg = ioblk_page(ino, offset); // CAN SLEEP!
+            page_t pg = ino->ops->fetch(ino, offset); // CAN SLEEP!
             splock_lock(&vma->mspace->lock);
             if (pg == 0)
                 return -1;

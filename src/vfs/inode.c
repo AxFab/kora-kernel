@@ -61,6 +61,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
     case FL_SFC:  /* Application surface */
     case FL_TTY:  /* Terminal (Virtual) */
     case FL_WIN:  /* Window (Virtual) */
+    default:
         assert(false);
         break;
     }
@@ -228,7 +229,7 @@ int vfs_unlink(inode_t *dir, CSTR name)
     }
 
     /* Request send to the file system */
-    int ret = unlink(dir, name);
+    int ret = dir->und.vol->ops->unlink(dir, name);
     if (ret == 0 || ent->ino == NULL)
         vfs_rm_dirent_(ent);
     else
@@ -270,7 +271,7 @@ int vfs_truncate(inode_t *ino, off_t length)
         errno = EINVAL;
 		return -1;
 	}
-	
+
 	/* Can we ask the file-system */
     if (ino->ops->truncate == NULL) {
         errno = ENOSYS;

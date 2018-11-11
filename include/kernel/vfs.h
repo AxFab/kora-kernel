@@ -142,7 +142,7 @@ inode_t *vfs_search(inode_t *root, inode_t *pwd, CSTR path, acl_t *acl);
 /* Look for an inode on a directory */
 inode_t *vfs_lookup(inode_t *dir, CSTR name);
 /* Create an empty inode (DIR or REG) */
-inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
+inode_t *vfs_create(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags);
 /* Link an inode (If supported) */
 int vfs_link(inode_t *dir, CSTR name, inode_t *ino);
 /* Unlink / delete an inode */
@@ -168,9 +168,9 @@ int vfs_truncate(inode_t *ino, off_t lengtg);
 int vfs_access(inode_t *ino, int access, acl_t *acl);
 
 /* IO operations - read - only for BLK or REG */
-int vfs_read(inode_t *ino, void *buf, size_t size, off_t offset);
+int vfs_read(inode_t *ino, char *buf, size_t size, off_t offset, int flags);
 /* IO operations - write - only for BLK or REG */
-int vfs_write(inode_t *ino, const void *buf, size_t size, off_t offset);
+int vfs_write(inode_t *ino, const char *buf, size_t size, off_t offset, int flags);
 
 /* Open an inode - increment usage as concerned to RCU mechanism. */
 inode_t *vfs_open(inode_t *ino);
