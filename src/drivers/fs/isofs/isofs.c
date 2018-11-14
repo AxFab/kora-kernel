@@ -206,7 +206,7 @@ inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx)
             entry = ISOFS_nextEntry(entry);
             continue;
         }
-        inode_t *ino = isofs_inode(dir->und.vol->dev, entry);
+        inode_t *ino = isofs_inode(dir->und.vol, entry);
 
         /* Move pointer to next entry, eventualy continue directory mapping. */
         entry = ISOFS_nextEntry(entry);
@@ -327,6 +327,7 @@ inode_t *isofs_mount(inode_t *dev)
     ino->und.vol->volname = strdup(info->name);
     ino->und.vol->dev = vfs_open(dev);
     ino->und.vol->info = info;
+    ino->und.vol->ops = &isofs_ops;
     ino->ops = &iso_dir_ops;
     return ino;
 }
