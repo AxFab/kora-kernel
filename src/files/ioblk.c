@@ -50,7 +50,7 @@ struct blkcache {
 static int ioblk_sync_(blkpage_t *page)
 {
     void *map = kmap(PAGE_SIZE, NULL, page->phys, VMA_PHYSIQ);
-    int ret = vfs_write(page->ino, map, PAGE_SIZE, (off_t)page->bnode.value_);
+    int ret = vfs_write(page->ino, map, PAGE_SIZE, (off_t)page->bnode.value_, 0);
     assert((ret == 0) != (errno != 0));
     kunmap(map, PAGE_SIZE);
     if (ret == 0)
@@ -63,11 +63,11 @@ static int ioblk_sync_(blkpage_t *page)
 static int ioblk_fetch_(blkpage_t *page)
 {
     void *map = kmap(PAGE_SIZE, NULL, 0, VMA_PHYSIQ);
-    int ret = vfs_read(page->ino, map, PAGE_SIZE, (off_t)page->bnode.value_);
+    int ret = vfs_read(page->ino, map, PAGE_SIZE, (off_t)page->bnode.value_, 0);
     assert((ret == 0) != (errno != 0));
-    kunmap(map, PAGE_SIZE);
     if (ret == 0)
         page->phys = mmu_read((size_t)map);
+    kunmap(map, PAGE_SIZE);
     return ret;
 }
 
@@ -105,14 +105,14 @@ static blkpage_t *ioblk_search(inode_t *ino, off_t off)
 {
     /* Do some checks */
     assert(off >= 0 && IS_ALIGNED(off, PAGE_SIZE));
-    assert(S_ISREG(ino->mode) || S_ISBLK(ino->mode));
+    assert(ino->ops->fetch != NULL &&ino->ops->sync != NULL &&ino->ops->release != NULL);
     if (off >= ino->length) {
         errno = EINVAL;
         return NULL;
     }
 
     /* Look for a known page */
-    blkcache_t *cache = (blkcache_t *)ino->object;
+    blkcache_t *cache = (blkcache_t *)ino->info;
     assert(true/* cache is locked in rd or wr */);
     blkpage_t *page = bbtree_search_eq(&cache->tree, (size_t)off, blkpage_t, bnode);
     if (page == NULL)
@@ -129,12 +129,12 @@ void ioblk_init(inode_t *ino)
     blkcache_t *cache = (blkcache_t *)kalloc(sizeof(blkcache_t));
     rwlock_init(&cache->lock);
     bbtree_init(&cache->tree);
-    ino->object = cache;
+    ino->info = cache;
 }
 
 void ioblk_sweep(inode_t *ino)
 {
-    blkcache_t *cache = (blkcache_t *)ino->object;
+    blkcache_t *cache = (blkcache_t *)ino->info;
     rwlock_wrlock(&cache->lock);
     // REMOVE ALL PAGES
     assert(cache->tree.count_ == 0);
@@ -144,7 +144,7 @@ void ioblk_sweep(inode_t *ino)
 
 void ioblk_release(inode_t *ino, off_t off)
 {
-    blkcache_t *cache = (blkcache_t *)ino->object;
+    blkcache_t *cache = (blkcache_t *)ino->info;
     rwlock_rdlock(&cache->lock);
     blkpage_t *page = ioblk_search(ino, off);
     assert(page != NULL);
@@ -156,7 +156,7 @@ void ioblk_release(inode_t *ino, off_t off)
 /* Find the page mapping the content of a block inode */
 page_t ioblk_page(inode_t *ino, off_t off)
 {
-    blkcache_t *cache = (blkcache_t *)ino->object;
+    blkcache_t *cache = (blkcache_t *)ino->info;
     rwlock_rdlock(&cache->lock);
     blkpage_t *page = ioblk_search(ino, off);
 
@@ -198,7 +198,7 @@ page_t ioblk_page(inode_t *ino, off_t off)
 /* Synchronize a page mapping the content of a block inode */
 int ioblk_sync(inode_t *ino, off_t off)
 {
-    blkcache_t *cache = (blkcache_t *)ino->object;
+    blkcache_t *cache = (blkcache_t *)ino->info;
     rwlock_rdlock(&cache->lock);
     blkpage_t *page = ioblk_search(ino, off);
     assert(page != NULL);
@@ -213,7 +213,7 @@ int ioblk_sync(inode_t *ino, off_t off)
 
 void ioblk_dirty(inode_t *ino, off_t off)
 {
-    blkcache_t *cache = (blkcache_t *)ino->object;
+    blkcache_t *cache = (blkcache_t *)ino->info;
     rwlock_rdlock(&cache->lock);
     blkpage_t *page = ioblk_search(ino, off);
     assert(page != NULL);

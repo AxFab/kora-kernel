@@ -186,7 +186,10 @@ struct kCpu {
     uint64_t wait_elapsed;
 
     int err_no;
+    int flags;
 };
+
+#define CPU_NO_TASK  0x800
 
 struct kSys {
     struct kCpu *cpus;

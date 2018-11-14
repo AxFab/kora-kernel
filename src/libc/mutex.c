@@ -24,15 +24,6 @@
 #include <limits.h>
 
 
-thrd_t thrd_current(void)
-{
-    return NULL;
-}
-int thrd_equals(thrd_t l, thrd_t r)
-{
-    return l == r;
-}
-
 struct _US_MUTEX {
     atomic_t counter;
     int flags;
@@ -40,6 +31,16 @@ struct _US_MUTEX {
     splock_t splock;
     emitter_t emitter;
 };
+
+thrd_t thrd_current(void)
+{
+    return NULL;
+}
+
+int thrd_equals(thrd_t l, thrd_t r)
+{
+    return l == r;
+}
 
 int futex_wait(struct _US_MUTEX *mutex, const struct timespec *ts)
 {
@@ -65,6 +66,8 @@ void futex_raise(struct _US_MUTEX *mutex)
     async_raise(&mutex->emitter, 0);
     splock_unlock(&mutex->splock);
 }
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Creates a mutex */
 int mtx_init(mtx_t *mutex, int flags)
@@ -138,3 +141,65 @@ void mtx_destroy(mtx_t *mutex)
     free(ptr);
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+/* Creates a condition variable */
+int cnd_init(cnd_t *cond)
+{
+    mtx_init(cond, mtx_timed);
+    mtx_lock(cond);
+    return 0;
+}
+
+/* Unblocks one thread blocked on a condition variable */
+int cnd_signal(cnd_t *cond)
+{
+    struct _US_MUTEX *ptr = *cond;
+    ptr->flags |= mtx_cnd_single;
+    return mtx_unlock(cond);
+}
+
+/* Unblocks all threads blocked on a condition variable */
+int cnd_broadcast(cnd_t *cond)
+{
+    struct _US_MUTEX *ptr = *cond;
+    ptr->flags &= ~mtx_cnd_single;
+    return mtx_unlock(cond);
+}
+
+/* Blocks on a condition variable */
+int cnd_wait(cnd_t *cond, mtx_t *mutex)
+{
+    struct _US_MUTEX *ptr = *cond;
+    if (mutex != NULL)
+        mtx_unlock(mutex);
+    if (mtx_lock(cond) != 0)
+        return -1;
+    if ((ptr->flags & mtx_cnd_single) == 0)
+        mtx_unlock(cond);
+    if (mutex != NULL)
+        return mtx_lock(mutex);
+    return 0;
+}
+
+/* Blocks on a condition variable, with a timeout */
+int cnd_timedwait(cnd_t *cond, mtx_t *mutex, const struct timespec *until)
+{
+    struct _US_MUTEX *ptr = *cond;
+    if (mutex != NULL)
+        mtx_unlock(mutex);
+    if (mtx_timedlock(cond, until) != 0)
+        return -1;
+    if ((ptr->flags & mtx_cnd_single) == 0)
+        mtx_unlock(cond);
+    if (mutex != NULL)
+        return mtx_timedlock(mutex, until);
+    return 0;
+}
+
+/* Destroys a condition variable */
+void cnd_destroy(cnd_t *cond)
+{
+    mtx_destroy(cond);
+}

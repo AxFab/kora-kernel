@@ -37,7 +37,7 @@ char *vma_print(char *buf, int len, vma_t *vma)
     int i = 0;
     char sh = vma->flags & VMA_COPY_ON_WRITE ? (vma->flags & VMA_SHARED ? 'W' : 'w')
               : (vma->flags & VMA_SHARED ? 'S' : 'p');
-    i += snprintf(&buf[i], len - i, FPTR"-"FPTR" %s %s%c  {%04x} <%s> ",
+    i += snprintf(&buf[i], len - i, "%p-%p %s %s%c  {%04x} <%s> ",
                   (void *)vma->node.value_, (void *)(vma->node.value_ + vma->length),
                   rights[(vma->flags >> 4) & 7], rights[vma->flags & 7], sh,
                   vma->flags, sztoa(vma->length));
@@ -52,7 +52,7 @@ char *vma_print(char *buf, int len, vma_t *vma)
         i += snprintf(&buf[i], len - i, "[pipe]");
         break;
     case VMA_PHYS:
-        i += snprintf(&buf[i], len - i, "PHYS="FPTR, (void *)vma->offset);
+        i += snprintf(&buf[i], len - i, "PHYS=%p", (void *)vma->offset);
         break;
     case VMA_ANON:
         break;
@@ -159,12 +159,27 @@ vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length)
 int vma_close(mspace_t *mspace, vma_t *vma, int arg)
 {
     (void)arg;
+    size_t off;
     assert(splock_locked(&mspace->lock));
     int type = vma->flags & VMA_TYPE;
-    if (type == VMA_FILE) {
+    switch (type) {
+        case VMA_PHYS:
+            for (off = 0; off < vma->length; off += PAGE_SIZE)
+                mmu_drop(vma->node.value_ + off);
+            break;
+        case VMA_FILE:
+            for (off = 0; off < vma->length; off += PAGE_SIZE) {
+                // TODO -- Look if page is dirty
+                page_t pg = mmu_read(vma->node.value_ + off);
+                mmu_drop(vma->node.value_ + off);
+                vma->ino->ops->release(vma->ino, off, pg);
+            }
+            break;
+        default:
+            page_sweep(mspace, vma->node.value_, vma->length, true);
+            break;
+    }
 
-    } else if ((vma->flags & VMA_SHARED) == 0 && type != VMA_PHYS)
-        page_sweep(mspace, vma->node.value_, vma->length, true);
     if (vma->ino)
         vfs_close(vma->ino);
     bbtree_remove(&mspace->tree, vma->node.value_);
@@ -230,8 +245,12 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     case VMA_FILE:
         while (length > 0) {
             inode_t *ino = vma->ino;
+            if (ino->ops->fetch == NULL) {
+                errno = ENOSYS;
+                return -1;
+            }
             splock_unlock(&vma->mspace->lock);
-            page_t pg = ioblk_page(ino, offset); // CAN SLEEP!
+            page_t pg = ino->ops->fetch(ino, offset); // CAN SLEEP!
             splock_lock(&vma->mspace->lock);
             if (pg == 0)
                 return -1;

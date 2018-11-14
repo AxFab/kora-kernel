@@ -21,73 +21,67 @@
 #include <string.h>
 #include <errno.h>
 
-llhead_t dev_list = INIT_LLHEAD;
+llhead_t devices_list = INIT_LLHEAD;
+HMP_map devices_map;
+splock_t devices_lock;
 
-
-extern bool fs_init;
-void vfs_reset()
+void vfs_init()
 {
-    fs_init = false;
-    memset(&dev_list, 0, sizeof(dev_list));
+    hmp_init(&devices_map, 16);
+    splock_init(&devices_lock);
 }
 
-device_t *vfs_lookup_device_(CSTR name)
+void vfs_fini()
 {
-    device_t *dev;
-    for ll_each(&dev_list, dev, device_t, node) {
-        if (!strcmp(name, dev->name))
-            return dev;
+    hmp_destroy(&devices_map, 0);
+}
+
+void vfs_show_devices()
+{
+    inode_t *ino;
+    splock_lock(&devices_lock);
+    for ll_each(&devices_list, ino, inode_t, lnode) {
+        kprintf(-1, "DEV '%s' / %s (RCU:%d)\n", ino->und.dev->devname, ino->und.dev->model, ino->rcu);
     }
-    return NULL;
+    splock_unlock(&devices_lock);
 }
 
 inode_t *vfs_search_device(CSTR name)
 {
-    device_t *dev = vfs_lookup_device_(name);
-    return dev ? dev->ino : NULL;
+    splock_lock(&devices_lock);
+    inode_t *ino = (inode_t*)hmp_get(&devices_map, name, strlen(name));
+    splock_unlock(&devices_lock);
+    return ino;
 }
 
-int vfs_mkdev(CSTR name, device_t *dev, inode_t *ino)
+int vfs_mkdev(inode_t *ino, CSTR name)
 {
-    if (dev == NULL || ino == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
+    assert(ino != NULL && name != NULL);
+    if (ino->type == FL_BLK && ino->length)
+        kprintf(KLOG_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->und.dev->devclass,
+            ino->und.dev->model ? ino->und.dev->model : "", sztoa(ino->length), name);
+    else
+        kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->und.dev->devclass,
+            ino->und.dev->model ? ino->und.dev->model : "", name);
 
-    dev->name = strdup(name);
-    dev->ino = vfs_open(ino);
-    ino->dev = dev;
-    if (S_ISBLK(ino->mode) && ino->length)
-        kprintf(KLOG_MSG, "%s %s %s <\e[33m%s\e[0m>\n", ((blkdev_t *)dev)->class,
-                dev->vendor ? dev->vendor : "", sztoa(ino->length), name);
-    else if (S_ISBLK(ino->mode))
-        kprintf(KLOG_MSG, "%s %s <\e[33m%s\e[0m>\n", ((blkdev_t *)dev)->class,
-                dev->vendor ? dev->vendor : "", name);
-    else if (S_ISCHR(ino->mode))
-        kprintf(KLOG_MSG, "%s %s <\e[33m%s\e[0m>\n", ((chardev_t *)dev)->class,
-                dev->vendor ? dev->vendor : "", name);
-
-    ll_append(&dev_list, &dev->node);
+    vfs_open(ino);
+    splock_lock(&devices_lock);
+    ll_append(&devices_list, &ino->lnode);
+    hmp_put(&devices_map, name, strlen(name), ino);
+    splock_unlock(&devices_lock);
     // TODO -- Use id to check if we know the device
     return 0;
 }
 
 void vfs_rmdev(CSTR name)
 {
-    device_t *dev = vfs_lookup_device_(name);
+    inode_t *dev = vfs_search_device(name);
     if (dev == NULL)
         return;
-    inode_t *ino = dev->ino;
-    dev->is_detached = true;
-    vfs_close(ino);
-}
-
-void vfs_dev_destroy(inode_t *ino)
-{
-    device_t *dev = ino->dev; // !?
-    ll_remove(&dev_list, &dev->node);
-    kfree(dev->name);
-    // if (ino->dev->release != NULL)
-    //     ino->dev->release(ino->dev);
+    splock_lock(&devices_lock);
+    ll_remove(&devices_list, &dev->lnode);
+    hmp_remove(&devices_map, name, strlen(name));
+    splock_unlock(&devices_lock);
+    vfs_close(dev);
 }
 

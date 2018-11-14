@@ -27,18 +27,36 @@
 #include <setjmp.h>
 #include <errno.h>
 
-void abort();
 void nanosleep(struct timespec *, struct timespec *);
 
 #define START_TEST(n) void n() {
 #define END_TEST }
 #define ck_assert(e) do { if (!(e)) ck_fails(#e, __FILE__, __LINE__); } while(0)
 #define ck_ok(e,m)  ck_assert(e)
-#define tcase_add_test(t,f)  tcase_add_test_(t,#f,f) 
+#define tcase_add_test(t,f)  tcase_add_test_(t,#f,f)
 
 void kprintf(int no, const char *fmt, ...);
 void *kalloc(size_t lg);
 void kfree(void *ptr);
+
+#if !defined(_WIN32)
+// static inline void * _valloc(size_t s) {
+//     void *ptr = valloc(s);
+//     printf("VALLOC %p (%x)\n",s, ptr);
+//     return ptr;
+// }
+// static inline void _vfree(void*p) {
+//     free(p);
+//     printf("VFREE %p\n",p);
+// }
+# define _valloc(s)  valloc(s)
+# define _vfree(p)  free(p)
+#else
+# define _valloc(s)  _aligned_malloc(s, PAGE_SIZE)
+# define _vfree(p)  _aligned_free(p)
+#endif
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 typedef struct SRunner {
     int count;
@@ -54,6 +72,8 @@ typedef struct TCase {
     int count;
     int success;
 } TCase;
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 #define CK_NORMAL  0
 

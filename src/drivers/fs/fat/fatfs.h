@@ -157,64 +157,35 @@ struct FAT_volume {
     bio_t *io_data_ro;
 };
 
-/* FAT FS SRC
-  alloc.c
-    int alloc_cluster(info, int prev, size_t size);
-    int compute_space(info)
-  dir.c
-     mkdir(info, dir, ino, name);
-     unlink(info, dir, name);
-     opendir
-     readdir
-     closedir
-     ...
-  data.c
-     read
-     write
-     chmod
-     utimes
+#define FAT_DIRNAME_CURRENT  ".          "
+#define FAT_DIRNAME_PARENT  "..         "
 
-  volume.c
-     read_info();
-  setup.c
-    setup
-    teardown
-    format
-    mount
-    umount
-  fat.h
-
-*/
-
-typedef struct FAT_inode FAT_inode_t;
+typedef struct FAT_volume FAT_volume_t;
 typedef struct FAT_diterator  FAT_diterator_t;
 
 
-struct FAT_inode {
-    inode_t ino;
-    struct FAT_volume *vol;
-};
 
-
+int fatfs_truncate(inode_t *ino, off_t length);
 
 void fatfs_settime(unsigned short *date, unsigned short *time, time64_t value);
 time64_t fatfs_gettime(unsigned short *date, unsigned short *time);
 void fatfs_read_shortname(struct FAT_ShortEntry *entry, char *shortname);
 void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname);
-FAT_inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, struct FAT_volume *info);
-void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, int mode);
-int fatfs_mkdir(struct FAT_volume *info, FAT_inode_t *dir);
+inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume, FAT_volume_t *info);
+void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t type);
+int fatfs_mkdir(struct FAT_volume *info, inode_t *dir);
 
-struct FAT_volume *fatfs_init(void *ptr);
-void fatfs_reserve_cluster_16(struct FAT_volume *info, int cluster, int previous);
-unsigned fatfs_alloc_cluster_16(struct FAT_volume *info, int previous);
+FAT_volume_t *fatfs_init(void *ptr);
+void fatfs_reserve_cluster_16(FAT_volume_t *info, int cluster, int previous);
+unsigned fatfs_alloc_cluster_16(FAT_volume_t *info, int previous);
 
-FAT_inode_t *fatfs_open(FAT_inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
-int fatfs_unlink(FAT_inode_t *dir, CSTR name);
+inode_t *fatfs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags);
+int fatfs_close(inode_t *ino);
+int fatfs_unlink(inode_t *dir, CSTR name);
 
-FAT_diterator_t *fatfs_opendir(FAT_inode_t *dir);
-FAT_inode_t *fatfs_readdir(FAT_inode_t *dir, char *name, FAT_diterator_t *it);
-int fatfs_closedir(FAT_inode_t *dir, FAT_diterator_t *it);
+FAT_diterator_t *fatfs_opendir(inode_t *dir);
+inode_t *fatfs_readdir(inode_t *dir, char *name, FAT_diterator_t *it);
+int fatfs_closedir(inode_t *dir, FAT_diterator_t *it);
 
 #define FILENAME_MAX  256
 

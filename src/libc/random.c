@@ -46,32 +46,37 @@ int rand_r(unsigned int *seed)
 }
 
 /* Pseudo-random generator */
+#ifndef _WIN32
 int rand(void)
 {
     return rand_r(&__seed);
 }
+#endif
 
 uint64_t rand64()
 {
-    uint64_t r = (uint64_t)rand();
-    r |= (uint64_t)rand() << 15;
-    r |= (uint64_t)rand() << 30;
-    r |= (uint64_t)rand() << 45;
-    r |= (uint64_t)rand() << 60;
+	unsigned int seed = __seed;
+    uint64_t r = (uint64_t)rand_r(&seed);
+    r |= (uint64_t)rand_r(&seed) << 15;
+    r |= (uint64_t)rand_r(&seed) << 30;
+    r |= (uint64_t)rand_r(&seed) << 45;
+    r |= (uint64_t)rand_r(&seed) << 60;
     return r;
 }
 
 uint32_t rand32()
 {
-    uint32_t r = (uint32_t)rand();
-    r |= (uint32_t)rand() << 15;
-    r |= (uint32_t)rand() << 30;
+	unsigned int seed = __seed;
+    uint32_t r = (uint32_t)rand_r(&seed);
+    r |= (uint32_t)rand_r(&seed) << 15;
+    r |= (uint32_t)rand_r(&seed) << 30;
     return r;
 }
 
 uint16_t rand16()
 {
-    uint32_t r = (uint16_t)rand();
-    r |= (uint16_t)rand() << 15;
+	unsigned int seed = __seed;
+    uint32_t r = (uint16_t)rand_r(&seed);
+    r |= (uint16_t)rand_r(&seed) << 15;
     return r;
 }

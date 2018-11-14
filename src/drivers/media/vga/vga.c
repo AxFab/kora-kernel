@@ -81,4 +81,4 @@ void vga_teardown()
 }
 
 
-MODULE(vga, MOD_AGPL, vga_setup, vga_teardown);
+MODULE(vga, vga_setup, vga_teardown);

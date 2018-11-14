@@ -21,8 +21,7 @@
 #include <kernel/memory.h>
 #include <kernel/mmu.h>
 #include <kora/mcrs.h>
-#include <sys/mman.h>
-
+#include "../check.h"
 
 unsigned char mmu_bmp[MMU_LG] = { 0 };
 
@@ -58,22 +57,19 @@ void mmu_enable()
     kdir->cnt = __um_mspace_pages_count;
     kdir->tbl = kalloc(sizeof(page_t) * kdir->cnt);
 
-    kMMU.kspace->lower_bound = (size_t)mmap(NULL,
-                                            __um_mspace_pages_count * PAGE_SIZE, PROT_READ | PROT_WRITE,
-                                            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    kMMU.kspace->lower_bound = (size_t)_valloc(__um_mspace_pages_count * PAGE_SIZE);
     kMMU.kspace->upper_bound = kMMU.kspace->lower_bound + __um_mspace_pages_count *
                                PAGE_SIZE;
     kMMU.kspace->directory = (page_t)kdir;
     kMMU.kspace->a_size += PAGE_SIZE;
     // Active change
-    MMU_USR_START = (size_t)mmap(NULL, __um_mspace_pages_count * PAGE_SIZE,
-                                 PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    MMU_USR_START = (size_t)_valloc(__um_mspace_pages_count * PAGE_SIZE);
 }
 
 void mmu_leave()
 {
-    munmap((void *)kMMU.kspace->lower_bound, __um_mspace_pages_count * PAGE_SIZE);
-    munmap((void *)MMU_USR_START, __um_mspace_pages_count * PAGE_SIZE);
+    _vfree((void *)kMMU.kspace->lower_bound);
+    _vfree((void *)MMU_USR_START);
     kfree(kdir->tbl);
     page_release(kdir->dir);
     kfree(kdir);

@@ -174,5 +174,4 @@ void vbox_teardown()
 }
 
 
-MODULE(vbox, MOD_AGPL, vbox_setup, vbox_teardown);
-// MOD_REQUIRE(pci);
+MODULE(vbox, vbox_setup, vbox_teardown);

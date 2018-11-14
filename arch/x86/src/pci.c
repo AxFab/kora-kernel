@@ -102,11 +102,81 @@ void pci_config_write32(uint8_t bus, uint8_t slot, uint8_t func,
 
 static const char *pci_vendor_name(uint32_t vendor_id)
 {
+    switch (vendor_id) {
+    case 0x04B3:
+        return "IBM";
+    case 0x8086:
+        return "Intel corporation";
+    case 0x1022:
+        return "Intel corporation";
+    case 0x80ee:
+        return "InnoTek";
+    case 0x05ac:
+        return "Apple Inc.";
+    case 0x106b:
+        return "Apple Inc.";
+    }
     return NULL;
 }
 
 static const char *pci_class_name(uint32_t class_id)
 {
+    switch (class_id >> 8) {
+    case 0x0101:
+        return "IDE Controller";
+    case 0x0206:
+        return "PICMG 2.14 Multi Computing";
+    case 0x0608:
+        return "RACEway Bridge";
+    case 0x0E00:
+        return "I20 Architecture";
+    }
+    switch (class_id) {
+    case 0x010000:
+        return "SCSI Bus Controller";
+    case 0x010200:
+        return "Floppy Disk Controller";
+    case 0x010300:
+        return "IPI Bus Controller";
+    case 0x010400:
+        return "RAID Controller";
+    case 0x010520:
+        return "ATA Controller (Single DMA)";
+    case 0x010530:
+        return "ATA Controller (Chained DMA)";
+    case 0x020000:
+        return "Ethernet Controller";
+    case 0x020100:
+        return "Token Ring Controller";
+    case 0x030000:
+        return "VGA-Compatible Controller";
+    case 0x040000:
+        return "Video Device";
+    case 0x040100:
+        return "Audio Device";
+    case 0x060000:
+        return "Host bridge";
+    case 0x060100:
+        return "ISA bridge";
+    case 0x060200:
+        return "EISA bridge";
+    case 0x060300:
+        return "MCA bridge";
+    case 0x060400:
+        return "PCI-to-PCI bridge";
+    case 0x068000:
+        return "Bridge Device";
+    case 0x088000:
+        return "System Peripheral";
+    case 0x0C0300:
+        return "USB (Universal Host)";
+    case 0x0C0310:
+        return "USB (Open Host)";
+    case 0x0C0320:
+        return "USB2 (Intel Enhanced Host)";
+    case 0x0C0330:
+        return "USB3 XHCI";
+    }
     return NULL;
 }
 
@@ -152,9 +222,9 @@ static void pci_check_device(uint8_t bus, uint8_t slot)
 
     kprintf(KLOG_MSG, "PCI.%02x.%02x ", bus, slot);
     if (vendor_name != NULL)
-        kprintf(KLOG_MSG, " %s", vendor_name);
+        kprintf(KLOG_MSG, " - %s", vendor_name);
     if (class_name != NULL)
-        kprintf(KLOG_MSG, " %s", class_name);
+        kprintf(KLOG_MSG, " - %s", class_name);
     kprintf(KLOG_MSG, " (%04x.%05x.%04x) ", vendor_id,
             device_stack[dev_sp].class_id, device_stack[dev_sp].device_id);
 
@@ -254,9 +324,13 @@ KMODULE(isofs);
 KMODULE(fatfs);
 KMODULE(e1000);
 
+void grub_load_modules();
+
 void platform_setup()
 {
     pci_setup();
+
+    grub_load_modules();
 
     // Load fake disks drivers
     kernel_tasklet(kernel_module, &kmod_info_ide_ata, kmod_info_ide_ata.name);

@@ -17,32 +17,46 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <errno.h>
-#include <kernel/vfs.h>
+#include <kora/mcrs.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <time.h>
 #include "../check.h"
 
-int vfs_readlink(inode_t *ino, char *buf, int len, int flags)
+void fixture_block(Suite *s);
+void fixture_pipe(Suite *s);
+
+Suite *suite_block(void)
 {
-	return -1;
+    Suite *s;
+    s = suite_create("Block IO");
+    // fixture_block(s);
+    return s;
 }
 
-inode_t *vfs_open(inode_t *ino)
+Suite *suite_pipe(void)
 {
-    return ino;
+    Suite *s;
+    s = suite_create("Pipe IO");
+    fixture_pipe(s);
+    return s;
 }
 
-void vfs_close(inode_t *ino)
-{
-}
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+jmp_buf __tcase_jump;
 
-int vfs_read(inode_t *ino, void *buf, size_t lg, off_t off)
+int main(int argc, char **argv)
 {
-    errno = EIO;
-    return -1;
-}
+    // Create suites
+    int errors;
+    SRunner *sr = srunner_create(NULL);
+    srunner_add_suite(sr, suite_block());
+    srunner_add_suite(sr, suite_pipe());
 
-int vfs_write(inode_t *ino, const void *buf, size_t lg, off_t off)
-{
-    errno = EIO;
-    return -1;
+    // Run test-suites
+    srunner_run_all(sr, CK_NORMAL);
+    errors = srunner_ntests_failed(sr);
+    srunner_free(sr);
+    return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

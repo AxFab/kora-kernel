@@ -41,26 +41,28 @@ setup_deb() {
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 run_x86 () {
-    x86
-    qemu-system-i386 --cdrom KoraOs.iso --serial stdio --smp 2
+    qemu-system-i386 --cdrom KoraOs.iso --serial stdio --smp 2 -m 32
 }
 
-run_raspberry-pi2 () {
-    raspberry-pi2
+run_raspi2 () {
     qemu-system-arm -m 256 -M raspi2 -serial stdio -kernel ./bin/kImage
 }
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 export iso_name=KoraOs.iso
 
-raspberry-pi2 () {
+build_raspi2 () {
     export target=arm-raspberry2-none
-    export CROSS=arm-none-eabi-
+    case "`uname -m`"
+    in
+        raspi2) unset CROSS ;;
+        *) export CROSS=arm-none-eabi- ;;
+    esac
 
     make -f $SRC_KRN/Makefile kImage
 }
 
-x86 () {
+build_x86 () {
     export target=x86-pc-none
     case "`uname -m`"
     in
@@ -77,9 +79,14 @@ x86 () {
 
 
     # Import files
-    cp $SRC_KRN/bin/kImage iso/boot/kImage
+    cp -v $SRC_KRN/bin/kImage iso/boot/kImage
+    if [ -f $SRC_KRN/src/drivers/drivers.tar ]
+    then
+        cp -v $SRC_KRN/src/drivers/drivers.tar iso/boot/x86.miniboot.tar
+    fi
+
     mkdir -p iso/boot/grub
-    
+
     if [ -z $isomode ]
     then
         # Create ISO (Option 1)
@@ -97,7 +104,38 @@ x86 () {
     ls -lh "$iso_name"
 }
 
+clean () {
+    make -f $SRC_KRN/Makefile distclean
+}
 
+all () {
+    $0 clean build run
+}
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-$1
+look_arch() {
+    arch_="$1"
+    case "$arch_"
+    in
+        i386|i486|i686) arch_='x86' ;;
+        raspi2) arch_='raspi2' ;;
+    esac
+    echo "$arch_"
+}
+
+
+ARCH=`uname -m`
+ARCH=`look_arch $ARCH`
+
+
+while (( $# > 0 ))
+do
+    case "$1"
+    in
+        -m) export ARCH=`look_arch $2` ;;
+        clean) $1 ;;
+        build|run) "$1"_"$ARCH" ;;
+        all) clean && "build_$ARCH" && "run_$ARCH" ;;
+    esac
+    shift
+done
