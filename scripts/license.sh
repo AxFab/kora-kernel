@@ -19,16 +19,29 @@
 SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
 SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
 
-SRCDIR='.'
 
-LICENSE=`head $SCRIPT_DIR/cfg/license.h -n 18`
-for src in `find $SRCDIR -type f -a -name '*.c' -o -name '*.h'`
-do
-    SRC_HEAD=`head $src -n 18`
-    if [ "$LICENSE" != "$SRC_HEAD" ]
-    then
-        echo "Missing license: $src"
-    # else
-    #     echo "License OK: $src"
-    fi
-done
+fixSrc() {
+    TMP=`mktemp`
+    cat $1 > $TMP
+    cat $SCRIPT_DIR/cfg/license.h <(awk '/^#(include|ifndef)/ || c>0 {print;++c}' $TMP) > $1
+    rm $TMP
+}
+
+checkDir () {}
+    LICENSE=`head $SCRIPT_DIR/cfg/license.h -n 18`
+    for src in $1`
+    do
+        SRC_HEAD=`head $src -n 18`
+        if [ "$LICENSE" != "$SRC_HEAD" ]
+        then
+        #     echo "Missing license: $src"
+        # else
+            echo "Editing license: $src"
+            fixSrc "$src"
+        # else
+        #     echo "License OK: $src"
+        fi
+    done
+}
+
+checkDir `find . -type f -a -name '*.c' -o -name '*.h'

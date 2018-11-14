@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -149,11 +149,24 @@ void kernel_master()
     inode_t *ino;
     char name[256];
     void *dir_ctx = vfs_opendir(root, NULL);
-    while ((ino = vfs_readdir(root, name, dir_ctx)) != NULL)
-    {
-        kprintf(-1, " %p   /%s\n", ino, name);
+    while ((ino = vfs_readdir(root, name, dir_ctx)) != NULL) {
+        kprintf(-1, " %p  /%s%s\n", ino, name, ino->type == FL_DIR ? "/": "");
+        vfs_close(ino);
     }
     vfs_closedir(root, dir_ctx);
+
+    async_wait(NULL, NULL, 10000);
+
+    inode_t *txt = vfs_search(root, root, "boot/grub/grub.cfg", NULL);
+    if (txt != NULL) {
+        kprintf(-1, "Reading file from CDROM...\n");
+        char *buf = kalloc(txt->length + 1);
+        vfs_read(txt, buf, txt->length, 0, 0);
+        kprintf(-1, "CONTENT (%x) \n%s\n", txt->length, buf);
+        vfs_close(txt);
+        kfree(buf);
+    }
+
 
     for (;;) {
         async_wait(NULL, NULL, 1000000);

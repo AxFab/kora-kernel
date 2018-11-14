@@ -22,17 +22,101 @@
 #include <string.h>
 #include <errno.h>
 
+static int vfs_read_block(inode_t *ino, char *buf, size_t len, off_t off)
+{
+    if (off >= ino->length && ino->length != 0)
+        return 0;
+    off_t poff = -1;
+    char *map = NULL;
+    int bytes = 0;
+    while (len > 0) {
+        off_t po = ALIGN_DW(off, PAGE_SIZE);
+        if (poff != po) {
+            if (map != NULL)
+                kunmap(map, PAGE_SIZE);
+            poff = po;
+            map = kmap(PAGE_SIZE, ino, poff, VMA_FILE_RO | VMA_RESOLVE);
+            if (map == NULL)
+                return -1;
+        }
+        size_t disp = (size_t)(off & (PAGE_SIZE - 1));
+        int cap = MIN3((size_t)len, PAGE_SIZE - disp, (size_t)(ino->length - off));
+        if (cap == 0)
+            return bytes;
+        memcpy(buf, map + disp, cap);
+        len -= cap;
+        off += cap;
+        bytes += cap;
+    }
+    kunmap(map, PAGE_SIZE);
+    return bytes;
+}
+
+static int vfs_write_block(inode_t *ino, const char *buf, size_t len, off_t off)
+{
+    if (off >= ino->length && ino->length != 0)
+        return 0;
+    off_t poff = -1;
+    char *map = NULL;
+    int bytes = 0;
+    while (len > 0) {
+        off_t po = ALIGN_DW(off, PAGE_SIZE);
+        if (poff != po) {
+            if (map != NULL)
+                kunmap(map, PAGE_SIZE);
+            poff = po;
+            map = kmap(PAGE_SIZE, ino, poff, VMA_FILE_RO | VMA_RESOLVE);
+            if (map == NULL)
+                return -1;
+        }
+        size_t disp = (size_t)(off & (PAGE_SIZE - 1));
+        int cap = MIN3((size_t)len, PAGE_SIZE - disp, (size_t)(ino->length - off));
+        if (cap == 0)
+            return bytes;
+        memcpy(map + disp, buf, cap);
+        len -= cap;
+        off += cap;
+        bytes += cap;
+    }
+    kunmap(map, PAGE_SIZE);
+    return bytes;
+}
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
 int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
 {
-
+    assert(kCPU.irq_semaphore == 0);
+    switch(ino->type) {
+    case FL_REG:
+    case FL_BLK:
+        return vfs_read_block(ino, buf, size, off);
+    default:
+        kprintf(KLOG_ERR, "\033[31mUnsupported IO read (%d) \033[0m\n", ino->type);
+    case FL_DIR:
+        errno = ENOSYS;
+        return -1;
+    }
 }
 
 int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
 {
-
+    assert(kCPU.irq_semaphore == 0);
+    switch(ino->type) {
+    case FL_REG:
+    case FL_BLK:
+        return vfs_write_block(ino, buf, size, off);
+    default:
+        kprintf(KLOG_ERR, "\033[31mUnsupported IO write (%d) \033[0m\n", ino->type);
+    case FL_DIR:
+        errno = ENOSYS;
+        return -1;
+    }
 }
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 page_t mem_fetch(inode_t *ino, off_t off)
 {
