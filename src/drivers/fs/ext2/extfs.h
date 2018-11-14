@@ -20,42 +20,42 @@
 
 
 PACK(struct ext2_super_block {
-    u32 s_inodes_count;     /* Total number of inodes */
-    u32 s_blocks_count;     /* Total number of blocks */
-    u32 s_r_blocks_count;   /* Total number of blocks reserved for the super user */
-    u32 s_free_blocks_count;        /* Total number of free blocks */
-    u32 s_free_inodes_count;        /* Total number of free inodes */
-    u32 s_first_data_block; /* Id of the block containing the superblock structure */
-    u32 s_log_block_size;   /* Used to compute block size = 1024 << s_log_block_size */
-    u32 s_log_frag_size;    /* Used to compute fragment size */
-    u32 s_blocks_per_group; /* Total number of blocks per group */
-    u32 s_frags_per_group;  /* Total number of fragments per group */
-    u32 s_inodes_per_group; /* Total number of inodes per group */
-    u32 s_mtime;            /* Last time the file system was mounted */
-    u32 s_wtime;            /* Last write access to the file system */
-    u16 s_mnt_count;        /* How many `mount' since the last was full verification */
-    u16 s_max_mnt_count;    /* Max count between mount */
-    u16 s_magic;            /* = 0xEF53 */
-    u16 s_state;            /* File system state */
-    u16 s_errors;           /* Behaviour when detecting errors */
-    u16 s_minor_rev_level;  /* Minor revision level */
-    u32 s_lastcheck;        /* Last check */
-    u32 s_checkinterval;    /* Max. time between checks */
-    u32 s_creator_os;       /* = 5 */
-    u32 s_rev_level;        /* = 1, Revision level */
-    u16 s_def_resuid;       /* Default uid for reserved blocks */
-    u16 s_def_resgid;       /* Default gid for reserved blocks */
-    u32 s_first_ino;        /* First inode useable for standard files */
-    u16 s_inode_size;       /* Inode size */
-    u16 s_block_group_nr;   /* Block group hosting this superblock structure */
-    u32 s_feature_compat;
-    u32 s_feature_incompat;
-    u32 s_feature_ro_compat;
-    u8 s_uuid[16];          /* Volume id */
-    char s_volume_name[16]; /* Volume name */
-    char s_last_mounted[64];        /* Path where the file system was last mounted */
-    u32 s_algo_bitmap;      /* For compression */
-    u8 s_padding[820];
+    uint32_t inodes_count;     /* Total number of inodes */
+    uint32_t blocks_count;     /* Total number of blocks */
+    uint32_t r_blocks_count;   /* Total number of blocks reserved for the super user */
+    uint32_t free_blocks_count;        /* Total number of free blocks */
+    uint32_t free_inodes_count;        /* Total number of free inodes */
+    uint32_t first_data_block; /* Id of the block containing the superblock structure */
+    uint32_t log_block_size;   /* Used to compute block size = 1024 << log_block_size */
+    uint32_t log_frag_size;    /* Used to compute fragment size */
+    uint32_t blocks_per_group; /* Total number of blocks per group */
+    uint32_t frags_per_group;  /* Total number of fragments per group */
+    uint32_t inodes_per_group; /* Total number of inodes per group */
+    uint32_t mtime;            /* Last time the file system was mounted */
+    uint32_t wtime;            /* Last write access to the file system */
+    uint16_t mnt_count;        /* How many `mount' since the last was full verification */
+    uint16_t max_mnt_count;    /* Max count between mount */
+    uint16_t magic;            /* = 0xEF53 */
+    uint16_t state;            /* File system state */
+    uint16_t errors;           /* Behaviour when detecting errors */
+    uint16_t minor_rev_level;  /* Minor revision level */
+    uint32_t lastcheck;        /* Last check */
+    uint32_t checkinterval;    /* Max. time between checks */
+    uint32_t creator_os;       /* = 5 */
+    uint32_t rev_level;        /* = 1, Revision level */
+    uint16_t def_resuid;       /* Default uid for reserved blocks */
+    uint16_t def_resgid;       /* Default gid for reserved blocks */
+    uint32_t first_ino;        /* First inode useable for standard files */
+    uint16_t inode_size;       /* Inode size */
+    uint16_t block_group_nr;   /* Block group hosting this superblock structure */
+    uint32_t feature_compat;
+    uint32_t feature_incompat;
+    uint32_t feature_ro_compat;
+    uint8_t uuid[16];          /* Volume id */
+    char volume_name[16]; /* Volume name */
+    char last_mounted[64];        /* Path where the file system was last mounted */
+    uint32_t algo_bitmap;      /* For compression */
+    uint8_t padding[820];
 };
 
 PACK(struct EXT_disk {
@@ -63,35 +63,35 @@ PACK(struct EXT_disk {
     struct ext2_group_desc *gd;
     size_t sb_size;
     size_t gd_size
-    u32 blocksize;
-    u16 groups;             /* Total number of groups */
-    char s_volume_name[18]; /* Volume name */
+    uint32_t blocksize;
+    uint16_t groups;             /* Total number of groups */
+    char volume_name[18]; /* Volume name */
 });
 
 PACK(struct ext2_group_desc {
-    u32 bg_block_bitmap;    /* Id of the first block of the "block bitmap" */
-    u32 bg_inode_bitmap;    /* Id of the first block of the "inode bitmap" */
-    u32 bg_inode_table;     /* Id of the first block of the "inode table" */
-    u16 bg_free_blocks_count;       /* Total number of free blocks */
-    u16 bg_free_inodes_count;       /* Total number of free inodes */
-    u16 bg_used_dirs_count; /* Number of inodes allocated to directories */
-    u16 bg_pad;             /* Padding the structure on a 32bit boundary */
-    u32 bg_reserved[3];     /* Future implementation */
+    uint32_t block_bitmap;    /* Id of the first block of the "block bitmap" */
+    uint32_t inode_bitmap;    /* Id of the first block of the "inode bitmap" */
+    uint32_t inode_table;     /* Id of the first block of the "inode table" */
+    uint16_t free_blocks_count;       /* Total number of free blocks */
+    uint16_t free_inodes_count;       /* Total number of free inodes */
+    uint16_t used_dirs_count; /* Number of inodes allocated to directories */
+    uint16_t pad;             /* Padding the structure on a 32bit boundary */
+    uint32_t reserved[3];     /* Future implementation */
 });
 
 PACK(struct ext2_inode {
-    u16 i_mode;             /* File type + access rights */
-    u16 i_uid;
-    u32 i_size;
-    u32 i_atime;
-    u32 i_ctime;
-    u32 i_mtime;
-    u32 i_dtime;
-    u16 i_gid;
-    u16 i_links_count;
-    u32 i_blocks;           /* 512 bytes blocks ! */
-    u32 i_flags;
-    u32 i_osd1;
+    uint16_t mode;             /* File type + access rights */
+    uint16_t uid;
+    uint32_t size;
+    uint32_t atime;
+    uint32_t ctime;
+    uint32_t mtime;
+    uint32_t dtime;
+    uint16_t gid;
+    uint16_t links_count;
+    uint32_t blocks;           /* 512 bytes blocks ! */
+    uint32_t flags;
+    uint32_t osd1;
 
     /*
      * [0] -> [11] : block number (32 bits per block)
@@ -99,31 +99,31 @@ PACK(struct ext2_inode {
      * [13]        : bi-indirect block number
      * [14]        : tri-indirect block number
      */
-    u32 i_block[15];
+    uint32_t block[15];
 
-    u32 i_generation;
-    u32 i_file_acl;
-    u32 i_dir_acl;
-    u32 i_faddr;
-    u8 i_osd2[12];
+    uint32_t generation;
+    uint32_t file_acl;
+    uint32_t dir_acl;
+    uint32_t faddr;
+    uint8_t osd2[12];
 });
 
 PACK(struct directory_entry {
-    u32 inode;              /* inode number or 0 (unused) */
-    u16 rec_len;            /* offset to the next dir. entry */
-    u8 name_len;            /* name length */
-    u8 file_type;
+    uint32_t inode;              /* inode number or 0 (unused) */
+    uint16_t rec_len;            /* offset to the next dir. entry */
+    uint8_t name_len;            /* name length */
+    uint8_t file_type;
     char name;
 });
 
 
-/* super_block: s_errors */
+/* super_block: errors */
 #define EXT2_ERRORS_CONTINUE    1
 #define EXT2_ERRORS_RO          2
 #define EXT2_ERRORS_PANIC       3
 #define EXT2_ERRORS_DEFAULT     1
 
-/* inode: i_mode */
+/* inode: mode */
 #define EXT2_S_IFMT     0xF000  /* format mask  */
 #define EXT2_S_IFSOCK   0xC000  /* socket */
 #define EXT2_S_IFLNK    0xA000  /* symbolic link */
