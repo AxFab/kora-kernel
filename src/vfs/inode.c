@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/files.h>
+#include <kernel/device.h>
 #include <kora/mcrs.h>
 #include <assert.h>
 #include <string.h>
@@ -26,29 +27,78 @@
 
 
 /* An inode must be created by the driver using a call to `vfs_inode()' */
-inode_t *vfs_inode(int no, int mode, acl_t *acl, size_t size)
+inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
 {
-    inode_t *inode = (inode_t *)kalloc(MAX(sizeof(inode_t), size));
+    inode_t *inode = (inode_t *)kalloc(sizeof(inode_t));
     inode->no = no;
-    inode->mode = mode;
-    /*
-    kclock(&inode->btime);
-    inode->ctime = inode->btime;
-    inode->mtime = inode->btime;
-    inode->atime = inode->btime;
-    */
+    inode->type = type;
+
     inode->rcu = 1;
     inode->links = 0;
 
-    switch (mode & S_IFMT) {
-    case S_IFREG:
-    case S_IFBLK:
-        ioblk_init(inode);
+    switch (type) {
+    case FL_REG:  /* Regular file (FS) */
+    case FL_DIR:  /* Directory (FS) */
+    case FL_LNK:  /* Symbolic link (FS) */
+        assert(volume != NULL);
+        inode->und.vol = volume;
+        break;
+    case FL_VOL:  /* File system volume */
+        assert(volume == NULL);
+        inode->und.vol = kalloc(sizeof(volume_t));
+        hmp_init(&inode->und.vol->hmap, 16);
+        break;
+    case FL_BLK:  /* Block device */
+    case FL_CHR:  /* Char device */
+    case FL_VDO:  /* Video stream */
+        assert(volume == NULL);
+        inode->und.dev = kalloc(sizeof(device_t));
+        break;
+    case FL_PIPE:  /* Pipe */
+    case FL_NET:  /* Network interface */
+    case FL_SOCK:  /* Network socket */
+    case FL_INFO:  /* Information file */
+    case FL_SFC:  /* Application surface */
+    case FL_TTY:  /* Terminal (Virtual) */
+    case FL_WIN:  /* Window (Virtual) */
+    default:
+        assert(false);
         break;
     }
-    // inode->uid = uid;
-    // inode->gid = gid;
     return inode;
+}
+
+/* Open an inode - increment usage as concerned to RCU mechanism. */
+inode_t *vfs_open(inode_t *ino)
+{
+    if (ino)
+        atomic_inc(&ino->rcu);
+    return ino;
+}
+
+/* Close an inode - decrement usage as concerned to RCU mechanism.
+* If usage reach zero, the inode is freed.
+* If usage is equals to number of dirent links, they are all pushed to LRU.
+*/
+void vfs_close(inode_t *ino)
+{
+    unsigned int cnt = atomic32_xadd(&ino->rcu, -1);
+    if (cnt <= 1) {
+        // TODO -- Close IO file
+        // if (ino->dev != NULL) {
+        //     vfs_dev_destroy(ino);
+        // } else if (ino->fs != NULL) {
+        //     vfs_mountpt_rcu_(ino->fs);
+        // }
+        kfree(ino);
+        return;
+    }
+
+    // if (cnt == ino->links + 1) {
+    //     kprintf(KLOG_DBG, "Only links for %d \n", ino->no);
+    //     // vfs_dirent_rcu(ino);
+    //     // Push dirent on LRU !?
+    // }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -57,7 +107,7 @@ inode_t *vfs_inode(int no, int mode, acl_t *acl, size_t size)
  * directory.
  * The inode is found only if every directory on the way are accessible (--x).
  * Every path part must be valid UTF-8 names, length should be under
- * VFS_MAXNAME for a total length bellow VFS_MAXPATH. If simlinks are founded
+ * VFS_MAXNAME for a total length bellow VFS_MAXPATH. If symlinks are founded
  * they are resolved for a maximum of VFS_MAXREDIRECT redirections.
  * This routine must be called in a free-lock state and might trigger
  * file-systems calls.
@@ -68,7 +118,7 @@ inode_t *vfs_search(inode_t *root, inode_t *pwd, CSTR path, acl_t *acl)
     assert(path != NULL && strnlen(path, VFS_MAXPATH) < VFS_MAXPATH);
     inode_t *top = path[0] == '/' ? root : pwd;
     // TODO -- Should we look for `mnt:/`
-    if (top == NULL || !S_ISDIR(top->mode)) {
+    if (top == NULL || !VFS_ISDIR(top)) {
         errno = ENOTDIR;
         return NULL;
     } else if (vfs_access(top, X_OK, acl) != 0) {
@@ -81,30 +131,26 @@ inode_t *vfs_search(inode_t *root, inode_t *pwd, CSTR path, acl_t *acl)
 }
 
 /* Create an empty inode (DIR or REG) */
-inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
+inode_t *vfs_create(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
 {
     inode_t *ino;
     assert(name != NULL && strnlen(name, VFS_MAXNAME) < VFS_MAXNAME);
-    assert(dir->fs != NULL);
-    if (dir == NULL || !S_ISDIR(dir->mode)) {
+    if (dir == NULL || !VFS_ISDIR(dir)) {
         errno = ENOTDIR;
         return NULL;
     } else if (vfs_access(dir, W_OK, acl) != 0) {
         assert(errno == EACCES);
         return NULL;
-    } else if (!S_ISDIR(mode) && !S_ISREG(mode)) {
+    } else if (type != FL_DIR && type != FL_REG) {
         errno = EINVAL;
         return NULL;
-    } else if (dir->dev->read_only) {
+    } else if (dir->und.vol->flags & VFS_RDONLY) {
         errno = EROFS;
         return NULL;
     }
 
     /* Can we ask the file-system */
-    fs_open open = dir->fs->open;
-    if (dir->dev->is_detached)
-        open = NULL;
-    if (open == NULL) {
+    if (dir->und.vol->ops->open == NULL) {
         errno = ENOSYS;
         return NULL;
     }
@@ -121,15 +167,15 @@ inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
             errno = EEXIST;
             rwlock_rdunlock(&ent->lock);
             return NULL;
-        } else if (S_ISDIR(mode) && !S_ISDIR(ent->ino->mode)) {
+        } else if (type == FL_DIR && !VFS_ISDIR(ent->ino)) {
             errno = ENOTDIR;
             rwlock_rdunlock(&ent->lock);
             return NULL;
-        } else if (S_ISREG(mode) && S_ISDIR(ent->ino->mode)) {
+        } else if (type == FL_REG && VFS_ISDIR(ent->ino)) {
             errno = EISDIR;
             rwlock_rdunlock(&ent->lock);
             return NULL;
-        } else if (S_ISREG(mode) && !S_ISREG(ent->ino->mode)) {
+        } else if (type == FL_REG && ent->ino->type != FL_REG) {
             errno = EPERM;
             rwlock_rdunlock(&ent->lock);
             return NULL;
@@ -141,7 +187,7 @@ inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
     }
 
     /* Request send to the file system */
-    ino = open(dir, name, mode, acl, flags | VFS_CREAT);
+    ino = dir->und.vol->ops->open(dir, name, type, acl, flags | VFS_CREAT);
     if (ino == NULL) {
         assert(errno != 0);
         return NULL;
@@ -161,11 +207,10 @@ int vfs_link(inode_t *dir, CSTR name, inode_t *ino);
 int vfs_unlink(inode_t *dir, CSTR name)
 {
     assert(name != NULL && strnlen(name, VFS_MAXNAME) < VFS_MAXNAME);
-    assert(dir->fs != NULL);
-    if (dir == NULL || !S_ISDIR(dir->mode)) {
+    if (dir == NULL || !VFS_ISDIR(dir)) {
         errno = ENOTDIR;
         return -1;
-    } else if (dir->dev->read_only) {
+    } else if (dir->und.vol->flags & VFS_RDONLY) {
         errno = EROFS;
         return -1;
     }
@@ -178,16 +223,13 @@ int vfs_unlink(inode_t *dir, CSTR name)
     }
 
     /* Can we ask the file-system */
-    fs_unlink unlink = dir->fs->unlink;
-    if (dir->dev->is_detached)
-        unlink = NULL;
-    if (unlink == NULL) {
+    if (dir->und.vol->ops->unlink == NULL) {
         errno = ENOSYS;
         return -1;
     }
 
     /* Request send to the file system */
-    int ret = unlink(dir, name);
+    int ret = dir->und.vol->ops->unlink(dir, name);
     if (ret == 0 || ent->ino == NULL)
         vfs_rm_dirent_(ent);
     else
@@ -218,16 +260,43 @@ int vfs_chown(inode_t *ino, acl_t *acl);
 int vfs_chmod(inode_t *ino, int mode);
 /* Update meta-data, times */
 int vfs_chtimes(inode_t *ino, struct timespec *ts, int flags);
+
 /* Update meta-data, size */
-int vfs_chsize(inode_t *ino, off_t size);
+int vfs_truncate(inode_t *ino, off_t length)
+{
+	if (ino == NULL || ino->type != FL_REG) {
+		errno = EINVAL;
+		return -1;
+	} else if (ino->und.vol->flags & VFS_RDONLY) {
+        errno = EINVAL;
+		return -1;
+	}
+
+	/* Can we ask the file-system */
+    if (ino->ops->truncate == NULL) {
+        errno = ENOSYS;
+        return -1;
+    }
+
+    /* Request send to the file system */
+    return ino->ops->truncate(ino, length);
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Check if a user have access to a file */
 int vfs_access(inode_t *ino, int access, acl_t *acl)
 {
-    // TODO - Do not assert we are the owner.
-    if ((ino->mode >> 6) & access) {
+    if (ino->acl == NULL) {
+        errno = 0;
+        return 0;
+    }
+    int shft = 0;
+    if (ino->acl->uid == acl->uid)
+        shft = 6;
+    else if (ino->acl->gid == acl->gid)
+        shft = 3;
+    if ((ino->acl->mode >> 6) & access) {
         errno = 0;
         return 0;
     }
@@ -237,16 +306,17 @@ int vfs_access(inode_t *ino, int access, acl_t *acl)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+#if 0
 /* IO operations - read - only for BLK or REG */
 int vfs_read(inode_t *ino, void *buf, size_t len, off_t off)
 {
     assert(ino != NULL);
     assert(buf != NULL && len != 0);
-    assert(((size_t)buf & (PAGE_SIZE - 1)) == 0);
-    assert((len & (PAGE_SIZE - 1)) == 0);
+    // assert(((size_t)buf & (PAGE_SIZE - 1)) == 0);
+    // assert((len & (PAGE_SIZE - 1)) == 0);
 
     fs_read read = NULL;
-    if (S_ISREG(ino->mode)) {
+    if (S_ISREG(ino->type == FL_REG)) {
         read = ino->fs->read;
         if (ino->dev->is_detached)
             read = NULL;
@@ -302,39 +372,8 @@ int vfs_write(inode_t *ino, const void *buf, size_t len, off_t off)
 
     return write(ino, buf, len, off);
 }
+#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-/* Open an inode - increment usage as concerned to RCU mechanism. */
-inode_t *vfs_open(inode_t *ino)
-{
-    if (ino)
-        atomic_inc(&ino->rcu);
-    return ino;
-}
-
-/* Close an inode - decrement usage as concerned to RCU mechanism.
- * If usage reach zero, the inode is freed.
- * If usage is equals to number of dirent links, they are all pushed to LRU.
- */
-void vfs_close(inode_t *ino)
-{
-    unsigned int cnt = atomic32_xadd(&ino->rcu, -1);
-    if (cnt <= 1) {
-        // TODO -- Close IO file
-        // if (ino->dev != NULL) {
-        //     vfs_dev_destroy(ino);
-        // } else if (ino->fs != NULL) {
-        //     vfs_mountpt_rcu_(ino->fs);
-        // }
-        kfree(ino);
-        return;
-    }
-
-    // if (cnt == ino->links + 1) {
-    //     kprintf(KLOG_DBG, "Only links for %d \n", ino->no);
-    //     // vfs_dirent_rcu(ino);
-    //     // Push dirent on LRU !?
-    // }
-}
 

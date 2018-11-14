@@ -32,6 +32,8 @@
 #define VFS_CREAT  0x02
 #define VFS_BLOCK  0x04
 
+#define VFS_RDONLY  0x001
+
 #define INO_ATIME  0x10
 #define INO_MTIME  0x20
 #define INO_CTIME  0x40
@@ -40,64 +42,97 @@
 #define INO_CANONALIZE  0x01
 #define INO_ABSOLUTE  0x02
 
+#define VFS_ISDIR(ino)  (ino->type == FL_DIR || ino->type == FL_VOL)
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 #define X_OK 1
 #define W_OK 2
 #define R_OK 4
 
-#define S_IFREG  (0x8000)
-#define S_IFBLK  (0x6000)
-#define S_IFDIR  (0x4000)
-#define S_IFCHR  (0x2000)
-#define S_IFIFO  (0x1000)
-#define S_IFLNK  (0xA000)
-#define S_IFSOCK (0xC000)
-#define S_IFWIN  (0xD000)
+typedef enum ftype ftype_t;
 
-#define S_IFMT   (0xF000)
+enum ftype {
+    FL_INVAL = 0,
+    FL_REG,  /* Regular file (FS) */
+    FL_BLK,  /* Block device */
+    FL_PIPE,  /* Pipe */
+    FL_CHR,  /* Char device */
+    FL_NET,  /* Network interface */
+    FL_SOCK,  /* Network socket */
+    FL_LNK,  /* Symbolic link (FS) */
+    FL_INFO,  /* Information file */
+    FL_SFC,  /* Application surface */
+    FL_VDO,  /* Video stream */
+    FL_DIR,  /* Directory (FS) */
+    FL_VOL,  /* File system volume */
+    FL_TTY,  /* Terminal (Virtual) */
+    FL_WIN,  /* Window (Virtual) */
+};
 
-#define S_ISREG(m)  (((m) & S_IFMT) == S_IFREG)
-#define S_ISBLK(m)  (((m) & S_IFMT) == S_IFBLK)
-#define S_ISDIR(m)  (((m) & S_IFMT) == S_IFDIR)
-#define S_ISCHR(m)  (((m) & S_IFMT) == S_IFCHR)
-#define S_ISIFO(m)  (((m) & S_IFMT) == S_IFIFO)
-#define S_ISLNK(m)  (((m) & S_IFMT) == S_IFLNK)
-#define S_ISSOCK(m)  (((m) & S_IFMT) == S_IFSOCK)
-#define S_ISWIN(m)  (((m) & S_IFMT) == S_IFWIN)
-
-#define S_ISGID  01000
-#define S_IXGRP  02000
-#define S_ISVTX  04000
+struct acl
+{
+    unsigned uid;
+    unsigned gid;
+    unsigned short mode;
+};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+struct ino_ops {
+    // All
+    int(*fcntl)(inode_t *ino, int cmd, void *params);
+    int(*close)(inode_t *ino);
+    // Mapping
+    page_t(*fetch)(inode_t *ino, off_t off);
+    void(*sync)(inode_t *ino, off_t off, page_t pg);
+    void(*release)(inode_t *ino, off_t off, page_t pg);
+    // Fifo
+    int(*read)(inode_t *ino, const char *buf, size_t len, int flags);
+    int(*write)(inode_t *ino, char *buf, size_t len, int flags);
+    void(*reset)(inode_t *ino);
+    // Directory
+    void *(*opendir)(inode_t *dir);
+    inode_t *(*readdir)(inode_t *dir, char *name, void *ctx);
+    int(*closedir)(inode_t *dir, void *ctx);
+    // Regular file
+    off_t(*truncate)(inode_t *ino, off_t length);
+    // Framebuffer
+    void(*flip)(inode_t *ino);
+    void(*resize)(inode_t *ino, int width, int height);
+    void(*copy)(inode_t *dst, inode_t *src, int x, int y, int lf, int tp, int rg, int bt);
+};
+
 struct inode {
-    long no;
-    int mode;
+    unsigned no;
+    int flags;
     size_t lba;
     off_t length;
-    // uid_t uid;
-    // uid_t gid;
-    struct timespec ctime;
-    struct timespec atime;
-    struct timespec mtime;
-    struct timespec btime;
+    ftype_t type;
+    acl_t *acl;
+    time64_t btime;
+    time64_t ctime;
+    time64_t mtime;
+    time64_t atime;
+    atomic_t rcu;
+    splock_t lock;
 
-    atomic32_t rcu;
-    atomic32_t links;
-    union {
-        void *object;
-    };
+    atomic_t links;
     llhead_t dlist; // List of dirent_t;
 
-    union {
-        device_t *dev;
-        blkdev_t *blk;
-        chardev_t *chr;
-        fsvolume_t *fs;
-        netdev_t *ifnet;
-    };
+    void *info; // Place holder for driver info
+    ino_ops_t *ops;
+
+    union { // Place holder for underlying device info
+        volume_t *vol; // FL_REG, FL_DIR, FL_LNK, FL_VOL
+        device_t *dev; // FL_BLK, FL_CHR, FL_VDO
+        // pipe_t *pipe; // FL_PIPE
+        // ifnet_t *ifnet; // FL_NET
+        socket_t *socket; // FL_SOCK
+        // desktop_t *desktop; // FL_WIN, FL_TTY
+    } und;
+
+    llnode_t lnode;
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -107,7 +142,7 @@ inode_t *vfs_search(inode_t *root, inode_t *pwd, CSTR path, acl_t *acl);
 /* Look for an inode on a directory */
 inode_t *vfs_lookup(inode_t *dir, CSTR name);
 /* Create an empty inode (DIR or REG) */
-inode_t *vfs_create(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags);
+inode_t *vfs_create(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags);
 /* Link an inode (If supported) */
 int vfs_link(inode_t *dir, CSTR name, inode_t *ino);
 /* Unlink / delete an inode */
@@ -127,15 +162,15 @@ int vfs_chmod(inode_t *ino, int mode);
 /* Update meta-data, times */
 int vfs_chtimes(inode_t *ino, struct timespec *ts, int flags);
 /* Update meta-data, size */
-int vfs_chsize(inode_t *ino, off_t size);
+int vfs_truncate(inode_t *ino, off_t lengtg);
 
 /* Check if a user have access to a file */
 int vfs_access(inode_t *ino, int access, acl_t *acl);
 
 /* IO operations - read - only for BLK or REG */
-int vfs_read(inode_t *ino, void *buf, size_t size, off_t offset);
+int vfs_read(inode_t *ino, char *buf, size_t size, off_t offset, int flags);
 /* IO operations - write - only for BLK or REG */
-int vfs_write(inode_t *ino, const void *buf, size_t size, off_t offset);
+int vfs_write(inode_t *ino, const char *buf, size_t size, off_t offset, int flags);
 
 /* Open an inode - increment usage as concerned to RCU mechanism. */
 inode_t *vfs_open(inode_t *ino);
@@ -147,7 +182,7 @@ void *vfs_opendir(inode_t *dir, acl_t *acl);
 inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx);
 int vfs_closedir(inode_t *dir, void *ctx);
 
-
+void vfs_reset();
 int vfs_fdisk(CSTR dname, long parts, long *sz);
 
 #endif /* _KERNEL_VFS_H */

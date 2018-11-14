@@ -33,7 +33,7 @@ typedef void(*tss_dtor_t)(void *);
 
 typedef struct _US_THREAD *thrd_t;
 typedef struct _US_MUTEX *mtx_t;
-typedef struct _US_CND *cnd_t;
+typedef struct _US_MUTEX *cnd_t;
 typedef tss_dtor_t *tss_t;
 
 
@@ -54,6 +54,7 @@ enum {
     mtx_plain = 0,
     mtx_recursive = 1,
     mtx_timed = 2,
+    mtx_cnd_single = 4,
 };
 
 /* Threads -=-=-=-=-=-=-=-=-=-=-=-= */

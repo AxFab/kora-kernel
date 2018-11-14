@@ -24,13 +24,6 @@
 
 #define PAGE_SIZE 4096
 typedef unsigned long page_t;
-/* Larger page in order to support 36bits physical address.
-typedef unsigned long long page_t; */
-
-#define MMU_USPACE_LOWER  (1 * _Mib_)
-#define MMU_USPACE_UPPER  (512U * _Mib_)
-#define MMU_KSPACE_LOWER  (1024U * _Mib_)
-#define MMU_KSPACE_UPPER  ((1024U + 16) * _Mib_)
 
 
 #define MMU_BMP  (mmu_bmp)
@@ -39,8 +32,6 @@ extern unsigned char mmu_bmp[];
 
 
 #include <setjmp.h>
-
-#define FPTR "%08p"
 
 typedef void (*entry_t)(size_t);
 

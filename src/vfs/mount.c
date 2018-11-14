@@ -21,10 +21,6 @@
 #include <string.h>
 #include <errno.h>
 
-device_t *vfs_lookup_device_(CSTR name);
-
-
-
 bool fs_init = false;
 HMP_map fs_hmap;
 
@@ -51,31 +47,7 @@ void unregister_fs(CSTR name)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int vfs_mountpt(CSTR name, CSTR fsname, fsvolume_t *fs, inode_t *ino)
-{
-    fs->name = strdup(name);
-    fs->fsname = strdup(fsname);
-    fs->rcu = 2; // ROOT + DRIVER
-    ino->fs = fs;
-    fs->dev.ino = vfs_open(ino);
-    hmp_init(&fs->hmap, 16);
-    splock_init(&fs->dev.lock);
-    return 0;
-}
-
-void vfs_mountpt_rcu_(fsvolume_t *fs)
-{
-    if (atomic32_xadd(&fs->rcu, -1) > 1)
-        return;
-    kfree(fs->name);
-    kfree(fs->fsname);
-    hmp_destroy(&fs->hmap, 0);
-    kfree(fs);
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-inode_t *vfs_mount(CSTR dev, CSTR fs)
+inode_t *vfs_mount(CSTR devname, CSTR fs)
 {
     if (!fs_init) {
         errno = ENOSYS;
@@ -88,41 +60,36 @@ inode_t *vfs_mount(CSTR dev, CSTR fs)
         return NULL;
     }
 
-    device_t *devc = NULL;
-    if (dev) {
-        devc = vfs_lookup_device_(dev);
-        if (devc == NULL) {
+    device_t *dev = NULL;
+    if (devname) {
+        dev = vfs_search_device(devname);
+        if (dev == NULL) {
             errno = ENODEV;
             return NULL;
         }
     }
 
-    inode_t *ino = mount(devc ? devc->ino : NULL);
+    inode_t *ino = mount(dev);
     if (ino == NULL) {
         assert(errno != 0);
         return NULL;
     }
 
-    kprintf(KLOG_MSG, "Mount %s as \e[35m%s\e[0m (%s)\n", dev, ino->fs->name,
-            ino->fs->fsname);
+    assert(ino->type == FL_VOL);
+    kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", devname, ino->und.vol->volname, ino->und.vol->volfs);
     errno = 0;
     return ino;
 }
 
 int vfs_umount(inode_t *ino)
 {
-    fsvolume_t *fs = ino->fs;
-    if (fs->dev.ino != ino) {
-        errno = EINVAL;
-        return -1;
-    }
+    assert(ino->type == FL_VOL);
+    volume_t *fs = ino->und.vol;
 
     errno = 0;
-    if (fs->umount)
-        fs->umount(ino);
-    vfs_close(fs->dev.ino);
-    fs->dev.is_detached = true;
-    vfs_mountpt_rcu_(fs);
+    if (ino->ops->close)
+        ino->ops->close(ino);
+    vfs_close(ino);
     return 0;
 }
 

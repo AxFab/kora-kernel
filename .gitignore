@@ -37,8 +37,9 @@
 # Exceptions
 !doc/snippet/**/*
 !scripts/cfg/**/*
+!src/tests/*
 
 # Visual studio
 !scripts/vs/*.sln
-!scripts/vs/*.vcxproj
-!scripts/vs/*.vcxproj.*
+!scripts/vs/**/*.vcxproj
+!scripts/vs/**/*.vcxproj.*

@@ -322,7 +322,7 @@ void mspace_display(mspace_t *mspace)
 {
     splock_lock(&mspace->lock);
     kprintf(KLOG_DBG,
-            ""FPTR"-"FPTR" mapped: %d KB   physical: %d KB   shared: %d KB   used: %d KB\n",
+            "%p-%p mapped: %d KB   physical: %d KB   shared: %d KB   used: %d KB\n",
             mspace->lower_bound, mspace->upper_bound,
             mspace->v_size / 1024, mspace->p_size / 1024,
             mspace->s_size / 1024, mspace->a_size / 1024);

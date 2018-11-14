@@ -19,32 +19,32 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{BD998BF9-42FA-4654-8868-7A78F9AA340D}</ProjectGuid>
-    <RootNamespace>kernel_simu_modules</RootNamespace>
+    <ProjectGuid>{A8AAF481-C68D-4D79-833A-0AAC53021DAA}</ProjectGuid>
+    <RootNamespace>ckMem</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -68,22 +68,13 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)\bin\$(Platform)\$(ProjectName)\</OutDir>
-    <IntDir>$(SolutionDir)\obj\$(Platform)\$(ProjectName)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)\bin\$(Platform)\$(ProjectName)\</OutDir>
-    <IntDir>$(SolutionDir)\obj\$(Platform)\$(ProjectName)\</IntDir>
-  </PropertyGroup>
+  <PropertyGroup />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\include\arch\x86_mcvs;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4129;4273;4028</DisableSpecificWarnings>
-      <PreprocessorDefinitions>_MBCS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -91,6 +82,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -100,6 +92,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -113,6 +106,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -120,21 +114,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\drivers\disk\imgdk\imgdk.c" />
-    <ClCompile Include="..\src\drivers\fs\fat\dentry.c" />
-    <ClCompile Include="..\src\drivers\fs\fat\diterator.c" />
-    <ClCompile Include="..\src\drivers\fs\fat\fatfs.c" />
-    <ClCompile Include="..\src\drivers\fs\fat\format.c" />
-    <ClCompile Include="..\src\drivers\fs\fat\module.c" />
-    <ClCompile Include="..\src\drivers\fs\fat\table.c" />
-    <ClCompile Include="..\src\drivers\fs\isofs\isofs.c" />
-    <ClCompile Include="..\src\drivers\net\lnet\lnet.c" />
-    <ClCompile Include="threads.c" />
+    <ClCompile Include="..\..\..\src\core\debug.c" />
+    <ClCompile Include="..\..\..\src\core\irq.c" />
+    <ClCompile Include="..\..\..\src\libc\bbtree.c" />
+    <ClCompile Include="..\..\..\src\libc\hmap.c" />
+    <ClCompile Include="..\..\..\src\mem\memory.c" />
+    <ClCompile Include="..\..\..\src\mem\mspace.c" />
+    <ClCompile Include="..\..\..\src\mem\pages.c" />
+    <ClCompile Include="..\..\..\src\mem\vma.c" />
+    <ClCompile Include="..\..\..\src\tests\mem\ck_memory.c" />
+    <ClCompile Include="..\..\..\src\tests\mem\ck_pages.c" />
+    <ClCompile Include="..\..\..\src\tests\mem\_check.c" />
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c" />
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_mmu.c" />
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_task.c" />
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_time.c" />
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_vfs.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\drivers\fs\fat\fatfs.h" />
-    <ClInclude Include="..\src\drivers\fs\isofs\isofs.h" />
-    <ClInclude Include="..\src\drivers\net\lnet\lnet.h" />
+    <ClInclude Include="..\..\..\src\mem\mspace.h" />
+    <ClInclude Include="..\..\..\src\tests\check.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -115,41 +115,20 @@ int com_ioctl(inode_t *ino)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-chardev_t com_devs[] = {
-    {
-        .dev = {
-            .ioctl = (dev_ioctl)com_ioctl,
-        },
-        .dname = "COM1",
-        .class = "Serial port",
-        .write = (chr_write)com_write,
-    },
-    {
-        .dev = {
-            .ioctl = (dev_ioctl)com_ioctl,
-        },
-        .dname = "COM2",
-        .class = "Serial port",
-        .write = (chr_write)com_write,
-    },
-    {
-        .dev = {
-            .ioctl = (dev_ioctl)com_ioctl,
-        },
-        .dname = "COM3",
-        .class = "Serial port",
-        .write = (chr_write)com_write,
-    },
-    {
-        .dev = {
-            .ioctl = (dev_ioctl)com_ioctl,
-        },
-        .dname = "COM4",
-        .class = "Serial port",
-        .write = (chr_write)com_write,
-    },
+dev_ops_t com_dops = {
+    .ioctl = com_ioctl,
 };
 
+ino_ops_t com_fops = {
+
+    .write = com_write,
+    .close = NULL
+};
+
+
+const char *devnames[] = {
+    "COM1", "COM2", "COM3", "COM4",
+};
 
 void com_setup()
 {
@@ -157,9 +136,12 @@ void com_setup()
     char name[8];
     for (i = 0; i < 4; ++i) {
         snprintf(name, 8, "com%d", i + 1);
-        inode_t *ino = vfs_inode(i, S_IFCHR | 0700, NULL, 0);
-        serial_inos[i] = ino;
-        vfs_mkdev(name, &com_devs[i].dev, ino);
+        inode_t *ino = vfs_inode(i+1, FL_CHR, NULL);
+        ino->und.dev->devclass = "Serial port";
+        ino->und.dev->devname = devnames[i];
+        ino->und.dev->ops = &com_dops;
+        ino->ops = &com_fops;
+        vfs_mkdev(ino, name);
     }
     irq_register(3, (irq_handler_t)com_irq, (void *)1);
     irq_register(4, (irq_handler_t)com_irq, (void *)0);

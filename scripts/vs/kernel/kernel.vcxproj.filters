@@ -1,0 +1,165 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{2e5ecb09-46d9-4cd4-87cc-04e3d7842c83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{3d953e00-1664-42ff-84ca-29923eeff405}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\task">
+      <UniqueIdentifier>{b1380296-1de0-4a2a-b5a8-1f7898170fe7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\files">
+      <UniqueIdentifier>{3cdafb8e-8f95-4674-884a-29d710ed334f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{f165dc93-f4ed-4081-b530-87735f4d4084}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\net">
+      <UniqueIdentifier>{bd78f884-5227-4809-9cda-a7eeebf877e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\vfs">
+      <UniqueIdentifier>{93af6c9d-8e8c-4467-8f03-b11fc6472a70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\libc">
+      <UniqueIdentifier>{24069ac2-b468-4e60-a036-b066496f10e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\mem">
+      <UniqueIdentifier>{37efb8de-2b79-4067-ba16-41ef9eb31799}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\vfs\device.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\directory.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\dirent.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\inode.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\mount.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\parts.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\task\async.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\task\resx.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\task\task.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\task\ticks.c">
+      <Filter>src\task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\arp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\dhcp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\dns.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\eth.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\host.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\icmp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\ip4.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\net.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\ntp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\tcp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net\udp.c">
+      <Filter>src\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\files\ioblk.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\core\bio.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\core\debug.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\core\irq.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\core\launch.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\kernel.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\libc\bbtree.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\libc\hmap.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_mcvs\scheduler.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_mcvs\threads.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\libc\random.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\mem\memory.c">
+      <Filter>src\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\mem\mspace.c">
+      <Filter>src\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\mem\pages.c">
+      <Filter>src\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\mem\vma.c">
+      <Filter>src\mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\libc\string.c">
+      <Filter>src\libc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_mmu.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\files\map.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\data.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\vfs\vfs.h">
+      <Filter>src\vfs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\mem\mspace.h">
+      <Filter>src\mem</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

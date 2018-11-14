@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -99,30 +99,6 @@ void kernel_tasklet(void *start, void *arg, CSTR name)
 
 extern int no_dbg;
 
-void ktsk1()
-{
-    for (;;) {
-        async_wait(NULL, NULL, 1000000);
-        kprintf(-1, "Task1\n");
-    }
-}
-
-void ktsk2()
-{
-    for (;;) {
-        async_wait(NULL, NULL, 1000000);
-        kprintf(-1, "Task2\n");
-    }
-}
-
-void ktsk3()
-{
-    for (;;) {
-        async_wait(NULL, NULL, 1000000);
-        kprintf(-1, "Task3\n");
-    }
-}
-
 void kernel_top(long sec)
 {
     async_wait(NULL, NULL, 10000);
@@ -172,12 +148,26 @@ void kernel_master()
 
     inode_t *ino;
     char name[256];
-    void *dir = vfs_opendir(root, NULL);
-    while ((ino = vfs_readdir(root, name, dir)) != NULL)
-    {
-        kprintf(-1, " %p   /%s\n", ino, name);
-
+    void *dir_ctx = vfs_opendir(root, NULL);
+    while ((ino = vfs_readdir(root, name, dir_ctx)) != NULL) {
+        kprintf(-1, " %p  /%s%s\n", ino, name, ino->type == FL_DIR ? "/": "");
+        vfs_close(ino);
     }
+    vfs_closedir(root, dir_ctx);
+
+    async_wait(NULL, NULL, 10000);
+
+    inode_t *txt = vfs_search(root, root, "boot/grub/grub.cfg", NULL);
+    if (txt != NULL) {
+        kprintf(-1, "Reading file from CDROM...\n");
+        char *buf = kalloc(txt->length + 1);
+        vfs_read(txt, buf, txt->length, 0, 0);
+        kprintf(-1, "CONTENT (%x) \n%s\n", txt->length, buf);
+        vfs_close(txt);
+        kfree(buf);
+    }
+
+
     for (;;) {
         async_wait(NULL, NULL, 1000000);
     }
@@ -187,14 +177,16 @@ void kernel_master()
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
     kprintf(-1, "Syscall\n");
+    return -1;
 }
+
 
 void kernel_start()
 {
     kSYS.cpus = &kCPU0;
     irq_reset(false);
     irq_disable();
-    kprintf(KLOG_MSG, "\e[97mKoraOS\e[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
+    kprintf(KLOG_MSG, "\033[97mKoraOS\033[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
 
     assert(kCPU.irq_semaphore == 1);
     memory_initialize();
@@ -206,8 +198,9 @@ void kernel_start()
     cpu_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    kprintf(KLOG_MSG, "\n\e[94m  Greetings...\e[0m\n\n");
+    kprintf(KLOG_MSG, "\n\033[94m  Greetings...\033[0m\n\n");
 
+    vfs_init();
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 

@@ -18,10 +18,10 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <assert.h>
-#include <errno.h>
 #include <string.h>
 #include <kora/allocator.h>
 #include <kora/mcrs.h>
+#include <errno.h>
 
 #define HEAP_HEADER 8
 #define HEAP_ALIGN 8

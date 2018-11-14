@@ -22,6 +22,7 @@
 #include <kernel/core.h>
 #include <kernel/device.h>
 #include <kernel/cpu.h>
+#include <kernel/files.h>
 #include <string.h>
 #include <errno.h>
 
@@ -136,7 +137,6 @@ struct ATA_Drive {
     uint32_t commandsets_;
     uint32_t size_;
     char     model_[44];
-    blkdev_t dev;
 };
 
 struct ATA_Drive sdx[4];
@@ -464,8 +464,8 @@ static int ATAPI_Read(struct ATA_Drive *dr, uint32_t lba,  uint8_t sects,
 int ATA_read(inode_t *ino, void *data, size_t size, off_t offset)
 {
     struct ATA_Drive *dr = &sdx[ino->lba];
-    uint32_t lba = offset / dr->dev.block;
-    uint8_t sects = size / dr->dev.block;
+    uint32_t lba = offset / ino->und.dev->block;
+    uint8_t sects = size / ino->und.dev->block;
 
     if (dr->type_ == IDE_ATA)
         errno = ATA_Data(ATA_READ, dr, lba, sects, (uint8_t *)data);
@@ -481,8 +481,8 @@ int ATA_read(inode_t *ino, void *data, size_t size, off_t offset)
 int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
 {
     struct ATA_Drive *dr = &sdx[ino->lba];
-    uint32_t lba = offset / dr->dev.block;
-    uint8_t sects = size / dr->dev.block;
+    uint32_t lba = offset / ino->und.dev->block;
+    uint8_t sects = size / ino->und.dev->block;
 
     if (dr->type_ == IDE_ATA)
         errno = ATA_Data(ATA_WRITE, dr, lba, sects, (uint8_t *)data);
@@ -494,6 +494,38 @@ int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
         errno = EIO;
     return errno == 0 ? 0 : -1;
 }
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+page_t ata_fetch(inode_t *ino, off_t off)
+{
+    return map_fetch((map_cache_t *)ino->info, off);
+}
+
+void ata_sync(inode_t *ino, off_t off, page_t pg)
+{
+    map_sync((map_cache_t *)ino->info, off, pg);
+}
+
+void ata_release(inode_t *ino, off_t off, page_t pg)
+{
+    map_release((map_cache_t *)ino->info, off, pg);
+}
+
+
+dev_ops_t ata_dev_ops = {
+//    .ioctl = ata_ioctl,
+};
+
+ino_ops_t ata_ino_ops = {
+    .fetch = ata_fetch,
+    .sync = ata_sync,
+    .release = ata_release,
+//    .ioctl = ata_ioctl,
+};
+
+
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -519,17 +551,17 @@ void ATA_setup()
 
     for (i = 0; i < 4; ++i) {
         if (ATA_Detect(&sdx[i])) {
-            inode_t *blk = vfs_inode(i, S_IFBLK | 0500, NULL, 0);
+            inode_t *blk = vfs_inode(i, FL_BLK, NULL);
             blk->length = sdx[i].size_;
             blk->lba = i;
-            sdx[i].dev.dev.read_only = true;
-            sdx[i].dev.block = sdx[i].type_ == IDE_ATA ? 512 : 2048;
-            sdx[i].dev.dev.vendor = sdx[i].model_;
-            sdx[i].dev.class = IDE_ATA ? "IDE ATA" : "IDE ATAPI";
-            sdx[i].dev.read = ATA_read;
-            sdx[i].dev.write = ATA_write;
-
-            vfs_mkdev(sdNames[i], &sdx[i].dev.dev, blk);
+            blk->und.dev->block = sdx[i].type_ == IDE_ATA ? 512 : 2048;
+            blk->und.dev->flags = VFS_RDONLY;
+            blk->und.dev->model = strdup(sdx[i].model_);
+            blk->und.dev->devclass = strdup(IDE_ATA ? "IDE ATA" : "IDE ATAPI");
+            blk->und.dev->ops = &ata_dev_ops;
+            blk->ops = &ata_ino_ops;
+            blk->info = map_create(blk, ATA_read, ATA_write);
+            vfs_mkdev(blk, sdNames[i]);
             vfs_close(blk);
         }
     }

@@ -17,17 +17,3 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <errno.h>
-#include <kernel/memory.h>
-#include <kernel/mmu.h>
-#include "../check.h"
-
-page_t mmu_read(size_t addr)
-{
-    return 0;
-}
-void page_release(size_t addr) {}
-int page_fault(mspace_t *mspace, size_t address, int reason)
-{
-    return -1;
-}

@@ -43,23 +43,33 @@ void close(int fd);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-struct IMGDK_Drive {
-    blkdev_t dev;
-    int fd;
-    splock_t lock;
-};
-
-struct IMGDK_Drive sdx[4];
-
 const char *sdNames[] = { "sdA", "sdB", "sdC", "sdD" };
 const char *exts[] = { "img", "iso", };
 const char *clazz[] = { "IDE ATA", "IDE ATAPI", };
 const int sdSize[] = { 512, 2048, };
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
 int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset);
 int imgdk_write(inode_t *ino, const void *data, size_t size, off_t offset);
+page_t imgdk_fetch(inode_t *ino, off_t off);
+void imgdk_sync(inode_t *ino, off_t off, page_t pg);
+void imgdk_release(inode_t *ino, off_t off, page_t pg);
+int imgdk_ioctl(inode_t *ino, int cmd, long *params);
+int imgdk_close(inode_t *ino);
+
+ino_ops_t imgdk_ino_ops = {
+    .read = imgdk_read,
+    .write = imgdk_write,
+    .close = imgdk_close,
+    .fetch = imgdk_fetch,
+    .sync = imgdk_sync,
+    .release = imgdk_release,
+};
+
+dev_ops_t imgdk_dev_ops = {
+    .ioctl = imgdk_ioctl,
+};
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 static void imgdk_open(int i)
 {
@@ -68,78 +78,32 @@ static void imgdk_open(int i)
     for (e = 0; e < 2; ++e) {
         snprintf(fname, 16, "sd%c.%s", 'A' + i, exts[e]);
         int fd = open(fname, O_RDWR | O_BINARY);
-        if (fd == -1) {
-            sdx[i].fd = -1;
+        if (fd == -1)
             continue;
-        }
 
-        size_t sz = lseek(fd, 0, SEEK_END);
-        sdx[i].fd = fd;
-
-        inode_t *blk = vfs_inode(i, S_IFBLK | 0500, NULL, 0);
-        blk->length = sz;
+        inode_t *blk = vfs_inode(fd, FL_BLK, NULL);
+        blk->length = lseek(fd, 0, SEEK_END);
         blk->lba = i;
-
-        sdx[i].dev.dev.read_only = e > 0;
-        sdx[i].dev.dev.is_detached = false;
-        sdx[i].dev.block = sdSize[e];
-        sdx[i].dev.dev.vendor = "HostSimul";
-        sdx[i].dev.class = clazz[e];
-        sdx[i].dev.read = imgdk_read;
-        sdx[i].dev.write = imgdk_write;
-
-        vfs_mkdev(sdNames[i], (device_t *)&sdx[i].dev, blk);
+        if (e > 0)
+            blk->und.dev->flags = VFS_RDONLY;
+        blk->und.dev->block = sdSize[e];
+        blk->und.dev->vendor = (char*)"HostSimul";
+        blk->und.dev->model = "HostSimul";
+        blk->und.dev->devclass = (char*)clazz[e];
+        blk->und.dev->devname = sdNames[i];
+        blk->und.dev->ops = &imgdk_dev_ops;
+        blk->ops = &imgdk_ino_ops;
+        blk->info = map_create(blk, imgdk_read, imgdk_write);
+        vfs_mkdev(blk, sdNames[i]);
         vfs_close(blk);
         break;
     }
 }
 
-static void imgdk_exit(int i)
+int imgdk_close(inode_t *ino)
 {
-    if (sdx[i].fd >= 0) {
-        close(sdx[i].fd);
-        memset(&sdx[i], 0, sizeof(*sdx));
-        vfs_rmdev(sdNames[i]);
-    }
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset)
-{
-    int fd = sdx[ino->lba].fd;
-    if (fd == 0) {
-        errno = ENODEV;
-        return -1;
-    }
-    errno = 0;
-    splock_lock(&sdx[ino->lba].lock);
-    lseek(fd, offset, SEEK_SET);
-    int r = read(fd, data, size);
-    if (errno != 0 || r != (int)size)
-        kprintf(KLOG_ERR, "[IMG ] Read err: %s\n", strerror(errno));
-    splock_unlock(&sdx[ino->lba].lock);
-    return 0;
-}
-
-int imgdk_write(inode_t *ino, const void *data, size_t size, off_t offset)
-{
-    int fd = sdx[ino->lba].fd;
-    if (fd == 0) {
-        errno = ENODEV;
-        return -1;
-    } else if (sdx[ino->lba].dev.dev.read_only) {
-        errno = EROFS;
-        return -1;
-    }
-    errno = 0;
-    splock_lock(&sdx[ino->lba].lock);
-    lseek(fd, offset, SEEK_SET);
-    int r = write(fd, data, size);
-    if (errno != 0 || r != (int)size)
-        kprintf(KLOG_ERR, "[IMG ] Write err: %s\n", strerror(errno));
-    splock_unlock(&sdx[ino->lba].lock);
-    return 0;
+    map_destroy(ino->info);
+    close(ino->no);
 }
 
 int imgdk_ioctl(inode_t *ino, int cmd, long *params)
@@ -148,23 +112,62 @@ int imgdk_ioctl(inode_t *ino, int cmd, long *params)
     return 0;
 }
 
-void imgdk_release_dev(struct IMGDK_Drive *dev)
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset)
 {
-    close(dev->fd);
-    dev->fd = -1;
+    int fd = ino->no;
+    errno = 0;
+    splock_lock(&ino->lock);
+    lseek(fd, offset, SEEK_SET);
+    int r = read(fd, data, size);
+    if (errno != 0 || r != (int)size)
+        kprintf(KLOG_ERR, "[IMG ] Read err: %s\n", strerror(errno));
+    splock_unlock(&ino->lock);
+    return 0;
 }
 
+int imgdk_write(inode_t *ino, const void *data, size_t size, off_t offset)
+{
+    int fd = ino->no;
+    assert((ino->flags & VFS_RDONLY) == 0);
+    errno = 0;
+    splock_lock(&ino->lock);
+    lseek(fd, offset, SEEK_SET);
+    int r = write(fd, data, size);
+    if (errno != 0 || r != (int)size)
+        kprintf(KLOG_ERR, "[IMG ] Write err: %s\n", strerror(errno));
+    splock_unlock(&ino->lock);
+    return 0;
+}
+
+page_t imgdk_fetch(inode_t *ino, off_t off)
+{
+    return map_fetch(ino->info, off);
+}
+
+void imgdk_sync(inode_t *ino, off_t off, page_t pg)
+{
+    map_sync(ino->info, off, pg);
+}
+
+void imgdk_release(inode_t *ino, off_t off, page_t pg)
+{
+    map_release(ino->info, off, pg);
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 void imgdk_create(CSTR name, size_t size) {
     int zero = 0;
-    int fd = open(name, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC);
+    int fd = open(name, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, 0644);
     if (fd != -1) {
         lseek(fd, size - 1, SEEK_SET);
-        write(fd, &zero, 1);
+        write(fd, (char*)&zero, 1);
         close(fd);
-    } else {
-        
-    }
+    } else
+        kprintf(-1, "Unable to create image disk %s\n", name);
 }
+
 
 void imgdk_setup()
 {
@@ -176,9 +179,6 @@ void imgdk_setup()
 
 void imgdk_teardown()
 {
-    int i;
-    for (i = 0; i < 4; ++i)
-        imgdk_exit(i);
 }
 
 MODULE(imgdk, imgdk_setup, imgdk_teardown);
