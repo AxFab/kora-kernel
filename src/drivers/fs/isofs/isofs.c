@@ -18,10 +18,11 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "isofs.h"
+#include <kernel/files.h>
 
 #define ISOFS_SECTOR_SIZE  2048
 
-void isofs_close(inode_t *ino);
+int isofs_close(inode_t *ino);
 ISO_dirctx_t *isofs_opendir(inode_t *dir);
 int isofs_closedir(inode_t *dir, ISO_dirctx_t *ctx);
 inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags);
@@ -44,9 +45,9 @@ ino_ops_t iso_reg_ops = {
 
 ino_ops_t iso_dir_ops = {
     .close = isofs_close,
-    .opendir = isofs_opendir,
-    .readdir = isofs_readdir,
-    .closedir = isofs_closedir,
+    .opendir = (void*)isofs_opendir,
+    .readdir = (void*)isofs_readdir,
+    .closedir = (void*)isofs_closedir,
 };
 
 
@@ -93,7 +94,7 @@ static inode_t *isofs_inode(volume_t *volume, ISOFS_entry_t *entry)
 }
 
 
-void isofs_close(inode_t *ino)
+int isofs_close(inode_t *ino)
 {
     if (ino->type == FL_REG)
         map_destroy(ino->info);
@@ -101,6 +102,7 @@ void isofs_close(inode_t *ino)
         kfree(ino->und.vol->volname);
         kfree(ino->und.vol);
     }
+    return 0;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -240,12 +242,12 @@ int isofs_read(inode_t *ino, void *buffer, size_t length, off_t offset)
 
 page_t isofs_fetch(inode_t *ino, off_t off)
 {
-    return map_fetch(ino->info, off, 0, isofs_read);
+    return map_fetch(ino->info, off);
 }
 
 void isofs_release(inode_t *ino, off_t off, page_t pg)
 {
-    return map_release(ino->info, off, 0);
+    map_release(ino->info, off, pg);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

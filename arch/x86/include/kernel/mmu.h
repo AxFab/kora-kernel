@@ -68,7 +68,7 @@ typedef unsigned long long page_t; */
 #define MMU_K_DIR  ((page_t*)0xffbff000)
 #define MMU_U_DIR  ((page_t*)0xfffff000)
 
-void grub_memory();
+void mboot_memory();
 
 /* Kernel memory mapping :: 2 First MB
 

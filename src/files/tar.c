@@ -85,7 +85,7 @@ int tar_read(inode_t *ino, void *buf, size_t len, off_t off)
     tar_entry_t *entry = ADDR_OFF(tinfo.start, ino->lba);
     uint8_t *data = ADDR_OFF(entry, TAR_BLOCK_SIZE);
     int cap = len;
-    if (len + off > ino->length)
+    if ((off_t)len + off > ino->length)
         cap = ino->length - off;
     memcpy(buf, &data[off], cap);
     return 0;
@@ -96,14 +96,14 @@ int tar_write(inode_t *ino, const void *buf, size_t len, off_t off)
     tar_entry_t *entry = ADDR_OFF(tinfo.start, ino->lba);
     uint8_t *data = ADDR_OFF(entry, TAR_BLOCK_SIZE);
     int cap = len;
-    if (ino->length > len + off)
+    if (ino->length > (off_t)len + off)
         cap = ino->length - off;
     memcpy(&data[off], buf, cap);
     return 0;
 }
 
 
-inode_t *tar_open(inode_t *dir, CSTR name, int mode, acl_t *acl, int flags)
+inode_t *tar_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
 {
     return NULL;
 }

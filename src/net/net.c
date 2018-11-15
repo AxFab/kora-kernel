@@ -196,6 +196,7 @@ void net_print(netdev_t *ifnet)
 
 void net_tasklet(netdev_t *ifnet)
 {
+    bool printed_ip4 = false;
     time64_t timeout = time64() + NET_DELAY;
     while ((ifnet->flags & NET_QUIT) == 0)  {
 
@@ -225,6 +226,7 @@ void net_tasklet(netdev_t *ifnet)
 
         /* Initialize hardware */
         if (!(ifnet->flags & NET_CONNECTED)) {
+            memset(ifnet->ip4_addr, 0, IP4_ALEN);
             kprintf(KLOG_NET, "Initialize eth%d\n", ifnet->no);
             ifnet->link(ifnet);
             net_print(ifnet);
@@ -235,6 +237,11 @@ void net_tasklet(netdev_t *ifnet)
         if (ip4_null(ifnet->ip4_addr)) {
             dhcp_discovery(ifnet);
             continue;
+        }
+
+        if (!printed_ip4) {
+            net_print(ifnet);
+            printed_ip4 = true;
         }
 
         kprintf(KLOG_NET, "Net ticks eth%d\n", ifnet->no);

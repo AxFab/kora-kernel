@@ -101,12 +101,13 @@ void com_irq(int o)
     com_read(serial_ports[o + 2], serial_inos[o + 2]);
 }
 
-int com_write(inode_t *ino, char *buf, int len)
+int com_write(inode_t *ino, const char *buf, size_t len, int flags)
 {
-    return com_output(ino->no, buf, len);
+    return com_output(ino->no - 1, buf, len);
 }
 
-int com_ioctl(inode_t *ino)
+
+int com_ioctl(inode_t *ino, int cmd, void *params)
 {
     errno = ENOSYS;
     return -1;
@@ -138,7 +139,7 @@ void com_setup()
         snprintf(name, 8, "com%d", i + 1);
         inode_t *ino = vfs_inode(i+1, FL_CHR, NULL);
         ino->und.dev->devclass = "Serial port";
-        ino->und.dev->devname = devnames[i];
+        ino->und.dev->devname = (char*)devnames[i];
         ino->und.dev->ops = &com_dops;
         ino->ops = &com_fops;
         vfs_mkdev(ino, name);

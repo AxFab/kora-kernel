@@ -32,8 +32,8 @@ struct map_page {
 struct map_cache {
     inode_t *ino;
     size_t block;
-    int(*read)(inode_t *, const *data, size_t, off_t);
-    int(*write)(inode_t *, const void *data, size_t, off_t);
+    int(*read)(inode_t *, char *data, size_t, off_t);
+    int(*write)(inode_t *, const char *data, size_t, off_t);
     bbtree_t tree;
     splock_t lock;
  };
@@ -66,7 +66,7 @@ page_t map_fetch(map_cache_t *cache, off_t off)
     assert(kCPU.irq_semaphore == 0);
     cache->read(cache->ino, ptr, PAGE_SIZE, off);
     assert(kCPU.irq_semaphore == 0);
-    page_t pg = mmu_read(ptr);
+    page_t pg = mmu_read((size_t)ptr);
     kunmap(ptr, PAGE_SIZE);
     return pg;
 }

@@ -296,7 +296,7 @@ int vfs_access(inode_t *ino, int access, acl_t *acl)
         shft = 6;
     else if (ino->acl->gid == acl->gid)
         shft = 3;
-    if ((ino->acl->mode >> 6) & access) {
+    if ((ino->acl->mode >> shft) & access) {
         errno = 0;
         return 0;
     }

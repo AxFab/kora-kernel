@@ -60,7 +60,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs)
         return NULL;
     }
 
-    device_t *dev = NULL;
+    inode_t *dev = NULL;
     if (devname) {
         dev = vfs_search_device(devname);
         if (dev == NULL) {
@@ -84,7 +84,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs)
 int vfs_umount(inode_t *ino)
 {
     assert(ino->type == FL_VOL);
-    volume_t *fs = ino->und.vol;
+    // volume_t *fs = ino->und.vol;
 
     errno = 0;
     if (ino->ops->close)

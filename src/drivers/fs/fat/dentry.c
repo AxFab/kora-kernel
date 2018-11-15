@@ -112,7 +112,7 @@ inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume, FAT
 
 int fatfs_close(inode_t *ino)
 {
-
+    return 0;
 }
 
 void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t type)
