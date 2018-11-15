@@ -55,6 +55,9 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
         inode->und.dev = kalloc(sizeof(device_t));
         break;
     case FL_PIPE:  /* Pipe */
+        assert(volume == NULL);
+        inode->info = pipe_create();
+        break;
     case FL_NET:  /* Network interface */
     case FL_SOCK:  /* Network socket */
     case FL_INFO:  /* Information file */

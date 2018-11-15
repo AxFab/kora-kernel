@@ -22,7 +22,7 @@
 #include <kernel/device.h>
 #include <kernel/memory.h>
 #include <kernel/files.h>
-// #include <kernel/input.h>
+#include <kernel/input.h>
 #include <kernel/task.h>
 #include <kernel/cpu.h>
 #include <kora/iofile.h>
@@ -108,6 +108,34 @@ void kernel_top(long sec)
     }
 }
 
+volatile inode_t *pp;
+
+void tty_start()
+{
+    inode_t *dev;
+    for (;;) {
+        dev = vfs_search_device("kdb");
+        if (dev != NULL)
+            break;
+        async_wait(NULL, NULL, 10000);
+    }
+    kprintf(-1, "Tty found keyboard\n");
+
+    while (pp == NULL)
+        async_wait(NULL, NULL, 10000);
+
+    event_t event;
+    for (;;) {
+        vfs_read(dev, &event, sizeof(event), 0, 0);
+        if (event.type == 3) {
+            char c = seat_key_unicode(event.param2 & 0xFFF, event.param2 >> 16);
+            kprintf(-1, "Tty key %x -> %x\n", event.param2 & 0xFFF, c);
+            if ((c >= ' ' && c < 0x80) || c == '\n')
+                vfs_write(pp, &c, 1, 0, 0);
+        }
+    }
+}
+
 void kernel_master()
 {
     async_wait(NULL, NULL, 5000);
@@ -128,20 +156,6 @@ void kernel_master()
         kprintf(-1, "Expected mount point over 'sdC' !\n");
         sys_exit(0, 0);
     }
-
-
-    // inode_t *ino = vfs_search(root, root, "bin/init", NULL);
-    // if (ino == NULL) {
-    //     kprintf(-1, "Expected file 'bin/init'.\n");
-    //     return;
-    // }
-    // task_t *task0 = task_create(NULL, root, TSK_USER_SPACE, "init");
-    // if (elf_open(task0, ino) != 0) {
-    //     kprintf(-1, "Unable to execute file\n");
-    // }
-
-    // vfs_close(root);
-    // vfs_close(ino);
 
     kprintf(-1, "Master mounted root: %p\n", root);
     async_wait(NULL, NULL, 10000);
@@ -167,9 +181,25 @@ void kernel_master()
         kfree(buf);
     }
 
+    async_wait(NULL, NULL, 1000000);
+    pp = vfs_inode(1, FL_PIPE, NULL);
 
+    char buf[32];
+    int idx = 0;
     for (;;) {
-        async_wait(NULL, NULL, 1000000);
+        kprintf(-1, "Master >\n");
+        idx = vfs_read(pp, &buf[idx], 30 - idx, 0, 0);
+        buf[idx] = '\0';
+        char *nx = strchr(buf, '\n');
+        if (nx != NULL) {
+            nx[0] = '\0';
+            kprintf(-1, buf, nx - buf, 0, 0);
+            strcpy(buf, &nx[1]);
+            idx -= nx - buf;
+        } else
+            idx = 0;
+
+        // async_wait(NULL, NULL, 1000000);
     }
 
 }
@@ -206,6 +236,7 @@ void kernel_start()
 
     kernel_tasklet(kernel_top, (void*)5, "Dbg top 5s");
     kernel_tasklet(kernel_master, NULL, "Master");
+    kernel_tasklet(tty_start, NULL, "Syslog Tty");
 
     // no_dbg = 0;
     // int clock_irq = 2;

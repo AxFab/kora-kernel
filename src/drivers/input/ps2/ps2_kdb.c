@@ -76,6 +76,7 @@ void PS2_kdb_handler()
         else if (c == KEY_HOST)
             kdb_status |= KDB_HOST;
 
+
         PS2_event(kdb_ino, EV_KEY_PRESS, 0, (kdb_status << 16) | c);
 
     } else {

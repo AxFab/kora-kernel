@@ -19,6 +19,7 @@
 */
 #include <kernel/vfs.h>
 #include <kernel/device.h>
+#include <kernel/files.h>
 #include <string.h>
 #include <errno.h>
 
@@ -93,9 +94,18 @@ int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
     case FL_REG:
     case FL_BLK:
         return vfs_read_block(ino, buf, size, off);
-    default:
-        kprintf(KLOG_ERR, "\033[31mUnsupported IO read (%d) \033[0m\n", ino->type);
-    case FL_DIR:
+    case FL_PIPE:
+        return pipe_read((pipe_t*)ino->info, buf, size, flags);
+    case FL_CHR:
+    case FL_LNK:
+    case FL_INFO:
+        if (ino->ops->read == NULL) {
+            errno = ENOSYS;
+            return -1;
+        }
+        return ino->ops->read(ino, buf, size, flags);
+    case FL_SOCK:
+    default: // DIR, VOL, NET, VDO, WIN
         errno = ENOSYS;
         return -1;
     }
@@ -108,9 +118,21 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
     case FL_REG:
     case FL_BLK:
         return vfs_write_block(ino, buf, size, off);
-    default:
-        kprintf(KLOG_ERR, "\033[31mUnsupported IO write (%d) \033[0m\n", ino->type);
-    case FL_DIR:
+    case FL_PIPE:
+        return pipe_write((pipe_t*)ino->info, buf, size, flags);
+    case FL_CHR:
+    case FL_LNK:
+    case FL_INFO:
+        if (ino->und.dev->flags & VFS_RDONLY) {
+            errno = EROFS;
+            return -1;
+        } else if (ino->ops->write == NULL) {
+            errno = ENOSYS;
+            return -1;
+        }
+        return ino->ops->write(ino, buf, size, flags);
+    case FL_SOCK:
+    default: // DIR, VOL, NET, VDO, WIN
         errno = ENOSYS;
         return -1;
     }

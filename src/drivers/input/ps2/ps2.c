@@ -31,14 +31,17 @@ void PS2_event(inode_t *ino, uint8_t type, int32_t param1, int32_t param2)
     // if (seat_event(type, param1, param2) != 0) {
     //     return;
     // }
+    pipe_t* pipe = (pipe_t*)ino->info;
 
     event_t ev;
     // ev.time = time(NULL);
     ev.type = type;
     ev.param1 = param1;
     ev.param2 = param2;
-    (void)ev;
-    wmgr_event(&ev);
+    //(void)ev;
+    pipe_write(pipe, &ev, sizeof(ev), 0);
+
+    //wmgr_event(&ev);
     // dev_char_write(ino, &ev, sizeof(ev));
 }
 
@@ -64,31 +67,53 @@ void PS2_reset()
 //     return 0;
 // }
 
+int ps2_read(inode_t* ino, char *buf, size_t len, int flags) {
+    return pipe_read((pipe_t*)ino->info, buf, len, flags);
+}
+
+dev_ops_t ps2_kdb_dev_ops = {
+
+};
+
+ino_ops_t ps2_kdb_ino_ops = {
+    .read = ps2_read
+};
+
+
+
 
 void PS2_setup()
 {
     irq_register(1, (irq_handler_t)PS2_kdb_handler, NULL);
-    irq_register(12, (irq_handler_t)PS2_mouse_handler, NULL);
-    PS2_mouse_setup();
+    // irq_register(12, (irq_handler_t)PS2_mouse_handler, NULL);
+    // PS2_mouse_setup();
 
-    kdb_ino = vfs_inode(1, S_IFCHR | 700, NULL, 0);
-    ps2_kbd.block = sizeof(event_t);
-    ps2_kbd.class = "PS/2 Keyboard";
-    vfs_mkdev("kdb", &ps2_kbd, kdb_ino);
+    kdb_ino = vfs_inode(1, FL_CHR, NULL);
+    kdb_ino->und.dev->block = sizeof(event_t);
+    kdb_ino->und.dev->flags = VFS_RDONLY;
+    kdb_ino->und.dev->ops = &ps2_kdb_dev_ops;
+    kdb_ino->ops = &ps2_kdb_ino_ops;
+    kdb_ino->und.dev->devclass = (char*)"PS/2 Keyboard";
+    kdb_ino->info = pipe_create();
+    vfs_mkdev(kdb_ino, "kdb");
     vfs_close(kdb_ino);
 
-    mouse_ino = vfs_inode(2, S_IFCHR | 700, NULL, 0);
+    /*
+    mouse_ino = vfs_inode(2, FL_CHR, NULL);
     ps2_mse.block = sizeof(event_t);
     ps2_mse.class = "PS/2 Mouse";
     vfs_mkdev("mouse", &ps2_mse, mouse_ino);
     vfs_close(mouse_ino);
+    */
 }
 
 void PS2_teardown()
 {
+    /*
     vfs_rmdev("kdb");
     vfs_rmdev("mouse");
+    */
 }
 
 
-MODULE(ps2, MOD_AGPL, PS2_setup, PS2_teardown);
+MODULE(ps2, PS2_setup, PS2_teardown);
