@@ -44,17 +44,17 @@ ino_ops_t fatfs_reg_ops = {
 ino_ops_t fatfs_dir_ops = {
     .close = fatfs_close,
     .truncate = fatfs_truncate,
-    .opendir = fatfs_opendir,
-    .readdir = fatfs_readdir,
-    .closedir = fatfs_closedir,
+    .opendir = (void*)fatfs_opendir,
+    .readdir = (void*)fatfs_readdir,
+    .closedir = (void*)fatfs_closedir,
 };
 
 ino_ops_t fatfs_vol_ops = {
     .close = fatfs_umount,
     .truncate = fatfs_truncate,
-    .opendir = fatfs_opendir,
-    .readdir = fatfs_readdir,
-    .closedir = fatfs_closedir,
+    .opendir = (void*)fatfs_opendir,
+    .readdir = (void*)fatfs_readdir,
+    .closedir = (void*)fatfs_closedir,
 };
 
 inode_t *fatfs_mount(inode_t *dev)
@@ -79,7 +79,7 @@ inode_t *fatfs_mount(inode_t *dev)
     ino->lba = 1;
     ino->und.vol->info = info;
     ino->und.vol->ops = &fatfs_ops;
-    ino->und.vol->volfs = fsName;
+    ino->und.vol->volfs = (char*)fsName;
     ino->und.vol->volname = strdup(info->name);
     ino->info = info;
     ino->ops = &fatfs_dir_ops;

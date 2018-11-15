@@ -88,15 +88,15 @@ struct ino_ops {
     void(*sync)(inode_t *ino, off_t off, page_t pg);
     void(*release)(inode_t *ino, off_t off, page_t pg);
     // Fifo
-    int(*read)(inode_t *ino, const char *buf, size_t len, int flags);
-    int(*write)(inode_t *ino, char *buf, size_t len, int flags);
+    int(*read)(inode_t *ino, char *buf, size_t len, int flags);
+    int(*write)(inode_t *ino, const char *buf, size_t len, int flags);
     void(*reset)(inode_t *ino);
     // Directory
     void *(*opendir)(inode_t *dir);
     inode_t *(*readdir)(inode_t *dir, char *name, void *ctx);
     int(*closedir)(inode_t *dir, void *ctx);
     // Regular file
-    off_t(*truncate)(inode_t *ino, off_t length);
+    int(*truncate)(inode_t *ino, off_t length);
     // Framebuffer
     void(*flip)(inode_t *ino);
     void(*resize)(inode_t *ino, int width, int height);
@@ -182,7 +182,8 @@ void *vfs_opendir(inode_t *dir, acl_t *acl);
 inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx);
 int vfs_closedir(inode_t *dir, void *ctx);
 
-void vfs_reset();
+void vfs_init();
+void vfs_fini();
 int vfs_fdisk(CSTR dname, long parts, long *sz);
 
 #endif /* _KERNEL_VFS_H */

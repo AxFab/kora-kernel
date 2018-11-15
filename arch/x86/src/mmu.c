@@ -53,7 +53,7 @@ void mmu_enable()
     setup_allocator((void *)(1024 * _Kib_), 1024 * _Kib_);
 
     // Record physical available memory
-    grub_memory();
+    mboot_memory();
 
     // Prepare kernel PGD
     page_t *dir = MMU_KRN_DIR_PG;

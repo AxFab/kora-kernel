@@ -125,10 +125,10 @@ int e1000_irq_handler(E1000_inet_t *ifnet)
                 break;
 
             // Inject new packet on network stack
-            uint8_t *buffer = ifnet->rx_virt[ifnet->rx_index]; 
+            uint8_t *buffer = ifnet->rx_virt[ifnet->rx_index];
             uint16_t length = ifnet->rx_base[ifnet->rx_index].length;
             kprintf(KLOG_DBG, "RECEIVE NETWORK PACKET (%d bytes)\n", length);
-            net_recv(ifnet, buffer, length); 
+            net_recv(&ifnet->dev, buffer, length);
             ifnet->rx_base[ifnet->rx_index].status = 0;
             PCI_wr32(pci, 0, REG_RDT, ifnet->rx_index);
         }

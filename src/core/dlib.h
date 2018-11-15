@@ -25,12 +25,6 @@
 #include <kora/mcrs.h>
 #include <kora/hmap.h>
 
-typedef struct dynlib dynlib_t;
-typedef struct dynsec dynsec_t;
-typedef struct dynsym dynsym_t;
-typedef struct dynrel dynrel_t;
-typedef struct dyndep dyndep_t;
-
 
 struct dynsec {
     size_t lower;

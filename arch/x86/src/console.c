@@ -203,7 +203,7 @@ void csl_ansi_cmd(ansi_cmd_t *cmd)
     }
 }
 
-int csl_write(inode_t *ino, const char *buf, int len)
+int csl_write(inode_t *ino, const char *buf, size_t len, int flags)
 {
     int s = len;
     while (len > 0) {

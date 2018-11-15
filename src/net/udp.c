@@ -43,8 +43,8 @@ int udp_header(skb_t *skb, const uint8_t *ip, int length, int port, int src)
     header->dest_port = htonw(port);
     header->length = htonw(length + sizeof(UDP_header_t));
     header->checksum = 0;
-    header->checksum = ip4_checksum(skb,
-                                    sizeof(UDP_header_t) + 8); /* TODO - ip options */
+    header->checksum = ip4_checksum(skb, sizeof(UDP_header_t) + 8);
+    // TODO - ip options
     return 0;
 }
 
@@ -54,9 +54,10 @@ int udp_receive(skb_t *skb, unsigned length)
     UDP_header_t *header = net_pointer(skb, sizeof(UDP_header_t));
     if (header == NULL)
         return -1;
-    uint16_t checksum = header->checksum;
-    header->checksum = 0;
-    // if (checksum != ip4_checksum(skb, sizeof(UDP_header_t) + 8)) /* TODO - ip options */
+    // uint16_t checksum = header->checksum;
+    // header->checksum = 0;
+    // if (checksum != ip4_checksum(skb, sizeof(UDP_header_t) + 8))
+    // TODO - ip options
         // return -1;
     if (length != htonw(header->length))
         return -1;

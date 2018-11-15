@@ -19,13 +19,13 @@ use32
 
 global _start, start
 extern code, bss, end
-extern grub_init, cpu_early_init, kernel_start
+extern mboot_init, cpu_early_init, kernel_start
 extern apic_regs, cpu_table, ap_setup
 
 ; Define some constant values
-%define GRUB_MAGIC1     0x1BADB002
-%define GRUB_MAGIC2     0x2BADB002
-%define GRUB_FLAGS      0x00010007 ;0x00010003; 0x00010007
+%define MBOOT_MAGIC1     0x1BADB002
+%define MBOOT_MAGIC2     0x2BADB002
+%define MBOOT_FLAGS      0x00010007 ;0x00010003; 0x00010007
 
 %define KSTACK0         0x4000
 %define KSTACK_LEN      0x1000
@@ -57,12 +57,12 @@ section .text.boot
 _start:
     jmp start
 
-; Multiboot header, used by Grub
+; Multiboot header
 align 4
 mboot:
-    dd GRUB_MAGIC1
-    dd GRUB_FLAGS
-    dd - GRUB_FLAGS - GRUB_MAGIC1
+    dd MBOOT_MAGIC1
+    dd MBOOT_FLAGS
+    dd - MBOOT_FLAGS - MBOOT_MAGIC1
 
     dd mboot
     dd code
@@ -80,8 +80,8 @@ align 16
 start:
     cli ; Block interruption
     mov esp, KSTACK0 + KSTACK_LEN - 4 ; Set stack
-    cmp eax, GRUB_MAGIC2 ; Check we used grub as loader
-    jmp .grubLoader
+    cmp eax, MBOOT_MAGIC2 ; Check we used a multiboot complient loader (grub)
+    jmp .mbootLoader
 
 .unknowLoader:
     PUTC 0x47, 'U', 'n'
@@ -93,10 +93,10 @@ start:
     hlt
     jmp $
 
-.grubLoader:
+.mbootLoader:
     PUTC 0x17, 'G', 'r'
     push ebx
-    call grub_init
+    call mboot_init
     pop ebx
     test eax, eax
     jnz .errorLoader

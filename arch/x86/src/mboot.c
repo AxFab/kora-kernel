@@ -18,11 +18,12 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
+#include <kernel/files.h>
 
 void csl_early_init();
 void com_early_init();
 
-PACK(struct grub_info {
+PACK(struct mboot_info {
     uint32_t flags;
     uint32_t mem_lower;
     uint32_t mem_upper;
@@ -53,9 +54,9 @@ PACK(struct grub_info {
     uint32_t framebuffer_height;
     uint8_t framebuffer_bpp;
     uint8_t framebuffer_type;
-}) *grub_table;
+}) *mboot_table;
 
-struct grub_module {
+struct mboot_module {
     void *start;
     void *end;
     char *string;
@@ -69,29 +70,29 @@ struct grub_module {
 #define GRUB_BOOT_LOADER  (1 << 9)
 #define GRUB_VGA  (1 << 11)
 
-int grub_init(void *table)
+int mboot_init(void *table)
 {
-    grub_table = (struct grub_info *)table;
+    mboot_table = (struct mboot_info *)table;
     csl_early_init();
     com_early_init();
 
     // Those call to kprintf crash under VirtualBox!
 #if 1
-    if (grub_table->flags & GRUB_BOOT_LOADER)
-        kprintf(KLOG_MSG, "Boot Loader: %s\n", grub_table->boot_loader);
+    if (mboot_table->flags & GRUB_BOOT_LOADER)
+        kprintf(KLOG_MSG, "Boot Loader: %s\n", mboot_table->boot_loader);
 
-    if (grub_table->flags & GRUB_CMDLINE)
-        kprintf(KLOG_MSG, "Command line: %s\n", grub_table->cmdline);
+    if (mboot_table->flags & GRUB_CMDLINE)
+        kprintf(KLOG_MSG, "Command line: %s\n", mboot_table->cmdline);
 
-    if (grub_table->flags & GRUB_BOOT_DEVICE) {
-        if (grub_table->boot_dev == 0x80)   // 1000b
+    if (mboot_table->flags & GRUB_BOOT_DEVICE) {
+        if (mboot_table->boot_dev == 0x80)   // 1000b
             kprintf(KLOG_MSG, "Booting device: HDD\n");
 
-        else if (grub_table->boot_dev == 0xe0)   // 1110b
+        else if (mboot_table->boot_dev == 0xe0)   // 1110b
             kprintf(KLOG_MSG, "Booting device: CD\n");
 
         else
-            kprintf(KLOG_MSG, "Booting device: Unknown <%2x>\n", grub_table->boot_dev);
+            kprintf(KLOG_MSG, "Booting device: Unknown <%2x>\n", mboot_table->boot_dev);
     }
 
 #endif
@@ -100,12 +101,12 @@ int grub_init(void *table)
     return 0;
 }
 
-void grub_memory()
+void mboot_memory()
 {
-    if (grub_table->flags & GRUB_MEMORY) {
+    if (mboot_table->flags & GRUB_MEMORY) {
     }
 
-    uint32_t *ram = grub_table->mmap_addr;
+    uint32_t *ram = mboot_table->mmap_addr;
     // kprintf(KLOG_MSG, "Memory Zones: (at %p)\n", ram);
 
     for (; *ram == 0x14; ram += 6) {
@@ -146,13 +147,13 @@ struct dynlib {
     llhead_t relocations;
 };
 
-void grub_load_modules()
+void mboot_load_modules()
 {
     unsigned i;
-    if (grub_table->flags & GRUB_MODULES) {
-        kprintf(KLOG_MSG, "Module loaded %d\n", grub_table->mods_count);
-        struct grub_module *mods = (struct grub_module *)grub_table->mods_addr;
-        for (i = 0; i < grub_table->mods_count; ++i) {
+    if (mboot_table->flags & GRUB_MODULES) {
+        kprintf(KLOG_MSG, "Module loaded %d\n", mboot_table->mods_count);
+        struct mboot_module *mods = (struct mboot_module *)mboot_table->mods_addr;
+        for (i = 0; i < mboot_table->mods_count; ++i) {
             kprintf(KLOG_MSG, "Mod [%p - %p] %s \n", mods->start, mods->end, mods->string);
             inode_t *root = tar_mount(mods->start, mods->end, mods->string);
 

@@ -119,4 +119,7 @@ void ioblk_dirty(inode_t *ino, off_t off);
 int ioblk_read(inode_t *ino, char *buf, int len, off_t off);
 int ioblk_write(inode_t *ino, const char *buf, int len, off_t off);
 
+
+int elf_parse(dynlib_t *dlib);
+
 #endif /* _KERNEL_FILES_H */

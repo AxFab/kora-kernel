@@ -138,6 +138,8 @@ bool irq_enable();
 /* - */
 void irq_disable();
 /* - */
+void irq_ask(int no);
+/* - */
 void irq_register(int no, irq_handler_t func, void *data);
 /* - */
 void irq_unregister(int no, irq_handler_t func, void *data);
@@ -165,6 +167,7 @@ _Noreturn void cpu_halt();
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 bio_t *bio_create(inode_t *ino, int flags, int block, size_t offset);
+bio_t *bio_create2(inode_t *ino, int flags, int block, size_t offset, int extra);
 void *bio_access(bio_t *io, size_t lba);
 void bio_clean(bio_t *io, size_t lba);
 void bio_sync(bio_t *io);
