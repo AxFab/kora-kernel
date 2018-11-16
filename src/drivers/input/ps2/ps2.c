@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -31,7 +31,7 @@ void PS2_event(inode_t *ino, uint8_t type, int32_t param1, int32_t param2)
     // if (seat_event(type, param1, param2) != 0) {
     //     return;
     // }
-    pipe_t* pipe = (pipe_t*)ino->info;
+    pipe_t *pipe = (pipe_t *)ino->info;
 
     event_t ev;
     // ev.time = time(NULL);
@@ -67,8 +67,9 @@ void PS2_reset()
 //     return 0;
 // }
 
-int ps2_read(inode_t* ino, char *buf, size_t len, int flags) {
-    return pipe_read((pipe_t*)ino->info, buf, len, flags);
+int ps2_read(inode_t *ino, char *buf, size_t len, int flags)
+{
+    return pipe_read((pipe_t *)ino->info, buf, len, flags);
 }
 
 dev_ops_t ps2_kdb_dev_ops = {
@@ -93,7 +94,7 @@ void PS2_setup()
     kdb_ino->und.dev->flags = VFS_RDONLY;
     kdb_ino->und.dev->ops = &ps2_kdb_dev_ops;
     kdb_ino->ops = &ps2_kdb_ino_ops;
-    kdb_ino->und.dev->devclass = (char*)"PS/2 Keyboard";
+    kdb_ino->und.dev->devclass = (char *)"PS/2 Keyboard";
     kdb_ino->info = pipe_create();
     vfs_mkdev(kdb_ino, "kdb");
     vfs_close(kdb_ino);

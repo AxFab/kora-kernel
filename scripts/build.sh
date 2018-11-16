@@ -78,12 +78,10 @@ build_x86 () {
     # mkdir -p iso/{dev,mnt,proc,sys,tmp}
 
 
+    $SCRIPT_HOME/scripts/drivers.sh
+
     # Import files
     cp -v $SRC_KRN/bin/kImage iso/boot/kImage
-    if [ -f $SRC_KRN/src/drivers/drivers.tar ]
-    then
-        cp -v $SRC_KRN/src/drivers/drivers.tar iso/boot/x86.miniboot.tar
-    fi
 
     mkdir -p iso/boot/grub
 

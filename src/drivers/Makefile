@@ -1,43 +1,48 @@
 
-CROSS=i386-elf-
+# CROSS=i386-elf-
 CC = $(CROSS)gcc
 LD = $(CROSS)ld
 
-CFLAGS = -fPIC -Wall -Wextra -Wno-builtin-declaration-mismatch -Wno-unused-parameter -I ../../include -I ../../include/cc -I ../../arch/x86/include
-LFLAGS = 
+CFLAGS = -fPIC -Wall -Wextra -fno-builtin -Wno-unused-parameter
+CFLAGS += -I ${srcdir}/../../include
+CFLAGS += -I ${srcdir}/../../include/cc -I ${srcdir}/../../arch/x86/include
+LFLAGS =
 
 V = @
-Q = @ echo 
+Q = @ echo
 
-srcdir := ./fs/isofs
+srcdir := .
 objdir := ./obj
-name = ${shell basename ${srcdir}}
+bindir := ./bin
+driver := fs/isofs
+name = ${shell basename ${driver}}
 
-srcs=$(wildcard ${srcdir}/*.c)
-objs=$(patsubst ${srcdir}/%.c, ${objdir}/%.o, ${srcs})
+srcs=$(wildcard ${srcdir}/${driver}/*.c)
+objs=$(patsubst ${srcdir}/${driver}/%.c, ${objdir}/%.o, ${srcs})
 
-all: ${name}.kmo
+all: ${bindir}/${name}.kmo
 
 echo:
 	${Q} '  NAME  '${name}
-	${Q} '  SRC   '${srcdir}
+	${Q} '  SRC   '${srcdir}/${driver}
 	${Q} '  OBJ   '${objdir}
 	${Q} '  SRCS  '${srcs}
 	${Q} '  OBJS  '${objs}
 
-${name}.kmo: ${objs}
+${bindir}/${name}.kmo: ${objs}
 	${Q} '    LD  '$@
-	${V} ${LD} -shared ${LFLAGS}  ${objs} -o $@ -h $@ 
+	@ mkdir -p ${bindir}
+	${V} ${LD} -shared ${LFLAGS}  ${objs} -o $@ -h $@
 
-${objdir}/%.o: $(srcdir)/%.c
+${objdir}/%.o: $(srcdir)/${driver}/%.c
 	${Q} '    CC  '$<
 	@ mkdir -p ${objdir}
-	${V} ${CC} ${CFLAGS} -c $< -o $@ 
+	${V} ${CC} ${CFLAGS} -c $< -o $@
 
 ${objdir}/%.o: %.c
 	${Q} '    CC  '$<
 	@ mkdir -p ${objdir}
-	${V} ${CC} ${CFLAGS} -c $< -o $@ 
+	${V} ${CC} ${CFLAGS} -c $< -o $@
 
 clean:
 	@ rm -rf obj

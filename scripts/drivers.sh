@@ -19,33 +19,26 @@
 SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
 SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
 
+DIR="$SCRIPT_HOME/src/drivers"
+TMP="`readlink -f .`/drivers"
+PFX="`readlink -f .`/iso/boot"
 
-fixSrc() {
-    TMP=`mktemp`
-    cat $1 > $TMP
-    cat $SCRIPT_DIR/cfg/license.h <(awk '/^#(include|ifndef)/ || c>0 {print;++c}' $TMP) > $1
-    rm $TMP
+MAKE () {
+    make  -f "$DIR/Makefile" bindir="$TMP/bin" srcdir="$DIR" driver="$1"
 }
 
-checkDir () {
-    LICENSE=`head $SCRIPT_DIR/cfg/license.h -n 18`
-    for src in $1
-    do
-        SRC_HEAD=`head $src -n 18`
-        if [ "$LICENSE" != "$SRC_HEAD" ]
-        then
-            if [ "$FIX" != 'y' ]
-            then
-                echo "Missing license: $src"
-            else
-                echo "Editing license: $src"
-                fixSrc "$src"
-            fi
-        else
-             echo "License OK: $src"
-        fi
-    done
-}
+MAKE 'disk/ata'
+MAKE 'input/ps2'
+MAKE 'net/e1000'
 
-checkDir "`find . -type f -a -name '*.c' -o -name '*.h'`"
+# MAKE 'fs/ext2'
+MAKE 'fs/fat'
+MAKE 'fs/isofs'
 
+cd "$TMP"
+mkdir -p "$PFX"
+echo "    TAR $PFX/x86.miniboot.tar"
+tar cf "$PFX/x86.miniboot.tar" ./bin
+
+cd "$SCRIPT_HOME"
+rm -rf "$TMP"

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -16,8 +16,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
- *
- *      Driver for ATA API.
  */
 #include <kernel/core.h>
 #include <kernel/device.h>
@@ -514,14 +512,14 @@ void ata_release(inode_t *ino, off_t off, page_t pg)
 
 
 dev_ops_t ata_dev_ops = {
-//    .ioctl = ata_ioctl,
+    //    .ioctl = ata_ioctl,
 };
 
 ino_ops_t ata_ino_ops = {
     .fetch = ata_fetch,
     .sync = ata_sync,
     .release = ata_release,
-//    .ioctl = ata_ioctl,
+    //    .ioctl = ata_ioctl,
 };
 
 

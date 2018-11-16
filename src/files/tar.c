@@ -24,6 +24,9 @@
 #include <errno.h>
 
 
+extern ino_ops_t tar_reg_ops;
+extern ino_ops_t tar_dir_ops;
+
 #define TAR_BLOCK_SIZE  512
 typedef struct tar_entry tar_entry_t;
 
@@ -71,6 +74,7 @@ inode_t *tar_inode(volume_t *vol, tar_entry_t *entry, int length)
     inode_t *ino = vfs_inode(lba / TAR_BLOCK_SIZE + 2, FL_REG, vol);
     ino->length = length;
     ino->lba = lba;
+    ino->ops = &tar_reg_ops;
     return ino;
 }
 

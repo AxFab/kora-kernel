@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -17,12 +17,16 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <kora/mcrs.h>
 
+typedef struct ext2_sb ext2_sb_t;
+typedef struct ext2_grp ext2_grp_t;
+typedef struct ext2_ino ext2_ino_t;
 
-PACK(struct ext2_super_block {
+PACK(struct ext2_sb {
     uint32_t inodes_count;     /* Total number of inodes */
     uint32_t blocks_count;     /* Total number of blocks */
-    uint32_t r_blocks_count;   /* Total number of blocks reserved for the super user */
+    uint32_t rsvd_blocks_count;   /* Total number of blocks reserved for the super user */
     uint32_t free_blocks_count;        /* Total number of free blocks */
     uint32_t free_inodes_count;        /* Total number of free inodes */
     uint32_t first_data_block; /* Id of the block containing the superblock structure */
@@ -55,20 +59,27 @@ PACK(struct ext2_super_block {
     char volume_name[16]; /* Volume name */
     char last_mounted[64];        /* Path where the file system was last mounted */
     uint32_t algo_bitmap;      /* For compression */
-    uint8_t padding[820];
-};
+    uint8_t prealloc_block_file;
+    uint8_t prealloc_block_dir;
+    uint16_t unused;
+    uint8_t journal_id[16];
+    uint32_t journal_inode;
+    uint32_t journal_device;
+    uint32_t head_orphan_inode;
+    uint8_t padding[788];
+});
 
-PACK(struct EXT_disk {
-    struct ext2_super_block *sb;
-    struct ext2_group_desc *gd;
+PACK(struct ext2_disk {
+    struct ext2_sb *sb;
+    struct ext2_grp *gd;
     size_t sb_size;
-    size_t gd_size
+    size_t gd_size;
     uint32_t blocksize;
     uint16_t groups;             /* Total number of groups */
     char volume_name[18]; /* Volume name */
 });
 
-PACK(struct ext2_group_desc {
+PACK(struct ext2_grp {
     uint32_t block_bitmap;    /* Id of the first block of the "block bitmap" */
     uint32_t inode_bitmap;    /* Id of the first block of the "inode bitmap" */
     uint32_t inode_table;     /* Id of the first block of the "inode table" */
@@ -79,7 +90,7 @@ PACK(struct ext2_group_desc {
     uint32_t reserved[3];     /* Future implementation */
 });
 
-PACK(struct ext2_inode {
+PACK(struct ext2_ino {
     uint16_t mode;             /* File type + access rights */
     uint16_t uid;
     uint32_t size;
@@ -88,7 +99,7 @@ PACK(struct ext2_inode {
     uint32_t mtime;
     uint32_t dtime;
     uint16_t gid;
-    uint16_t links_count;
+    uint16_t links;
     uint32_t blocks;           /* 512 bytes blocks ! */
     uint32_t flags;
     uint32_t osd1;
@@ -115,6 +126,36 @@ PACK(struct directory_entry {
     uint8_t file_type;
     char name;
 });
+
+typedef struct ext2_volume ext2_volume_t;
+typedef struct ext2_dir_iter ext2_dir_iter_t;
+typedef struct ext2_dir_en ext2_dir_en_t;
+
+
+struct ext2_volume {
+    ext2_sb_t *sb;
+    ext2_grp_t *grp;
+    bio_t *io;
+};
+
+struct ext2_dir_iter {
+    ext2_volume_t *vol;
+    ext2_ino_t *entry;
+    uint32_t blk;
+    int idx;
+    int last;
+    int lba;
+    uint8_t *cur_block;
+};
+
+struct ext2_dir_en {
+    uint32_t ino;
+    uint16_t size;
+    uint8_t length;
+    uint8_t type;
+    char name[0];
+};
+
 
 
 /* super_block: errors */

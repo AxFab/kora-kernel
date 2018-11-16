@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -28,9 +28,8 @@
 
 void lnet_link(lnet_dev_t *ifnet)
 {
-    if (ifnet->fd == 0) {
+    if (ifnet->fd == 0)
         return;
-    }
     lnet_msg_t msg;
     msg.request = MR_INIT;
     msg.length = ETH_ALEN;
@@ -51,7 +50,7 @@ void lnet_idle(lnet_dev_t *ifnet)
 {
     lnet_msg_t msg;
     char *frame = kalloc(ifnet->n.mtu);
-    for (;;Sleep(3000)) {
+    for (;; Sleep(3000)) {
         if (ifnet->fd == 0) {
 
             SOCKADDR_IN sin;

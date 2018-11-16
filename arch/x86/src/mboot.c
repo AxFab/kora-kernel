@@ -163,11 +163,11 @@ void mboot_load_modules()
             char filename[100];
             void *ctx = vfs_opendir(root, NULL);
             while ((ino = vfs_readdir(root, filename, ctx)) != NULL) {
-                dynlib_t dlib;
+                // dynlib_t dlib;
                 // inode_t *ino, int flags, int block, size_t offset);
-                dlib.io = bio_create(ino, VMA_FILE_RO, PAGE_SIZE, 0);
+                // dlib.io = bio_create(ino, VMA_FILE_RO, PAGE_SIZE, 0);
                 kprintf(-1, " -Open: %s   %d  %d\n", filename, ino->length, ino->lba);
-                elf_parse(&dlib);
+                // elf_parse(&dlib);
             }
             vfs_closedir(root, ctx);
         }
