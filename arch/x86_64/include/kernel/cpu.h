@@ -22,6 +22,8 @@
 
 #include <kernel/types.h>
 
+#define KSTACK  (2 * PAGE_SIZE)
+
 #define IRQ_ON   asm("sti")
 #define IRQ_OFF  asm("cli")
 

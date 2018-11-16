@@ -157,7 +157,7 @@ void cpu_stack(task_t *task, size_t entry, size_t param)
 {
     size_t *stack = (size_t *)task->kstack + (task->kstack_len / sizeof(size_t));
     task->state[7] = entry;
-    task->state[5] = (size_t)task->kstack;
+    task->state[5] = (size_t)stack;
 
     stack--;
     *stack = param;

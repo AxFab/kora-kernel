@@ -225,8 +225,8 @@ splock_t tsk_lock;
 static task_t *task_allocat()
 {
     task_t *task = (task_t *)kalloc(sizeof(task_t));
-    task->kstack = (size_t *)kmap(PAGE_SIZE, NULL, 0, VMA_STACK_RW | VMA_RESOLVE);
-    task->kstack_len = PAGE_SIZE;
+    task->kstack = (size_t *)kmap(KSTACK, NULL, 0, VMA_STACK_RW | VMA_RESOLVE);
+    task->kstack_len = KSTACK;
 
     task->status = TS_ZOMBIE;
     task->prio = TASK_DEFAULT_PRIO;
