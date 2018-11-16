@@ -319,6 +319,9 @@ struct PCI_device *pci_search(pci_matcher match, int *data)
 }
 
 void kernel_module(kmod_t *mod);
+KMODULE(dev);
+KMODULE(csl);
+KMODULE(serial);
 KMODULE(ps2);
 KMODULE(ide_ata);
 KMODULE(isofs);
@@ -332,6 +335,10 @@ void platform_setup()
     pci_setup();
 
     mboot_load_modules();
+
+    kernel_tasklet(kernel_module, &kmod_info_dev, kmod_info_dev.name);
+    kernel_tasklet(kernel_module, &kmod_info_csl, kmod_info_csl.name);
+    kernel_tasklet(kernel_module, &kmod_info_serial, kmod_info_serial.name);
 
     kernel_tasklet(kernel_module, &kmod_info_ps2, kmod_info_ps2.name);
     // Load fake disks drivers
