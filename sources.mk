@@ -88,6 +88,7 @@ DV_CHECK += $(bindir)/ckFiles
 
 ckFs_src-y += $(wildcard $(srcdir)/libc/*.c)
 ckFs_src-y += $(wildcard $(srcdir)/vfs/*.c)
+ckFs_src-y += $(srcdir)/files/pipe.c
 ckFs_src-y += $(wildcard $(srcdir)/core/bio.c)
 ckFs_src-y += $(wildcard $(srcdir)/core/debug.c)
 ckFs_src-y += $(wildcard $(srcdir)/task/async.c)
