@@ -22,6 +22,8 @@
 
 #include <kernel/types.h>
 
+#define KSTACK  (4 * PAGE_SIZE)
+
 #define IRQ_ON   ((void)0)
 #define IRQ_OFF  ((void)0)
 
