@@ -78,5 +78,12 @@ uint16_t rand16()
 	unsigned int seed = __seed;
     uint32_t r = (uint16_t)rand_r(&seed);
     r |= (uint16_t)rand_r(&seed) << 15;
-    return r;
+    return r & 0xFFFF;
+}
+
+uint8_t rand8()
+{
+	unsigned int seed = __seed;
+    uint32_t r = (uint16_t)rand_r(&seed);
+    return r & 0xFF;
 }
