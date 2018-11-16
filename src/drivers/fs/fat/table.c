@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -16,8 +16,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
- *
- *      File system driver FAT12, FAT16, FAT32 and exFAT.
  */
 #include "fatfs.h"
 
@@ -66,7 +64,7 @@ FAT_volume_t *fatfs_init(void *ptr)
 
 void fatfs_reserve_cluster_16(FAT_volume_t *info, int cluster, int previous)
 {
-	int i;
+    int i;
     for (i = 0; i < 2; ++i) {
         int lba = i * info->FATSz + 1;
         // int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
@@ -81,7 +79,7 @@ void fatfs_reserve_cluster_16(FAT_volume_t *info, int cluster, int previous)
 
 unsigned fatfs_alloc_cluster_16(FAT_volume_t *info, int previous)
 {
-	int i;
+    int i;
     int lba = 1; // resvd_sector_count
     int fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
     uint16_t *fat_table = (uint16_t *)bio_access(info->io_head, lba);

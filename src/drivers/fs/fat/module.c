@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -16,14 +16,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
- *
- *      File system driver FAT12, FAT16, FAT32 and exFAT.
  */
 #include "fatfs.h"
 
 int fatfs_umount(inode_t *ino)
 {
-    FAT_volume_t *info = (FAT_volume_t*)ino->info;
+    FAT_volume_t *info = (FAT_volume_t *)ino->info;
     bio_destroy(info->io_data_ro);
     bio_destroy(info->io_data_rw);
     bio_destroy(info->io_head);
@@ -44,17 +42,17 @@ ino_ops_t fatfs_reg_ops = {
 ino_ops_t fatfs_dir_ops = {
     .close = fatfs_close,
     .truncate = fatfs_truncate,
-    .opendir = (void*)fatfs_opendir,
-    .readdir = (void*)fatfs_readdir,
-    .closedir = (void*)fatfs_closedir,
+    .opendir = (void *)fatfs_opendir,
+    .readdir = (void *)fatfs_readdir,
+    .closedir = (void *)fatfs_closedir,
 };
 
 ino_ops_t fatfs_vol_ops = {
     .close = fatfs_umount,
     .truncate = fatfs_truncate,
-    .opendir = (void*)fatfs_opendir,
-    .readdir = (void*)fatfs_readdir,
-    .closedir = (void*)fatfs_closedir,
+    .opendir = (void *)fatfs_opendir,
+    .readdir = (void *)fatfs_readdir,
+    .closedir = (void *)fatfs_closedir,
 };
 
 inode_t *fatfs_mount(inode_t *dev)
@@ -79,7 +77,7 @@ inode_t *fatfs_mount(inode_t *dev)
     ino->lba = 1;
     ino->und.vol->info = info;
     ino->und.vol->ops = &fatfs_ops;
-    ino->und.vol->volfs = (char*)fsName;
+    ino->und.vol->volfs = (char *)fsName;
     ino->und.vol->volname = strdup(info->name);
     ino->info = info;
     ino->ops = &fatfs_dir_ops;

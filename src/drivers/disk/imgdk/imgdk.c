@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -16,8 +16,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
- *
- *      Fake driver which simulate IDE ATA using regular files.
  */
 #include <kernel/device.h>
 #include <kora/mcrs.h>
@@ -87,9 +85,9 @@ static void imgdk_open(int i)
         if (e > 0)
             blk->und.dev->flags = VFS_RDONLY;
         blk->und.dev->block = sdSize[e];
-        blk->und.dev->vendor = (char*)"HostSimul";
+        blk->und.dev->vendor = (char *)"HostSimul";
         blk->und.dev->model = "HostSimul";
-        blk->und.dev->devclass = (char*)clazz[e];
+        blk->und.dev->devclass = (char *)clazz[e];
         blk->und.dev->devname = sdNames[i];
         blk->und.dev->ops = &imgdk_dev_ops;
         blk->ops = &imgdk_ino_ops;
@@ -157,12 +155,13 @@ void imgdk_release(inode_t *ino, off_t off, page_t pg)
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-void imgdk_create(CSTR name, size_t size) {
+void imgdk_create(CSTR name, size_t size)
+{
     int zero = 0;
     int fd = open(name, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, 0644);
     if (fd != -1) {
         lseek(fd, size - 1, SEEK_SET);
-        write(fd, (char*)&zero, 1);
+        write(fd, (char *)&zero, 1);
         close(fd);
     } else
         kprintf(-1, "Unable to create image disk %s\n", name);

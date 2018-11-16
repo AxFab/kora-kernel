@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -45,9 +45,9 @@ ino_ops_t iso_reg_ops = {
 
 ino_ops_t iso_dir_ops = {
     .close = isofs_close,
-    .opendir = (void*)isofs_opendir,
-    .readdir = (void*)isofs_readdir,
-    .closedir = (void*)isofs_closedir,
+    .opendir = (void *)isofs_opendir,
+    .readdir = (void *)isofs_readdir,
+    .closedir = (void *)isofs_closedir,
 };
 
 
@@ -87,9 +87,8 @@ static inode_t *isofs_inode(volume_t *volume, ISOFS_entry_t *entry)
     if (type == FL_REG) {
         ino->info = map_create(ino, isofs_read, NULL);
         ino->ops = &iso_reg_ops;
-    } else {
+    } else
         ino->ops = &iso_dir_ops;
-    }
     return ino;
 }
 
@@ -119,7 +118,7 @@ int isofs_closedir(inode_t *dir, ISO_dirctx_t *ctx)
     struct ISO_info *info = (struct ISO_info *)dir->und.vol->info;
     if (ctx->base != NULL)
         bio_clean(info->io, ctx->lba);
-        // kunmap(ctx->base, 8192);
+    // kunmap(ctx->base, 8192);
     kfree(ctx);
     errno = 0;
     return 0;
@@ -198,7 +197,7 @@ inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx)
         ctx->lba = dir->lba;
     if (ctx->base == NULL)
         ctx->base = bio_access(info->io, ctx->lba);
-        // ctx->base = kmap(8192, dir->und.vol->dev, ctx->lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO); // TODO - NOT ALIGNED !!
+    // ctx->base = kmap(8192, dir->und.vol->dev, ctx->lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO); // TODO - NOT ALIGNED !!
 
     /* Skip the first two entries */
     ISOFS_entry_t *entry = (ISOFS_entry_t *)(&ctx->base[ctx->off]);
