@@ -120,13 +120,13 @@ surface_t *vds_create(int width, int height, int depth)
     win->height = height;
     win->depth = depth;
     win->pitch = ALIGN_UP(width * depth, 4);
-    win->pixels = kalloc(height * win->pitch);
+    win->pixels = kmap(ALIGN_UP(height * win->pitch, PAGE_SIZE), NULL, 0, VMA_ANON | VMA_RESOLVE);
     return win;
 }
 
 void vds_destroy(surface_t *srf)
 {
-    kfree(srf->pixels);
+    // kfree(srf->pixels);
     kfree(srf);
 }
 

@@ -368,11 +368,17 @@ void task_show_all()
     static char *status = "ZBWRE???????";
     splock_lock(&tsk_lock);
     task_t *task = bbtree_first(&pid_tree, task_t, bnode);
-    // kprintf(-1, "  PID");
+    kprintf(-1, "  PID PPID USER    PR ST %%CPU %%MEM  UP TIME  NAME\n");
     for (; task; task = bbtree_next(&task->bnode, task_t, bnode)) {
         // PID / USER / PRIO / VIRT / RES / SHR / ST / %CPU %MEM  TIME+ CMD
-        kprintf(-1, " %4d %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
-                task->bnode.value_, "no-user", 0, status[task->status], task->name);
+        if (task->parent != NULL)
+            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
+                    task->pid, task->parent->pid, "no-user", 0,
+                    status[task->status], task->name);
+        else
+            kprintf(-1, " %4d    - %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
+                    task->bnode.value_, "no-user", 0,
+                    status[task->status], task->name);
     }
     splock_unlock(&tsk_lock);
 }

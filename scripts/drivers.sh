@@ -38,7 +38,7 @@ MAKE 'fs/isofs'
 cd "$TMP"
 mkdir -p "$PFX"
 echo "    TAR $PFX/x86.miniboot.tar"
-tar cf "$PFX/x86.miniboot.tar" ./bin
+tar cf "$PFX/x86.miniboot.tar" bin
 
 cd "$SCRIPT_HOME"
 rm -rf "$TMP"

@@ -76,8 +76,8 @@ int mboot_init(void *table)
     csl_early_init();
     com_early_init();
 
-    // Those call to kprintf crash under VirtualBox!
-#if 1
+    // Those call to kprintf crash under VirtualBox! Why!?
+#if 0
     if (mboot_table->flags & GRUB_BOOT_LOADER)
         kprintf(KLOG_MSG, "Boot Loader: %s\n", mboot_table->boot_loader);
 

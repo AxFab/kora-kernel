@@ -46,6 +46,8 @@ struct surface {
     uint8_t *backup;
     llnode_t node;
     void (*flip)(surface_t *screen);
+    int x;
+    int y;
 };
 
 struct bitmap_font {
