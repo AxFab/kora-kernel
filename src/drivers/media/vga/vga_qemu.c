@@ -19,6 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/files.h>
+#include <kernel/device.h>
 #include <kernel/vfs.h>
 #include <kernel/drv/pci.h>
 
@@ -109,6 +110,14 @@ void vga_flip(surface_t *screen)
     screen->backup = tmp;
 }
 
+ino_ops_t vga_ino_ops = {
+
+};
+
+dev_ops_t vga_dev_ops = {
+
+};
+
 void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
 {
     // Tested on QEMU (should works for BOCHS too)
@@ -140,15 +149,22 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
         --i;
     vga_change_resol(size[i * 2], size[i * 2 + 1]);
 
+
     surface_t *screen = vds_create_empty(size[i * 2], size[i * 2 + 1], 4);
     uint32_t pixels1 = pixels0 + screen->pitch * screen->height;
-    // screen->pixels = (uint8_t*)pixels1;
-    // vds_fill(screen, 0xa61010);
+    screen->pixels = (uint8_t*)pixels1;
+    vds_fill(screen, 0xe2e2e2);
     screen->pixels = (uint8_t *)pixels0;
     screen->backup = (uint8_t *)pixels1;
     screen->flip = vga_flip;
-    // vds_fill(screen, 0xa6a610);
     vga_change_offset(screen->height);
-    // inode_t *ino = vfs_inode(0, );
-    wmgr_register_screen(screen);
+
+    inode_t *ino = vfs_inode(1, FL_VDO, NULL);
+    ino->info = screen;
+    ino->ops = &vga_ino_ops;
+    ino->und.dev->ops = &vga_dev_ops;
+    ino->und.dev->model = (char*)info->name;
+    ino->und.dev->devclass = "VGA Screen";
+    vfs_mkdev(ino, "fb0");
+    // wmgr_register_screen(screen);
 }

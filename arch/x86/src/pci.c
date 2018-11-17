@@ -318,17 +318,18 @@ struct PCI_device *pci_search(pci_matcher match, int *data)
     return NULL;
 }
 
-void kernel_module(kmod_t *mod);
+void kmod_register(kmod_t *mod);
+void mboot_load_modules();
 KMODULE(dev);
 KMODULE(csl);
 KMODULE(serial);
 KMODULE(ps2);
+KMODULE(vga);
 KMODULE(ide_ata);
 KMODULE(isofs);
 KMODULE(fatfs);
 KMODULE(e1000);
 
-void mboot_load_modules();
 
 void platform_setup()
 {
@@ -336,18 +337,18 @@ void platform_setup()
 
     mboot_load_modules();
 
-    kernel_tasklet(kernel_module, &kmod_info_dev, kmod_info_dev.name);
-    kernel_tasklet(kernel_module, &kmod_info_csl, kmod_info_csl.name);
-    kernel_tasklet(kernel_module, &kmod_info_serial, kmod_info_serial.name);
-
-    kernel_tasklet(kernel_module, &kmod_info_ps2, kmod_info_ps2.name);
-    // Load fake disks drivers
-    kernel_tasklet(kernel_module, &kmod_info_ide_ata, kmod_info_ide_ata.name);
+    kmod_register(&kmod_info_dev);
+    kmod_register(&kmod_info_csl);
+    kmod_register(&kmod_info_serial);
+    kmod_register(&kmod_info_ps2);
+    // Load disks drivers
+    kmod_register(&kmod_info_ide_ata);
     // Load network driver
-    kernel_tasklet(kernel_module, &kmod_info_e1000, kmod_info_e1000.name);
+    kmod_register(&kmod_info_e1000);
     // Load screen
+    kmod_register(&kmod_info_vga);
 
     // Load file systems
-    kernel_tasklet(kernel_module, &kmod_info_isofs, kmod_info_isofs.name);
-    kernel_tasklet(kernel_module, &kmod_info_fatfs, kmod_info_fatfs.name);
+    kmod_register(&kmod_info_isofs);
+    kmod_register(&kmod_info_fatfs);
 }

@@ -27,7 +27,7 @@ drv_src-y += $(wildcard $(drvdir)/fs/isofs/*.c)
 drv_src-y += $(wildcard $(drvdir)/input/ps2/*.c)
 
 # drv_src-y += $(wildcard $(drvdir)/media/ac97/*.c)
-# drv_src-y += $(wildcard $(drvdir)/media/vga/*.c)
+drv_src-y += $(wildcard $(drvdir)/media/vga/*.c)
 
 # drv_src-y += $(wildcard $(drvdir)/misc/pci/*.c)
 # drv_src-y += $(wildcard $(drvdir)/misc/vbox/*.c)

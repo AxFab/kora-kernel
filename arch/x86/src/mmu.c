@@ -49,8 +49,8 @@ static int mmu_flags(size_t vaddr, int flags)
 void mmu_enable()
 {
     unsigned i;
-    // Setup first heap arena [1Mib - 2Mib]
-    setup_allocator((void *)(1024 * _Kib_), 1024 * _Kib_);
+    // Setup first heap arena [3Mib - 4Mib]
+    setup_allocator((void *)(3 * _Mib_), 1 * _Mib_);
 
     // Record physical available memory
     mboot_memory();

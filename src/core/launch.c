@@ -82,14 +82,6 @@ int sys_exit(pid_t pid, int ret)
     return 0;
 }
 
-/**/
-void kernel_module(kmod_t *mod)
-{
-    // ll_append(&modules, &mod->node);
-    mod->setup();
-    kprintf(-1, "End of setup for driver %s\n", mod->name);
-    sys_exit(0, 0);
-}
 
 void kernel_tasklet(void *start, void *arg, CSTR name)
 {
@@ -105,6 +97,7 @@ void kernel_top(long sec)
     for (;;) {
         async_wait(NULL, NULL, sec * 1000000);
         task_show_all();
+        memory_info();
     }
 }
 
@@ -136,8 +129,80 @@ void tty_start()
     }
 }
 
+int x = 0;
+int y = 0;
+int width, height;
+
+surface_t *create_win()
+{
+    surface_t *win;
+    if (width > height) {
+        win = vds_create(width / 2 - 2, height - 2, 4);
+        win->x = x + 1;
+        win->y = y + 1;
+        x += width / 2;
+        width /= 2;
+    } else {
+        win = vds_create(width - 2, height / 2 - 2, 4);
+        win->x = x + 1;
+        win->y = y + 1;
+        y += height / 2;
+        height /= 2;
+    }
+    return win;
+}
+
+void desktop ()
+{
+    inode_t *dev;
+    for (;;) {
+        dev = vfs_search_device("fb0");
+        if (dev != NULL)
+            break;
+        async_wait(NULL, NULL, 10000);
+    }
+    kprintf(-1, "We have a screen !\n");
+
+    surface_t *screen = (surface_t*)dev->info;
+    width = screen->width;
+    height = screen->height;
+
+    kprintf(-1, "Desktop %dx%d\n", width, height);
+
+
+    // create window
+    surface_t *win1 = create_win();
+    surface_t *win2 = create_win();
+    surface_t *win3 = create_win();
+    surface_t *win4 = create_win();
+    surface_t *win5 = create_win();
+
+    for (;;) {
+
+        vds_fill(screen, 0xe2e2e2);
+        vds_fill(win1, 0x10a6a6);
+        vds_fill(win2, 0xa610a6);
+        vds_fill(win3, 0x1010a6);
+        vds_fill(win4, 0xa61010);
+        vds_fill(win5, 0xa6a610);
+        vds_copy(screen, win1, win1->x, win1->y);
+        vds_copy(screen, win2, win2->x, win2->y);
+        vds_copy(screen, win3, win3->x, win3->y);
+        vds_copy(screen, win4, win4->x, win4->y);
+        vds_copy(screen, win5, win5->x, win5->y);
+        screen->flip(screen);
+        async_wait(NULL, NULL, 1000000);
+
+    }
+
+}
+
+
 void kernel_master()
 {
+    kernel_tasklet(desktop, NULL, "Desktop #1");
+    kernel_tasklet(tty_start, NULL, "Syslog Tty");
+    kernel_tasklet(kernel_top, (void*)5, "Dbg top 5s");
     async_wait(NULL, NULL, 5000);
     for (;;) {
         inode_t *dev = vfs_search_device("sdC");
@@ -211,6 +276,36 @@ long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 }
 
 
+splock_t kmod_lock;
+llhead_t kmod_standby;
+llhead_t kmod_started;
+
+void kmod_register(kmod_t *mod)
+{
+    splock_lock(&kmod_lock);
+    ll_enqueue(&kmod_standby, &mod->node);
+    splock_unlock(&kmod_lock);
+}
+
+void kmod_loader()
+{
+    kmod_t *mod;
+    splock_lock(&kmod_lock);
+    for (;;) {
+        mod = ll_dequeue(&kmod_standby, kmod_t, node);
+        splock_unlock(&kmod_lock);
+        if (mod == NULL) {
+            async_wait(NULL, NULL, 50000);
+            splock_lock(&kmod_lock);
+            continue;
+        }
+        kprintf(KLOG_MSG, "Loading driver \033[90m%s\033[0m by \033[90m#%d\033[0m\n", mod->name, kCPU.running->pid);
+        mod->setup();
+        splock_lock(&kmod_lock);
+        ll_enqueue(&kmod_started, &mod->node);
+    }
+}
+
 void kernel_start()
 {
     kSYS.cpus = &kCPU0;
@@ -234,9 +329,9 @@ void kernel_start()
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    kernel_tasklet(kernel_top, (void*)5, "Dbg top 5s");
+    kernel_tasklet(kmod_loader, NULL, "Kernel loader #1");
+    kernel_tasklet(kmod_loader, NULL, "Kernel loader #2");
     kernel_tasklet(kernel_master, NULL, "Master");
-    kernel_tasklet(tty_start, NULL, "Syslog Tty");
 
     // no_dbg = 0;
     // int clock_irq = 2;
