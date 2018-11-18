@@ -32,7 +32,7 @@ typedef struct map_cache map_cache_t;
 typedef struct surface surface_t;
 typedef struct line line_t;
 typedef struct tty tty_t;
-typedef struct bitmap_font font_t;
+typedef struct font_bmp font_bmp_t;
 typedef struct desktop desktop_t;
 typedef struct display display_t;
 typedef struct pipe pipe_t;
@@ -50,30 +50,20 @@ struct surface {
     int y;
 };
 
-struct bitmap_font {
-    uint8_t width;
-    uint8_t height;
-    uint8_t dispx;
-    uint8_t dispy;
-    uint8_t glyph_size;
-    const uint8_t *glyph;
+
+struct font_bmp {
+    uint8_t *glyphs;
+    char glyph_size;
+    char width, height, dispx, dispy;
 };
+
+void font_paint(surface_t *sfc, font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y);
 
 
 #define IO_NO_BLOCK  (1 << 0)
 #define IO_ATOMIC  (1 << 1)
 #define IO_CONSUME  (1 << 2)
 
-
-
-void tty_write(tty_t *tty, const char *str, int lg);
-void tty_attach(tty_t *tty, surface_t *win, const font_t *font,
-                const uint32_t *colors, int iv);
-tty_t *tty_create(surface_t *win, const font_t *font, const uint32_t *colors,
-                  int iv);
-void tty_destroy(tty_t *tty);
-// void tty_paint(tty_t *tty);
-// void tty_scroll(tty_t *tty, int count);
 
 
 void vds_fill(surface_t *win, uint32_t color);

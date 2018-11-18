@@ -45,11 +45,11 @@ void sys_ticks();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-extern const font_t font_6x10;
-extern const font_t font_8x15;
-extern const font_t font_7x13;
-extern const font_t font_6x9;
-extern const font_t font_8x8;
+extern const font_bmp_t font_6x10;
+extern const font_bmp_t font_8x15;
+extern const font_bmp_t font_7x13;
+extern const font_bmp_t font_6x9;
+extern const font_bmp_t font_8x8;
 
 
 uint32_t colors_std[] = {
@@ -133,6 +133,8 @@ int x = 0;
 int y = 0;
 int width, height;
 
+tty_t *slog;
+
 surface_t *create_win()
 {
     surface_t *win;
@@ -176,11 +178,13 @@ void desktop ()
     surface_t *win3 = create_win();
     surface_t *win4 = create_win();
     surface_t *win5 = create_win();
+    tty_window(slog, win1, &font_6x10);
 
     for (;;) {
 
         vds_fill(screen, 0xe2e2e2);
-        vds_fill(win1, 0x10a6a6);
+        tty_paint(slog);
+        // vds_fill(win1, 0x10a6a6);
         vds_fill(win2, 0xa610a6);
         vds_fill(win3, 0x1010a6);
         vds_fill(win4, 0xa61010);
@@ -306,6 +310,7 @@ void kmod_loader()
     }
 }
 
+
 void kernel_start()
 {
     kSYS.cpus = &kCPU0;
@@ -323,7 +328,9 @@ void kernel_start()
     cpu_setup();
     assert(kCPU.irq_semaphore == 1);
 
+    slog = tty_create(128);
     kprintf(KLOG_MSG, "\n\033[94m  Greetings...\033[0m\n\n");
+
 
     vfs_init();
     platform_setup();
