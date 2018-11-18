@@ -51,6 +51,24 @@ void vds_fill(surface_t *win, uint32_t color)
     }
 }
 
+
+void vds_slide(surface_t *sfc, int height, uint32_t color)
+{
+    int px, py;
+    if (height < 0) {
+        height = -height;
+        memcpy(sfc->pixels, ADDR_OFF(sfc->pixels, sfc->pitch * height), sfc->pitch * (sfc->height - height));
+        for (py = sfc->height - height; py < sfc->height; ++py) {
+            int pxrow = sfc->pitch * py;
+            for (px = 0; px < sfc->width; ++px) {
+                uint32_t *pixel = ADDR_OFF(sfc->pixels, pxrow + px * 4);
+                *pixel = color;
+            }
+        }
+    }
+}
+
+
 void vds_copy(surface_t *dest, surface_t *src, int x, int y)
 {
     int j, i, dd = dest->depth, ds = src->depth;
