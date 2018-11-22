@@ -75,6 +75,8 @@ typedef struct fault fault_t;
 
 typedef struct bio bio_t;
 
+typedef struct proc proc_t;
+
 typedef struct dynlib dynlib_t;
 typedef struct dynsec dynsec_t;
 typedef struct dynsym dynsym_t;

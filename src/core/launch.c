@@ -273,42 +273,14 @@ void kernel_master()
 
 }
 
+void kmod_loader();
+
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
     kprintf(-1, "Syscall\n");
     return -1;
 }
 
-
-splock_t kmod_lock;
-llhead_t kmod_standby;
-llhead_t kmod_started;
-
-void kmod_register(kmod_t *mod)
-{
-    splock_lock(&kmod_lock);
-    ll_enqueue(&kmod_standby, &mod->node);
-    splock_unlock(&kmod_lock);
-}
-
-void kmod_loader()
-{
-    kmod_t *mod;
-    splock_lock(&kmod_lock);
-    for (;;) {
-        mod = ll_dequeue(&kmod_standby, kmod_t, node);
-        splock_unlock(&kmod_lock);
-        if (mod == NULL) {
-            async_wait(NULL, NULL, 50000);
-            splock_lock(&kmod_lock);
-            continue;
-        }
-        kprintf(KLOG_MSG, "Loading driver \033[90m%s\033[0m by \033[90m#%d\033[0m\n", mod->name, kCPU.running->pid);
-        mod->setup();
-        splock_lock(&kmod_lock);
-        ll_enqueue(&kmod_started, &mod->node);
-    }
-}
 
 
 void kernel_start()

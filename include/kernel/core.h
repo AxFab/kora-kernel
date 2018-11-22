@@ -59,6 +59,7 @@ void kernel_tasklet(void *start, void *arg, CSTR name);
 void kexit();
 
 __STDI int rand(void);
+uint8_t rand8();
 uint16_t rand16();
 uint32_t rand32();
 uint64_t rand64();

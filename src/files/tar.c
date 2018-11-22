@@ -62,6 +62,9 @@ static int tar_read_octal(char* count)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+int tar_read(inode_t *ino, void *buf, size_t len, off_t off);
+
+
 struct tar_info {
     void *start;
     int length;
@@ -75,6 +78,7 @@ inode_t *tar_inode(volume_t *vol, tar_entry_t *entry, int length)
     ino->length = length;
     ino->lba = lba;
     ino->ops = &tar_reg_ops;
+    ino->info = map_create(ino, tar_read, NULL);
     return ino;
 }
 
@@ -148,7 +152,21 @@ int tar_closedir(inode_t *dir, void *ctx)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+page_t tar_fetch(inode_t *ino, off_t off)
+{
+    return map_fetch(ino->info, off);
+}
+
+void tar_release(inode_t *ino, off_t off, page_t pg)
+{
+    map_release(ino->info, off, pg);
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 ino_ops_t tar_reg_ops = {
+    .fetch = tar_fetch,
+    .release = tar_release,
 };
 
 ino_ops_t tar_dir_ops = {
@@ -175,6 +193,7 @@ inode_t *tar_mount(void *base, void *end, CSTR name)
     ino->und.vol->ops = &tar_fs_ops;
     ino->und.vol->volname = strdup(name);
     ino->und.vol->volfs = "tarfs";
+    ino->und.vol->info = &tinfo;
 
     errno = 0;
     return ino;

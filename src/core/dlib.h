@@ -67,12 +67,14 @@ struct dynlib {
     size_t base;
     size_t length;
     bio_t *io;
+    inode_t *ino;
     llnode_t node;
     llhead_t sections;
     llhead_t depends;
     llhead_t intern_symbols;
     llhead_t extern_symbols;
     llhead_t relocations;
+    char *rpath;
 };
 
 
@@ -86,6 +88,8 @@ struct process {
     int path_sz;
     HMP_map symbols;
 };
+
+int elf_parse(dynlib_t *dlib);
 
 
 #endif  /* _SRC_DLIB */
