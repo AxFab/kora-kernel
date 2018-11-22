@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 
 
 
@@ -130,40 +131,49 @@ void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean)
     }
 }
 
+_Noreturn void task_fatal(CSTR error, int signum)
+{
+    kprintf(KLOG_ERR, "Fatal error on CPU.%d: \033[91m%s\033[0m\n", cpu_no(), error);
+    if (kCPU.running != NULL) {
+        // task_raise(kCPU.running, signum);
+        task_stop (kCPU.running, -1);
+    }
+    kprintf(KLOG_ERR, "Unrecoverable kernel error\n");
+    // Disable scheduler
+    // Play dead screen
+    for (;;) scheduler_switch(NULL, 0);
+}
+
 /* Resolve a page fault */
 int page_fault(mspace_t *mspace, size_t address, int reason)
 {
     int ret = 0;
+    // assert(kCPU.irq_semaphore == 0); //But IRQ must still be disabld!
+    kprintf(KLOG_PF, "\033[91m#PF\033[31m %p\033[0m\n", address);
     vma_t *vma = mspace_search_vma(mspace, address);
-    if (vma == NULL) {
-        kprintf(KLOG_PF, "\033[91m#PF\033[31m Forbidden address %p!\033[0m\n", address);
-        return -1;
-    }
+    if (vma == NULL)
+        task_fatal("No mapping at this address", SIGSEGV);
 
     if (reason & PGFLT_WRITE && !(vma->flags & VMA_WRITE)
         && !(vma->flags & VMA_COPY_ON_WRITE)) {
-        kprintf(KLOG_PF, "\033[91m#PF\033[31m Forbidden writing at %p!\033[0m\n",
-                address);
         splock_unlock(&vma->mspace->lock);
-        return -1; // Writing is forbidden
+        task_fatal("Can't write on read-only memory", SIGSEGV);
     }
+
     address = ALIGN_DW(address, PAGE_SIZE);
     if (reason & PGFLT_MISSING) {
         ++kMMU.soft_page_fault;
         ret = vma_resolve(vma, address, PAGE_SIZE);
     }
     if (ret != 0) {
-        kprintf(KLOG_PF, "\033[91m#PF\033[31m Unable to resolve page at %p!\033[0m\n",
-                address);
         splock_unlock(&vma->mspace->lock);
-        return -1;
+        task_fatal("Unable to resolve page", SIGSEGV);
     }
     if (reason & PGFLT_WRITE && (vma->flags & VMA_COPY_ON_WRITE))
         ret = vma_copy_on_write(vma, address, PAGE_SIZE);
     if (ret != 0)
         kprintf(KLOG_PF, "\033[91m#PF\033[31m Error on copy and write at %p!\033[0m\n",
                 address);
-    kprintf(KLOG_PF, "\033[91m#PF\033[0m Page at %p!\033[0m\n", address);
     splock_unlock(&vma->mspace->lock);
     return 0;
 }

@@ -1,6 +1,7 @@
 #include <kernel/vfs.h>
 #include <kernel/device.h>
 #include <kernel/core.h>
+#include <string.h>
 #include <errno.h>
 
 int null_read(inode_t* ino, char *buf, size_t len, int flags) {
@@ -10,7 +11,7 @@ int null_read(inode_t* ino, char *buf, size_t len, int flags) {
     return 0;
 }
 
-int null_write(inode_t* ino, char *buf, size_t len, int flags) {
+int null_write(inode_t* ino, const char *buf, size_t len, int flags) {
 	errno = 0;
 	return len;
 }

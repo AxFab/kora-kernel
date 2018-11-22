@@ -17,10 +17,34 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include "dlib.h"
+#include <kora/hmap.h>
+#include <kora/llist.h>
+#include <kernel/core.h>
+#include <kernel/memory.h>
+#include <kernel/vfs.h>
+#include <string.h>
+#include <errno.h>
+
+proc_t kproc;
 
 struct proc {
     dynlib_t exec;
+    HMP_map symbols;
+    HMP_map libs_map;
+    llhead_t queue;
+    llhead_t libraries;
+    mspace_t mspace;
+    char *execname;
+    inode_t *root;
+    inode_t *pwd;
+    acl_t *acl;
+    char *env;
+    bool req_set_uid;
 };
+
+CSTR proc_getenv(proc_t *proc, CSTR name);
+
 
 proc_t *dlib_process(CSTR execname)
 {
@@ -29,7 +53,6 @@ proc_t *dlib_process(CSTR execname)
     proc->root = NULL;
     proc->pwd = NULL;
     proc->acl = NULL;
-    proc->session = NULL;
     proc->env = "PATH=/usr/bin:/bin\n"
         "OS=Kora\n"
         "HOME=/home/root\n"
@@ -46,18 +69,24 @@ proc_t *dlib_process(CSTR execname)
     return proc;
 }
 
-inode_t *dlib_lookfor_all(proc_t *proc, inode_t *dir, CSTR libname, CSTR xpath)
+inode_t *dlib_lookfor_all(proc_t *proc, inode_t *pwddir, CSTR libname, CSTR xpath)
 {
     char *rl, *rd;
+    char *dirlist;
+    char *dirname;
     char *path = strdup(xpath);
-    for (char *dirlist = strtok_r(path, ";", &rl), dirlist, dirlist = strtok_r(NULL, ";", &rl)) {
-        for (char *dirname = strtok_r(dirlist, ":", &rd), dirname, dirname = strtok_r(NULL, ":", &rd)) {
+    for (dirlist = strtok_r(path, ";", &rl); dirlist; dirlist = strtok_r(NULL, ";", &rl)) {
+        for (dirname = strtok_r(dirlist, ":", &rd); dirname; dirname = strtok_r(NULL, ":", &rd)) {
 
-            inode_t *dir = vfs_search(proc->root, dir, dirname, proc->acl);
+            inode_t *dir = vfs_search(proc->root, pwddir, dirname, proc->acl);
             if (dir == NULL)
                 continue;
+            else if (vfs_access(dir, X_OK, proc->acl) != 0) {
+                vfs_close(dir);
+                continue;
+            }
 
-            inode_t *ino = vfs_lookfor(dirr, libname, proc->acl);
+            inode_t *ino = vfs_lookup(dir, libname);
             vfs_close(dir);
             if (ino != NULL) {
                 free(path);
@@ -86,7 +115,7 @@ inode_t *dlib_lookfor(proc_t *proc, inode_t *dir, CSTR libname, CSTR env, CSTR s
     if (!proc->req_set_uid) {
         CSTR lpath = proc_getenv(proc, env);
         if (lpath != NULL) {
-            ino = dlib_lookfor_all(proc, dir, libname, lpath)
+            ino = dlib_lookfor_all(proc, dir, libname, lpath);
             if (ino != NULL)
                 return ino;
         }
@@ -96,10 +125,11 @@ inode_t *dlib_lookfor(proc_t *proc, inode_t *dir, CSTR libname, CSTR env, CSTR s
 }
 
 
-int dlib_open(dynlib_t *dlib)
+int dlib_open(proc_t *proc, dynlib_t *dlib)
 {
+    assert(dlib->ino != NULL);
     // Read Elf file
-    dlib->io = bio_create(ino, PAGE_SIZE, 0);
+    dlib->io = bio_create(dlib->ino, VMA_FILE_RO, PAGE_SIZE, 0);
     if (elf_parse(dlib) != 0) {
         bio_destroy(dlib->io);
         dlib->io = NULL;
@@ -109,25 +139,25 @@ int dlib_open(dynlib_t *dlib)
 
     // Look for dependancies
     dyndep_t* dep;
-    for ll_each(dlib->depends, dep, dyndep_t, node) {
-        ino = dlib_lookfor(proc, proc->execdir, dep->name, "LD_LIBRARY_PATH", "/usr/lib:/lib");
+    for ll_each(&dlib->depends, dep, dyndep_t, node) {
+        inode_t *ino = dlib_lookfor(proc, proc->pwd, dep->name, "LD_LIBRARY_PATH", "/usr/lib:/lib");
         if (ino == NULL) {
             // TODO - Missing library!
             errno = ENOENT;
             return -1;
         }
 
-        dynlib_t *lib = hmp_get(&proc->libs_maps, ino, sizeof(void*));
+        dynlib_t *lib = hmp_get(&proc->libs_map, ino, sizeof(void*));
         if (lib != NULL) {
             lib->rcu++;
-            deb->lib = lib;
+            dep->lib = lib;
             continue;
         }
 
         lib = kalloc(sizeof(dynlib_t));
         lib->ino = ino;
         dep->lib = lib;
-        ll_enqueue(&proc->queue , &proc->exec->node);
+        ll_enqueue(&proc->queue , &proc->exec.node);
     }
     return 0;
 }
@@ -135,52 +165,67 @@ int dlib_open(dynlib_t *dlib)
 
 int dlib_openexec(proc_t *proc)
 {
-    dynlib_t *lib
-    assert(proc->rpath == NULL);
+    dynlib_t *lib;
     // Look for executable file
-    inode_t ino = dlib_lookfor(proc, proc->pwd, execname, "PATH", "/usr/bin:/bin");
+    inode_t *ino = dlib_lookfor(proc, proc->pwd, proc->execname, "PATH", "/usr/bin:/bin");
     if (ino == NULL) {
         assert (errno != 0);
         return -1;
     }
-    proc->execdir = vfs_parentof(ino);
     proc->exec.ino = ino;
 
     // Load exec with libraries
-    ll_enqueue(&proc->queue, &proc->exec->node);
+    ll_enqueue(&proc->queue, &proc->exec.node);
     while (proc->queue.count_ > 0) {
         lib = ll_dequeue(&proc->queue, dynlib_t, node);
-        ll_append(&proc->library, lib->node);
-        if (dlib_open(dlib) != 0) {
+        ll_append(&proc->libraries, &lib->node);
+        if (dlib_open(proc, lib) != 0) {
             dlib_destroy(&proc->exec);
             assert(errno = 0);
             return -1;
         }
 
-        hmp_put(&proc->libs_map, &dlib->ino, sizeof(void*), dlib);
+        hmp_put(&proc->libs_map, &lib->ino, sizeof(void*), lib);
 
     }
 
     // Add libraries to process memory space
+    dynsym_t *symbol;
     for ll_each(&proc->queue, lib, dynlib_t, node) {
         dlib_rebase(proc->mspace, lib);
-        for ll_each(&lib->internal_symbols, symbol, dlibsym_t, node) {
+        for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
             hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
             // TODO - Do not replace first occurence of a symbol.
         }
     }
 
     // Resolve symbols -- Might be done lazy!
+    dynsym_t *sym;
     for ll_each(&proc->queue, lib, dynlib_t, node) {
-        for ll_each(&lib->external_symbols, symbols, dlibsym_t, node) {
+        for ll_each(&lib->extern_symbols, symbol, dynsym_t, node) {
             // Resolve symbol
-            sym = hmp_get(&proc->symbols, symbols->name, strlen(symbol->name));
-            // symbol->offset = sym->offset;
-            // symbol->size = sym->size;
+            sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
+            symbol->address = sym->address;
+            symbol->size = sym->size;
         }
     }
-    return 0l
+    return 0;
 }
 
 
+void dlib_destroy(dynlib_t *lib)
+{
 
+}
+
+
+void dlib_rebase(mspace_t *mspace, dynlib_t *lib)
+{
+
+}
+
+
+CSTR proc_getenv(proc_t *proc, CSTR name)
+{
+    return NULL;
+}
