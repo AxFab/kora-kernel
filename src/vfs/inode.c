@@ -121,14 +121,7 @@ inode_t *vfs_search(inode_t *root, inode_t *pwd, CSTR path, acl_t *acl)
     assert(path != NULL && strnlen(path, VFS_MAXPATH) < VFS_MAXPATH);
     inode_t *top = path[0] == '/' ? root : pwd;
     // TODO -- Should we look for `mnt:/`
-    if (top == NULL || !VFS_ISDIR(top)) {
-        errno = ENOTDIR;
-        return NULL;
-    } else if (vfs_access(top, X_OK, acl) != 0) {
-        assert(errno == EACCES);
-        return NULL;
-    }
-
+    assert(top != NULL);
     int links = 0;
     return vfs_search_(top, path, acl, &links);
 }

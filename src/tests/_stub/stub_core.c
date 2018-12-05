@@ -206,6 +206,12 @@ void ck_reset()
     krn_mmap_init = false;
 }
 
+_Noreturn void task_fatal(CSTR error, int signum)
+{
+    assert(false);
+    for (;;);
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void *heap_map(size_t length)

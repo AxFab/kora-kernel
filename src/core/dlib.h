@@ -89,6 +89,23 @@ struct process {
     HMP_map symbols;
 };
 
+struct proc {
+    dynlib_t exec;
+    HMP_map symbols;
+    HMP_map libs_map;
+    llhead_t queue;
+    llhead_t libraries;
+    mspace_t mspace;
+    char *execname;
+    inode_t *root;
+    inode_t *pwd;
+    acl_t *acl;
+    char *env;
+    bool req_set_uid;
+};
+
+bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib);
+
 int elf_parse(dynlib_t *dlib);
 
 

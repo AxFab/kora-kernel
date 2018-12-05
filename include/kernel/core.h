@@ -139,7 +139,7 @@ bool irq_enable();
 /* - */
 void irq_disable();
 /* - */
-void irq_ask(int no);
+void irq_ack(int no);
 /* - */
 void irq_register(int no, irq_handler_t func, void *data);
 /* - */
@@ -176,6 +176,8 @@ void bio_destroy(bio_t *io);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+_Noreturn void task_fatal(CSTR error, int signum);
+
 struct kCpu {
     task_t *running;
     unsigned irq_semaphore;
@@ -191,6 +193,7 @@ struct kCpu {
 
     int err_no;
     int flags;
+    int seed;
 };
 
 #define CPU_NO_TASK  0x800

@@ -308,6 +308,7 @@ void kernel_start()
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 
+    kmod_init();
     kernel_tasklet(kmod_loader, NULL, "Kernel loader #1");
     kernel_tasklet(kmod_loader, NULL, "Kernel loader #2");
     kernel_tasklet(kernel_master, NULL, "Master");
