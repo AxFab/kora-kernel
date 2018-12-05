@@ -124,8 +124,10 @@ int elf_parse(dynlib_t *dlib)
 
     /* Open header */
     elf_header_t *head = bio_access(dlib->io, 0);
-    if (elf_check_header(head) != 0)
+    if (elf_check_header(head) != 0) {
+        bio_clean(dlib->io, 0);
         return -1;
+    }
 
     dlib->entry = head->entry;
     /* Open program table */
@@ -145,10 +147,14 @@ int elf_parse(dynlib_t *dlib)
 
     dlib->init = dynamic.init;
     dlib->fini = dynamic.fini;
-    if (dynamic.rel == 0)
+    if (dynamic.rel == 0) {
+        bio_clean(dlib->io, 0);
         return 0;
-    if (dynamic.str_tab == 0)
+    }
+    if (dynamic.str_tab == 0) {
+        bio_clean(dlib->io, 0);
         return -1;
+    }
 
     /* Find string table */
     const char *strtab = ADDR_OFF(bio_access(dlib->io, dynamic.str_tab / PAGE_SIZE), dynamic.str_tab % PAGE_SIZE);
@@ -194,6 +200,7 @@ int elf_parse(dynlib_t *dlib)
     }
 
     bio_clean(dlib->io, dynamic.str_tab / PAGE_SIZE);
+    bio_clean(dlib->io, 0);
     return 0;
 }
 

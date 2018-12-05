@@ -34,6 +34,20 @@ void task_core(task_t *task)
     mspace_display(task->usmem);
 }
 
+
+_Noreturn void task_fatal(CSTR error, int signum)
+{
+    kprintf(KLOG_ERR, "Fatal error on CPU.%d: \033[91m%s\033[0m\n", cpu_no(), error);
+    if (kCPU.running != NULL) {
+        // task_raise(kCPU.running, signum);
+        task_stop (kCPU.running, -1);
+    }
+    kprintf(KLOG_ERR, "Unrecoverable kernel error\n");
+    // Disable scheduler
+    // Play dead screen
+    for (;;); // scheduler_switch(0, -1);
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 // /**

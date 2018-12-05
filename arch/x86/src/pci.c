@@ -328,7 +328,7 @@ KMODULE(vga);
 KMODULE(ide_ata);
 KMODULE(isofs);
 KMODULE(fatfs);
-KMODULE(e1000);
+// KMODULE(e1000);
 
 
 void platform_setup()
@@ -344,7 +344,7 @@ void platform_setup()
     // Load disks drivers
     kmod_register(&kmod_info_ide_ata);
     // Load network driver
-    kmod_register(&kmod_info_e1000);
+    // kmod_register(&kmod_info_e1000);
     // Load screen
     kmod_register(&kmod_info_vga);
 

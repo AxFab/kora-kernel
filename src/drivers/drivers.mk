@@ -32,4 +32,4 @@ drv_src-y += $(wildcard $(drvdir)/media/vga/*.c)
 # drv_src-y += $(wildcard $(drvdir)/misc/pci/*.c)
 # drv_src-y += $(wildcard $(drvdir)/misc/vbox/*.c)
 
-drv_src-y += $(wildcard $(drvdir)/net/e1000/*.c)
+# drv_src-y += $(wildcard $(drvdir)/net/e1000/*.c)

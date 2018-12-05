@@ -121,7 +121,7 @@ void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean)
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
     while (length) {
-        if (clean)
+        if (clean && mmu_read(address) != 0)
             memset((void *)address, 0, PAGE_SIZE);
         page_t pg = mmu_drop(address);
         if (pg != 0)
@@ -131,18 +131,6 @@ void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean)
     }
 }
 
-_Noreturn void task_fatal(CSTR error, int signum)
-{
-    kprintf(KLOG_ERR, "Fatal error on CPU.%d: \033[91m%s\033[0m\n", cpu_no(), error);
-    if (kCPU.running != NULL) {
-        // task_raise(kCPU.running, signum);
-        task_stop (kCPU.running, -1);
-    }
-    kprintf(KLOG_ERR, "Unrecoverable kernel error\n");
-    // Disable scheduler
-    // Play dead screen
-    for (;;) scheduler_switch(NULL, 0);
-}
 
 /* Resolve a page fault */
 int page_fault(mspace_t *mspace, size_t address, int reason)

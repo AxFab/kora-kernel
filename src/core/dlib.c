@@ -28,20 +28,6 @@
 
 proc_t kproc;
 
-struct proc {
-    dynlib_t exec;
-    HMP_map symbols;
-    HMP_map libs_map;
-    llhead_t queue;
-    llhead_t libraries;
-    mspace_t mspace;
-    char *execname;
-    inode_t *root;
-    inode_t *pwd;
-    acl_t *acl;
-    char *env;
-    bool req_set_uid;
-};
 
 CSTR proc_getenv(proc_t *proc, CSTR name);
 
@@ -190,23 +176,15 @@ int dlib_openexec(proc_t *proc)
     }
 
     // Add libraries to process memory space
-    dynsym_t *symbol;
-    for ll_each(&proc->queue, lib, dynlib_t, node) {
+    for ll_each(&proc->queue, lib, dynlib_t, node)
         dlib_rebase(proc->mspace, lib);
-        for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
-            hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
-            // TODO - Do not replace first occurence of a symbol.
-        }
-    }
 
     // Resolve symbols -- Might be done lazy!
-    dynsym_t *sym;
     for ll_each(&proc->queue, lib, dynlib_t, node) {
-        for ll_each(&lib->extern_symbols, symbol, dynsym_t, node) {
-            // Resolve symbol
-            sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
-            symbol->address = sym->address;
-            symbol->size = sym->size;
+        if (!dlib_resolve_symbols(proc, lib)) {
+            dlib_destroy(&proc->exec);
+            // Missing symbols !?
+            return -1;
         }
     }
     return 0;
@@ -219,9 +197,51 @@ void dlib_destroy(dynlib_t *lib)
 }
 
 
-void dlib_rebase(mspace_t *mspace, dynlib_t *lib)
+void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
 {
+    dynsym_t *symbol;
+    void *base;
+    // ASRL
+    do {
+        size_t addr = rand32() % (mspace->upper_bound - mspace->lower_bound);
+        addr += mspace->lower_bound;
+        addr = ALIGN_DW(addr, PAGE_SIZE);
+        base = mspace_map(mspace, addr, lib->length, NULL, 0, 0, VMA_ANON_RW | VMA_MAP_FIXED);
+    } while (base == NULL);
 
+    // List symbols
+    lib->base = (size_t)base;
+    for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
+        symbol->address += base;
+        // kprintf(-1, " -> %s at %p\n", symbol->name, symbol->address);
+        // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
+        // TODO - Do not replace first occurence of a symbol.
+    }
+}
+
+void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
+{
+    mspace_unmap(mspace, (void*)lib->base, lib->length);
+}
+
+
+bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
+{
+    dynsym_t *sym;
+    dynsym_t *symbol;
+    for ll_each(&lib->extern_symbols, symbol, dynsym_t, node) {
+        // Resolve symbol
+        sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
+        if (sym == NULL) {
+            // kprintf(-1, "Missing symbol %s\n", symbol->name);
+            // continue;
+            return false;
+        }
+        symbol->address = sym->address;
+        symbol->size = sym->size;
+        // kprintf(-1, " <- %s at %p\n", symbol->name, symbol->address);
+    }
+    return true;
 }
 
 
