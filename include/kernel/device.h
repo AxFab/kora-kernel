@@ -79,6 +79,7 @@ struct volume {
     atomic_t rcu;
     llhead_t lru;
     HMP_map hmap;
+    bbtree_t btree;
     splock_t lock;
     void *info; // Place holder for driver info
 };

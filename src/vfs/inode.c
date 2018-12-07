@@ -29,12 +29,23 @@
 /* An inode must be created by the driver using a call to `vfs_inode()' */
 inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
 {
-    inode_t *inode = (inode_t *)kalloc(sizeof(inode_t));
+    inode_t *inode;
+    if (volume != NULL) {
+        inode = bbtree_search_eq(&volume->btree, no, inode_t, bnode);
+        if (inode != NULL) {
+            assert (inode->no == no);
+            assert (inode->type == type);
+            return vfs_open(inode);
+        }
+    }
+
+    inode = (inode_t *)kalloc(sizeof(inode_t));
     inode->no = no;
     inode->type = type;
 
     inode->rcu = 1;
     inode->links = 0;
+    kprintf(-1, "CRT %3x.%08x\n", no, volume);
 
     switch (type) {
     case FL_REG:  /* Regular file (FS) */
@@ -42,10 +53,13 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
     case FL_LNK:  /* Symbolic link (FS) */
         assert(volume != NULL);
         inode->und.vol = volume;
+        inode->bnode.value_ = no;
+        bbtree_insert(&volume->btree, &inode->bnode);
         break;
     case FL_VOL:  /* File system volume */
         assert(volume == NULL);
         inode->und.vol = kalloc(sizeof(volume_t));
+        bbtree_init(&inode->und.vol->btree);
         hmp_init(&inode->und.vol->hmap, 16);
         break;
     case FL_BLK:  /* Block device */
@@ -74,8 +88,10 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
 /* Open an inode - increment usage as concerned to RCU mechanism. */
 inode_t *vfs_open(inode_t *ino)
 {
-    if (ino)
+    if (ino) {
+        kprintf(-1, "OPN %3x.%08x (%d)\n", ino->no, ino->und.vol, ino->rcu + 1);
         atomic_inc(&ino->rcu);
+    }
     return ino;
 }
 
@@ -85,8 +101,10 @@ inode_t *vfs_open(inode_t *ino)
 */
 void vfs_close(inode_t *ino)
 {
+    kprintf(-1, "CLS %3x.%08x (%d)\n", ino->no, ino->und.vol, ino->rcu -1);
     unsigned int cnt = atomic32_xadd(&ino->rcu, -1);
     if (cnt <= 1) {
+        kprintf(-1, "DST %3x.%08x\n", ino->no, ino->und.vol);
         // TODO -- Close IO file
         // if (ino->dev != NULL) {
         //     vfs_dev_destroy(ino);

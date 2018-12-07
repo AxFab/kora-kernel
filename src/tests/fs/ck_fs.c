@@ -39,6 +39,7 @@ inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
     inode_t *root = vfs_mount(dev, fsmod->name);
     ck_ok(root != NULL  && errno == 0, "Mount newly formed disk");
 
+    vfs_close(disk);
     vfs_show_devices();
     return root;
 }
@@ -46,9 +47,11 @@ inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
 void test_fs_teardown(inode_t *root, kmod_t *fsmod)
 {
     vfs_show_devices();
+    // TODO - Release all links !?
     int res = vfs_umount(root);
     ck_ok(res == 0 && errno == 0, "Unmount file system");
     fsmod->teardown();
+    // TODO - rmdev
     imgdk_teardown();
     vfs_fini();
 }
@@ -115,6 +118,8 @@ void test_fs_mknod(inode_t *root)
     inode_t *ino9 = vfs_lookup(root, "FOLDER");
     ck_ok(ino9 == NULL && errno == ENOENT, "");
     vfs_close(ino4);
+
+    // ROOT & FOLDER are on inode cache, but not used anymore.
 }
 
 void test_fs_rdwr(inode_t *root)
@@ -202,6 +207,6 @@ void fixture_rwfs(Suite *s)
     tc = tcase_create("FAT16");
     tcase_add_test(tc, test_fat16_mknod);
     // tcase_add_test(tc, test_fat16_rdwr);
-    tcase_add_test(tc, test_fat16_truncate);
+    // tcase_add_test(tc, test_fat16_truncate);
     suite_add_tcase(s, tc);
 }
