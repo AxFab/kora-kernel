@@ -51,7 +51,7 @@ inode_t *vfs_search_device(CSTR name)
     splock_lock(&devices_lock);
     inode_t *ino = (inode_t*)hmp_get(&devices_map, name, strlen(name));
     splock_unlock(&devices_lock);
-    return ino;
+    return vfs_open(ino);
 }
 
 int vfs_mkdev(inode_t *ino, CSTR name)

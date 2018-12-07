@@ -61,10 +61,10 @@ inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx)
     errno = 0;
     if (ent != NULL) {
         if (ent->ino != NULL) {
-            vfs_close(ino);
-            ino = ent->ino;
-        } else
+            assert (ino == ent->ino);
+        } else {
             vfs_set_dirent_(ent, ino);
+        }
         rwlock_rdunlock(&ent->lock);
     }
     return ino;

@@ -148,8 +148,8 @@ void vfs_record_(inode_t *dir, inode_t *ino)
 {
     assert(dir != NULL && VFS_ISDIR(dir));
     assert(ino != NULL);
-    assert(ino->rcu == 1);
-    assert(ino->links == 0);
+    // assert(ino->rcu == 1);
+    // assert(ino->links == 0);
     assert(ino->no != 0);
     assert(ino->ops != NULL);
 }
@@ -240,5 +240,5 @@ inode_t *vfs_lookup(inode_t *dir, CSTR name)
     }
     inode_t *ino = ent->ino;
     rwlock_rdunlock(&ent->lock);
-    return ino;
+    return vfs_open(ino);
 }
