@@ -41,7 +41,7 @@ void vfs_show_devices()
     inode_t *ino;
     splock_lock(&devices_lock);
     for ll_each(&devices_list, ino, inode_t, lnode) {
-        kprintf(-1, "DEV '%s' / %s (RCU:%d)\n", ino->und.dev->devname, ino->und.dev->model, ino->rcu);
+        kprintf(KLOG_INO, "DEV '%s' / %s (RCU:%d)\n", ino->und.dev->devname, ino->und.dev->model, ino->rcu);
     }
     splock_unlock(&devices_lock);
 }

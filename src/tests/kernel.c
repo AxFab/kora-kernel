@@ -34,7 +34,7 @@ page_t mmu_protect(size_t addr, int flags)
 {
     return 0;
 }
-page_t mmu_resolve(size_t addr, page_t phys, int flags)
+int mmu_resolve(size_t addr, page_t phys, int flags)
 {
     return 0;
 }

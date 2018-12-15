@@ -324,7 +324,7 @@ void mspace_display(mspace_t *mspace)
     kprintf(KLOG_DBG,
             "%p-%p mapped: %d KB   physical: %d KB   shared: %d KB   used: %d KB\n",
             mspace->lower_bound, mspace->upper_bound,
-            mspace->v_size / 1024, mspace->p_size / 1024,
+            mspace->v_size / 1024, mspace->p_size * 4/* / 1024*/,
             mspace->s_size / 1024, mspace->a_size / 1024);
     kprintf(KLOG_DBG, "------------------------------------------------\n");
     char *buf = malloc(4096);

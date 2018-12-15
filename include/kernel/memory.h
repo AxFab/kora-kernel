@@ -70,7 +70,7 @@ void mmu_leave();
 /* - */
 void mmu_context(mspace_t *mspace);
 /* - */
-page_t mmu_resolve(size_t vaddr, page_t phys, int falgs);
+int mmu_resolve(size_t vaddr, page_t phys, int falgs);
 /* - */
 page_t mmu_read(size_t vaddr);
 /* - */

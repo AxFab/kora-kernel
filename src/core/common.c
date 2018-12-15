@@ -96,7 +96,7 @@ char buf[1024];
 splock_t bf_lock;
 void kprintf(int log, const char *msg, ...)
 {
-    if (/*(log == KLOG_DBG && no_dbg) || */log == KLOG_MEM)
+    if (/*(log == KLOG_DBG && no_dbg) || */log == KLOG_MEM || log == KLOG_INO)
         return;
     va_list ap;
     va_start(ap, msg);

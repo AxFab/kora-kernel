@@ -34,7 +34,7 @@ struct vma {
     off_t offset;  /* An offset to a file or an physical address, depending of type */
     off_t limit;  /* If non zero, use to specify a limit after which one the rest of pages are blank. */
     int flags;  /* VMA flags */
-    struct mspace *mspace;
+    mspace_t *mspace;
 };
 
 
