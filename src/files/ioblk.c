@@ -97,6 +97,7 @@ static void ioblk_close(blkcache_t *cache, blkpage_t *page, bool write_lock)
 
     bbtree_remove(&cache->tree, page->bnode.value_);
     rwlock_wrunlock(&cache->lock);
+    // TODO kMMU.mspace->p_size--;
     page_release(page->phys);
     kfree(page);
 }

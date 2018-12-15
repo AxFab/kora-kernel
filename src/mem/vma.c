@@ -225,7 +225,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     switch (type) {
     case VMA_PHYS:
         while (length > 0) {
-            mmu_resolve(address, (page_t)offset, vma->flags);
+            vma->mspace->p_size += mmu_resolve(address, (page_t)offset, vma->flags);
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
             offset += PAGE_SIZE;
@@ -236,7 +236,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     case VMA_PIPE:
     case VMA_ANON:
         while (length > 0) {
-            mmu_resolve(address, 0, vma->flags);
+            vma->mspace->p_size += mmu_resolve(address, 0, vma->flags);
             memset((void *)address, 0, PAGE_SIZE);
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
@@ -255,7 +255,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
             if (pg == 0)
                 return -1;
             // TODO Check we still have a valid VMA !
-            mmu_resolve(address, pg, vma->flags);
+            vma->mspace->p_size += mmu_resolve(address, pg, vma->flags);
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
             offset += PAGE_SIZE;
@@ -288,7 +288,7 @@ int vma_copy_on_write(vma_t *vma, size_t address, size_t length)
         page_t pg = mmu_drop(address);
         (void)pg;
         page_t copy = mmu_read((size_t)buf);
-        mmu_resolve(address, copy, vma->flags);
+        vma->mspace->p_size += mmu_resolve(address, copy, vma->flags);
         address += PAGE_SIZE;
         length -= PAGE_SIZE;
         buf += PAGE_SIZE;

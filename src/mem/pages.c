@@ -124,8 +124,10 @@ void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean)
         if (clean && mmu_read(address) != 0)
             memset((void *)address, 0, PAGE_SIZE);
         page_t pg = mmu_drop(address);
-        if (pg != 0)
+        if (pg != 0) {
+            mspace->p_size--;
             page_release(pg);
+        }
         address += PAGE_SIZE;
         length -= PAGE_SIZE;
     }

@@ -93,6 +93,7 @@ void task_wait(void *listener, long timeout_ms);
 #define KLOG_DBG 1 // Debug information
 #define KLOG_ERR 2 // Errors
 #define KLOG_MEM 3 // Memory information
+#define KLOG_INO 10 // Inode and devices RCU (create open close destroy)
 #define KLOG_IRQ 4 // IRQ information
 #define KLOG_PF 5 // Page fault and resolution info
 #define KLOG_SYC 6 // Syscall trace

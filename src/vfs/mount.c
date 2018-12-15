@@ -93,7 +93,7 @@ int vfs_umount(inode_t *ino)
 
     inode_t *file;
     for bbtree_each (&volume->btree, file, inode_t, bnode) {
-        kprintf(-1, "Need rmlink of %3x\n", file->no);
+        kprintf(KLOG_INO, "Need rmlink of %3x\n", file->no);
     }
 
 

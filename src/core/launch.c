@@ -97,6 +97,7 @@ void kernel_top(long sec)
     for (;;) {
         async_wait(NULL, NULL, sec * 1000000);
         task_show_all();
+        mspace_display(kMMU.kspace);
         memory_info();
     }
 }
@@ -251,6 +252,8 @@ void kernel_master()
     }
 
     async_wait(NULL, NULL, 1000000);
+    mspace_display(kMMU.kspace);
+
     pp = vfs_inode(1, FL_PIPE, NULL);
 
     char buf[32];

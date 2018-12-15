@@ -145,16 +145,19 @@ page_t mmu_protect(size_t address, int access)
     return kdir->tbl[pno] & ~(PAGE_SIZE - 1);
 }
 
-page_t mmu_resolve(size_t address, page_t phys, int access)
+int mmu_resolve(size_t address, page_t phys, int access)
 {
-    if (phys == 0)
+    int pages = 0;
+    if (phys == 0) {
+        pages++;
         phys = page_new();
+    }
     if (address >= kMMU.kspace->lower_bound && address < kMMU.kspace->upper_bound) {
         kMMU.kspace->p_size += PAGE_SIZE;
         kMMU.kspace->a_size += PAGE_SIZE;
         int pno = (address - kMMU.kspace->lower_bound) / PAGE_SIZE;
         kdir->tbl[pno] = phys | access;
-        return phys;
+        return pages;
     }
     kpanic("Bad resolve\n");
 }
