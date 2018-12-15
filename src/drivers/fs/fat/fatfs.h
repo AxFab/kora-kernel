@@ -162,6 +162,7 @@ typedef struct FAT_volume FAT_volume_t;
 typedef struct FAT_diterator  FAT_diterator_t;
 
 
+void fatfs_umount(volume_t *vol);
 
 int fatfs_truncate(inode_t *ino, off_t length);
 

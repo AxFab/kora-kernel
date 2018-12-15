@@ -78,6 +78,7 @@ void vfs_rmdev(CSTR name)
     inode_t *dev = vfs_search_device(name);
     if (dev == NULL)
         return;
+    vfs_close(dev);
     splock_lock(&devices_lock);
     ll_remove(&devices_list, &dev->lnode);
     hmp_remove(&devices_map, name, strlen(name));

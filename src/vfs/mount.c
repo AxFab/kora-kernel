@@ -70,6 +70,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs)
     }
 
     inode_t *ino = mount(dev);
+    vfs_close(dev);
     if (ino == NULL) {
         assert(errno != 0);
         return NULL;
@@ -84,12 +85,19 @@ inode_t *vfs_mount(CSTR devname, CSTR fs)
 int vfs_umount(inode_t *ino)
 {
     assert(ino->type == FL_VOL);
-    // volume_t *fs = ino->und.vol;
+    volume_t *volume = ino->und.vol;
 
     errno = 0;
     if (ino->ops->close)
         ino->ops->close(ino);
-    vfs_close(ino);
+
+    inode_t *file;
+    for bbtree_each (&volume->btree, file, inode_t, bnode) {
+        kprintf(-1, "Need rmlink of %3x\n", file->no);
+    }
+
+
+    // vfs_close(ino);
     return 0;
 }
 

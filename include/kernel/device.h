@@ -23,11 +23,13 @@
 #include <kernel/core.h>
 #include <kernel/vfs.h>
 #include <kora/splock.h>
+#include <kora/rwlock.h>
 #include <kora/hmap.h>
 #include <time.h>
 
 typedef inode_t *(*fs_mount)(inode_t *dev);
-typedef int (*fs_umount)(inode_t *ino);
+// typedef int (*fs_umount)(inode_t *ino);
+typedef void (*fs_umount)(volume_t *vol);
 // typedef void (*fs_release_dev)(device_t *dev);
 
 typedef int (*fs_read)(inode_t *ino, void *buf, size_t len, off_t off);
@@ -80,6 +82,7 @@ struct volume {
     llhead_t lru;
     HMP_map hmap;
     bbtree_t btree;
+    rwlock_t brwlock;
     splock_t lock;
     void *info; // Place holder for driver info
 };
@@ -102,6 +105,7 @@ struct fs_ops {
     int(*link)(inode_t *ino, inode_t *dir, const char *name);
     int(*unlink)(inode_t *dir, const char *name);
     int(*rename)(inode_t *ino, inode_t *dir, const char *name);
+    void (*umount)(volume_t *vol);
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

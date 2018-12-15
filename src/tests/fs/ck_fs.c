@@ -48,8 +48,9 @@ void test_fs_teardown(inode_t *root, kmod_t *fsmod)
 {
     vfs_show_devices();
     // TODO - Release all links !?
-    int res = vfs_umount(root);
-    ck_ok(res == 0 && errno == 0, "Unmount file system");
+    // int res = vfs_umount(root);
+    vfs_close(root);
+    // ck_ok(res == 0 && errno == 0, "Unmount file system");
     fsmod->teardown();
     // TODO - rmdev
     imgdk_teardown();

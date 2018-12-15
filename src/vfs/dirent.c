@@ -105,7 +105,13 @@ void vfs_rm_dirent_(dirent_t *ent)
     rwlock_rdunlock(&ent->lock);
     // TODO -- Wake up other !
     rwlock_wrlock(&ent->lock);
-    // kfree(&ent);
+    if (ent->ino != NULL) {
+        vfs_close(ent->ino);
+        ent->ino = NULL;
+    }
+    kprintf(-1, "Freeing %p\n", ent);
+    rwlock_wrunlock(&ent->lock);
+    //kfree(ent);
 
     splock_unlock(&fs->lock);
 }
