@@ -193,7 +193,7 @@ struct kCpu {
 
     int err_no;
     int flags;
-    int seed;
+    unsigned int seed;
 };
 
 #define CPU_NO_TASK  0x800

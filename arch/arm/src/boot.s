@@ -2,7 +2,8 @@
 .section ".text.boot"
 
 // Make _start global.
-.globl _start
+.global _start
+.global start
 
 // Entry point for the kernel.
 // r15 -> should begin execution at 0x8000.

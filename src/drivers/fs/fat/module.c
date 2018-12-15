@@ -19,19 +19,20 @@
  */
 #include "fatfs.h"
 
-int fatfs_umount(inode_t *ino)
-{
-    FAT_volume_t *info = (FAT_volume_t *)ino->info;
-    bio_destroy(info->io_data_ro);
-    bio_destroy(info->io_data_rw);
-    bio_destroy(info->io_head);
-    kfree(info);
-    return 0;
-}
+// int fatfs_umount(inode_t *ino)
+// {
+//     FAT_volume_t *info = (FAT_volume_t *)ino->info;
+//     bio_destroy(info->io_data_ro);
+//     bio_destroy(info->io_data_rw);
+//     bio_destroy(info->io_head);
+//     kfree(info);
+//     return 0;
+// }
 
 fs_ops_t fatfs_ops = {
     .open = fatfs_open,
     .unlink = fatfs_unlink,
+    .umount = fatfs_umount,
 };
 
 ino_ops_t fatfs_reg_ops = {
@@ -48,7 +49,7 @@ ino_ops_t fatfs_dir_ops = {
 };
 
 ino_ops_t fatfs_vol_ops = {
-    .close = fatfs_umount,
+    // .close = fatfs_umount,
     .truncate = fatfs_truncate,
     .opendir = (void *)fatfs_opendir,
     .readdir = (void *)fatfs_readdir,
@@ -89,7 +90,16 @@ inode_t *fatfs_mount(inode_t *dev)
     return ino;
 }
 
+void fatfs_umount(volume_t *vol)
+{
+    FAT_volume_t *info = (FAT_volume_t *)vol->info;
 
+    kfree(vol->volname);
+    bio_destroy(info->io_data_ro);
+    bio_destroy(info->io_data_rw);
+    bio_destroy(info->io_head);
+    kfree(info);
+}
 
 void fatfs_setup()
 {

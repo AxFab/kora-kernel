@@ -78,7 +78,6 @@ void kmod_init()
     KSYMBOL(async_wait);
     KSYMBOL(pci_config_write32);
     KSYMBOL(pci_config_read16);
-    KSYMBOL(pci_config_read16);
     KSYMBOL(pci_search);
     KSYMBOL(net_recv);
     KSYMBOL(net_device);
@@ -136,8 +135,8 @@ void kmod_loader()
                 dynsec_t *sec;
                 for ll_each(&dlib->sections, sec, dynsec_t, node) {
 
-                    kprintf(-1, "Section %4x - %4x - %4x - %4x - %4x , %o\n", sec->lower, sec->upper,
-                        sec->start, sec->end, sec->offset, sec->rights);
+                    // kprintf(-1, "Section %4x - %4x - %4x - %4x - %4x , %o\n", sec->lower, sec->upper,
+                    //     sec->start, sec->end, sec->offset, sec->rights);
 
                     // Copy sections
                     void *sbase = (void*)(dlib->base + sec->lower + sec->offset);
@@ -153,7 +152,7 @@ void kmod_loader()
                         memcpy(dst, src, lg);
                     }
 
-                    kprintf(-1, "Section : %p - %x\n", sbase, slen);
+                    // kprintf(-1, "Section : %p - %x\n", sbase, slen);
                     // kdump(sbase, slen);
                 }
 
@@ -182,6 +181,11 @@ void kmod_loader()
                 }
 
                 // Change map access rights
+                for ll_each(&dlib->sections, sec, dynsec_t, node) {
+                    void *sbase = (void*)(dlib->base + sec->lower + sec->offset);
+                    size_t slen = sec->upper - sec->lower;
+                    mspace_protect(kMMU.kspace, sbase, slen, sec->rights & 7);
+                }
 
 
                 // Look for kernel module references

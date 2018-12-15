@@ -31,7 +31,9 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
 {
     inode_t *inode;
     if (volume != NULL) {
+        rwlock_rdlock(&volume->brwlock);
         inode = bbtree_search_eq(&volume->btree, no, inode_t, bnode);
+        rwlock_rdunlock(&volume->brwlock);
         if (inode != NULL) {
             assert (inode->no == no);
             assert (inode->type == type);
@@ -52,14 +54,19 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
     case FL_DIR:  /* Directory (FS) */
     case FL_LNK:  /* Symbolic link (FS) */
         assert(volume != NULL);
+        atomic_inc(&volume->rcu);
         inode->und.vol = volume;
         inode->bnode.value_ = no;
+        rwlock_wrlock(&volume->brwlock);
         bbtree_insert(&volume->btree, &inode->bnode);
+        rwlock_wrunlock(&volume->brwlock);
         break;
     case FL_VOL:  /* File system volume */
         assert(volume == NULL);
+        inode->bnode.value_ = no;
         inode->und.vol = kalloc(sizeof(volume_t));
         bbtree_init(&inode->und.vol->btree);
+        bbtree_insert(&inode->und.vol->btree, &inode->bnode);
         hmp_init(&inode->und.vol->hmap, 16);
         break;
     case FL_BLK:  /* Block device */
@@ -101,10 +108,48 @@ inode_t *vfs_open(inode_t *ino)
 */
 void vfs_close(inode_t *ino)
 {
-    kprintf(-1, "CLS %3x.%08x (%d)\n", ino->no, ino->und.vol, ino->rcu -1);
     unsigned int cnt = atomic32_xadd(&ino->rcu, -1);
+    kprintf(-1, "CLS %3x.%08x (%d)\n", ino->no, ino->und.vol, cnt -1);
     if (cnt <= 1) {
         kprintf(-1, "DST %3x.%08x\n", ino->no, ino->und.vol);
+        volume_t *volume = ino->und.vol;
+        device_t *dev = ino->und.dev;
+        if (ino->ops->close)
+            ino->ops->close(ino);
+        switch (ino->type) {
+        case FL_REG:
+        case FL_DIR:
+        case FL_VOL:
+            rwlock_wrlock(&volume->brwlock);
+            bbtree_remove(&volume->btree, ino->no);
+            kprintf(-1, "Need rmlink of %3x\n", ino->no);
+            rwlock_wrunlock(&volume->brwlock);
+
+            // splock_lock(&volume->lock);
+            // ll_remove(&volume->lru, &ino->links);
+            // splock_unlock(&volume->lock);
+
+            cnt = atomic32_xadd(&volume->rcu, -1);
+            kprintf(-1, "VOL %08x (%d)\n", volume, cnt - 1);
+            if (cnt <= 1) {
+                kprintf(-1, "DISCARD %08x \n", volume);
+
+                if (volume->ops->umount)
+                    volume->ops->umount(volume);
+                // vfs_sweep(volume, volume->btree.count_);
+                bbtree_init(&volume->btree);
+                hmp_destroy(&volume->hmap, 0);
+                if (volume->dev)
+                    vfs_close(volume->dev);
+                kfree(volume);
+            }
+            break;
+        case FL_BLK:
+        case FL_CHR:
+            kfree(dev);
+            break;
+        }
+
         // TODO -- Close IO file
         // if (ino->dev != NULL) {
         //     vfs_dev_destroy(ino);
