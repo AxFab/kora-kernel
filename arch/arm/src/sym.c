@@ -1,20 +1,23 @@
-void __aeabi_f2iz() {}
 
-void __aeabi_fdiv() {}
 
-void __aeabi_fmul() {}
 
-void __aeabi_i2f() {}
+// void __aeabi_f2iz() {}
 
-void __aeabi_idiv() {}
+// void __aeabi_fdiv() {}
 
-void __aeabi_idivmod() {}
+// void __aeabi_fmul() {}
 
-void __aeabi_ldivmod() {}
+// void __aeabi_i2f() {}
 
-void __aeabi_uidiv() {}
+// void __aeabi_idiv() {}
 
-void __aeabi_uidivmod() {}
+// void __aeabi_idivmod() {}
+
+// void __aeabi_ldivmod() {}
+
+// void __aeabi_uidiv() {}
+
+// void __aeabi_uidivmod() {}
 
 
 void cpu_clock() {}
@@ -33,9 +36,12 @@ void cpu_stack() {}
 
 void cpu_time() {}
 
+
 void irq_ack() {}
 
 void kwrite() {}
+
+
 
 void mmu_context() {}
 
@@ -54,6 +60,8 @@ void mmu_protect() {}
 void mmu_read() {}
 
 void mmu_resolve() {}
+
+
 
 void platform_setup() {}
 

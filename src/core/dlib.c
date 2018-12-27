@@ -213,7 +213,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
     lib->base = (size_t)base;
     for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
         symbol->address += base;
-        // kprintf(-1, " -> %s at %p\n", symbol->name, symbol->address);
+        kprintf(-1, " -> %s at %p\n", symbol->name, symbol->address);
         // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
         // TODO - Do not replace first occurence of a symbol.
     }
@@ -233,13 +233,13 @@ bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
         // Resolve symbol
         sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
         if (sym == NULL) {
-            // kprintf(-1, "Missing symbol %s\n", symbol->name);
+            kprintf(-1, "Missing symbol %s\n", symbol->name);
             // continue;
             return false;
         }
         symbol->address = sym->address;
         symbol->size = sym->size;
-        // kprintf(-1, " <- %s at %p\n", symbol->name, symbol->address);
+        kprintf(-1, " <- %s at %p\n", symbol->name, symbol->address);
     }
     return true;
 }

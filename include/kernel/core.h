@@ -177,6 +177,19 @@ void bio_destroy(bio_t *io);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+typedef struct desktop desktop_t;
+
+inode_t *window_create(desktop_t *desk, int width, int height, int flags);
+void window_destroy(desktop_t *desk, inode_t *win);
+void *window_map(mspace_t *mspace, inode_t *win);
+int window_set_features(inode_t *win, int features, int* args);
+int window_get_features(inode_t *win, int features, int* args);
+int window_push_event(inode_t *win, event_t *event);
+int window_poll_push(inode_t *win, event_t *event);
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 _Noreturn void task_fatal(CSTR error, int signum);
 
 struct kCpu {

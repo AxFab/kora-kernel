@@ -29,15 +29,6 @@
 #include <kora/llist.h>
 #include <string.h>
 
-KMODULE(ide_ata);
-KMODULE(pci);
-KMODULE(e1000);
-KMODULE(vbox);
-KMODULE(ac97);
-KMODULE(ps2);
-KMODULE(vga);
-KMODULE(imgdk);
-KMODULE(isofs);
 
 // void ARP_who_is(const unsigned char *ip);
 void clock_init();
