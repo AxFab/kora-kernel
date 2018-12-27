@@ -109,7 +109,7 @@ void vfs_rm_dirent_(dirent_t *ent)
         vfs_close(ent->ino);
         ent->ino = NULL;
     }
-    kprintf(-1, "Freeing %p\n", ent);
+    kprintf(KLOG_INO, "Freeing %p\n", ent);
     rwlock_wrunlock(&ent->lock);
     //kfree(ent);
 
@@ -222,7 +222,8 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
         if (ent == NULL) {
             vfs_close(ino);
             kfree(path_cpy);
-            assert(errno != 0);
+            errno = ENOENT;
+            // assert(errno != 0);
             return NULL;
         }
         vfs_open(ent->ino);

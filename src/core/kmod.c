@@ -135,8 +135,8 @@ void kmod_loader()
                 dynsec_t *sec;
                 for ll_each(&dlib->sections, sec, dynsec_t, node) {
 
-                    // kprintf(-1, "Section %4x - %4x - %4x - %4x - %4x , %o\n", sec->lower, sec->upper,
-                    //     sec->start, sec->end, sec->offset, sec->rights);
+                    kprintf(-1, "Section %4x - %4x - %4x - %4x - %4x , %o\n", sec->lower, sec->upper,
+                        sec->start, sec->end, sec->offset, sec->rights);
 
                     // Copy sections
                     void *sbase = (void*)(dlib->base + sec->lower + sec->offset);
@@ -144,7 +144,7 @@ void kmod_loader()
                     memset(sbase, 0, slen);
                     int i, n = (sec->upper - sec->lower) / PAGE_SIZE;
                     for (i = 0; i < n; ++i) {
-                        uint8_t *page = bio_access(dlib->io, i + sec->offset / PAGE_SIZE);
+                        uint8_t *page = bio_access(dlib->io, i + sec->lower / PAGE_SIZE);
                         int start = i == 0 ? sec->start : 0;
                         void* src = ADDR_OFF(page, start);
                         void* dst = (void*)(dlib->base + sec->lower + sec->offset + start + i * PAGE_SIZE);
@@ -152,7 +152,7 @@ void kmod_loader()
                         memcpy(dst, src, lg);
                     }
 
-                    // kprintf(-1, "Section : %p - %x\n", sbase, slen);
+                    kprintf(-1, "Section : %p - %x\n", sbase, slen);
                     // kdump(sbase, slen);
                 }
 
@@ -161,7 +161,7 @@ void kmod_loader()
                 // dynsym_t *symbol;
                 for ll_each(&dlib->relocations, reloc, dynrel_t, node) {
 
-                    // kprintf(-1, "R: %06x  %x  %p  %s \n", reloc->address, reloc->type, reloc->symbol == NULL ? NULL: reloc->symbol->address, reloc->symbol == NULL ? "-" : reloc->symbol->name);
+                    kprintf(-1, "R: %06x  %x  %p  %s \n", reloc->address, reloc->type, reloc->symbol == NULL ? NULL: reloc->symbol->address, reloc->symbol == NULL ? "-" : reloc->symbol->name);
                     switch (reloc->type) {
                         case 6:
                         case 7:
