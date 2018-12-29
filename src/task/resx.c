@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -23,17 +23,6 @@
 #include <kora/rwlock.h>
 #include <errno.h>
 
-struct stream {
-    inode_t *ino;
-    bbnode_t node; // TODO -- Is BBTree the best data structure !?
-    rwlock_t lock; // TODO -- Usage
-};
-
-struct resx {
-    bbtree_t tree; // TODO -- Is BBTree the best data structure !?
-    rwlock_t lock;
-    atomic32_t users;
-};
 
 
 resx_t *resx_create()
@@ -59,7 +48,7 @@ resx_t *resx_rcu(resx_t *resx, int usage)
     return resx;
 }
 
-inode_t *resx_get(resx_t *resx, int fd)
+stream_t *resx_get(resx_t *resx, int fd)
 {
     rwlock_rdlock(&resx->lock);
     stream_t *stm = bbtree_search_eq(&resx->tree, (size_t)fd, stream_t, node);
@@ -69,10 +58,10 @@ inode_t *resx_get(resx_t *resx, int fd)
         return NULL;
     }
     errno = 0;
-    return stm->ino;
+    return stm;
 }
 
-int resx_set(resx_t *resx, inode_t *ino)
+stream_t *resx_set(resx_t *resx, inode_t *ino)
 {
     rwlock_wrlock(&resx->lock);
     stream_t *stm = (stream_t *)kalloc(sizeof(stream_t));
@@ -88,12 +77,12 @@ int resx_set(resx_t *resx, inode_t *ino)
             rwlock_wrunlock(&resx->lock);
             kfree(stm);
             errno = ENOMEM; // TODO -- need a free list !
-            return -1;
+            return NULL;
         }
     }
     bbtree_insert(&resx->tree, &stm->node);
     rwlock_wrunlock(&resx->lock);
-    return stm->node.value_;
+    return stm;
 }
 
 int resx_close(resx_t *resx, int fd)
@@ -101,6 +90,7 @@ int resx_close(resx_t *resx, int fd)
     rwlock_wrlock(&resx->lock);
     stream_t *stm = bbtree_search_eq(&resx->tree, (size_t)fd, stream_t, node);
     if (stm == NULL) {
+        rwlock_wrunlock(&resx->lock);
         errno = EBADF;
         return -1;
     }

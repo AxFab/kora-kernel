@@ -51,11 +51,11 @@ typedef int (*chr_write)(inode_t *ino, const void *buf, size_t len);
 typedef int (*dev_rmdev)(inode_t *ino, void *ops);
 typedef int (*dev_ioctl)(inode_t *ino, int cmd, void *params);
 
-typedef int (*net_send)(netdev_t *ifnet, skb_t *skb);
-typedef int (*net_link)(netdev_t *ifnet);
+// typedef int (*net_send)(netdev_t *ifnet, skb_t *skb);
+// typedef int (*net_link)(netdev_t *ifnet);
 
-typedef int (*vds_flip)(inode_t *ino);
-typedef int (*vds_resize)(inode_t *ino, int *width, int *height);
+// typedef int (*vds_flip)(inode_t *ino);
+// typedef int (*vds_resize)(inode_t *ino, int *width, int *height);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

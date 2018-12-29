@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -40,7 +40,7 @@ _Noreturn void task_fatal(CSTR error, int signum)
     kprintf(KLOG_ERR, "Fatal error on CPU.%d: \033[91m%s\033[0m\n", cpu_no(), error);
     if (kCPU.running != NULL) {
         // task_raise(kCPU.running, signum);
-        task_stop (kCPU.running, -1);
+        task_stop(kCPU.running, -1);
     }
     kprintf(KLOG_ERR, "Unrecoverable kernel error\n");
     // Disable scheduler

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -20,6 +20,7 @@
 #include <kernel/core.h>
 #include <kernel/device.h>
 #include <kernel/vfs.h>
+#include <kernel/files.h>
 #include <string.h>
 #include <errno.h>
 
@@ -49,7 +50,7 @@ struct tar_entry {
     char filename_prefix[155];
 };
 
-static int tar_read_octal(char* count)
+static int tar_read_octal(char *count)
 {
     int i;
     int val = 0;
@@ -73,7 +74,7 @@ struct tar_info {
 
 inode_t *tar_inode(volume_t *vol, tar_entry_t *entry, int length)
 {
-    int lba = ((void*)entry - tinfo.start);
+    int lba = ((void *)entry - tinfo.start);
     inode_t *ino = vfs_inode(lba / TAR_BLOCK_SIZE + 2, FL_REG, vol);
     ino->length = length;
     ino->lba = lba;
@@ -129,7 +130,7 @@ inode_t *tar_readdir(inode_t *dir, char *name, void *ctx)
     int length = 0;
     tar_entry_t *entry;
     for (;;) {
-        int *idx = (int*)ctx;
+        int *idx = (int *)ctx;
         entry = (tar_entry_t *)ADDR_OFF(tinfo.start, *idx);
 
         length = tar_read_octal(entry->file_size);

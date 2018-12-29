@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -37,7 +37,7 @@ void tty_paint_cell(tty_t *tty, tty_cell_t *cell, int *row, int *col);
 struct tty {
     surface_t *sfc;
     font_bmp_t *font;
-    char w, h;
+    short w, h;
     int count, top, end;
     int smin, smax;
     uint32_t fg, bg;
@@ -160,7 +160,7 @@ uint32_t consoleLightColor[] = {
 };
 
 
-int tty_excape_apply_csi_m(tty_t* tty, int* val, int cnt)
+void tty_excape_apply_csi_m(tty_t *tty, int *val, int cnt)
 {
     int i;
     tty_cell_t *cell = tty_next_cell(tty);
@@ -182,21 +182,21 @@ int tty_excape_apply_csi_m(tty_t* tty, int* val, int cnt)
         } else if (val[i] == 23) { // Not italic
         } else if (val[i] == 24) { // No decoration
         } else if (val[i] == 28) { // Conceal off
-        } else if (val[i] >= 30 && val[i] <= 37) { // Select foreground
+        } else if (val[i] >= 30 && val[i] <= 37)   // Select foreground
             cell->fg = consoleDarkColor[val[i] - 30];
-        } else if (val[i] == 38) {
-            if (i + 2 < cnt && val[i+1] == 5) {
-                cell->fg = consoleDarkColor[val[i+2] & 7];
+        else if (val[i] == 38) {
+            if (i + 2 < cnt && val[i + 1] == 5) {
+                cell->fg = consoleDarkColor[val[i + 2] & 7];
                 i += 2;
             } else if (i + 4 < cnt && val[i + 1] == 2) {
                 cell->fg = ((val[i + 2] & 0xff) << 16) | ((val[i + 3] & 0xff) << 8) | (val[i + 4] & 0xff);
                 i += 4;
             }
-        } else if (val[i] == 39) {
+        } else if (val[i] == 39)
             cell->fg = consoleDarkColor[7];
-        } else if (val[i] >= 40 && val[i] <= 47) { // Select background
+        else if (val[i] >= 40 && val[i] <= 47)   // Select background
             cell->bg = consoleDarkColor[val[i] - 40];
-        } else if (val[i] == 48) {
+        else if (val[i] == 48) {
             if (i + 2 < cnt && val[i + 1] == 5) {
                 cell->bg = consoleDarkColor[val[i + 2] & 7];
                 i += 2;
@@ -204,21 +204,19 @@ int tty_excape_apply_csi_m(tty_t* tty, int* val, int cnt)
                 cell->bg = ((val[i + 2] & 0xff) << 16) | ((val[i + 3] & 0xff) << 8) | (val[i + 4] & 0xff);
                 i += 4;
             }
-        } else if (val[i] == 49) {
+        } else if (val[i] == 49)
             cell->bg = consoleDarkColor[0];
-        } else if (val[i] >= 90 && val[i] <= 97) { // Select bright foreground
+        else if (val[i] >= 90 && val[i] <= 97)   // Select bright foreground
             cell->fg = consoleLightColor[val[i] - 90];
-        } else if (val[i] >= 100 && val[i] <= 107) { // Select bright background
+        else if (val[i] >= 100 && val[i] <= 107)   // Select bright background
             cell->bg = consoleLightColor[val[i] - 100];
-        }
     }
 }
 
-int tty_excape_csi(tty_t* tty, const char *buf, int len)
+int tty_excape_csi(tty_t *tty, const char *buf, int len)
 {
     int val[10] = { 0 };
     int sp = 0;
-    char *end = buf;
     int s = 2;
     len -= 2;
     while (len > 0 && sp < 10) {
@@ -243,7 +241,7 @@ int tty_excape_csi(tty_t* tty, const char *buf, int len)
     return s + 1;
 }
 
-int tty_escape(tty_t* tty, const char *buf, int len)
+int tty_escape(tty_t *tty, const char *buf, int len)
 {
     if (len < 2)
         return -1;
@@ -256,11 +254,11 @@ int tty_escape(tty_t* tty, const char *buf, int len)
     }
 }
 
-void tty_write(tty_t* tty, const char *buf, int len)
+void tty_write(tty_t *tty, const char *buf, int len)
 {
     tty_cell_t *cell = &tty->cells[tty->end];
     while (len > 0) {
-        if (*buf >= 0x20 && *buf < 0x80) {
+        if (*buf >= 0x20) {
             if (cell->sz >= 50)
                 cell = tty_next_cell(tty);
             cell->str[cell->sz] = *buf;
@@ -268,7 +266,7 @@ void tty_write(tty_t* tty, const char *buf, int len)
             cell->len++;
             len--;
             buf++;
-        } else if (*buf >= 0x80) {
+        } else if (*buf < 0) {
             char s = *buf;
             int lg = 1;
             while (lg < 5 && (s >> (7 - lg)))

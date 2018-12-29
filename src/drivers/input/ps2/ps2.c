@@ -39,7 +39,7 @@ void PS2_event(inode_t *ino, uint8_t type, int32_t param1, int32_t param2)
     ev.param1 = param1;
     ev.param2 = param2;
     //(void)ev;
-    pipe_write(pipe, (char*)&ev, sizeof(ev), 0);
+    pipe_write(pipe, (char *)&ev, sizeof(ev), 0);
 
     //wmgr_event(&ev);
     // dev_char_write(ino, &ev, sizeof(ev));

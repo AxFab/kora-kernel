@@ -193,11 +193,11 @@ inode_t *ext2_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
     }
 
     ext2_dir_en_t *new_en;
-    ext2_dir_en_t *entry = (ext2_dir_en_t*)&it->cur_block[off];
+    ext2_dir_en_t *entry = (ext2_dir_en_t *)&it->cur_block[off];
     inode_t *ino = ext2_creat(dir->und.vol, type, acl);
     if (entry->size > entry->length + 4 + strlen(name)) {
         int sz = entry->length + 2;
-        new_en = (ext2_dir_en_t*)&it->cur_block[off + sz];
+        new_en = (ext2_dir_en_t *)&it->cur_block[off + sz];
         entry->size = sz;
         new_en->size = entry->size - sz;
         new_en->length = (uint8_t)strlen(name);
@@ -216,12 +216,12 @@ inode_t *ext2_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
 
 
 ino_ops_t ext2_dir_ops = {
-    .opendir = (void*)ext2_opendir,
-    .readdir = (void*)ext2_readdir,
-    .closedir = (void*)ext2_closedir,
+    .opendir = (void *)ext2_opendir,
+    .readdir = (void *)ext2_readdir,
+    .closedir = (void *)ext2_closedir,
 };
 
-ino_ops_t ext2_reg_ops= {
+ino_ops_t ext2_reg_ops = {
 };
 
 fs_ops_t ext2_fs_ops = {
@@ -245,7 +245,7 @@ inode_t *ext2_mount(inode_t *dev)
     kprintf(-1, "%d blocks reserved for super user\n", sb->rsvd_blocks_count);
     kprintf(-1, "First data block = %d\n", sb->first_data_block);
     kprintf(-1, "Maximum filesystem blocks = %d\n", 0);
-    kprintf(-1, "%d block groups\n", sb->blocks_count/ sb->blocks_per_group);
+    kprintf(-1, "%d block groups\n", sb->blocks_count / sb->blocks_per_group);
     kprintf(-1, "%d blocks per group\n", sb->blocks_per_group);
     kprintf(-1, "%d frags per group\n", sb->frags_per_group);
     kprintf(-1, "%d inodes per group\n", sb->inodes_per_group);
@@ -257,7 +257,7 @@ inode_t *ext2_mount(inode_t *dev)
         return NULL;
     }
 
-    vol->grp = (ext2_grp_t*)&ptr[MAX(2048, 1024 << sb->log_block_size)];
+    vol->grp = (ext2_grp_t *)&ptr[MAX(2048, 1024 << sb->log_block_size)];
     vol->io = bio_create(dev, VMA_FILE_RW, 1024 << sb->log_block_size, 0);
 
     int i, n;

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -95,7 +95,7 @@ struct proc {
     HMP_map libs_map;
     llhead_t queue;
     llhead_t libraries;
-    mspace_t mspace;
+    mspace_t *mspace;
     char *execname;
     inode_t *root;
     inode_t *pwd;
@@ -105,6 +105,10 @@ struct proc {
 };
 
 bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib);
+void dlib_destroy(dynlib_t *lib);
+void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
+int dlib_openexec(proc_t *proc);
+void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
 
 int elf_parse(dynlib_t *dlib);
 

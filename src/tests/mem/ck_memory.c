@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -26,14 +26,17 @@
 extern size_t __um_mspace_pages_count;
 extern size_t __um_pages_available;
 
-page_t test_mem_fetch(inode_t *ino, off_t off) {
+page_t test_mem_fetch(inode_t *ino, off_t off)
+{
     return 1 * PAGE_SIZE;
 }
 
-void test_mem_sync(inode_t *ino, off_t off, page_t pg) {
+void test_mem_sync(inode_t *ino, off_t off, page_t pg)
+{
 }
 
-void test_mem_release(inode_t *ino, off_t off, page_t pg) {
+void test_mem_release(inode_t *ino, off_t off, page_t pg)
+{
 }
 
 ino_ops_t __test_blk_ops = {

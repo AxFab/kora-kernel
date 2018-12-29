@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -92,9 +92,8 @@ int vfs_umount(inode_t *ino)
         ino->ops->close(ino);
 
     inode_t *file;
-    for bbtree_each (&volume->btree, file, inode_t, bnode) {
+    for bbtree_each(&volume->btree, file, inode_t, bnode)
         kprintf(KLOG_INO, "Need rmlink of %3x\n", file->no);
-    }
 
 
     // vfs_close(ino);
