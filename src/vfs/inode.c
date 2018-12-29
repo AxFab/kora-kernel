@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -35,8 +35,8 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
         inode = bbtree_search_eq(&volume->btree, no, inode_t, bnode);
         rwlock_rdunlock(&volume->brwlock);
         if (inode != NULL) {
-            assert (inode->no == no);
-            assert (inode->type == type);
+            assert(inode->no == no);
+            assert(inode->type == type);
             return vfs_open(inode);
         }
     }
@@ -109,7 +109,7 @@ inode_t *vfs_open(inode_t *ino)
 void vfs_close(inode_t *ino)
 {
     unsigned int cnt = atomic32_xadd(&ino->rcu, -1);
-    kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->und.vol, cnt -1);
+    kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->und.vol, cnt - 1);
     if (cnt <= 1) {
         kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->und.vol);
         volume_t *volume = ino->und.vol;
@@ -147,6 +147,12 @@ void vfs_close(inode_t *ino)
         case FL_BLK:
         case FL_CHR:
             kfree(dev);
+            break;
+        case FL_PIPE:  /* Pipe */
+            pipe_destroy(ino->info);
+            break;
+        default:
+            assert(ino->type == 0);
             break;
         }
 
@@ -323,15 +329,15 @@ int vfs_chtimes(inode_t *ino, struct timespec *ts, int flags);
 /* Update meta-data, size */
 int vfs_truncate(inode_t *ino, off_t length)
 {
-	if (ino == NULL || ino->type != FL_REG) {
-		errno = EINVAL;
-		return -1;
-	} else if (ino->und.vol->flags & VFS_RDONLY) {
+    if (ino == NULL || ino->type != FL_REG) {
         errno = EINVAL;
-		return -1;
-	}
+        return -1;
+    } else if (ino->und.vol->flags & VFS_RDONLY) {
+        errno = EINVAL;
+        return -1;
+    }
 
-	/* Can we ask the file-system */
+    /* Can we ask the file-system */
     if (ino->ops->truncate == NULL) {
         errno = ENOSYS;
         return -1;

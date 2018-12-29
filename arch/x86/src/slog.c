@@ -28,6 +28,7 @@ int com_output(int no, const char *buf, int len);
 
 
 extern tty_t *slog;
+int tty_write(tty_t *tty, const char *buf, int len);
 
 void kwrite(const char *buf, int len)
 {

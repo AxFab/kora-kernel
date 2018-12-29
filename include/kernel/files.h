@@ -52,7 +52,7 @@ struct surface {
 
 
 struct font_bmp {
-    uint8_t *glyphs;
+    const uint8_t *glyphs;
     char glyph_size;
     char width, height, dispx, dispy;
 };
@@ -60,18 +60,21 @@ struct font_bmp {
 void font_paint(surface_t *sfc, font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y);
 
 
-#define IO_NO_BLOCK  (1 << 0)
-#define IO_ATOMIC  (1 << 1)
-#define IO_CONSUME  (1 << 2)
+#define IO_NO_BLOCK  (1 << 4)
+#define IO_ATOMIC  (1 << 5)
+#define IO_CONSUME  (1 << 6)
 
 
 
 void vds_fill(surface_t *win, uint32_t color);
+void vds_slide(surface_t *sfc, int height, uint32_t color);
 void vds_copy(surface_t *dest, surface_t *src, int x, int y);
 surface_t *vds_create_empty(int width, int height, int depth);
 surface_t *vds_create(int width, int height, int depth);
 void vds_destroy(surface_t *srf);
 void vds_mouse(surface_t *scr, int x, int y);
+void vds_flip(surface_t *surface);
+
 
 
 void wmgr_register_screen(surface_t *screen);

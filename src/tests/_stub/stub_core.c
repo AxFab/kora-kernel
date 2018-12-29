@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -144,7 +144,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
         void *buf = ptr;
         while (length > 0) {
             page_t pg = ino->ops->fetch(ino, off);
-            memcpy(buf, (void*)pg, PAGE_SIZE);
+            memcpy(buf, (void *)pg, PAGE_SIZE);
             ino->ops->release(ino, off, pg);
             length -= PAGE_SIZE;
             off += PAGE_SIZE;
@@ -179,7 +179,7 @@ void kunmap(void *addr, size_t length)
             inode_t *ino = vma->ino;
             while (vma->length > 0) {
                 page_t pg = ino->ops->fetch(ino, off);
-                memcpy((void*)pg, padd, PAGE_SIZE);
+                memcpy((void *)pg, padd, PAGE_SIZE);
                 ino->ops->sync(ino, off, pg);
                 ino->ops->release(ino, off, pg);
                 vma->length -= PAGE_SIZE;

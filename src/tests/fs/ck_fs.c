@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -149,7 +149,7 @@ void test_fs_rdwr(inode_t *root)
 
 void test_fs_truncate(inode_t *root)
 {
-	int ret;
+    int ret;
     inode_t *ino1 = vfs_create(root, "FILE_S.TXT", FL_REG, NULL, 0);
     ck_ok(ino1 != NULL && errno == 0, "");
     ret = vfs_truncate(ino1, 348); // Less than a sector

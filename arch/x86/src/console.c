@@ -268,7 +268,7 @@ ino_ops_t csl_fops = {
 void csl_setup()
 {
     inode_t *ino = vfs_inode(1, FL_CHR, NULL);
-    ino->und.dev->devclass = (char*)"VBA text console";
+    ino->und.dev->devclass = (char *)"VBA text console";
     ino->und.dev->ops = &csl_dops;
     ino->ops = &csl_fops;
     vfs_mkdev(ino, "csl");

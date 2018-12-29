@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -106,7 +106,7 @@ static blkpage_t *ioblk_search(inode_t *ino, off_t off)
 {
     /* Do some checks */
     assert(off >= 0 && IS_ALIGNED(off, PAGE_SIZE));
-    assert(ino->ops->fetch != NULL &&ino->ops->sync != NULL &&ino->ops->release != NULL);
+    assert(ino->ops->fetch != NULL && ino->ops->sync != NULL && ino->ops->release != NULL);
     if (off >= ino->length) {
         errno = EINVAL;
         return NULL;

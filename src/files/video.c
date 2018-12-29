@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -19,6 +19,7 @@
  */
 #include <kernel/files.h>
 #include <kora/mcrs.h>
+#include <string.h>
 
 
 // static void vds_rect(surface_t *win, int x, int y, int w, int h, uint32_t color)
@@ -138,7 +139,7 @@ surface_t *vds_create(int width, int height, int depth)
     win->height = height;
     win->depth = depth;
     win->pitch = ALIGN_UP(width * depth, 4);
-    win->pixels = kmap(ALIGN_UP(height * win->pitch, PAGE_SIZE), NULL, 0, VMA_ANON | VMA_RESOLVE);
+    win->pixels = kmap(ALIGN_UP(height * win->pitch, PAGE_SIZE), NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
     return win;
 }
 
@@ -147,4 +148,11 @@ void vds_destroy(surface_t *srf)
     // kfree(srf->pixels);
     kfree(srf);
 }
+
+page_t vds_fetch(surface_t *fb, off_t off)
+{
+    return mmu_read(&fb->pixels[off]);
+}
+
+
 

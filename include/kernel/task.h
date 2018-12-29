@@ -38,6 +38,21 @@ struct user {
     uint8_t id[16];
 };
 
+
+struct stream {
+    inode_t *ino;
+    off_t off;
+    int flags;
+    bbnode_t node; // TODO -- Is BBTree the best data structure !?
+    rwlock_t lock; // TODO -- Usage
+};
+
+struct resx {
+    bbtree_t tree; // TODO -- Is BBTree the best data structure !?
+    rwlock_t lock;
+    atomic32_t users;
+};
+
 enum TS_TaskState {
     TS_ZOMBIE = 0,  /* The task structure is not used. */
     TS_BLOCKED,  /* The task is paused and listen only for its own events. */
@@ -170,8 +185,8 @@ void cpu_restore(cpu_state_t state);
 
 resx_t *resx_create();
 resx_t *resx_rcu(resx_t *resx, int usage);
-inode_t *resx_get(resx_t *resx, int fd);
-int resx_set(resx_t *resx, inode_t *ino);
+stream_t *resx_get(resx_t *resx, int fd);
+stream_t *resx_set(resx_t *resx, inode_t *ino);
 int resx_close(resx_t *resx, int fd);
 
 

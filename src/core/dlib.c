@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -40,17 +40,17 @@ proc_t *dlib_process(CSTR execname)
     proc->pwd = NULL;
     proc->acl = NULL;
     proc->env = "PATH=/usr/bin:/bin\n"
-        "OS=Kora\n"
-        "HOME=/home/root\n"
-        "HOSTNAME=my-home-pc\n"
-        "ARCH=x86\n"
-        "LANG=en_US.UTF=8\n"
-        "TZ=Europe/Paris\n"
-        "PWD=/home/root\n"
-        "USER=root\n"
-        "UID=9fe14c6\n"
-        "LD_LIBRARY_PATH=\n"
-        "SHELL=krish\n";
+                "OS=Kora\n"
+                "HOME=/home/root\n"
+                "HOSTNAME=my-home-pc\n"
+                "ARCH=x86\n"
+                "LANG=en_US.UTF=8\n"
+                "TZ=Europe/Paris\n"
+                "PWD=/home/root\n"
+                "USER=root\n"
+                "UID=9fe14c6\n"
+                "LD_LIBRARY_PATH=\n"
+                "SHELL=krish\n";
     // TODO
     return proc;
 }
@@ -124,7 +124,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
     }
 
     // Look for dependancies
-    dyndep_t* dep;
+    dyndep_t *dep;
     for ll_each(&dlib->depends, dep, dyndep_t, node) {
         inode_t *ino = dlib_lookfor(proc, proc->pwd, dep->name, "LD_LIBRARY_PATH", "/usr/lib:/lib");
         if (ino == NULL) {
@@ -133,7 +133,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
             return -1;
         }
 
-        dynlib_t *lib = hmp_get(&proc->libs_map, ino, sizeof(void*));
+        dynlib_t *lib = hmp_get(&proc->libs_map, (char *)ino, sizeof(void *));
         if (lib != NULL) {
             lib->rcu++;
             dep->lib = lib;
@@ -143,7 +143,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
         lib = kalloc(sizeof(dynlib_t));
         lib->ino = ino;
         dep->lib = lib;
-        ll_enqueue(&proc->queue , &proc->exec.node);
+        ll_enqueue(&proc->queue, &proc->exec.node);
     }
     return 0;
 }
@@ -155,7 +155,7 @@ int dlib_openexec(proc_t *proc)
     // Look for executable file
     inode_t *ino = dlib_lookfor(proc, proc->pwd, proc->execname, "PATH", "/usr/bin:/bin");
     if (ino == NULL) {
-        assert (errno != 0);
+        assert(errno != 0);
         return -1;
     }
     proc->exec.ino = ino;
@@ -171,13 +171,12 @@ int dlib_openexec(proc_t *proc)
             return -1;
         }
 
-        hmp_put(&proc->libs_map, &lib->ino, sizeof(void*), lib);
-
+        hmp_put(&proc->libs_map, (char *)&lib->ino, sizeof(void *), lib);
     }
 
     // Add libraries to process memory space
     for ll_each(&proc->queue, lib, dynlib_t, node)
-        dlib_rebase(proc->mspace, lib);
+        dlib_rebase(proc, proc->mspace, lib);
 
     // Resolve symbols -- Might be done lazy!
     for ll_each(&proc->queue, lib, dynlib_t, node) {
@@ -212,8 +211,8 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
     // List symbols
     lib->base = (size_t)base;
     for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
-        symbol->address += base;
-        kprintf(-1, " -> %s at %p\n", symbol->name, symbol->address);
+        symbol->address += (size_t)base;
+        // kprintf(-1, " -> %s at %p\n", symbol->name, symbol->address);
         // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
         // TODO - Do not replace first occurence of a symbol.
     }
@@ -221,7 +220,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
 
 void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
 {
-    mspace_unmap(mspace, (void*)lib->base, lib->length);
+    mspace_unmap(mspace, lib->base, lib->length);
 }
 
 
@@ -233,13 +232,13 @@ bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
         // Resolve symbol
         sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
         if (sym == NULL) {
-            kprintf(-1, "Missing symbol %s\n", symbol->name);
+            // kprintf(-1, "Missing symbol %s\n", symbol->name);
             // continue;
             return false;
         }
         symbol->address = sym->address;
         symbol->size = sym->size;
-        kprintf(-1, " <- %s at %p\n", symbol->name, symbol->address);
+        // kprintf(-1, " <- %s at %p\n", symbol->name, symbol->address);
     }
     return true;
 }

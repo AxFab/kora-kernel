@@ -19,6 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/drv/pci.h>
+#include <string.h>
 
 struct device_id {
     uint16_t vendor;

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -58,7 +58,7 @@ int udp_receive(skb_t *skb, unsigned length)
     // header->checksum = 0;
     // if (checksum != ip4_checksum(skb, sizeof(UDP_header_t) + 8))
     // TODO - ip options
-        // return -1;
+    // return -1;
     if (length != htonw(header->length))
         return -1;
     length -= sizeof(UDP_header_t);

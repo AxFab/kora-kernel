@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -130,6 +130,11 @@ int pipe_erase(pipe_t *pipe, int len)
     int ret = pipe_erase_unlock_(pipe, len);
     splock_unlock(&pipe->lock);
     return ret;
+}
+
+int pipe_reset(pipe_t *pipe)
+{
+    return -1;
 }
 
 

@@ -25,6 +25,7 @@
 #include <kernel/input.h>
 #include <kernel/task.h>
 #include <kernel/cpu.h>
+#include <kernel/syscalls.h>
 #include <kora/iofile.h>
 #include <kora/llist.h>
 #include <string.h>
@@ -64,15 +65,6 @@ struct kCpu kCPU0;
 
 llhead_t modules = INIT_LLHEAD;
 
-int sys_exit(pid_t pid, int ret)
-{
-    task_t *task = pid == 0 ? kCPU.running : task_search(pid);
-    if (task == NULL)
-        return -1;
-    task_stop(task, ret);
-    return 0;
-}
-
 
 void kernel_tasklet(void *start, void *arg, CSTR name)
 {
@@ -84,7 +76,7 @@ extern int no_dbg;
 
 void kernel_top(long sec)
 {
-    async_wait(NULL, NULL, 10000);
+    sys_sleep(10000);
     for (;;) {
         async_wait(NULL, NULL, sec * 1000000);
         task_show_all();
@@ -93,7 +85,8 @@ void kernel_top(long sec)
     }
 }
 
-volatile inode_t *pp;
+// volatile inode_t *pp;
+int pp[] = { -1, -1 };
 
 void tty_start()
 {
@@ -102,21 +95,23 @@ void tty_start()
         dev = vfs_search_device("kdb");
         if (dev != NULL)
             break;
-        async_wait(NULL, NULL, 10000);
+        sys_sleep(10000);
     }
     kprintf(-1, "Tty found keyboard\n");
 
-    while (pp == NULL)
-        async_wait(NULL, NULL, 10000);
+    // while (pp == NULL)
+    while (pp[1] == -1)
+        sys_sleep(10000);
 
     event_t event;
     for (;;) {
-        vfs_read(dev, &event, sizeof(event), 0, 0);
+        vfs_read(dev, (char *)&event, sizeof(event), 0, 0);
         if (event.type == 3) {
             char c = seat_key_unicode(event.param2 & 0xFFF, event.param2 >> 16);
             kprintf(-1, "Tty key %x -> %x\n", event.param2 & 0xFFF, c);
             if ((c >= ' ' && c < 0x80) || c == '\n')
-                vfs_write(pp, &c, 1, 0, 0);
+                sys_write(pp[1], &c, 1);
+            // vfs_write(pp, &c, 1, 0, 0);
         }
     }
 }
@@ -146,18 +141,18 @@ surface_t *create_win()
     return win;
 }
 
-void desktop ()
+void desktop()
 {
     inode_t *dev;
     for (;;) {
         dev = vfs_search_device("fb0");
         if (dev != NULL)
             break;
-        async_wait(NULL, NULL, 10000);
+        sys_sleep(10000);
     }
     kprintf(-1, "We have a screen !\n");
 
-    surface_t *screen = (surface_t*)dev->info;
+    surface_t *screen = (surface_t *)dev->info;
     width = screen->width;
     height = screen->height;
 
@@ -187,10 +182,9 @@ void desktop ()
         vds_copy(screen, win4, win4->x, win4->y);
         vds_copy(screen, win5, win5->x, win5->y);
         screen->flip(screen);
-        async_wait(NULL, NULL, 1000000);
+        sys_sleep(1000000);
 
     }
-
 }
 
 
@@ -198,13 +192,13 @@ void kernel_master()
 {
     kernel_tasklet(desktop, NULL, "Desktop #1");
     kernel_tasklet(tty_start, NULL, "Syslog Tty");
-    kernel_tasklet(kernel_top, (void*)5, "Dbg top 5s");
-    async_wait(NULL, NULL, 5000);
+    kernel_tasklet(kernel_top, (void *)5, "Dbg top 5s");
+    sys_sleep(5000);
     for (;;) {
         inode_t *dev = vfs_search_device("sdC");
         if (dev != NULL)
             break;
-        async_wait(NULL, NULL, 10000);
+        sys_sleep(10000);
     }
     kprintf(-1, "Master found the device\n");
 
@@ -215,43 +209,64 @@ void kernel_master()
     inode_t *root = vfs_mount("sdC", "isofs");
     if (root == NULL) {
         kprintf(-1, "Expected mount point over 'sdC' !\n");
-        sys_exit(0, 0);
+        sys_exit(0);
     }
 
     kprintf(-1, "Master mounted root: %p\n", root);
-    async_wait(NULL, NULL, 10000);
+    sys_sleep(10000);
 
     inode_t *ino;
     char name[256];
     void *dir_ctx = vfs_opendir(root, NULL);
     while ((ino = vfs_readdir(root, name, dir_ctx)) != NULL) {
-        kprintf(-1, " %p  /%s%s\n", ino, name, ino->type == FL_DIR ? "/": "");
+        kprintf(-1, " %p  /%s%s\n", ino, name, ino->type == FL_DIR ? "/" : "");
         vfs_close(ino);
     }
     vfs_closedir(root, dir_ctx);
 
-    async_wait(NULL, NULL, 10000);
+    sys_sleep(10000);
 
-    inode_t *txt = vfs_search(root, root, "boot/grub/grub.cfg", NULL);
+    // const char *txt_filename = "boot/grub/grub.cfg";
+    const char *txt_filename = "BOOT/GRUB/MENU.LST";
+    char *buf;
+    inode_t *txt = vfs_search(root, root, txt_filename, NULL);
     if (txt != NULL) {
         kprintf(-1, "Reading file from CDROM...\n");
-        char *buf = kalloc(txt->length + 1);
+        buf = kalloc(txt->length + 1);
         vfs_read(txt, buf, txt->length, 0, 0);
         kprintf(-1, "CONTENT (%x) \n%s\n", txt->length, buf);
         vfs_close(txt);
         kfree(buf);
-    }
+    } else
+        kprintf(-1, "Unable to open %s using vfs_search\n", txt_filename);
 
-    async_wait(NULL, NULL, 1000000);
+    kCPU.running->pwd = root;
+    int fd = sys_open(-1, txt_filename, 0);
+    if (fd == -1)
+        kprintf(-1, "Unable to open %s using sys_open\n", txt_filename);
+    buf = kalloc(512);
+    for (;;) {
+        int lg = sys_read(fd, buf, 512);
+        if (lg <= 0)
+            break;
+        buf[lg] = '\0';
+        kprintf(-1, "CONTENT (%x) \n%s\n", lg, buf);
+    }
+    sys_close(fd);
+    kfree(buf);
+
+    sys_sleep(1000000);
     mspace_display(kMMU.kspace);
 
-    pp = vfs_inode(1, FL_PIPE, NULL);
+    // pp = vfs_inode(1, FL_PIPE, NULL);
+    sys_pipe(pp);
 
-    char buf[32];
+    buf = kalloc(32);
     int idx = 0;
     for (;;) {
         kprintf(-1, "Master >\n");
-        idx = vfs_read(pp, &buf[idx], 30 - idx, 0, 0);
+        // idx = vfs_read(pp, &buf[idx], 10 - idx, 0, 0);
+        idx = sys_read(pp[0], &buf[idx], 10 - idx);
         buf[idx] = '\0';
         char *nx = strchr(buf, '\n');
         if (nx != NULL) {
@@ -261,10 +276,8 @@ void kernel_master()
             idx -= nx - buf;
         } else
             idx = 0;
-
-        // async_wait(NULL, NULL, 1000000);
     }
-
+    sys_close(pp[0]);
 }
 
 void kmod_loader();

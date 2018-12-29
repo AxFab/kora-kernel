@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -163,21 +163,21 @@ int vma_close(mspace_t *mspace, vma_t *vma, int arg)
     assert(splock_locked(&mspace->lock));
     int type = vma->flags & VMA_TYPE;
     switch (type) {
-        case VMA_PHYS:
-            for (off = 0; off < vma->length; off += PAGE_SIZE)
-                mmu_drop(vma->node.value_ + off);
-            break;
-        case VMA_FILE:
-            for (off = 0; off < vma->length; off += PAGE_SIZE) {
-                // TODO -- Look if page is dirty
-                page_t pg = mmu_read(vma->node.value_ + off);
-                mmu_drop(vma->node.value_ + off);
-                vma->ino->ops->release(vma->ino, off, pg);
-            }
-            break;
-        default:
-            page_sweep(mspace, vma->node.value_, vma->length, true);
-            break;
+    case VMA_PHYS:
+        for (off = 0; off < vma->length; off += PAGE_SIZE)
+            mmu_drop(vma->node.value_ + off);
+        break;
+    case VMA_FILE:
+        for (off = 0; off < vma->length; off += PAGE_SIZE) {
+            // TODO -- Look if page is dirty
+            page_t pg = mmu_read(vma->node.value_ + off);
+            mmu_drop(vma->node.value_ + off);
+            vma->ino->ops->release(vma->ino, off, pg);
+        }
+        break;
+    default:
+        page_sweep(mspace, vma->node.value_, vma->length, true);
+        break;
     }
 
     if (vma->ino)

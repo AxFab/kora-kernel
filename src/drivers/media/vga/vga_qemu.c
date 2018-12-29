@@ -152,7 +152,7 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
 
     surface_t *screen = vds_create_empty(size[i * 2], size[i * 2 + 1], 4);
     uint32_t pixels1 = pixels0 + screen->pitch * screen->height;
-    screen->pixels = (uint8_t*)pixels1;
+    screen->pixels = (uint8_t *)pixels1;
     vds_fill(screen, 0xe2e2e2);
     screen->pixels = (uint8_t *)pixels0;
     screen->backup = (uint8_t *)pixels1;
@@ -163,7 +163,7 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
     ino->info = screen;
     ino->ops = &vga_ino_ops;
     ino->und.dev->ops = &vga_dev_ops;
-    ino->und.dev->model = (char*)info->name;
+    ino->und.dev->model = (char *)info->name;
     ino->und.dev->devclass = "VGA Screen";
     vfs_mkdev(ino, "fb0");
     // wmgr_register_screen(screen);

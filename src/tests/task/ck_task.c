@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -101,8 +101,8 @@ void test_01()
     int loop = 50;
     clock_init();
     if (cpu_save(state) == 0) {
-        kernel_tasklet(task_1, (void*)1, "T1");
-        kernel_tasklet(task_2, (void*)2, "T2");
+        kernel_tasklet(task_1, (void *)1, "T1");
+        kernel_tasklet(task_2, (void *)2, "T2");
 
     }
 
