@@ -26,10 +26,6 @@
 #include <string.h>
 #include <errno.h>
 
-/* --------
-  Tasks, Process & Sessions
---------- */
-
 int scall_check_str(CSTR str)
 {
     return 0;
@@ -40,6 +36,10 @@ int scall_check_buf(const void *buf, int len)
     return 0;
 }
 
+
+/* --------
+  Tasks, Process & Sessions
+--------- */
 
 // /* Prepare system shutdown, sleep or partial shutdown (kill session) */
 // long sys_power(unsigned type, long delay)
@@ -228,7 +228,15 @@ int sys_pipe(int *fds)
 
 int sys_window(int width, int height, unsigned features, unsigned evmask)
 {
-    return -1;
+    // TODO - Look for the desktop attached to the session
+    resx_t *resx = kCPU.running->resx;
+    inode_t * ino = window_open(NULL, width, height, features);
+    if (ino == NULL)
+        return -1;
+
+    stream_t *stream = resx_set(resx, ino);
+    errno = 0;
+    return stream->node.value_;
 }
 
 int sys_socket(int protocol, const char *address, int port)
