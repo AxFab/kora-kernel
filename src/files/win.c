@@ -25,8 +25,10 @@
 struct desktop {
     atomic_t win_no;
     llhead_t list;
+    splock_t lock;
 };
 
+desktop_t kDESK;
 // Desktop related
 surface_t *create_win();
 
@@ -128,14 +130,22 @@ ino_ops_t win_ops = {
 };
 
 
-inode_t *window_open(desktop_t *desk, int width, int height, int flags)
+inode_t *window_open(desktop_t *desk, int width, int height, unsigned features, unsigned evmask)
 {
-    surface_t *fb = create_win(width, height);
+    surface_t *fb = create_win(/*width, height*/);
     if (fb == NULL)
         return NULL;
     inode_t *ino = vfs_inode(atomic_xadd(desk->win_no, 1), FL_WIN, NULL);
 
     window_t *win = kalloc(sizeof(window_t));
+    win->fb = fb;
+    win->mq = pipe_create();
+    win->task = kCPU.running;
+    win->status = 0;
+    splock_lock(&kDESK.lock);
+    ll_push_back(&kDESK.list, &win->node);
+    splock_unlock(&kDESK.lock);
+
     ino->ops = &win_ops;
     ino->info = win;
 }
@@ -169,5 +179,138 @@ int window_push_event(inode_t *win, event_t *event)
 int window_poll_push(inode_t *win, event_t *event)
 {
     return -1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+extern const font_bmp_t font_6x10;
+extern const font_bmp_t font_8x15;
+extern const font_bmp_t font_7x13;
+extern const font_bmp_t font_6x9;
+extern const font_bmp_t font_8x8;
+
+
+uint32_t colors_std[] = {
+    0x000000, 0x800000, 0x008000, 0x808000, 0x000080, 0x800080, 0x008080, 0x808080, 0xFFFFFF,
+    0xD0D0D0, 0xFF0000, 0x00FF00, 0xFFFF00, 0x0000FF, 0xFF00FF, 0x00FFFF, 0xFFFFFF, 0xFFFFFF,
+};
+
+uint32_t colors_kora[] = {
+    0x181818, 0xA61010, 0x10A610, 0xA66010, 0x1010A6, 0xA610A6, 0x10A6A6, 0xA6A6A6, 0xFFFFFF,
+    0x323232, 0xD01010, 0x10D010, 0xD06010, 0x1010D0, 0xD010D0, 0x10D0D0, 0xD0D0D0, 0xFFFFFF,
+};
+
+tty_t *tty_syslog = NULL;
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#define FRAME_SZ 7
+
+int x = 0;
+int y = 0;
+int width, height;
+
+tty_t *slog;
+
+surface_t *create_win()
+{
+    surface_t *win;
+    if (width > height) {
+        win = vds_create(width / 2 - 2, height - 2 - FRAME_SZ, 4);
+        win->x = x + 1;
+        win->y = y + 1 + FRAME_SZ;
+        x += width / 2;
+        width /= 2;
+    } else {
+        win = vds_create(width - 2, height / 2 - 2 - FRAME_SZ, 4);
+        win->x = x + 1;
+        win->y = y + 1 + FRAME_SZ;
+        y += height / 2;
+        height /= 2;
+    }
+    return win;
+}
+
+
+
+void graphic_task()
+{
+    inode_t *ino = window_open(&kDESK, 0,0,0,0);
+
+    void* pixels = kmap(2 * _Mib_, ino, 0, VMA_FILE_RW | VMA_RESOLVE);
+    // MAP NODE / USE IT TO DRAW ON SURFACE
+
+    char v = 0;
+    for (;; ++v) {
+        sys_sleep(10000);
+        memset(pixels, v, 32 * PAGE_SIZE);
+    }
+}
+
+void desktop()
+{
+    inode_t *dev;
+    for (;;) {
+        dev = vfs_search_device("fb0");
+        if (dev != NULL)
+            break;
+        sys_sleep(10000);
+    }
+    kprintf(-1, "We have a screen !\n");
+
+    surface_t *screen = (surface_t *)dev->info;
+    width = screen->width;
+    height = screen->height;
+
+    kprintf(-1, "Desktop %dx%d\n", width, height);
+
+    // create window
+    inode_t *ino1 = window_open(&kDESK, 0,0,0,0);
+    surface_t *win1 = ((window_t*)ino1->info)->fb;
+    kernel_tasklet(graphic_task, NULL, "Example app");
+
+    tty_window(slog, win1, &font_6x10);
+
+    for (;;) {
+        vds_fill(screen, 0xd2d2d2);
+        tty_paint(slog);
+        // vds_fill(win1, 0x10a6a6);
+        // vds_fill(win2, 0xa610a6);
+        // vds_fill(win3, 0x1010a6);
+        // vds_fill(win4, 0xa61010);
+        // vds_fill(win5, 0xa6a610);
+
+        splock_lock(&kDESK.lock);
+        window_t *win;
+        for ll_each(&kDESK.list, win, window_t, node) {
+            vds_rect(screen, win->fb->x, win->fb->y - FRAME_SZ,  win->fb->width, FRAME_SZ, 0xa61010);
+            vds_copy(screen, win->fb, win->fb->x, win->fb->y);
+        }
+        splock_unlock(&kDESK.lock);
+
+        screen->flip(screen);
+        sys_sleep(10000);
+    }
 }
 

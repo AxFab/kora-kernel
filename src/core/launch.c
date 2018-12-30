@@ -37,27 +37,6 @@ void sys_ticks();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-extern const font_bmp_t font_6x10;
-extern const font_bmp_t font_8x15;
-extern const font_bmp_t font_7x13;
-extern const font_bmp_t font_6x9;
-extern const font_bmp_t font_8x8;
-
-
-uint32_t colors_std[] = {
-    0x000000, 0x800000, 0x008000, 0x808000, 0x000080, 0x800080, 0x008080, 0x808080, 0xFFFFFF,
-    0xD0D0D0, 0xFF0000, 0x00FF00, 0xFFFF00, 0x0000FF, 0xFF00FF, 0x00FFFF, 0xFFFFFF, 0xFFFFFF,
-};
-
-uint32_t colors_kora[] = {
-    0x181818, 0xA61010, 0x10A610, 0xA66010, 0x1010A6, 0xA610A6, 0x10A6A6, 0xA6A6A6, 0xFFFFFF,
-    0x323232, 0xD01010, 0x10D010, 0xD06010, 0x1010D0, 0xD010D0, 0x10D0D0, 0xD0D0D0, 0xFFFFFF,
-};
-
-tty_t *tty_syslog = NULL;
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
 
 struct kSys kSYS;
 struct kCpu kCPU0;
@@ -116,76 +95,9 @@ void tty_start()
     }
 }
 
-int x = 0;
-int y = 0;
-int width, height;
 
-tty_t *slog;
-
-surface_t *create_win()
-{
-    surface_t *win;
-    if (width > height) {
-        win = vds_create(width / 2 - 2, height - 2, 4);
-        win->x = x + 1;
-        win->y = y + 1;
-        x += width / 2;
-        width /= 2;
-    } else {
-        win = vds_create(width - 2, height / 2 - 2, 4);
-        win->x = x + 1;
-        win->y = y + 1;
-        y += height / 2;
-        height /= 2;
-    }
-    return win;
-}
-
-void desktop()
-{
-    inode_t *dev;
-    for (;;) {
-        dev = vfs_search_device("fb0");
-        if (dev != NULL)
-            break;
-        sys_sleep(10000);
-    }
-    kprintf(-1, "We have a screen !\n");
-
-    surface_t *screen = (surface_t *)dev->info;
-    width = screen->width;
-    height = screen->height;
-
-    kprintf(-1, "Desktop %dx%d\n", width, height);
-
-
-    // create window
-    surface_t *win1 = create_win();
-    surface_t *win2 = create_win();
-    surface_t *win3 = create_win();
-    surface_t *win4 = create_win();
-    surface_t *win5 = create_win();
-    tty_window(slog, win1, &font_6x10);
-
-    for (;;) {
-
-        vds_fill(screen, 0xe2e2e2);
-        tty_paint(slog);
-        // vds_fill(win1, 0x10a6a6);
-        vds_fill(win2, 0xa610a6);
-        vds_fill(win3, 0x1010a6);
-        vds_fill(win4, 0xa61010);
-        vds_fill(win5, 0xa6a610);
-        vds_copy(screen, win1, win1->x, win1->y);
-        vds_copy(screen, win2, win2->x, win2->y);
-        vds_copy(screen, win3, win3->x, win3->y);
-        vds_copy(screen, win4, win4->x, win4->y);
-        vds_copy(screen, win5, win5->x, win5->y);
-        screen->flip(screen);
-        sys_sleep(1000000);
-
-    }
-}
+extern tty_t *slog;
+void desktop();
 
 
 void kernel_master()
