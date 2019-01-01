@@ -97,8 +97,7 @@ void task_start(task_t *task, void *entry, void *args)
     if (task->usmem && !task->ustack) {
         // TODO -- Map at the end
         task->ustack_len = 1 * _Mib_;
-        task->ustack = mspace_map(task->usmem, 0, task->ustack_len, NULL, 0,
-                                  0, VMA_STACK_RW);
+        task->ustack = mspace_map(task->usmem, 0, task->ustack_len, NULL, 0, VMA_STACK_RW);
     }
 
     cpu_stack(task, (size_t)entry, (size_t)args);

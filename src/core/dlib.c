@@ -17,7 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include "dlib.h"
+#include <kernel/dlib.h>
 #include <kora/hmap.h>
 #include <kora/llist.h>
 #include <kernel/core.h>
@@ -205,7 +205,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
         size_t addr = rand32() % (mspace->upper_bound - mspace->lower_bound);
         addr += mspace->lower_bound;
         addr = ALIGN_DW(addr, PAGE_SIZE);
-        base = mspace_map(mspace, addr, lib->length, NULL, 0, 0, VMA_ANON_RW | VMA_MAP_FIXED);
+        base = mspace_map(mspace, addr, lib->length, NULL, 0, VMA_ANON_RW | VMA_MAP_FIXED);
     } while (base == NULL);
 
     // List symbols

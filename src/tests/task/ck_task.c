@@ -38,8 +38,7 @@ mspace_t *mspace_open(mspace_t *mspace)
 }
 void mspace_close(mspace_t *mspace) {}
 // void mspace_map(mspace_t *mspace) {}
-void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
-                 off_t off, off_t limit, int flags)
+void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, off_t off, int flags)
 {
     return NULL;
 }

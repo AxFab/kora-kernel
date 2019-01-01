@@ -139,7 +139,7 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
 {
     int ret = 0;
     // assert(kCPU.irq_semaphore == 0); //But IRQ must still be disabld!
-    // kprintf(KLOG_PF, "\033[91m#PF\033[31m %p\033[0m\n", address);
+    kprintf(KLOG_PF, "\033[91m#PF\033[31m %p\033[0m\n", address);
     vma_t *vma = mspace_search_vma(mspace, address);
     if (vma == NULL)
         task_fatal("No mapping at this address", SIGSEGV);

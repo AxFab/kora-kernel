@@ -67,4 +67,9 @@ static inline int POW2_UP(int val)
     return val + 1;
 }
 
+#define VERS32(mj,mn,pt) ( (((mj) & 0x3FF) << 20) | (((mn) & 0x3FF) << 8) | ((pt) & 0xFF) )
+#define VERS32_MJ(v) (((v) >> 20) & 0x3FF)
+#define VERS32_MN(v) (((v) >> 8) & 0x3FF)
+#define VERS32_PT(v) ((v) & 0xFF)
+
 #endif  /* _KORA_MCRS_H */

@@ -130,7 +130,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     length = ALIGN_UP(length, PAGE_SIZE);
     flags &= ~(VMA_RIGHTS << 4);
     flags |= (flags & VMA_RIGHTS) << 4;
-    void *ptr = mspace_map(kMMU.kspace, 0, length, ino, offset, 0, flags);
+    void *ptr = mspace_map(kMMU.kspace, 0, length, ino, offset, flags);
     return ptr;
 }
 

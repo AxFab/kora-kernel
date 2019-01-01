@@ -80,7 +80,7 @@ static void vma_log(CSTR prefix, vma_t *vma)
 
 /* - */
 vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
-                  off_t offset, off_t limit, int flags)
+                  off_t offset, int flags)
 {
     vma_t *vma = (vma_t *)kalloc(sizeof(vma_t));
     vma->mspace = mspace;
@@ -88,7 +88,6 @@ vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
     vma->length = length;
     vma->ino = vfs_open(ino);
     vma->offset = offset;
-    vma->limit = limit;
     vma->flags = flags;
     bbtree_insert(&mspace->tree, &vma->node);
     mspace->v_size += length;
@@ -106,7 +105,6 @@ vma_t *vma_clone(mspace_t *mspace, vma_t *model)
     vma->length = model->length;
     vma->ino = vfs_open(model->ino);
     vma->offset = model->offset;
-    vma->limit = model->limit;
     vma->flags = model->flags;
     bbtree_insert(&mspace->tree, &vma->node);
     mspace->v_size += model->length;
@@ -142,13 +140,6 @@ vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length)
 
     /* Update size */
     area->length = length;
-    if (area->limit != 0) {
-        if (area->limit > (off_t)length) {
-            vma->limit = area->limit - length;
-            area->limit = 0;
-        } else
-            vma->limit = -1;
-    }
 
     /* Insert new one */
     bbtree_insert(&mspace->tree, &vma->node);

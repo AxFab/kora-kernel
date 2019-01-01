@@ -172,7 +172,7 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length,
 
 /* Map a memory area inside the provided address space. */
 void *mspace_map(mspace_t *mspace, size_t address, size_t length,
-                 inode_t *ino, off_t offset, off_t limit, int flags)
+                 inode_t *ino, off_t offset, int flags)
 {
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
@@ -209,7 +209,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
     }
 
     /* Create the VMA */
-    vma_t *vma = vma_create(mspace, address, length, ino, offset, limit, vflags);
+    vma_t *vma = vma_create(mspace, address, length, ino, offset, vflags);
     if (flags & VMA_RESOLVE)
         vma_resolve(vma, address, length);
     errno = 0;

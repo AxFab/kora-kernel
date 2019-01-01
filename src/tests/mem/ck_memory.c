@@ -58,14 +58,13 @@ START_TEST(test_01)
     irq_reset(true);
 
     // Map RW arena
-    void *ad0 = mspace_map(kMMU.kspace, 0, 4 * PAGE_SIZE, NULL, 0, 0, VMA_HEAP_RW);
+    void *ad0 = mspace_map(kMMU.kspace, 0, 4 * PAGE_SIZE, NULL, 0, VMA_HEAP_RW);
     ck_assert(ad0 != NULL && errno == 0);
     ck_assert(mmu_read((size_t)ad0) == 0);
 
     // Map RO arena
 
-    void *ad1 = mspace_map(kMMU.kspace, 0, 2 * PAGE_SIZE, ino, PAGE_SIZE, 0,
-                           VMA_FILE_RO);
+    void *ad1 = mspace_map(kMMU.kspace, 0, 2 * PAGE_SIZE, ino, PAGE_SIZE, VMA_FILE_RO);
     ck_assert(ad1 != NULL && errno == 0);
     ck_assert(mmu_read((size_t)ad1) == 0);
 
@@ -73,20 +72,19 @@ START_TEST(test_01)
     page_fault(NULL, (size_t)ad0, PGFLT_MISSING);
     ck_assert(mmu_read((size_t)ad0) != 0);
 
-    void *ad2 = mspace_map(kMMU.kspace, 0, 1 * PAGE_SIZE, NULL, 0, 0, VMA_STACK_RW);
+    void *ad2 = mspace_map(kMMU.kspace, 0, 1 * PAGE_SIZE, NULL, 0, VMA_STACK_RW);
     ck_assert(ad2 != NULL && errno == 0);
     ck_assert(mmu_read((size_t)ad2) == 0);
 
     // Map physical memory, and resolve alls pages
     size_t avail = kMMU.free_pages;
-    void *ad3 = mspace_map(kMMU.kspace, 0, 8 * PAGE_SIZE, NULL, 0xFC00000, 0,
-                           VMA_PHYSIQ);
+    void *ad3 = mspace_map(kMMU.kspace, 0, 8 * PAGE_SIZE, NULL, 0xFC00000, VMA_PHYSIQ);
     ck_assert(ad3 != NULL && errno == 0);
     ck_assert(mmu_read((size_t)ad3) != 0);
     ck_assert(avail == kMMU.free_pages); // Only true as we don't have tables
 
     // Map a file RW but private
-    void *ad4 = mspace_map(kMMU.kspace, 0, 2 * PAGE_SIZE, ino, 0, 0, VMA_FILE_WP);
+    void *ad4 = mspace_map(kMMU.kspace, 0, 2 * PAGE_SIZE, ino, 0, VMA_FILE_WP);
     ck_assert(ad4 != NULL && errno == 0);
     ck_assert(mmu_read((size_t)ad4) == 0);
 
@@ -100,8 +98,7 @@ START_TEST(test_01)
     ck_assert(mmu_read((size_t)ad1 + PAGE_SIZE) != 0);
     mspace_unmap(kMMU.kspace, (size_t)ad1 + PAGE_SIZE, PAGE_SIZE);
 
-    ad1 = mspace_map(kMMU.kspace, (size_t)ad1, PAGE_SIZE, NULL, 0, 0,
-                     VMA_ANON | VMA_RX);
+    ad1 = mspace_map(kMMU.kspace, (size_t)ad1, PAGE_SIZE, NULL, 0, VMA_ANON | VMA_RX);
     ck_assert(ad1 != NULL && errno == 0);
 
 
@@ -136,7 +133,7 @@ START_TEST(test_02)
 
 
 
-    mspace_map(m1, 0x10000000 + 6 * PAGE_SIZE, PAGE_SIZE, NULL, 0, 0, VMA_ANON_RW);
+    mspace_map(m1, 0x10000000 + 6 * PAGE_SIZE, PAGE_SIZE, NULL, 0, VMA_ANON_RW);
 
 
     mspace_display(kMMU.kspace);

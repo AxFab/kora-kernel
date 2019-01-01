@@ -20,10 +20,22 @@
 #include <kernel/core.h>
 #include <kernel/cpu.h>
 #include <kernel/drv/pci.h>
+#include <kernel/sdk.h>
 
 
 #define PCI_IO_CFG_ADDRESS 0xCF8
 #define PCI_IO_CFG_DATA 0xCFC
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+void __divdi3();
+kdk_api_t x86_kapi[] = {
+    KAPI(pci_search),
+    KAPI(pci_config_write32),
+    KAPI(pci_config_read16),
+    KAPI(__divdi3),
+    { NULL, 0, NULL },
+};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -320,7 +332,6 @@ struct PCI_device *pci_search(pci_matcher match, int *data)
 
 void kmod_register(kmod_t *mod);
 void mboot_load_modules();
-KMODULE(dev);
 KMODULE(csl);
 KMODULE(serial);
 KMODULE(ps2);
@@ -331,16 +342,17 @@ KMODULE(fatfs);
 
 void platform_setup()
 {
+    kmod_symbols(x86_kapi);
+
     pci_setup();
 
     mboot_load_modules();
 
-    kmod_register(&kmod_info_dev);
     kmod_register(&kmod_info_csl);
     kmod_register(&kmod_info_serial);
-    // kmod_register(&kmod_info_ps2);
 
     // Load file systems
-    kmod_register(&kmod_info_isofs);
-    kmod_register(&kmod_info_fatfs);
+    kmod_register(&kmod_info_ps2);
+    // kmod_register(&kmod_info_isofs);
+    // kmod_register(&kmod_info_fatfs);
 }
