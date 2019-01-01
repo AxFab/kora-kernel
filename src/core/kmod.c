@@ -20,9 +20,9 @@
 #include <kernel/core.h>
 #include <kernel/vfs.h>
 #include <kernel/task.h>
+#include <kernel/dlib.h>
 #include <string.h>
 #include <errno.h>
-#include "dlib.h"
 
 
 #include <kernel/net.h>
@@ -44,6 +44,7 @@ extern proc_t kproc;
 void kmod_register(kmod_t *mod)
 {
     splock_lock(&kmod_lock);
+    mod->dlib = NULL;
     ll_enqueue(&kmod_standby, &mod->node);
     splock_unlock(&kmod_lock);
 }
@@ -150,7 +151,7 @@ void kmod_loader()
                     break;
                 }
 
-                // kprintf(-1, " -> %s at %p\n", symbol->name, symbol-> );
+                // kprintf(-1, " -> %s at %p\n", reloc->symbol->name, reloc->symbol->address );
                 // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
                 // TODO - Do not replace first occurence of a symbol.
             }
@@ -170,7 +171,11 @@ void kmod_loader()
                     // kprintf(-1, "Found new module info: %s at %p\n",
                     //         symbol->name, symbol->address);
                     kmod_t *mod = (kmod_t *)symbol->address;
-                    kmod_register(mod);
+                    // kmod_register(mod);
+                    splock_lock(&kmod_lock);
+                    mod->dlib = dlib;
+                    ll_enqueue(&kmod_standby, &mod->node);
+                    splock_unlock(&kmod_lock);
                 }
             }
         }
@@ -194,3 +199,20 @@ void kmod_loader()
         ll_enqueue(&kmod_started, &mod->node);
     }
 }
+
+
+void kmod_dump()
+{
+    kmod_t *mod;
+    splock_lock(&kmod_lock);
+    kprintf(KLOG_MSG, "Loaded driver:\n");
+    for ll_each(&kmod_started, mod, kmod_t, node) {
+        kprintf(KLOG_MSG, " %-20s  %d.%d.%d   %s\n", mod->name,
+            VERS32_MJ(mod->version),
+            VERS32_MN(mod->version),
+            VERS32_PT(mod->version),
+            mod->dlib ? "LOADED" : "EMBEDED");
+    }
+    splock_unlock(&kmod_lock);
+}
+

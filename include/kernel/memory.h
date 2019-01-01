@@ -37,7 +37,7 @@ mspace_t *mspace_clone(mspace_t *model);
 
 /* Map a memory area inside the provided address space. */
 void *mspace_map(mspace_t *mspace, size_t address, size_t length,
-                 inode_t *ino, off_t offset, off_t limit, int flags);
+                 inode_t *ino, off_t offset, int flags);
 /* Change the protection flags of a memory area. */
 int mspace_protect(mspace_t *mspace, size_t address, size_t length, int flags);
 /* Change the flags of a memory area. */

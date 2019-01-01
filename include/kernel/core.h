@@ -108,6 +108,8 @@ struct kmod {
     void (*setup)();
     void (*teardown)();
     llnode_t node;
+    int version;
+    dynlib_t *dlib;
 };
 
 void kmod_init();
@@ -119,6 +121,7 @@ void kmod_mount(inode_t *root);
         .name = #n, \
         .setup = s, \
         .teardown = t, \
+        .version = VERS32(0,1,0), \
     }
 
 #define MOD_REQUIRE(n) \

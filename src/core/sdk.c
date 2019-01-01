@@ -1,26 +1,4 @@
-#include <kernel/core.h>
-#include <kernel/vfs.h>
-#include <kernel/device.h>
-#include <kernel/files.h>
-#include <kernel/memory.h>
-#include <kernel/task.h>
-#include <kernel/net.h>
-#include <kernel/syscalls.h>
-#include <string.h>
-#include <time.h>
-#include <errno.h>
-#include "dlib.h"
-
-#include <kernel/drv/pci.h>
-
-#define KAPI(n) { &(n), 0, #n }
-struct kdk_api {
-    void *address;
-    size_t length;
-    const char *name;
-};
-
-extern proc_t kproc;
+#include <kernel/sdk.h>
 
 void kmod_symbol(CSTR name, void *ptr)
 {
@@ -36,11 +14,6 @@ void kmod_symbols(kdk_api_t* kapi)
     for (;kapi->address;++kapi)
         kmod_symbol(kapi->name, kapi->address);
 }
-
-
-#define KSYMBOL(n) kmod_symbol(#n, &(n))
-
-
 
 
 
@@ -112,8 +85,8 @@ kdk_api_t base_kapi[] = {
     KAPI(vfs_read),
     KAPI(vfs_write),
 
-    // KAPI(register_fs),
-    // KAPI(unregister_fs),
+    KAPI(register_fs),
+    KAPI(unregister_fs),
 
     KAPI(pipe_create),
     KAPI(pipe_read),
@@ -165,19 +138,11 @@ kdk_api_t base_kapi[] = {
 };
 
 
-void __divdi3();
+KMODULE(dev);
 void kmod_init()
 {
     hmp_init(&kproc.symbols, 32);
     kmod_symbols(base_kapi);
-
-
-    KSYMBOL(pci_config_write32);
-    KSYMBOL(pci_config_read16);
-    KSYMBOL(pci_search);
-    KSYMBOL(__divdi3);
-
-    KSYMBOL(mmu_read);
-
+    kmod_register(&kmod_info_dev);
 }
 

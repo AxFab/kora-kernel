@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _SRC_DLIB
-#define _SRC_DLIB 1
+#ifndef _KERNEL_DLIB_H
+#define _KERNEL_DLIB_H 1
 
 #include <kernel/core.h>
 #include <kora/stddef.h>
@@ -113,4 +113,4 @@ void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
 int elf_parse(dynlib_t *dlib);
 
 
-#endif  /* _SRC_DLIB */
+#endif  /* _KERNEL_DLIB_H */

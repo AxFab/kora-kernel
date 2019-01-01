@@ -51,16 +51,6 @@ uint64_t time_elapsed(uint64_t *last)
     return elapsed;
 }
 
-
-void clock_init()
-{
-    time_us = cpu_time() * 1000000LL;
-    timer_cpu = cpu_no();
-    splock_init(&xtime_lock);
-    time_elapsed(&ticks_last);
-}
-
-
 void sys_ticks()
 {
     // kprintf(-1, "CPU.%d Ticks\n", cpu_no());
@@ -81,5 +71,13 @@ void sys_ticks()
     scheduler_switch(TS_READY, 0);
 }
 
+void clock_init()
+{
+    irq_register(0, (irq_handler_t)sys_ticks, NULL);
 
+    time_us = cpu_time() * 1000000LL;
+    timer_cpu = cpu_no();
+    splock_init(&xtime_lock);
+    time_elapsed(&ticks_last);
+}
 

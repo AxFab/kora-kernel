@@ -64,8 +64,8 @@ void kernel_top(long sec)
     }
 }
 
-// volatile inode_t *pp;
 int pp[] = { -1, -1 };
+
 
 void tty_start()
 {
@@ -78,20 +78,16 @@ void tty_start()
     }
     // kprintf(-1, "Tty found keyboard\n");
 
-    // while (pp == NULL)
     while (pp[1] == -1)
         sys_sleep(10000);
 
     event_t event;
+    int status = 0;
     for (;;) {
         vfs_read(dev, (char *)&event, sizeof(event), 0, 0);
-        if (event.type == 3) {
-            char c = seat_key_unicode(event.param2 & 0xFFF, event.param2 >> 16);
-            kprintf(-1, "Tty key %x -> %x\n", event.param2 & 0xFFF, c);
-            if ((c >= ' ' && c < 0x80) || c == '\n')
-                sys_write(pp[1], &c, 1);
-            // vfs_write(pp, &c, 1, 0, 0);
-        }
+        int key = event.param2 & 0xFFF;
+        int mod = event.param2 >> 16;
+        kprintf(-1, "KDB %d (%x - %x)\n", event.type, key, mod);
     }
 }
 
@@ -114,7 +110,6 @@ void kernel_master()
             break;
         sys_sleep(10000);
     }
-    // kprintf(-1, "Master found the device\n");
 
     // vfs_mount(root, "dev", NULL, "devfs");
     // vfs_mount(root, "tmp", NULL, "tmpfs");
@@ -128,51 +123,17 @@ void kernel_master()
 
     sys_sleep(10000);
     task_show_all();
-    char *buf;
+    kmod_dump();
 
-    // inode_t *ino;
-    // char name[256];
-    // void *dir_ctx = vfs_opendir(root, NULL);
-    // kprintf(-1, "Root readdir:");
-    // while ((ino = vfs_readdir(root, name, dir_ctx)) != NULL) {
-    //     kprintf(-1, "  /%s%s   ", name, ino->type == FL_DIR ? "/" : "");
-    //     vfs_close(ino);
-    // }
-    // kprintf(-1, "\n");
-    // vfs_closedir(root, dir_ctx);
+    // sys_sleep(1000000);
+    // mspace_display(kMMU.kspace);
 
-    // sys_sleep(10000);
-
-    // const char *txt_filename = "boot/grub/grub.cfg";
-    // // const char *txt_filename = "BOOT/GRUB/MENU.LST";
-
-    // kCPU.running->pwd = root;
-    // int fd = sys_open(-1, txt_filename, 0);
-    // if (fd == -1)
-    //     kprintf(-1, "Unable to open %s \n", txt_filename);
-    // buf = kalloc(512);
-    // for (;;) {
-    //     int lg = sys_read(fd, buf, 512);
-    //     if (lg <= 0)
-    //         break;
-    //     buf[lg] = '\0';
-    //     kprintf(-1, "Content of '%s' (%x) \n%s\n", txt_filename, lg, buf);
-    // }
-    // sys_close(fd);
-    // kfree(buf);
-
-
-    sys_sleep(1000000);
-    mspace_display(kMMU.kspace);
-
-    // pp = vfs_inode(1, FL_PIPE, NULL);
     sys_pipe(pp);
 
-    buf = kalloc(32);
+    char buf[32];
     int idx = 0;
     for (;;) {
         kprintf(-1, "Master >\n");
-        // idx = vfs_read(pp, &buf[idx], 10 - idx, 0, 0);
         idx = sys_read(pp[0], &buf[idx], 10 - idx);
         buf[idx] = '\0';
         char *nx = strchr(buf, '\n');
@@ -196,7 +157,7 @@ long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 }
 
 
-
+/* Kernel entry point, must be reach by a single CPU */
 void kernel_start()
 {
     kSYS.cpus = &kCPU0;
@@ -218,26 +179,22 @@ void kernel_start()
     slog = tty_create(128);
     kprintf(KLOG_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
 
-
+    assert(kCPU.irq_semaphore == 1);
     vfs_init();
+    kmod_init();
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    kmod_init();
     kernel_tasklet(kmod_loader, NULL, "Kernel loader #1");
     kernel_tasklet(kmod_loader, NULL, "Kernel loader #2");
     kernel_tasklet(kernel_master, NULL, "Master");
 
-    // no_dbg = 0;
-    // int clock_irq = 2;
     clock_init();
-    irq_register(0, (irq_handler_t)sys_ticks, NULL);
-    // irq_register(2, (irq_handler_t)sys_ticks, NULL);
-    // PS2_reset();
     assert(kCPU.irq_semaphore == 1);
     irq_reset(false);
 }
 
+/* Kernel secondary entry point, must be reach by additional CPUs */
 void kernel_ready()
 {
     /*

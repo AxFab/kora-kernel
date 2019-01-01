@@ -22,6 +22,7 @@
 
 #include <kernel/core.h>
 #include <kernel/input.h>
+#include <kernel/files.h>
 #include <kernel/device.h>
 #include <kernel/cpu.h>
 

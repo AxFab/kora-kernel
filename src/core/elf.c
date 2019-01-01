@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "elf.h"
-#include "dlib.h"
+#include <kernel/dlib.h>
 #include <errno.h>
 #include <string.h>
 
@@ -184,8 +184,12 @@ int elf_parse(dynlib_t *dlib)
             break;
         // TODO -- How to detect the end of table!
         dynrel_t *rel = kalloc(sizeof(dynrel_t));
-        ll_append(&dlib->relocations, &rel->node);
         elf_relocation(rel, &rel_tbl[i * ent_sz], &symbols);
+        if (rel->address == NULL) {
+            kfree(rel);
+            break;
+        }
+        ll_append(&dlib->relocations, &rel->node);
         rel += dynamic.rel_ent / sizeof(uint32_t);
     }
     bio_clean(dlib->io, dynamic.rel / PAGE_SIZE);

@@ -21,19 +21,22 @@
 #include <kernel/device.h>
 #include <kernel/files.h>
 #include <kernel/task.h>
+#include <kernel/input.h>
 #include <errno.h>
 
+typedef struct window window_t;
 struct desktop {
     atomic_t win_no;
     llhead_t list;
     splock_t lock;
+    window_t *focus;
+    int key_mods;
 };
 
 desktop_t kDESK;
 // Desktop related
 surface_t *create_win();
 
-typedef struct window window_t;
 struct window {
     surface_t *fb;
     pipe_t *mq;
@@ -86,12 +89,6 @@ int win_read(inode_t *ino, char *buf, size_t len, int flags)
     return pipe_read(win->mq, buf, len, flags);
 }
 
-int win_write(inode_t *ino, const char *buf, size_t len, int flags)
-{
-    assert(ino->type == FL_WIN);
-    window_t *win = (window_t *)ino->info;
-    return pipe_write(win->mq, buf, len, flags);
-}
 
 void win_reset(inode_t *ino)
 {
@@ -123,7 +120,6 @@ ino_ops_t win_ops = {
     .fetch = win_fetch,
     .release = win_release,
     .read = win_read,
-    .write = win_write,
     .reset = win_reset,
     .flip = win_flip,
     .resize = win_resize,
@@ -172,15 +168,6 @@ int window_get_features(inode_t *win, int features, int *args)
     return -1;
 }
 
-int window_push_event(inode_t *win, event_t *event)
-{
-    return -1;
-}
-
-int window_poll_push(inode_t *win, event_t *event)
-{
-    return -1;
-}
 
 
 
@@ -306,10 +293,101 @@ void graphic_task()
 
     char v = 0;
     for (;; ++v) {
-        sys_sleep(10000);
+        sys_sleep(100000);
         // memset(pixels, v, 32 * PAGE_SIZE);
     }
 }
+
+
+#define KMOD_CTRL  1
+#define KMOD_ALT   2
+#define KMOD_SHIFT 4
+
+#define KEY_CAPS_LOCK  0x3A
+#define KEY_NUM_LOCK  0x45
+#define KEY_SCROLL_LOCK  0x46
+#define KEY_SHIFT_L  0x2A
+#define KEY_SHIFT_R  0x36
+#define KEY_CTRL_L  0x1D
+#define KEY_CTRL_R  0x61
+#define KEY_ALT  0x38
+#define KEY_ALTGR  0x64
+#define KEY_HOST  0x5b
+#define KEY_TAB  0x0f
+
+void desktop_event(desktop_t *desk, event_t *event)
+{
+    splock_lock(&desk->lock);
+    window_t *win = desk->focus;
+    splock_unlock(&desk->lock);
+    pipe_write(win->mq, (char*)&event, sizeof(event), 0);
+}
+
+static int input_event_kdbdown(desktop_t *desk, event_t *event)
+{
+    int key = event->param1 & 0xFFF;
+    int mod = event->param1 >> 16;
+    kprintf(-1, "KEY DW (%x - %x)\n", key, mod);
+
+    if (key == KEY_CTRL_L || key == KEY_CTRL_R)
+        desk->key_mods |= KMOD_CTRL;
+    else if (key == KEY_ALT || key == KEY_ALTGR)
+        desk->key_mods |= KMOD_ALT;
+    else if (key == KEY_SHIFT_L || key == KEY_SHIFT_R)
+        desk->key_mods |= KMOD_SHIFT;
+
+    if (key == KEY_TAB) {
+        splock_lock(&desk->lock);
+        window_t *win = itemof(ll_pop_front(&desk->list), window_t, node);
+        if (win != NULL) {
+            desk->focus = win;
+            ll_push_back(&desk->list, &win->node);
+        }
+        splock_unlock(&desk->lock);
+    } else {
+        desktop_event(desk, event);
+    }
+    return 0;
+}
+
+static int input_event_kdbup(desktop_t *desk, event_t *event)
+{
+    int key = event->param1 & 0xFFF;
+    int mod = event->param1 >> 16;
+    kprintf(-1, "KEY UP (%x - %x)\n", key, mod);
+
+    if (key == KEY_CTRL_L || key == KEY_CTRL_R)
+        desk->key_mods &= ~KMOD_CTRL;
+    else if (key == KEY_ALT || key == KEY_ALTGR)
+        desk->key_mods &= ~KMOD_ALT;
+    else if (key == KEY_SHIFT_L || key == KEY_SHIFT_R)
+        desk->key_mods &= ~KMOD_SHIFT;
+
+    desktop_event(desk, event);
+    return 0;
+}
+
+void input_event(inode_t *dev, int type, int param, pipe_t *pipe)
+{
+    event_t event;
+    event.type = type;
+    event.param1 = param;
+    switch (type) {
+    case 3:
+        if (input_event_kdbdown(&kDESK, &event) == 0)
+            return;
+        break;
+    case 4:
+        if (input_event_kdbup(&kDESK, &event) == 0)
+            return;
+        break;
+    }
+
+    if (pipe != NULL) {
+        pipe_write(pipe, (char*)&event, sizeof(event), 0);
+    }
+}
+
 
 void desktop()
 {
@@ -331,7 +409,8 @@ void desktop()
     inode_t *ino1 = window_open(&kDESK, 0,0,0,0);
     surface_t *win1 = ((window_t*)ino1->info)->fb;
     kernel_tasklet(graphic_task, NULL, "Example app");
-    window_t *win_focus = (window_t*)ino1->info;
+    kernel_tasklet(graphic_task, NULL, "Example app");
+    kDESK.focus = (window_t*)ino1->info;
 
     tty_window(slog, win1, &font_7x13);
 
@@ -343,13 +422,13 @@ void desktop()
         window_t *win;
         for ll_each(&kDESK.list, win, window_t, node) {
             vds_rect(screen, win->fb->x, win->fb->y - FRAME_SZ,  win->fb->width,
-                FRAME_SZ, win_focus == win ? 0x8b9b4e : 0xdddddd);
+                FRAME_SZ, kDESK.focus == win ? 0x8b9b4e : 0xdddddd);
             vds_copy(screen, win->fb, win->fb->x, win->fb->y);
         }
         splock_unlock(&kDESK.lock);
 
         screen->flip(screen);
-        sys_sleep(10000);
+        sys_sleep(100000);
     }
 }
 
