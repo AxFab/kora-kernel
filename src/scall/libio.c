@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -48,7 +48,7 @@ int sys_close(int fd)
 
 int sys_read(int fd, const struct iovec *vec, unsigned long vlen)
 {
-	unsigned i;
+    unsigned i;
     task_t *task = kCPU.running;
     inode_t *ino = resx_get(task->resx, fd);
     if (ino == NULL)
@@ -79,7 +79,7 @@ int sys_read(int fd, const struct iovec *vec, unsigned long vlen)
 
 int sys_write(int fd, const struct iovec *vec, unsigned long vlen)
 {
-	unsigned i;
+    unsigned i;
     task_t *task = kCPU.running;
     inode_t *ino = resx_get(task->resx, fd);
     if (ino == NULL)

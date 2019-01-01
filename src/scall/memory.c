@@ -42,7 +42,7 @@ void *sys_mmap(size_t address, size_t length, int fd, off_t offset,
 
     else
         vmaflags |= VMA_ANON;
-    return mspace_map(task->usmem, address, length, ino, offset, 0, vmaflags);
+    return mspace_map(task->usmem, address, length, ino, offset, vmaflags);
 }
 
 int sys_mprotect(size_t address, size_t length, unsigned int flags)

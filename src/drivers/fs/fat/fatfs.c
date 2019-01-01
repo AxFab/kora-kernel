@@ -54,9 +54,9 @@ int fatfs_truncate(inode_t *ino, off_t length)
         i = 1;
     }
 
-    int prev = -1;
+    // int prev = -1;
     for (n = MIN(lg, mx); i < n; ++i) {
-        prev = cluster;
+        // prev = cluster;
         // cluster = fatfs_next_cluster_16(info, cluster);
     }
     for (; i < mx; ++i)

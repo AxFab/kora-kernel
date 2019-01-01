@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -19,19 +19,20 @@
  */
 #include <kernel/files.h>
 #include <kora/mcrs.h>
+#include <string.h>
 
 
-// static void vds_rect(surface_t *win, int x, int y, int w, int h, uint32_t color)
-// {
-//     int i, j, dp = win->depth;
-//     for (j = 0; j < h; ++j) {
-//         for (i = 0; i < w; ++i) {
-//             win->pixels[(j+y)*win->pitch+(i+x)* dp + 0] = (color >> 0) & 0xFF;
-//             win->pixels[(j+y)*win->pitch+(i+x)* dp + 1] = (color >> 8) & 0xFF;
-//             win->pixels[(j+y)*win->pitch+(i+x)* dp + 2] = (color >> 16) & 0xFF;
-//         }
-//     }
-// }
+void vds_rect(surface_t *win, int x, int y, int w, int h, uint32_t color)
+{
+    int i, j, dp = win->depth;
+    for (j = 0; j < h; ++j) {
+        for (i = 0; i < w; ++i) {
+            win->pixels[(j+y)*win->pitch+(i+x)* dp + 0] = (color >> 0) & 0xFF;
+            win->pixels[(j+y)*win->pitch+(i+x)* dp + 1] = (color >> 8) & 0xFF;
+            win->pixels[(j+y)*win->pitch+(i+x)* dp + 2] = (color >> 16) & 0xFF;
+        }
+    }
+}
 
 // void vds_fill(surface_t *win, uint32_t color)
 // {
@@ -50,6 +51,24 @@ void vds_fill(surface_t *win, uint32_t color)
         pixels += 4;
     }
 }
+
+
+void vds_slide(surface_t *sfc, int height, uint32_t color)
+{
+    int px, py;
+    if (height < 0) {
+        height = -height;
+        memcpy(sfc->pixels, ADDR_OFF(sfc->pixels, sfc->pitch * height), sfc->pitch * (sfc->height - height));
+        for (py = sfc->height - height; py < sfc->height; ++py) {
+            int pxrow = sfc->pitch * py;
+            for (px = 0; px < sfc->width; ++px) {
+                uint32_t *pixel = ADDR_OFF(sfc->pixels, pxrow + px * 4);
+                *pixel = color;
+            }
+        }
+    }
+}
+
 
 void vds_copy(surface_t *dest, surface_t *src, int x, int y)
 {
@@ -120,13 +139,20 @@ surface_t *vds_create(int width, int height, int depth)
     win->height = height;
     win->depth = depth;
     win->pitch = ALIGN_UP(width * depth, 4);
-    win->pixels = kalloc(height * win->pitch);
+    win->pixels = kmap(ALIGN_UP(height * win->pitch, PAGE_SIZE), NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
     return win;
 }
 
 void vds_destroy(surface_t *srf)
 {
-    kfree(srf->pixels);
+    // kfree(srf->pixels);
     kfree(srf);
 }
+
+page_t vds_fetch(surface_t *fb, off_t off)
+{
+    return mmu_read(&fb->pixels[off]);
+}
+
+
 

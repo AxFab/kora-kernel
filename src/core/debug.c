@@ -89,11 +89,13 @@ char *sztoa(size_t number)
 
 
     else if (number < 10) {
-        float value = (rest / 1024.0f) * 100;
+        int value = rest * 100 / 1024;
+        // float value = (rest / 1024.0f) * 100;
         snprintf(sz_format, 20, "%1d.%02d %s", (int)number, (int)value, prefix[k]);
 
     } else if (number < 100) {
-        float value = (rest / 1024.0f) * 10;
+        int value = rest * 10 / 1024;
+        // float value = (rest / 1024.0f) * 10;
         snprintf(sz_format, 20, "%2d.%01d %s", (int)number, (int)value, prefix[k]);
 
     } else {

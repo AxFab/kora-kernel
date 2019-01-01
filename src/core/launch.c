@@ -25,44 +25,15 @@
 #include <kernel/input.h>
 #include <kernel/task.h>
 #include <kernel/cpu.h>
+#include <kernel/syscalls.h>
 #include <kora/iofile.h>
 #include <kora/llist.h>
 #include <string.h>
 
-KMODULE(ide_ata);
-KMODULE(pci);
-KMODULE(e1000);
-KMODULE(vbox);
-KMODULE(ac97);
-KMODULE(ps2);
-KMODULE(vga);
-KMODULE(imgdk);
-KMODULE(isofs);
 
 // void ARP_who_is(const unsigned char *ip);
 void clock_init();
 void sys_ticks();
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-extern const font_t font_6x10;
-extern const font_t font_8x15;
-extern const font_t font_7x13;
-extern const font_t font_6x9;
-extern const font_t font_8x8;
-
-
-uint32_t colors_std[] = {
-    0x000000, 0x800000, 0x008000, 0x808000, 0x000080, 0x800080, 0x008080, 0x808080, 0xFFFFFF,
-    0xD0D0D0, 0xFF0000, 0x00FF00, 0xFFFF00, 0x0000FF, 0xFF00FF, 0x00FFFF, 0xFFFFFF, 0xFFFFFF,
-};
-
-uint32_t colors_kora[] = {
-    0x181818, 0xA61010, 0x10A610, 0xA66010, 0x1010A6, 0xA610A6, 0x10A6A6, 0xA6A6A6, 0xFFFFFF,
-    0x323232, 0xD01010, 0x10D010, 0xD06010, 0x1010D0, 0xD010D0, 0x10D0D0, 0xD0D0D0, 0xFFFFFF,
-};
-
-tty_t *tty_syslog = NULL;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -73,23 +44,6 @@ struct kCpu kCPU0;
 
 llhead_t modules = INIT_LLHEAD;
 
-int sys_exit(pid_t pid, int ret)
-{
-    task_t *task = pid == 0 ? kCPU.running : task_search(pid);
-    if (task == NULL)
-        return -1;
-    task_stop(task, ret);
-    return 0;
-}
-
-/**/
-void kernel_module(kmod_t *mod)
-{
-    // ll_append(&modules, &mod->node);
-    mod->setup();
-    kprintf(-1, "End of setup for driver %s\n", mod->name);
-    sys_exit(0, 0);
-}
 
 void kernel_tasklet(void *start, void *arg, CSTR name)
 {
@@ -101,14 +55,17 @@ extern int no_dbg;
 
 void kernel_top(long sec)
 {
-    async_wait(NULL, NULL, 10000);
+    sys_sleep(10000);
     for (;;) {
         async_wait(NULL, NULL, sec * 1000000);
         task_show_all();
+        mspace_display(kMMU.kspace);
+        memory_info();
     }
 }
 
-volatile inode_t *pp;
+int pp[] = { -1, -1 };
+
 
 void tty_start()
 {
@@ -117,78 +74,67 @@ void tty_start()
         dev = vfs_search_device("kdb");
         if (dev != NULL)
             break;
-        async_wait(NULL, NULL, 10000);
+        sys_sleep(10000);
     }
-    kprintf(-1, "Tty found keyboard\n");
+    // kprintf(-1, "Tty found keyboard\n");
 
-    while (pp == NULL)
-        async_wait(NULL, NULL, 10000);
+    while (pp[1] == -1)
+        sys_sleep(10000);
 
     event_t event;
+    int status = 0;
     for (;;) {
-        vfs_read(dev, &event, sizeof(event), 0, 0);
-        if (event.type == 3) {
-            char c = seat_key_unicode(event.param2 & 0xFFF, event.param2 >> 16);
-            kprintf(-1, "Tty key %x -> %x\n", event.param2 & 0xFFF, c);
-            if ((c >= ' ' && c < 0x80) || c == '\n')
-                vfs_write(pp, &c, 1, 0, 0);
-        }
+        vfs_read(dev, (char *)&event, sizeof(event), 0, 0);
+        int key = event.param2 & 0xFFF;
+        int mod = event.param2 >> 16;
+        kprintf(-1, "KDB %d (%x - %x)\n", event.type, key, mod);
     }
 }
 
+
+extern tty_t *slog;
+void desktop();
+
+inode_t *root;
+
+
 void kernel_master()
 {
-    async_wait(NULL, NULL, 5000);
+    kernel_tasklet(desktop, NULL, "Desktop #1");
+    // kernel_tasklet(tty_start, NULL, "Syslog Tty");
+    // kernel_tasklet(kernel_top, (void *)5, "Dbg top 5s");
+    sys_sleep(5000);
     for (;;) {
         inode_t *dev = vfs_search_device("sdC");
         if (dev != NULL)
             break;
-        async_wait(NULL, NULL, 10000);
+        sys_sleep(10000);
     }
-    kprintf(-1, "Master found the device\n");
 
     // vfs_mount(root, "dev", NULL, "devfs");
     // vfs_mount(root, "tmp", NULL, "tmpfs");
 
     // Look for home file system
-    inode_t *root = vfs_mount("sdC", "isofs");
+    root = vfs_mount("sdC", "isofs");
     if (root == NULL) {
         kprintf(-1, "Expected mount point over 'sdC' !\n");
-        sys_exit(0, 0);
+        sys_exit(0);
     }
 
-    kprintf(-1, "Master mounted root: %p\n", root);
-    async_wait(NULL, NULL, 10000);
+    sys_sleep(10000);
+    task_show_all();
+    kmod_dump();
 
-    inode_t *ino;
-    char name[256];
-    void *dir_ctx = vfs_opendir(root, NULL);
-    while ((ino = vfs_readdir(root, name, dir_ctx)) != NULL) {
-        kprintf(-1, " %p  /%s%s\n", ino, name, ino->type == FL_DIR ? "/": "");
-        vfs_close(ino);
-    }
-    vfs_closedir(root, dir_ctx);
+    // sys_sleep(1000000);
+    // mspace_display(kMMU.kspace);
 
-    async_wait(NULL, NULL, 10000);
-
-    inode_t *txt = vfs_search(root, root, "boot/grub/grub.cfg", NULL);
-    if (txt != NULL) {
-        kprintf(-1, "Reading file from CDROM...\n");
-        char *buf = kalloc(txt->length + 1);
-        vfs_read(txt, buf, txt->length, 0, 0);
-        kprintf(-1, "CONTENT (%x) \n%s\n", txt->length, buf);
-        vfs_close(txt);
-        kfree(buf);
-    }
-
-    async_wait(NULL, NULL, 1000000);
-    pp = vfs_inode(1, FL_PIPE, NULL);
+    sys_pipe(pp);
 
     char buf[32];
     int idx = 0;
     for (;;) {
         kprintf(-1, "Master >\n");
-        idx = vfs_read(pp, &buf[idx], 30 - idx, 0, 0);
+        idx = sys_read(pp[0], &buf[idx], 10 - idx);
         buf[idx] = '\0';
         char *nx = strchr(buf, '\n');
         if (nx != NULL) {
@@ -198,11 +144,11 @@ void kernel_master()
             idx -= nx - buf;
         } else
             idx = 0;
-
-        // async_wait(NULL, NULL, 1000000);
     }
-
+    sys_close(pp[0]);
 }
+
+void kmod_loader();
 
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
@@ -211,6 +157,7 @@ long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 }
 
 
+/* Kernel entry point, must be reach by a single CPU */
 void kernel_start()
 {
     kSYS.cpus = &kCPU0;
@@ -228,26 +175,26 @@ void kernel_start()
     cpu_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    kprintf(KLOG_MSG, "\n\033[94m  Greetings...\033[0m\n\n");
+    kprintf(KLOG_MSG, "\n");
+    slog = tty_create(128);
+    kprintf(KLOG_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
 
+    assert(kCPU.irq_semaphore == 1);
     vfs_init();
+    kmod_init();
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    kernel_tasklet(kernel_top, (void*)5, "Dbg top 5s");
+    kernel_tasklet(kmod_loader, NULL, "Kernel loader #1");
+    kernel_tasklet(kmod_loader, NULL, "Kernel loader #2");
     kernel_tasklet(kernel_master, NULL, "Master");
-    kernel_tasklet(tty_start, NULL, "Syslog Tty");
 
-    // no_dbg = 0;
-    // int clock_irq = 2;
     clock_init();
-    irq_register(0, (irq_handler_t)sys_ticks, NULL);
-    // irq_register(2, (irq_handler_t)sys_ticks, NULL);
-    // PS2_reset();
     assert(kCPU.irq_semaphore == 1);
     irq_reset(false);
 }
 
+/* Kernel secondary entry point, must be reach by additional CPUs */
 void kernel_ready()
 {
     /*

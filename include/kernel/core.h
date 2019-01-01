@@ -24,6 +24,7 @@
 #include <kora/stddef.h>
 #include <kora/llist.h>
 #include <kora/mcrs.h>
+#include <kora/rwlock.h>
 #include <kernel/mmu.h>
 #include <kernel/types.h>
 #include <kernel/vma.h>
@@ -59,6 +60,7 @@ void kernel_tasklet(void *start, void *arg, CSTR name);
 void kexit();
 
 __STDI int rand(void);
+uint8_t rand8();
 uint16_t rand16();
 uint32_t rand32();
 uint64_t rand64();
@@ -92,6 +94,7 @@ void task_wait(void *listener, long timeout_ms);
 #define KLOG_DBG 1 // Debug information
 #define KLOG_ERR 2 // Errors
 #define KLOG_MEM 3 // Memory information
+#define KLOG_INO 10 // Inode and devices RCU (create open close destroy)
 #define KLOG_IRQ 4 // IRQ information
 #define KLOG_PF 5 // Page fault and resolution info
 #define KLOG_SYC 6 // Syscall trace
@@ -102,34 +105,31 @@ void task_wait(void *listener, long timeout_ms);
 typedef struct kmod kmod_t;
 struct kmod {
     const char *name;
-    int license;
     void (*setup)();
     void (*teardown)();
     llnode_t node;
+    int version;
+    dynlib_t *dlib;
 };
 
-enum license {
-    MOD_AGPL,
-    MOD_GPL,
-    MOD_LGPL,
-    MOD_ZLIB,
-    MOD_COMMERCIAL,
-    MOD_PRIVATE,
-};
+void kmod_init();
+void kmod_mount(inode_t *root);
+
 
 #define MODULE(n,s,t) \
     kmod_t kmod_info_##n = { \
         .name = #n, \
         .setup = s, \
         .teardown = t, \
+        .version = VERS32(0,1,0), \
     }
 
 #define MOD_REQUIRE(n) \
     static CSTR _mod_require_##n __attribute__(section("reqr"), used) = #n
 
 #define KMODULE(n) extern kmod_t kmod_info_##n
-#define KSETUP(n) kmod_info_##n.setup();
-#define KTEARDOWN(n) kmod_info_##n.teardown();
+// #define KSETUP(n) kmod_info_##n.setup();
+// #define KTEARDOWN(n) kmod_info_##n.teardown();
 
 
 void irq_reset(bool enable);
@@ -138,7 +138,7 @@ bool irq_enable();
 /* - */
 void irq_disable();
 /* - */
-void irq_ask(int no);
+void irq_ack(int no);
 /* - */
 void irq_register(int no, irq_handler_t func, void *data);
 /* - */
@@ -175,6 +175,21 @@ void bio_destroy(bio_t *io);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+typedef struct desktop desktop_t;
+
+inode_t *window_create(desktop_t *desk, int width, int height, int flags);
+void window_destroy(desktop_t *desk, inode_t *win);
+void *window_map(mspace_t *mspace, inode_t *win);
+int window_set_features(inode_t *win, int features, int *args);
+int window_get_features(inode_t *win, int features, int *args);
+int window_push_event(inode_t *win, event_t *event);
+int window_poll_push(inode_t *win, event_t *event);
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+_Noreturn void task_fatal(CSTR error, int signum);
+
 struct kCpu {
     task_t *running;
     unsigned irq_semaphore;
@@ -190,12 +205,16 @@ struct kCpu {
 
     int err_no;
     int flags;
+    unsigned int seed;
 };
 
 #define CPU_NO_TASK  0x800
 
 struct kSys {
     struct kCpu *cpus;
+    rwlock_t lock;
+    char *hostname;
+    char *domain;
 };
 
 extern struct kSys kSYS;

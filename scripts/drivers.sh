@@ -28,8 +28,9 @@ MAKE () {
 }
 
 MAKE 'disk/ata'
-MAKE 'input/ps2'
+# MAKE 'input/ps2'
 MAKE 'net/e1000'
+MAKE 'media/vga'
 
 # MAKE 'fs/ext2'
 MAKE 'fs/fat'
@@ -38,7 +39,7 @@ MAKE 'fs/isofs'
 cd "$TMP"
 mkdir -p "$PFX"
 echo "    TAR $PFX/x86.miniboot.tar"
-tar cf "$PFX/x86.miniboot.tar" ./bin
+tar cf "$PFX/x86.miniboot.tar" bin
 
 cd "$SCRIPT_HOME"
 rm -rf "$TMP"

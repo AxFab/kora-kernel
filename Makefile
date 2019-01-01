@@ -76,8 +76,9 @@ define obj
 	$(patsubst $(srcdir)/%.asm,$(outdir)/$(1)/%.$(3), \
 	$(patsubst $(topdir)/%.c,$(outdir)/$(1)/%.$(3), \
 	$(patsubst $(topdir)/%.asm,$(outdir)/$(1)/%.$(3), \
+	$(patsubst $(topdir)/%.s,$(outdir)/$(1)/%.$(3), \
 		$(filter-out $($(2)_omit-y),$($(2)_src-y))      \
-	))))
+	)))))
 endef
 
 define libs

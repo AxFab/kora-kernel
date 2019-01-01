@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -20,6 +20,7 @@
 #include <kernel/core.h>
 #include <kernel/device.h>
 #include <kernel/vfs.h>
+#include <kernel/files.h>
 #include <string.h>
 #include <errno.h>
 
@@ -49,7 +50,7 @@ struct tar_entry {
     char filename_prefix[155];
 };
 
-static int tar_read_octal(char* count)
+static int tar_read_octal(char *count)
 {
     int i;
     int val = 0;
@@ -62,6 +63,9 @@ static int tar_read_octal(char* count)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+int tar_read(inode_t *ino, void *buf, size_t len, off_t off);
+
+
 struct tar_info {
     void *start;
     int length;
@@ -70,11 +74,12 @@ struct tar_info {
 
 inode_t *tar_inode(volume_t *vol, tar_entry_t *entry, int length)
 {
-    int lba = ((void*)entry - tinfo.start);
+    int lba = ((void *)entry - tinfo.start);
     inode_t *ino = vfs_inode(lba / TAR_BLOCK_SIZE + 2, FL_REG, vol);
     ino->length = length;
     ino->lba = lba;
     ino->ops = &tar_reg_ops;
+    ino->info = map_create(ino, tar_read, NULL);
     return ino;
 }
 
@@ -125,7 +130,7 @@ inode_t *tar_readdir(inode_t *dir, char *name, void *ctx)
     int length = 0;
     tar_entry_t *entry;
     for (;;) {
-        int *idx = (int*)ctx;
+        int *idx = (int *)ctx;
         entry = (tar_entry_t *)ADDR_OFF(tinfo.start, *idx);
 
         length = tar_read_octal(entry->file_size);
@@ -148,7 +153,21 @@ int tar_closedir(inode_t *dir, void *ctx)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+page_t tar_fetch(inode_t *ino, off_t off)
+{
+    return map_fetch(ino->info, off);
+}
+
+void tar_release(inode_t *ino, off_t off, page_t pg)
+{
+    map_release(ino->info, off, pg);
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 ino_ops_t tar_reg_ops = {
+    .fetch = tar_fetch,
+    .release = tar_release,
 };
 
 ino_ops_t tar_dir_ops = {
@@ -175,6 +194,7 @@ inode_t *tar_mount(void *base, void *end, CSTR name)
     ino->und.vol->ops = &tar_fs_ops;
     ino->und.vol->volname = strdup(name);
     ino->und.vol->volfs = "tarfs";
+    ino->und.vol->info = &tinfo;
 
     errno = 0;
     return ino;

@@ -44,6 +44,9 @@ typedef __time64_t time64_t;
 time64_t time64();
 #define USEC_PER_SEC  1000000ULL
 
+/* Kernel development kit */
+typedef struct kdk_api kdk_api_t;
+
 // Tasks
 typedef struct task task_t;
 typedef struct event event_t;
@@ -74,6 +77,8 @@ typedef struct regs regs_t;
 typedef struct fault fault_t;
 
 typedef struct bio bio_t;
+
+typedef struct proc proc_t;
 
 typedef struct dynlib dynlib_t;
 typedef struct dynsec dynsec_t;

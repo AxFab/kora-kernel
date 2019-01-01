@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -40,18 +40,17 @@ void vfs_show_devices()
 {
     inode_t *ino;
     splock_lock(&devices_lock);
-    for ll_each(&devices_list, ino, inode_t, lnode) {
-        kprintf(-1, "DEV '%s' / %s (RCU:%d)\n", ino->und.dev->devname, ino->und.dev->model, ino->rcu);
-    }
+    for ll_each(&devices_list, ino, inode_t, lnode)
+        kprintf(KLOG_INO, "DEV '%s' / %s (RCU:%d)\n", ino->und.dev->devname, ino->und.dev->model, ino->rcu);
     splock_unlock(&devices_lock);
 }
 
 inode_t *vfs_search_device(CSTR name)
 {
     splock_lock(&devices_lock);
-    inode_t *ino = (inode_t*)hmp_get(&devices_map, name, strlen(name));
+    inode_t *ino = (inode_t *)hmp_get(&devices_map, name, strlen(name));
     splock_unlock(&devices_lock);
-    return ino;
+    return vfs_open(ino);
 }
 
 int vfs_mkdev(inode_t *ino, CSTR name)
@@ -59,10 +58,10 @@ int vfs_mkdev(inode_t *ino, CSTR name)
     assert(ino != NULL && name != NULL);
     if (ino->type == FL_BLK && ino->length)
         kprintf(KLOG_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->und.dev->devclass,
-            ino->und.dev->model ? ino->und.dev->model : "", sztoa(ino->length), name);
+                ino->und.dev->model ? ino->und.dev->model : "", sztoa(ino->length), name);
     else
         kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->und.dev->devclass,
-            ino->und.dev->model ? ino->und.dev->model : "", name);
+                ino->und.dev->model ? ino->und.dev->model : "", name);
 
     vfs_open(ino);
     splock_lock(&devices_lock);
@@ -78,6 +77,7 @@ void vfs_rmdev(CSTR name)
     inode_t *dev = vfs_search_device(name);
     if (dev == NULL)
         return;
+    vfs_close(dev);
     splock_lock(&devices_lock);
     ll_remove(&devices_list, &dev->lnode);
     hmp_remove(&devices_map, name, strlen(name));

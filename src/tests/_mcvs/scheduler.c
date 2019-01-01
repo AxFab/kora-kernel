@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -103,9 +103,8 @@ void scheduler_switch(int status, int retcode)
         kCPU.running = task;
         if (task == NULL) {
             task = task_search(cpu_no());
-            if (can_quit && (task == NULL || task->status == TS_ZOMBIE)) {
+            if (can_quit && (task == NULL || task->status == TS_ZOMBIE))
                 TerminateThread(GetCurrentThread(), 0);
-            }
             Sleep(2);
             kCPU.running = NULL;
             irq_disable();
