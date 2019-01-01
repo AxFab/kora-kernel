@@ -120,7 +120,7 @@ dev_ops_t vga_dev_ops = {
 
 void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
 {
-    // Tested on QEMU (should works for BOCHS too)
+    // Tested on QEMU and VirtualBox (should works for BOCHS too)
     // MMIO PREFETCH region #0: fd000000..fe000000
     // MMIO region #2: febf0000..febf1000
 
@@ -141,7 +141,7 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
                                       VMA_PHYSIQ);
 
     uint32_t pixels0 = pci->bar[0].mmio;
-    kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", info->name, pixels0);
+    // kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", info->name, pixels0);
 
     // Load surface device !
     i = 7;

@@ -58,55 +58,14 @@ void kmod_mount(inode_t *root)
 }
 
 
-static void kmod_symbol(CSTR name, void *ptr)
-{
-    dynsym_t *symbol = kalloc(sizeof(dynsym_t));
-    symbol->name = strdup(name);
-    symbol->address = (size_t)ptr;
-    hmp_put(&kproc.symbols, name, strlen(name), symbol);
-}
+// void kmod_symbol(CSTR name, void *ptr)
+// {
+//     dynsym_t *symbol = kalloc(sizeof(dynsym_t));
+//     symbol->name = strdup(name);
+//     symbol->address = (size_t)ptr;
+//     hmp_put(&kproc.symbols, name, strlen(name), symbol);
+// }
 
-#define KSYMBOL(n) kmod_symbol(#n, &(n))
-
-void kmod_init()
-{
-    hmp_init(&kproc.symbols, 32);
-    KSYMBOL(kalloc);
-    KSYMBOL(kfree);
-    KSYMBOL(kmap);
-    KSYMBOL(kunmap);
-    KSYMBOL(kprintf);
-    KSYMBOL(__errno_location);
-    KSYMBOL(__assert_fail);
-
-    KSYMBOL(memset);
-    KSYMBOL(memcmp);
-    KSYMBOL(memcpy);
-    KSYMBOL(strlen);
-    KSYMBOL(strnlen);
-    KSYMBOL(strcmp);
-    KSYMBOL(strcpy);
-    KSYMBOL(strncpy);
-    KSYMBOL(strcat);
-    KSYMBOL(strncat);
-    KSYMBOL(strdup);
-
-    KSYMBOL(async_wait);
-    KSYMBOL(pci_config_write32);
-    KSYMBOL(pci_config_read16);
-    KSYMBOL(pci_search);
-    KSYMBOL(net_recv);
-    KSYMBOL(net_device);
-    KSYMBOL(irq_enable);
-    KSYMBOL(irq_disable);
-    KSYMBOL(irq_ack);
-    KSYMBOL(irq_register);
-    KSYMBOL(irq_unregister);
-
-    KSYMBOL(mmu_read);
-
-    // KSYMBOL(__divdi3);
-}
 
 
 void kmod_loader()
@@ -119,7 +78,7 @@ void kmod_loader()
         if (mnt == NULL)
             break;
         splock_unlock(&kmod_lock);
-        kprintf(KLOG_MSG, "Browsing \033[90m%s\033[0m for driver by \033[90m#%d\033[0m\n", mnt->name, kCPU.running->pid);
+        kprintf(KLOG_MSG, "Browsing module \033[90m%s\033[0m for drivers by \033[90m#%d\033[0m\n", mnt->name, kCPU.running->pid);
 
         inode_t *ino;
         char filename[100];
@@ -138,7 +97,7 @@ void kmod_loader()
             }
             dlib_rebase(&kproc, kMMU.kspace, dlib);
             if (!dlib_resolve_symbols(&kproc, dlib)) {
-                kprintf(-1, "Module %s, missing symbols\n", filename);
+                // kprintf(-1, "Module %s, missing symbols\n", filename);
                 // TODO -- Clean
                 dlib_unload(&kproc, kMMU.kspace, dlib);
                 bio_destroy(dlib->io);
@@ -208,8 +167,8 @@ void kmod_loader()
             dynsym_t *symbol;
             for ll_each(&dlib->intern_symbols, symbol, dynsym_t, node) {
                 if (memcmp(symbol->name, "kmod_info_", 10) == 0) {
-                    kprintf(-1, "Found new module info: %s at %p\n",
-                            symbol->name, symbol->address);
+                    // kprintf(-1, "Found new module info: %s at %p\n",
+                    //         symbol->name, symbol->address);
                     kmod_t *mod = (kmod_t *)symbol->address;
                     kmod_register(mod);
                 }
@@ -217,7 +176,7 @@ void kmod_loader()
         }
         vfs_closedir(mnt->root, ctx);
 
-        mspace_display(kMMU.kspace);
+        // mspace_display(kMMU.kspace);
         splock_lock(&kmod_lock);
     }
 

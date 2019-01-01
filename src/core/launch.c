@@ -76,7 +76,7 @@ void tty_start()
             break;
         sys_sleep(10000);
     }
-    kprintf(-1, "Tty found keyboard\n");
+    // kprintf(-1, "Tty found keyboard\n");
 
     // while (pp == NULL)
     while (pp[1] == -1)
@@ -99,12 +99,14 @@ void tty_start()
 extern tty_t *slog;
 void desktop();
 
+inode_t *root;
+
 
 void kernel_master()
 {
     kernel_tasklet(desktop, NULL, "Desktop #1");
-    kernel_tasklet(tty_start, NULL, "Syslog Tty");
-    kernel_tasklet(kernel_top, (void *)5, "Dbg top 5s");
+    // kernel_tasklet(tty_start, NULL, "Syslog Tty");
+    // kernel_tasklet(kernel_top, (void *)5, "Dbg top 5s");
     sys_sleep(5000);
     for (;;) {
         inode_t *dev = vfs_search_device("sdC");
@@ -112,60 +114,53 @@ void kernel_master()
             break;
         sys_sleep(10000);
     }
-    kprintf(-1, "Master found the device\n");
+    // kprintf(-1, "Master found the device\n");
 
     // vfs_mount(root, "dev", NULL, "devfs");
     // vfs_mount(root, "tmp", NULL, "tmpfs");
 
     // Look for home file system
-    inode_t *root = vfs_mount("sdC", "isofs");
+    root = vfs_mount("sdC", "isofs");
     if (root == NULL) {
         kprintf(-1, "Expected mount point over 'sdC' !\n");
         sys_exit(0);
     }
 
-    kprintf(-1, "Master mounted root: %p\n", root);
     sys_sleep(10000);
+    task_show_all();
+    char *buf;
 
-    inode_t *ino;
-    char name[256];
-    void *dir_ctx = vfs_opendir(root, NULL);
-    while ((ino = vfs_readdir(root, name, dir_ctx)) != NULL) {
-        kprintf(-1, " %p  /%s%s\n", ino, name, ino->type == FL_DIR ? "/" : "");
-        vfs_close(ino);
-    }
-    vfs_closedir(root, dir_ctx);
+    // inode_t *ino;
+    // char name[256];
+    // void *dir_ctx = vfs_opendir(root, NULL);
+    // kprintf(-1, "Root readdir:");
+    // while ((ino = vfs_readdir(root, name, dir_ctx)) != NULL) {
+    //     kprintf(-1, "  /%s%s   ", name, ino->type == FL_DIR ? "/" : "");
+    //     vfs_close(ino);
+    // }
+    // kprintf(-1, "\n");
+    // vfs_closedir(root, dir_ctx);
 
-    sys_sleep(10000);
+    // sys_sleep(10000);
 
     // const char *txt_filename = "boot/grub/grub.cfg";
-    const char *txt_filename = "BOOT/GRUB/MENU.LST";
-    char *buf;
-    inode_t *txt = vfs_search(root, root, txt_filename, NULL);
-    if (txt != NULL) {
-        kprintf(-1, "Reading file from CDROM...\n");
-        buf = kalloc(txt->length + 1);
-        vfs_read(txt, buf, txt->length, 0, 0);
-        kprintf(-1, "CONTENT (%x) \n%s\n", txt->length, buf);
-        vfs_close(txt);
-        kfree(buf);
-    } else
-        kprintf(-1, "Unable to open %s using vfs_search\n", txt_filename);
+    // // const char *txt_filename = "BOOT/GRUB/MENU.LST";
 
-    kCPU.running->pwd = root;
-    int fd = sys_open(-1, txt_filename, 0);
-    if (fd == -1)
-        kprintf(-1, "Unable to open %s using sys_open\n", txt_filename);
-    buf = kalloc(512);
-    for (;;) {
-        int lg = sys_read(fd, buf, 512);
-        if (lg <= 0)
-            break;
-        buf[lg] = '\0';
-        kprintf(-1, "CONTENT (%x) \n%s\n", lg, buf);
-    }
-    sys_close(fd);
-    kfree(buf);
+    // kCPU.running->pwd = root;
+    // int fd = sys_open(-1, txt_filename, 0);
+    // if (fd == -1)
+    //     kprintf(-1, "Unable to open %s \n", txt_filename);
+    // buf = kalloc(512);
+    // for (;;) {
+    //     int lg = sys_read(fd, buf, 512);
+    //     if (lg <= 0)
+    //         break;
+    //     buf[lg] = '\0';
+    //     kprintf(-1, "Content of '%s' (%x) \n%s\n", txt_filename, lg, buf);
+    // }
+    // sys_close(fd);
+    // kfree(buf);
+
 
     sys_sleep(1000000);
     mspace_display(kMMU.kspace);
@@ -219,8 +214,9 @@ void kernel_start()
     cpu_setup();
     assert(kCPU.irq_semaphore == 1);
 
+    kprintf(KLOG_MSG, "\n");
     slog = tty_create(128);
-    kprintf(KLOG_MSG, "\n\033[94m  Greetings...\033[0m\n\n");
+    kprintf(KLOG_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
 
 
     vfs_init();

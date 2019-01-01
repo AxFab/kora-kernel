@@ -243,17 +243,17 @@ static void pci_check_device(uint8_t bus, uint8_t slot)
         device_stack[dev_sp].bar[i].base = bar;
         device_stack[dev_sp].bar[i].size = bar_sz;
 
-        if ((bar & 3) != 0) {
-            kprintf(KLOG_DBG, "          IO region #%d: %x..%x \n", i, bar & 0xFFFFFFFC,
-                    (bar & 0xFFFFFFFC) + bar_sz + 1);
-        } else if (bar & 8) {
-            kprintf(KLOG_DBG, "          MMIO PREFETCH region #%d: %08x..%08x\n", i,
-                    bar & ~15,
-                    (bar & ~15) + bar_sz + 8);
-        } else if (bar_sz != 0) {
-            kprintf(KLOG_DBG, "          MMIO region #%d: %08x..%08x\n", i, bar & ~15,
-                    (bar & ~15) + bar_sz);
-        }
+        // if ((bar & 3) != 0) {
+        //     kprintf(KLOG_DBG, "          IO region #%d: %x..%x \n", i, bar & 0xFFFFFFFC,
+        //             (bar & 0xFFFFFFFC) + bar_sz + 1);
+        // } else if (bar & 8) {
+        //     kprintf(KLOG_DBG, "          MMIO PREFETCH region #%d: %08x..%08x\n", i,
+        //             bar & ~15,
+        //             (bar & ~15) + bar_sz + 8);
+        // } else if (bar_sz != 0) {
+        //     kprintf(KLOG_DBG, "          MMIO region #%d: %08x..%08x\n", i, bar & ~15,
+        //             (bar & ~15) + bar_sz);
+        // }
     }
 
     dev_sp++;
@@ -324,11 +324,9 @@ KMODULE(dev);
 KMODULE(csl);
 KMODULE(serial);
 KMODULE(ps2);
-KMODULE(vga);
-KMODULE(ide_ata);
+
 KMODULE(isofs);
 KMODULE(fatfs);
-// KMODULE(e1000);
 
 
 void platform_setup()
@@ -340,13 +338,7 @@ void platform_setup()
     kmod_register(&kmod_info_dev);
     kmod_register(&kmod_info_csl);
     kmod_register(&kmod_info_serial);
-    kmod_register(&kmod_info_ps2);
-    // Load disks drivers
-    kmod_register(&kmod_info_ide_ata);
-    // Load network driver
-    // kmod_register(&kmod_info_e1000);
-    // Load screen
-    kmod_register(&kmod_info_vga);
+    // kmod_register(&kmod_info_ps2);
 
     // Load file systems
     kmod_register(&kmod_info_isofs);

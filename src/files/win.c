@@ -20,6 +20,7 @@
 #include <kernel/core.h>
 #include <kernel/device.h>
 #include <kernel/files.h>
+#include <kernel/task.h>
 #include <errno.h>
 
 struct desktop {
@@ -186,22 +187,6 @@ int window_poll_push(inode_t *win, event_t *event)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 extern const font_bmp_t font_6x10;
@@ -225,7 +210,7 @@ tty_t *tty_syslog = NULL;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-#define FRAME_SZ 7
+#define FRAME_SZ 13
 
 int x = 0;
 int y = 0;
@@ -252,19 +237,77 @@ surface_t *create_win()
     return win;
 }
 
+#define TTY_WRITE(t,s)  tty_write(t,s,strlen(s))
 
+
+void krn_ls(tty_t *tty, inode_t *dir) {
+    inode_t *ino;
+    char buf[256];
+    char name[256];
+    void *dir_ctx = vfs_opendir(dir, NULL);
+    // kprintf(-1, "Root readdir:");
+    while ((ino = vfs_readdir(dir, name, dir_ctx)) != NULL) {
+        snprintf(buf, 256, "  /%s%s   ", name, ino->type == FL_DIR ? "/" : "");
+        TTY_WRITE(tty, buf);
+        vfs_close(ino);
+    }
+    TTY_WRITE(tty, "\n");
+    vfs_closedir(dir, dir_ctx);
+}
+
+void krn_cat(tty_t *tty, const char *path) {
+    char *buf = kalloc(512);
+    int fd = sys_open(-1, path, 0);
+    if (fd == -1) {
+        snprintf(buf, 512, "Unable to open %s \n", path);
+        TTY_WRITE(tty, buf);
+    } else {
+        // kprintf(-1, "Content of '%s' (%x)\n", path, lg);
+        for (;;) {
+            int lg = sys_read(fd, buf, 512);
+            if (lg <= 0)
+                break;
+            buf[lg] = '\0';
+            tty_write(tty, buf, lg);
+            // TTY_WRITE(tty, buf);
+            // kprintf(-1, "%s\n", buf);
+        }
+        sys_close(fd);
+    }
+    kfree(buf);
+}
+
+extern inode_t *root;
 
 void graphic_task()
 {
-    inode_t *ino = window_open(&kDESK, 0,0,0,0);
+    // sys_sleep(10000);
+    const char *txt_filename = "boot/grub/grub.cfg";
+    // const char *txt_filename = "BOOT/GRUB/MENU.LST";
 
-    void* pixels = kmap(2 * _Mib_, ino, 0, VMA_FILE_RW | VMA_RESOLVE);
+
+    inode_t *ino = window_open(&kDESK, 0,0,0,0);
+    tty_t *tty = tty_create(128);
+    tty_window(tty, ((window_t*)ino->info)->fb, &font_8x15);
+    // void* pixels = kmap(2 * _Mib_, ino, 0, VMA_FILE_RW | VMA_RESOLVE);
     // MAP NODE / USE IT TO DRAW ON SURFACE
+
+    while (root == NULL)
+        sys_sleep(10000);
+
+    kCPU.running->pwd = root;
+    TTY_WRITE(tty, "shell> ls\n");
+    krn_ls(tty, root);
+    TTY_WRITE(tty, "shell> cat ");
+    TTY_WRITE(tty, txt_filename);
+    TTY_WRITE(tty, "\n");
+    krn_cat(tty, txt_filename);
+    TTY_WRITE(tty, "shell> ... \n");
 
     char v = 0;
     for (;; ++v) {
         sys_sleep(10000);
-        memset(pixels, v, 32 * PAGE_SIZE);
+        // memset(pixels, v, 32 * PAGE_SIZE);
     }
 }
 
@@ -277,34 +320,30 @@ void desktop()
             break;
         sys_sleep(10000);
     }
-    kprintf(-1, "We have a screen !\n");
 
+    // We found the screen
     surface_t *screen = (surface_t *)dev->info;
     width = screen->width;
     height = screen->height;
-
     kprintf(-1, "Desktop %dx%d\n", width, height);
 
     // create window
     inode_t *ino1 = window_open(&kDESK, 0,0,0,0);
     surface_t *win1 = ((window_t*)ino1->info)->fb;
     kernel_tasklet(graphic_task, NULL, "Example app");
+    window_t *win_focus = (window_t*)ino1->info;
 
-    tty_window(slog, win1, &font_6x10);
+    tty_window(slog, win1, &font_7x13);
 
     for (;;) {
-        vds_fill(screen, 0xd2d2d2);
+        vds_fill(screen, 0x536d7d);
         tty_paint(slog);
-        // vds_fill(win1, 0x10a6a6);
-        // vds_fill(win2, 0xa610a6);
-        // vds_fill(win3, 0x1010a6);
-        // vds_fill(win4, 0xa61010);
-        // vds_fill(win5, 0xa6a610);
 
         splock_lock(&kDESK.lock);
         window_t *win;
         for ll_each(&kDESK.list, win, window_t, node) {
-            vds_rect(screen, win->fb->x, win->fb->y - FRAME_SZ,  win->fb->width, FRAME_SZ, 0xa61010);
+            vds_rect(screen, win->fb->x, win->fb->y - FRAME_SZ,  win->fb->width,
+                FRAME_SZ, win_focus == win ? 0x8b9b4e : 0xdddddd);
             vds_copy(screen, win->fb, win->fb->x, win->fb->y);
         }
         splock_unlock(&kDESK.lock);

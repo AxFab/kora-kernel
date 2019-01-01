@@ -44,6 +44,9 @@ typedef __time64_t time64_t;
 time64_t time64();
 #define USEC_PER_SEC  1000000ULL
 
+/* Kernel development kit */
+typedef struct kdk_api kdk_api_t;
+
 // Tasks
 typedef struct task task_t;
 typedef struct event event_t;
