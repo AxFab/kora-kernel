@@ -172,7 +172,7 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length,
 
 /* Map a memory area inside the provided address space. */
 void *mspace_map(mspace_t *mspace, size_t address, size_t length,
-                 inode_t *ino, off_t offset, off_t limit, int flags)
+                 inode_t *ino, off_t offset, int flags)
 {
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
@@ -209,7 +209,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
     }
 
     /* Create the VMA */
-    vma_t *vma = vma_create(mspace, address, length, ino, offset, limit, vflags);
+    vma_t *vma = vma_create(mspace, address, length, ino, offset, vflags);
     if (flags & VMA_RESOLVE)
         vma_resolve(vma, address, length);
     errno = 0;
@@ -324,7 +324,7 @@ void mspace_display(mspace_t *mspace)
     kprintf(KLOG_DBG,
             "%p-%p mapped: %d KB   physical: %d KB   shared: %d KB   used: %d KB\n",
             mspace->lower_bound, mspace->upper_bound,
-            mspace->v_size / 1024, mspace->p_size / 1024,
+            mspace->v_size / 1024, mspace->p_size * 4/* / 1024*/,
             mspace->s_size / 1024, mspace->a_size / 1024);
     kprintf(KLOG_DBG, "------------------------------------------------\n");
     char *buf = malloc(4096);

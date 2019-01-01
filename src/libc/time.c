@@ -262,10 +262,10 @@ static int __secstotm(long long t, struct tm *tm)
 // FIXME use local
 char *asctime_r(const struct tm *date, char *str)
 {
-    assert(date->tm_wday >= 0 && date->tm_wday < 7);
-    assert(date->tm_mon >= 0 && date->tm_mon < 12);
+    // assert(date->tm_wday >= 0 && date->tm_wday < 7);
+    // assert(date->tm_mon >= 0 && date->tm_mon < 12);
     snprintf(str, 26, "%.3s %.3s %2d %.2d:%.2d:%.2d %d\n",
-             shWeekDayStrings[date->tm_wday], shMonthStrings[date->tm_mon],
+             shWeekDayStrings[date->tm_wday % 7], shMonthStrings[date->tm_mon % 12],
              date->tm_mday, date->tm_hour,
              date->tm_min, date->tm_sec,
              1900 + date->tm_year);

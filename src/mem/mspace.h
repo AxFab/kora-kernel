@@ -32,17 +32,15 @@ struct vma {
     size_t length;  /* The length of this VMA */
     inode_t *ino;  /* If the VMA is linked to a file, a pointer to the inode */
     off_t offset;  /* An offset to a file or an physical address, depending of type */
-    off_t limit;  /* If non zero, use to specify a limit after which one the rest of pages are blank. */
     int flags;  /* VMA flags */
-    struct mspace *mspace;
+    mspace_t *mspace;
 };
 
 
 /* Helper to print VMA info into syslogs */
 char *vma_print(char *buf, int len, vma_t *vma);
 /* - */
-vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
-                  off_t offset, off_t limit, int flags);
+vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino, off_t offset, int flags);
 /* - */
 vma_t *vma_clone(mspace_t *mspace, vma_t *model);
 /* Split one VMA into two. */

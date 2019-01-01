@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -32,6 +32,20 @@ void task_core(task_t *task)
 {
     kprintf(KLOG_DBG, "Task Core %d =========================\n", task->pid);
     mspace_display(task->usmem);
+}
+
+
+_Noreturn void task_fatal(CSTR error, int signum)
+{
+    kprintf(KLOG_ERR, "Fatal error on CPU.%d: \033[91m%s\033[0m\n", cpu_no(), error);
+    if (kCPU.running != NULL) {
+        // task_raise(kCPU.running, signum);
+        task_stop(kCPU.running, -1);
+    }
+    kprintf(KLOG_ERR, "Unrecoverable kernel error\n");
+    // Disable scheduler
+    // Play dead screen
+    for (;;); // scheduler_switch(0, -1);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -83,8 +97,7 @@ void task_start(task_t *task, void *entry, void *args)
     if (task->usmem && !task->ustack) {
         // TODO -- Map at the end
         task->ustack_len = 1 * _Mib_;
-        task->ustack = mspace_map(task->usmem, 0, task->ustack_len, NULL, 0,
-                                  0, VMA_STACK_RW);
+        task->ustack = mspace_map(task->usmem, 0, task->ustack_len, NULL, 0, VMA_STACK_RW);
     }
 
     cpu_stack(task, (size_t)entry, (size_t)args);
@@ -256,8 +269,8 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
     task->pid = task_new_pid();
     task->user = user;
 
-    kprintf(KLOG_TSK, "Create %s task #%d, %s\n",
-            flags & TSK_USER_SPACE ? "user" : "kernel", task->pid, name);
+    // kprintf(KLOG_TSK, "Create %s task #%d, %s\n",
+    //         flags & TSK_USER_SPACE ? "user" : "kernel", task->pid, name);
     task->name = strdup(name);
     task->root = root ? vfs_open(root) : NULL;
     task->pwd = root ? vfs_open(root) : NULL;
@@ -368,11 +381,17 @@ void task_show_all()
     static char *status = "ZBWRE???????";
     splock_lock(&tsk_lock);
     task_t *task = bbtree_first(&pid_tree, task_t, bnode);
-    // kprintf(-1, "  PID");
+    kprintf(-1, "  PID PPID USER    PR ST %%CPU %%MEM  UP TIME  NAME\n");
     for (; task; task = bbtree_next(&task->bnode, task_t, bnode)) {
         // PID / USER / PRIO / VIRT / RES / SHR / ST / %CPU %MEM  TIME+ CMD
-        kprintf(-1, " %4d %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
-                task->bnode.value_, "no-user", 0, status[task->status], task->name);
+        if (task->parent != NULL)
+            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
+                    task->pid, task->parent->pid, "no-user", 0,
+                    status[task->status], task->name);
+        else
+            kprintf(-1, " %4d    - %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
+                    task->bnode.value_, "no-user", 0,
+                    status[task->status], task->name);
     }
     splock_unlock(&tsk_lock);
 }

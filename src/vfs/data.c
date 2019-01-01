@@ -1,22 +1,22 @@
 /*
-*      This file is part of the KoraOS project.
-*  Copyright (C) 2018  <Fabien Bavent>
-*
-*  This program is free software: you can redistribute it and/or modify
-*  it under the terms of the GNU Affero General Public License as
-*  published by the Free Software Foundation, either version 3 of the
-*  License, or (at your option) any later version.
-*
-*  This program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*  GNU Affero General Public License for more details.
-*
-*  You should have received a copy of the GNU Affero General Public License
-*  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*   - - - - - - - - - - - - - - -
-*/
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include <kernel/vfs.h>
 #include <kernel/device.h>
 #include <kernel/files.h>
@@ -90,12 +90,12 @@ static int vfs_write_block(inode_t *ino, const char *buf, size_t len, off_t off)
 int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
 {
     assert(kCPU.irq_semaphore == 0);
-    switch(ino->type) {
+    switch (ino->type) {
     case FL_REG:
     case FL_BLK:
         return vfs_read_block(ino, buf, size, off);
     case FL_PIPE:
-        return pipe_read((pipe_t*)ino->info, buf, size, flags);
+        return pipe_read((pipe_t *)ino->info, buf, size, flags);
     case FL_CHR:
     case FL_LNK:
     case FL_INFO:
@@ -114,12 +114,12 @@ int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
 int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
 {
     assert(kCPU.irq_semaphore == 0);
-    switch(ino->type) {
+    switch (ino->type) {
     case FL_REG:
     case FL_BLK:
         return vfs_write_block(ino, buf, size, off);
     case FL_PIPE:
-        return pipe_write((pipe_t*)ino->info, buf, size, flags);
+        return pipe_write((pipe_t *)ino->info, buf, size, flags);
     case FL_CHR:
     case FL_LNK:
     case FL_INFO:

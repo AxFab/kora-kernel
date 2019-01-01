@@ -32,6 +32,7 @@
 
 uint8_t kdb_status = 0;
 
+void input_event(inode_t *dev, int type, int param, pipe_t *pipe);
 
 static void PS2_kbd_led(uint8_t status)
 {
@@ -77,7 +78,8 @@ void PS2_kdb_handler()
             kdb_status |= KDB_HOST;
 
 
-        PS2_event(kdb_ino, EV_KEY_PRESS, 0, (kdb_status << 16) | c);
+        input_event(kdb_ino, EV_KEY_PRESS, (kdb_status << 16) | c, (pipe_t*)kdb_ino->info);
+        // PS2_event(kdb_ino, EV_KEY_PRESS, 0, (kdb_status << 16) | c);
 
     } else {
         c &= 0x7F;
@@ -96,6 +98,7 @@ void PS2_kdb_handler()
         else if (c == KEY_HOST)
             kdb_status &= ~KDB_HOST;
 
-        PS2_event(kdb_ino, EV_KEY_RELEASE, 0, (kdb_status << 16) | c);
+        input_event(kdb_ino, EV_KEY_RELEASE, (kdb_status << 16) | c, (pipe_t*)kdb_ino->info);
+        // PS2_event(kdb_ino, EV_KEY_RELEASE, 0, (kdb_status << 16) | c);
     }
 }

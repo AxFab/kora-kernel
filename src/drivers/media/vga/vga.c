@@ -19,6 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/drv/pci.h>
+#include <string.h>
 
 struct device_id {
     uint16_t vendor;
@@ -55,7 +56,7 @@ int vga_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
     unsigned i;
     for (i = 0; i < sizeof(__vga_ids) / sizeof(struct device_id); ++i) {
         if (__vga_ids[i].id == device || __vga_ids[i].vendor == vendor)
-            return 0;
+            return i;
     }
 
     return -1;
@@ -64,14 +65,18 @@ int vga_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
 void vga_setup()
 {
     struct PCI_device *pci = NULL;
+    char name[48];
 
+    int i;
     for (;;) {
-        pci = PCI_search2(vga_match_pci_device);
+        pci = pci_search(vga_match_pci_device, &i);
         if (pci == NULL)
             break;
-        struct device_id *info = vga_pci_info(pci);
-        // kprintf(0, "Found %s (PCI.%02d.%02d)\n", info->name, pci->bus, pci->slot);
+
+        struct device_id *info = &__vga_ids[i];
+        strcpy(name, info->name);
         info->start(pci, info);
+
     }
 }
 

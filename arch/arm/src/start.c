@@ -124,7 +124,7 @@ unsigned char uart_getc()
 
 void uart_puts(const char *str)
 {
-	size_t i;
+    size_t i;
     for (i = 0; str[i] != '\0'; i ++)
         uart_putc((unsigned char)str[i]);
 }

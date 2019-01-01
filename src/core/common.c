@@ -96,8 +96,8 @@ char buf[1024];
 splock_t bf_lock;
 void kprintf(int log, const char *msg, ...)
 {
-    // if ((log == KLOG_DBG && no_dbg) || log == KLOG_MEM)
-    //     return;
+    if (/*(log == KLOG_DBG && no_dbg) || */log == KLOG_MEM || log == KLOG_INO)
+        return;
     va_list ap;
     va_start(ap, msg);
     splock_lock(&bf_lock);
@@ -130,7 +130,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
     length = ALIGN_UP(length, PAGE_SIZE);
     flags &= ~(VMA_RIGHTS << 4);
     flags |= (flags & VMA_RIGHTS) << 4;
-    void *ptr = mspace_map(kMMU.kspace, 0, length, ino, offset, 0, flags);
+    void *ptr = mspace_map(kMMU.kspace, 0, length, ino, offset, flags);
     return ptr;
 }
 

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -111,14 +111,14 @@ static inline void srunner_add_suite(SRunner *runner, Suite *suite)
 }
 
 
-static inline Suite *suite_create(const char* name)
+static inline Suite *suite_create(const char *name)
 {
     kprintf(-1, "\033[1;36m%s\033[0m\n", name);
     Suite *suite = kalloc(sizeof(Suite));
     return suite;
 }
 
-static inline TCase *tcase_create(const char* name)
+static inline TCase *tcase_create(const char *name)
 {
     kprintf(-1, "  \033[1;35m%s\033[0m\n", name);
     TCase *tcase = kalloc(sizeof(TCase));

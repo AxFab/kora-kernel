@@ -178,6 +178,10 @@ void imgdk_setup()
 
 void imgdk_teardown()
 {
+    int i;
+    for (i = 0; i < 4; ++i)
+        vfs_rmdev(sdNames[i]);
+
 }
 
 MODULE(imgdk, imgdk_setup, imgdk_teardown);

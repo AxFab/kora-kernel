@@ -76,8 +76,8 @@ int mboot_init(void *table)
     csl_early_init();
     com_early_init();
 
-    // Those call to kprintf crash under VirtualBox!
-#if 1
+    // Those call to kprintf crash under VirtualBox! Why!?
+#if 0
     if (mboot_table->flags & GRUB_BOOT_LOADER)
         kprintf(KLOG_MSG, "Boot Loader: %s\n", mboot_table->boot_loader);
 
@@ -151,25 +151,12 @@ void mboot_load_modules()
 {
     unsigned i;
     if (mboot_table->flags & GRUB_MODULES) {
-        kprintf(KLOG_MSG, "Module loaded %d\n", mboot_table->mods_count);
         struct mboot_module *mods = (struct mboot_module *)mboot_table->mods_addr;
         for (i = 0; i < mboot_table->mods_count; ++i) {
-            kprintf(KLOG_MSG, "Mod [%p - %p] %s \n", mods->start, mods->end, mods->string);
+            kprintf(KLOG_MSG, "Module preloaded [%s] %s\n", sztoa(mods->end - mods->start), mods->string);
             inode_t *root = tar_mount(mods->start, mods->end, mods->string);
-
-            kprintf(KLOG_MSG, "READ DIR \n");
-
-            inode_t *ino;
-            char filename[100];
-            void *ctx = vfs_opendir(root, NULL);
-            while ((ino = vfs_readdir(root, filename, ctx)) != NULL) {
-                // dynlib_t dlib;
-                // inode_t *ino, int flags, int block, size_t offset);
-                // dlib.io = bio_create(ino, VMA_FILE_RO, PAGE_SIZE, 0);
-                kprintf(-1, " -Open: %s   %d  %d\n", filename, ino->length, ino->lba);
-                // elf_parse(&dlib);
-            }
-            vfs_closedir(root, ctx);
+            kmod_mount(root);
+            vfs_close(root);
         }
     }
 }

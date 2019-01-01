@@ -119,13 +119,13 @@ const uint8_t glyph_6x10[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ''
 };
 
-const font_t font_6x10 = {
+const font_bmp_t font_6x10 = {
+    .glyphs = glyph_6x10,
+    .glyph_size = 8,
     .width = 6,
     .height = 10,
     .dispx = 7,
     .dispy = 11,
-    .glyph_size = 8,
-    .glyph = glyph_6x10,
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -228,13 +228,13 @@ const uint8_t glyph_8x15[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ''
 };
 
-const font_t font_8x15 = {
+const font_bmp_t font_8x15 = {
+    .glyphs = glyph_8x15,
+    .glyph_size = 15,
     .width = 8,
     .height = 15,
     .dispx = 9,
     .dispy = 16,
-    .glyph_size = 15,
-    .glyph = glyph_8x15,
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -337,17 +337,17 @@ const uint8_t glyph_7x13[] = {
     0x00, 0x08, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ''
 };
 
-const font_t font_7x13 = {
+const font_bmp_t font_7x13 = {
+    .glyphs = glyph_7x13,
+    .glyph_size = 12,
     .width = 7,
     .height = 13,
     .dispx = 8,
     .dispy = 14,
-    .glyph_size = 12,
-    .glyph = glyph_7x13,
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-const uint64_t glyph_6x9 [] = {
+const uint64_t glyph_6x9[] = {
     0x00000000000000, 0x00004004104104, 0x0000000000028a, 0x0000a7ca51e500, // 20-23
     0x0010f30f1453c4, 0x0004d3821072c8, 0x00016255085246, 0x00000000000104, // 24-27
     0x08104104104108, 0x04208208208204, 0x00000284384000, 0x0000411f104000, // 28-2b
@@ -379,17 +379,17 @@ const uint64_t glyph_6x9 [] = {
     0x04104104104104, 0x03104118104103, 0x00000000352000, 0x0001f7df7df7df, // 7c-2f
 };
 
-const font_t font_6x9 = {
+const font_bmp_t font_6x9 = {
+    .glyphs = (const uint8_t *)glyph_6x9,
+    .glyph_size = 8,
     .width = 6,
     .height = 9,
     .dispx = 6,
     .dispy = 9,
-    .glyph_size = 8,
-    .glyph = (const uint8_t *)glyph_6x9,
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-const uint64_t glyph_8x8 [] = {
+const uint64_t glyph_8x8[] = {
     0x0000000000000000, 0x0000100010101010, 0x0000000000001414, 0x0000143E143E1400,
     0x00103C5038147810, 0x0000609468162906, 0x0000986498040438, 0x0000000000001010,
     0x0000100804040810, 0x0000081020201008, 0x00000054387C3854, 0x000010107C101000,
@@ -421,12 +421,46 @@ const uint64_t glyph_8x8 [] = {
     0x0010101010101010, 0x00001C103030101C, 0x000000324C000000, 0x00007E7E7E7E7E7E,
 };
 
-const font_t font_8x8 = {
+const font_bmp_t font_8x8 = {
+    .glyphs = (const uint8_t *)glyph_8x8,
+    .glyph_size = 8,
     .width = 8,
     .height = 8,
     .dispx = 8,
     .dispy = 8,
-    .glyph_size = 8,
-    .glyph = (const uint8_t *)glyph_8x8,
 };
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+void font_paint(surface_t *sfc, font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y)
+{
+    int px, l;
+    int py = y;
+    int gx = x + data->width;
+    int sx = x + data->dispx;
+    int gy = y + data->height;
+    int sy = y + data->dispy;
+    uint8_t *glyph = ADDR_OFF(data->glyphs, (unicode - 0x20) * data->glyph_size);
+    for (l = 0; py < gy; ++py) {
+        int pxrow = sfc->pitch * py;
+        for (px = x; px < gx; ++px, ++l) {
+            uint32_t *pixel = ADDR_OFF(sfc->pixels, pxrow + px * 4);
+            *pixel = color[(glyph[l / 8] & (1 << l % 8)) ? 0 : 1];
+        }
+        for (; px < sx; ++px) {
+            uint32_t *pixel = ADDR_OFF(sfc->pixels, pxrow + px * 4);
+            *pixel = color[1];
+        }
+    }
+
+    for (; py < sy; ++py) {
+        int pxrow = sfc->pitch * py;
+        for (px = x; px < sx; ++px) {
+            uint32_t *pixel = ADDR_OFF(sfc->pixels, pxrow + px * 4);
+            *pixel = color[1];
+        }
+    }
+}
 

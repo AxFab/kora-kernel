@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -80,7 +80,7 @@ static void vma_log(CSTR prefix, vma_t *vma)
 
 /* - */
 vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
-                  off_t offset, off_t limit, int flags)
+                  off_t offset, int flags)
 {
     vma_t *vma = (vma_t *)kalloc(sizeof(vma_t));
     vma->mspace = mspace;
@@ -88,7 +88,6 @@ vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
     vma->length = length;
     vma->ino = vfs_open(ino);
     vma->offset = offset;
-    vma->limit = limit;
     vma->flags = flags;
     bbtree_insert(&mspace->tree, &vma->node);
     mspace->v_size += length;
@@ -106,7 +105,6 @@ vma_t *vma_clone(mspace_t *mspace, vma_t *model)
     vma->length = model->length;
     vma->ino = vfs_open(model->ino);
     vma->offset = model->offset;
-    vma->limit = model->limit;
     vma->flags = model->flags;
     bbtree_insert(&mspace->tree, &vma->node);
     mspace->v_size += model->length;
@@ -142,13 +140,6 @@ vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length)
 
     /* Update size */
     area->length = length;
-    if (area->limit != 0) {
-        if (area->limit > (off_t)length) {
-            vma->limit = area->limit - length;
-            area->limit = 0;
-        } else
-            vma->limit = -1;
-    }
 
     /* Insert new one */
     bbtree_insert(&mspace->tree, &vma->node);
@@ -163,21 +154,21 @@ int vma_close(mspace_t *mspace, vma_t *vma, int arg)
     assert(splock_locked(&mspace->lock));
     int type = vma->flags & VMA_TYPE;
     switch (type) {
-        case VMA_PHYS:
-            for (off = 0; off < vma->length; off += PAGE_SIZE)
-                mmu_drop(vma->node.value_ + off);
-            break;
-        case VMA_FILE:
-            for (off = 0; off < vma->length; off += PAGE_SIZE) {
-                // TODO -- Look if page is dirty
-                page_t pg = mmu_read(vma->node.value_ + off);
-                mmu_drop(vma->node.value_ + off);
-                vma->ino->ops->release(vma->ino, off, pg);
-            }
-            break;
-        default:
-            page_sweep(mspace, vma->node.value_, vma->length, true);
-            break;
+    case VMA_PHYS:
+        for (off = 0; off < vma->length; off += PAGE_SIZE)
+            mmu_drop(vma->node.value_ + off);
+        break;
+    case VMA_FILE:
+        for (off = 0; off < vma->length; off += PAGE_SIZE) {
+            // TODO -- Look if page is dirty
+            page_t pg = mmu_read(vma->node.value_ + off);
+            mmu_drop(vma->node.value_ + off);
+            vma->ino->ops->release(vma->ino, off, pg);
+        }
+        break;
+    default:
+        page_sweep(mspace, vma->node.value_, vma->length, true);
+        break;
     }
 
     if (vma->ino)
@@ -225,7 +216,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     switch (type) {
     case VMA_PHYS:
         while (length > 0) {
-            mmu_resolve(address, (page_t)offset, vma->flags);
+            vma->mspace->p_size += mmu_resolve(address, (page_t)offset, vma->flags);
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
             offset += PAGE_SIZE;
@@ -236,7 +227,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     case VMA_PIPE:
     case VMA_ANON:
         while (length > 0) {
-            mmu_resolve(address, 0, vma->flags);
+            vma->mspace->p_size += mmu_resolve(address, 0, vma->flags);
             memset((void *)address, 0, PAGE_SIZE);
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
@@ -255,7 +246,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
             if (pg == 0)
                 return -1;
             // TODO Check we still have a valid VMA !
-            mmu_resolve(address, pg, vma->flags);
+            vma->mspace->p_size += mmu_resolve(address, pg, vma->flags);
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
             offset += PAGE_SIZE;
@@ -288,7 +279,7 @@ int vma_copy_on_write(vma_t *vma, size_t address, size_t length)
         page_t pg = mmu_drop(address);
         (void)pg;
         page_t copy = mmu_read((size_t)buf);
-        mmu_resolve(address, copy, vma->flags);
+        vma->mspace->p_size += mmu_resolve(address, copy, vma->flags);
         address += PAGE_SIZE;
         length -= PAGE_SIZE;
         buf += PAGE_SIZE;

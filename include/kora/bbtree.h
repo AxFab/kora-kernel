@@ -72,6 +72,8 @@ bbnode_t *bbtree_search_(bbnode_t *node, size_t value, int accept);
 #define bbtree_left(n,s,m) (s*)itemof(bbtree_left_(n),s,m)
 #define bbtree_right(n,s,m) (s*)itemof(bbtree_right_(n),s,m)
 
+#define bbtree_each(t,n,s,m)  ((n)=bbtree_first(t,s,m);(n);(n)=bbtree_next(&(n)->m,s,m))
+
 #define bbtree_search_eq(t,v,s,m) (s*)itemof(bbtree_search_((t)->root_,v,0),s,m)
 #define bbtree_search_le(t,v,s,m) (s*)itemof(bbtree_search_((t)->root_,v,-1),s,m)
 #define bbtree_search_ge(t,v,s,m) (s*)itemof(bbtree_search_((t)->root_,v,1),s,m)

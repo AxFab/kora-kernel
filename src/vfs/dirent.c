@@ -105,7 +105,13 @@ void vfs_rm_dirent_(dirent_t *ent)
     rwlock_rdunlock(&ent->lock);
     // TODO -- Wake up other !
     rwlock_wrlock(&ent->lock);
-    // kfree(&ent);
+    if (ent->ino != NULL) {
+        vfs_close(ent->ino);
+        ent->ino = NULL;
+    }
+    kprintf(KLOG_INO, "Freeing %p\n", ent);
+    rwlock_wrunlock(&ent->lock);
+    //kfree(ent);
 
     splock_unlock(&fs->lock);
 }
@@ -148,8 +154,8 @@ void vfs_record_(inode_t *dir, inode_t *ino)
 {
     assert(dir != NULL && VFS_ISDIR(dir));
     assert(ino != NULL);
-    assert(ino->rcu == 1);
-    assert(ino->links == 0);
+    // assert(ino->rcu == 1);
+    // assert(ino->links == 0);
     assert(ino->no != 0);
     assert(ino->ops != NULL);
 }
@@ -216,7 +222,8 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
         if (ent == NULL) {
             vfs_close(ino);
             kfree(path_cpy);
-            assert(errno != 0);
+            errno = ENOENT;
+            // assert(errno != 0);
             return NULL;
         }
         vfs_open(ent->ino);
@@ -240,5 +247,5 @@ inode_t *vfs_lookup(inode_t *dir, CSTR name)
     }
     inode_t *ino = ent->ino;
     rwlock_rdunlock(&ent->lock);
-    return ino;
+    return vfs_open(ino);
 }

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -149,7 +149,7 @@ long strtol(const char *nptr, char **endptr, int base)
 
     } else {
 
-        if (value > (__ulong)(-LONG_MIN)) {
+        if (value > (__ulong)(LONG_MIN)) {
             errno = EOVERFLOW;
             if (endptr)
                 (*endptr) = (char *)nptr;

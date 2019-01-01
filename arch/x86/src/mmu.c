@@ -49,8 +49,8 @@ static int mmu_flags(size_t vaddr, int flags)
 void mmu_enable()
 {
     unsigned i;
-    // Setup first heap arena [1Mib - 2Mib]
-    setup_allocator((void *)(1024 * _Kib_), 1024 * _Kib_);
+    // Setup first heap arena [3Mib - 4Mib]
+    setup_allocator((void *)(3 * _Mib_), 1 * _Mib_);
 
     // Record physical available memory
     mboot_memory();
@@ -83,31 +83,36 @@ void mmu_leave()
 }
 
 /* Resolve a single missing virtual page */
-page_t mmu_resolve(size_t vaddr, page_t phys, int flags)
+int mmu_resolve(size_t vaddr, page_t phys, int flags)
 {
+    int pages = 0;
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if (*dir == 0) {
         if (vaddr >= MMU_KSPACE_LOWER) {
             page_t *krn = MMU_KRN(vaddr);
             if (*krn == 0) {
+                pages++;
                 *krn = page_new() | MMU_K_RW;
                 memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
             }
             *dir = *krn;
         } else {
+            pages++;
             *dir = page_new() | MMU_U_RW;
             memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
         }
     }
 
     if (*tbl == 0) {
-        if (phys == 0)
+        if (phys == 0) {
+            pages++;
             phys = page_new();
+        }
         *tbl = phys | mmu_flags(vaddr, flags);
     } else
         assert(vaddr >= MMU_KSPACE_LOWER);
-    return (*tbl) & ~(PAGE_SIZE - 1);
+    return pages; //(*tbl) & ~(PAGE_SIZE - 1);
 }
 
 /* Get physical address for virtual provided one */
@@ -175,10 +180,13 @@ void mmu_destroy_uspace(mspace_t *mspace)
     page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
 
     for (i = MMU_UTBL_LOW ; i < MMU_UTBL_HIGH; ++i) {
-        if (dir[i])
+        if (dir[i]) {
+            mspace->p_size--;
             page_release(dir[i] & (PAGE_SIZE - 1));
+        }
     }
     kunmap(dir, PAGE_SIZE);
+    // TODO mspace->p_size--;
     page_release(dir_pg);
 }
 

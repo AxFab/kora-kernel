@@ -46,8 +46,8 @@ build_binutils()
 {
     cd "$SOURCES"
 
-    mkdir build-binutils
-    cd build-binutils
+    mkdir build-binutils-$TARGET
+    cd build-binutils-$TARGET
     "../$BUTILS/configure" --target=$TARGET --prefix="$PREFIX" --with-sysroot --disable-nls --disable-werror
     make
     make install
@@ -59,8 +59,8 @@ build_gcc()
     # The $PREFIX/bin dir _must_ be in the PATH. We did that above.
     which -- $TARGET-as || echo $TARGET-as is not in the PATH
 
-    mkdir build-gcc
-    cd build-gcc
+    mkdir build-gcc-$TARGET
+    cd build-gcc-$TARGET
     "../$GCC/configure" --target=$TARGET --prefix="$PREFIX" --disable-nls --enable-languages=c,c++ --without-headers
     make all-gcc
     make all-target-libgcc
@@ -80,6 +80,7 @@ look_arch() {
     esac
 }
 
+look_arch $1
 mkdir -p $PREFIX/{bin,lib,src}
 
 download

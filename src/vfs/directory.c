@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -60,10 +60,9 @@ inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx)
     dirent_t *ent = vfs_dirent_(dir, name, false);
     errno = 0;
     if (ent != NULL) {
-        if (ent->ino != NULL) {
-            vfs_close(ino);
-            ino = ent->ino;
-        } else
+        if (ent->ino != NULL)
+            assert(ino == ent->ino);
+        else
             vfs_set_dirent_(ent, ino);
         rwlock_rdunlock(&ent->lock);
     }

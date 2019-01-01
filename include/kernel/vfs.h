@@ -22,6 +22,7 @@
 
 #include <kernel/core.h>
 #include <kora/llist.h>
+#include <kora/bbtree.h>
 #include <time.h>
 
 #define VFS_MAXPATH 4096
@@ -118,6 +119,7 @@ struct inode {
 
     atomic_t links;
     llhead_t dlist; // List of dirent_t;
+    bbnode_t bnode;
 
     void *info; // Place holder for driver info
     ino_ops_t *ops;

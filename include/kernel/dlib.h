@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2018  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _SRC_DLIB
-#define _SRC_DLIB 1
+#ifndef _KERNEL_DLIB_H
+#define _KERNEL_DLIB_H 1
 
 #include <kernel/core.h>
 #include <kora/stddef.h>
@@ -67,12 +67,14 @@ struct dynlib {
     size_t base;
     size_t length;
     bio_t *io;
+    inode_t *ino;
     llnode_t node;
     llhead_t sections;
     llhead_t depends;
     llhead_t intern_symbols;
     llhead_t extern_symbols;
     llhead_t relocations;
+    char *rpath;
 };
 
 
@@ -87,5 +89,28 @@ struct process {
     HMP_map symbols;
 };
 
+struct proc {
+    dynlib_t exec;
+    HMP_map symbols;
+    HMP_map libs_map;
+    llhead_t queue;
+    llhead_t libraries;
+    mspace_t *mspace;
+    char *execname;
+    inode_t *root;
+    inode_t *pwd;
+    acl_t *acl;
+    char *env;
+    bool req_set_uid;
+};
 
-#endif  /* _SRC_DLIB */
+bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib);
+void dlib_destroy(dynlib_t *lib);
+void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
+int dlib_openexec(proc_t *proc);
+void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
+
+int elf_parse(dynlib_t *dlib);
+
+
+#endif  /* _KERNEL_DLIB_H */

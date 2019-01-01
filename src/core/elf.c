@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "elf.h"
-#include "dlib.h"
+#include <kernel/dlib.h>
 #include <errno.h>
 #include <string.h>
 
@@ -124,8 +124,10 @@ int elf_parse(dynlib_t *dlib)
 
     /* Open header */
     elf_header_t *head = bio_access(dlib->io, 0);
-    if (elf_check_header(head) != 0)
+    if (elf_check_header(head) != 0) {
+        bio_clean(dlib->io, 0);
         return -1;
+    }
 
     dlib->entry = head->entry;
     /* Open program table */
@@ -145,10 +147,14 @@ int elf_parse(dynlib_t *dlib)
 
     dlib->init = dynamic.init;
     dlib->fini = dynamic.fini;
-    if (dynamic.rel == 0)
+    if (dynamic.rel == 0) {
+        bio_clean(dlib->io, 0);
         return 0;
-    if (dynamic.str_tab == 0)
+    }
+    if (dynamic.str_tab == 0) {
+        bio_clean(dlib->io, 0);
         return -1;
+    }
 
     /* Find string table */
     const char *strtab = ADDR_OFF(bio_access(dlib->io, dynamic.str_tab / PAGE_SIZE), dynamic.str_tab % PAGE_SIZE);
@@ -178,8 +184,12 @@ int elf_parse(dynlib_t *dlib)
             break;
         // TODO -- How to detect the end of table!
         dynrel_t *rel = kalloc(sizeof(dynrel_t));
-        ll_append(&dlib->relocations, &rel->node);
         elf_relocation(rel, &rel_tbl[i * ent_sz], &symbols);
+        if (rel->address == NULL) {
+            kfree(rel);
+            break;
+        }
+        ll_append(&dlib->relocations, &rel->node);
         rel += dynamic.rel_ent / sizeof(uint32_t);
     }
     bio_clean(dlib->io, dynamic.rel / PAGE_SIZE);
@@ -194,6 +204,7 @@ int elf_parse(dynlib_t *dlib)
     }
 
     bio_clean(dlib->io, dynamic.str_tab / PAGE_SIZE);
+    bio_clean(dlib->io, 0);
     return 0;
 }
 

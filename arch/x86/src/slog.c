@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
+#include <kernel/files.h>
 
 void csl_early_init();
 int csl_write(inode_t *ino, const char *buf, int len);
@@ -26,10 +27,16 @@ void com_early_init();
 int com_output(int no, const char *buf, int len);
 
 
+extern tty_t *slog;
+int tty_write(tty_t *tty, const char *buf, int len);
+
 void kwrite(const char *buf, int len)
 {
-    csl_write(NULL, buf, len);
     com_output(0, buf, len);
+    if (slog != NULL)
+        tty_write(slog, buf, len);
+    else
+        csl_write(NULL, buf, len);
 }
 
 uint64_t cpu_clock()

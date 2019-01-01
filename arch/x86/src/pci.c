@@ -20,10 +20,22 @@
 #include <kernel/core.h>
 #include <kernel/cpu.h>
 #include <kernel/drv/pci.h>
+#include <kernel/sdk.h>
 
 
 #define PCI_IO_CFG_ADDRESS 0xCF8
 #define PCI_IO_CFG_DATA 0xCFC
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+void __divdi3();
+kdk_api_t x86_kapi[] = {
+    KAPI(pci_search),
+    KAPI(pci_config_write32),
+    KAPI(pci_config_read16),
+    KAPI(__divdi3),
+    { NULL, 0, NULL },
+};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -243,17 +255,17 @@ static void pci_check_device(uint8_t bus, uint8_t slot)
         device_stack[dev_sp].bar[i].base = bar;
         device_stack[dev_sp].bar[i].size = bar_sz;
 
-        if ((bar & 3) != 0) {
-            kprintf(KLOG_DBG, "          IO region #%d: %x..%x \n", i, bar & 0xFFFFFFFC,
-                    (bar & 0xFFFFFFFC) + bar_sz + 1);
-        } else if (bar & 8) {
-            kprintf(KLOG_DBG, "          MMIO PREFETCH region #%d: %08x..%08x\n", i,
-                    bar & ~15,
-                    (bar & ~15) + bar_sz + 8);
-        } else if (bar_sz != 0) {
-            kprintf(KLOG_DBG, "          MMIO region #%d: %08x..%08x\n", i, bar & ~15,
-                    (bar & ~15) + bar_sz);
-        }
+        // if ((bar & 3) != 0) {
+        //     kprintf(KLOG_DBG, "          IO region #%d: %x..%x \n", i, bar & 0xFFFFFFFC,
+        //             (bar & 0xFFFFFFFC) + bar_sz + 1);
+        // } else if (bar & 8) {
+        //     kprintf(KLOG_DBG, "          MMIO PREFETCH region #%d: %08x..%08x\n", i,
+        //             bar & ~15,
+        //             (bar & ~15) + bar_sz + 8);
+        // } else if (bar_sz != 0) {
+        //     kprintf(KLOG_DBG, "          MMIO region #%d: %08x..%08x\n", i, bar & ~15,
+        //             (bar & ~15) + bar_sz);
+        // }
     }
 
     dev_sp++;
@@ -318,36 +330,29 @@ struct PCI_device *pci_search(pci_matcher match, int *data)
     return NULL;
 }
 
-void kernel_module(kmod_t *mod);
-KMODULE(dev);
+void kmod_register(kmod_t *mod);
+void mboot_load_modules();
 KMODULE(csl);
 KMODULE(serial);
 KMODULE(ps2);
-KMODULE(ide_ata);
+
 KMODULE(isofs);
 KMODULE(fatfs);
-KMODULE(e1000);
 
-void mboot_load_modules();
 
 void platform_setup()
 {
+    kmod_symbols(x86_kapi);
+
     pci_setup();
 
     mboot_load_modules();
 
-    kernel_tasklet(kernel_module, &kmod_info_dev, kmod_info_dev.name);
-    kernel_tasklet(kernel_module, &kmod_info_csl, kmod_info_csl.name);
-    kernel_tasklet(kernel_module, &kmod_info_serial, kmod_info_serial.name);
-
-    kernel_tasklet(kernel_module, &kmod_info_ps2, kmod_info_ps2.name);
-    // Load fake disks drivers
-    kernel_tasklet(kernel_module, &kmod_info_ide_ata, kmod_info_ide_ata.name);
-    // Load network driver
-    kernel_tasklet(kernel_module, &kmod_info_e1000, kmod_info_e1000.name);
-    // Load screen
+    kmod_register(&kmod_info_csl);
+    kmod_register(&kmod_info_serial);
 
     // Load file systems
-    kernel_tasklet(kernel_module, &kmod_info_isofs, kmod_info_isofs.name);
-    kernel_tasklet(kernel_module, &kmod_info_fatfs, kmod_info_fatfs.name);
+    kmod_register(&kmod_info_ps2);
+    // kmod_register(&kmod_info_isofs);
+    // kmod_register(&kmod_info_fatfs);
 }
