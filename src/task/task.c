@@ -270,8 +270,8 @@ task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
     task->pid = task_new_pid();
     task->user = user;
 
-    kprintf(KLOG_TSK, "Create %s task #%d, %s\n",
-            flags & TSK_USER_SPACE ? "user" : "kernel", task->pid, name);
+    // kprintf(KLOG_TSK, "Create %s task #%d, %s\n",
+    //         flags & TSK_USER_SPACE ? "user" : "kernel", task->pid, name);
     task->name = strdup(name);
     task->root = root ? vfs_open(root) : NULL;
     task->pwd = root ? vfs_open(root) : NULL;

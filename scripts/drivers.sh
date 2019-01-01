@@ -30,6 +30,7 @@ MAKE () {
 MAKE 'disk/ata'
 MAKE 'input/ps2'
 MAKE 'net/e1000'
+MAKE 'media/vga'
 
 # MAKE 'fs/ext2'
 MAKE 'fs/fat'

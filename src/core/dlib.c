@@ -228,19 +228,21 @@ bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
 {
     dynsym_t *sym;
     dynsym_t *symbol;
+    int missing = 0;
     for ll_each(&lib->extern_symbols, symbol, dynsym_t, node) {
         // Resolve symbol
         sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
         if (sym == NULL) {
+            missing++;
             // kprintf(-1, "Missing symbol %s\n", symbol->name);
-            // continue;
-            return false;
+            continue;
+            // return false;
         }
         symbol->address = sym->address;
         symbol->size = sym->size;
         // kprintf(-1, " <- %s at %p\n", symbol->name, symbol->address);
     }
-    return true;
+    return missing == 0;
 }
 
 
