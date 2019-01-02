@@ -21,6 +21,7 @@
 #include <kernel/drv/pci.h>
 #include <kernel/cpu.h>
 #include <kernel/task.h>
+#include <kernel/syscalls.h>
 #include <kora/mcrs.h>
 #include <string.h>
 #include "e1000_hw.h"

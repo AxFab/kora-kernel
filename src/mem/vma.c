@@ -163,7 +163,7 @@ int vma_close(mspace_t *mspace, vma_t *vma, int arg)
             // TODO -- Look if page is dirty
             page_t pg = mmu_read(vma->node.value_ + off);
             mmu_drop(vma->node.value_ + off);
-            vma->ino->ops->release(vma->ino, off, pg);
+            vma->ino->ops->release(vma->ino, vma->offset + off, pg);
         }
         break;
     default:

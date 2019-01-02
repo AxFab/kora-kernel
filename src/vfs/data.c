@@ -138,26 +138,3 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
     }
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-page_t mem_fetch(inode_t *ino, off_t off)
-{
-    if (ino->ops->fetch == NULL)
-        return 0;
-    return ino->ops->fetch(ino, off);
-}
-
-void mem_sync(inode_t *ino, off_t off, page_t pg)
-{
-    if (ino->ops->sync == NULL)
-        return;
-    ino->ops->sync(ino, off, pg);
-}
-
-void mem_release(inode_t *ino, off_t off, page_t pg)
-{
-    if (ino->ops->release == NULL)
-        return;
-    ino->ops->release(ino, off, pg);
-}
-
