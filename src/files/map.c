@@ -21,12 +21,14 @@
 #include <kernel/vfs.h>
 #include <kernel/device.h>
 #include <kernel/files.h>
+#include <threads.h>
 
 struct map_page {
     bbnode_t bnode;
-    atomic32_t usage;
+    int rcu;
     page_t phys;
     bool dirty;
+    cnd_t cond;
 };
 
 struct map_cache {
@@ -53,7 +55,7 @@ map_cache_t *map_create(inode_t *ino, void *read, void *write)
 
 void map_destroy(map_cache_t *cache)
 {
-    assert(cache->tree.count_ == 0);
+    // assert(cache->tree.count_ == 0);
     kfree(cache);
 }
 
@@ -62,12 +64,29 @@ page_t map_fetch(map_cache_t *cache, off_t off)
 {
     assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
+    splock_lock(&cache->lock);
+    map_page_t *page = bbtree_search_eq(&cache->tree, off, map_page_t, bnode);
+    if (page != NULL) {
+        page->rcu++;
+        splock_unlock(&cache->lock);
+        cnd_wait(&page->cond, NULL);
+        return page->phys;
+    }
+    
+    page = kalloc(sizeof(map_page_t));
+    cnd_init(&page->cond);
+    page->rcu = 1;
+    bbtree_insert(&cache->tree, &page->bnode);
+    splock_unlock(&cache->lock);
+    
     void *ptr = kmap(PAGE_SIZE, NULL, 0, VMA_PHYSIQ);
     assert(kCPU.irq_semaphore == 0);
     cache->read(cache->ino, ptr, PAGE_SIZE, off);
     assert(kCPU.irq_semaphore == 0);
     page_t pg = mmu_read((size_t)ptr);
     kunmap(ptr, PAGE_SIZE);
+    page->phys = pg;
+    cnd_broadcast(&page->cond);
     return pg;
 }
 
@@ -84,6 +103,16 @@ void map_sync(map_cache_t *cache, off_t off, page_t pg)
 
 void map_release(map_cache_t *cache, off_t off, page_t pg)
 {
+    assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
+    splock_lock(&cache->lock);
+    map_page_t *page = bbtree_search_eq(&cache->tree, off, map_page_t, bnode);
+    assert (page != NULL);
+    if (--page->rcu == 0) {
+        // bbtree_remove(&cache->tree, off);
+        // page_release(page->phys);
+        // TODO - sync or lru! 
+    }
+    splock_unlock(&cache->lock);
 }
 
