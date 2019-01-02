@@ -77,7 +77,7 @@ int mtx_init(mtx_t *mutex, int flags)
     ptr->counter = 0;
     ptr->flags = flags;
     ptr->thread = 0;
-    splock_lock(&ptr->splock);
+    splock_init(&ptr->splock);
     *mutex = ptr;
     return 0;
 }
