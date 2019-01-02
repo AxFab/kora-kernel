@@ -59,6 +59,38 @@ void map_destroy(map_cache_t *cache)
     kfree(cache);
 }
 
+static void map_close(map_cache_t *cache, map_page_t *page) 
+{
+	if (--page->rcu == 0) {
+		// TODO push on LRU
+		// kSYS.map_pages_lru
+    }
+} 
+
+/*
+int map_scavenge(int count, int min)
+{
+	int del = 0;
+	while (count-- > 0 && kSYS.map_pages_lru.count_ > min) {
+    
+        map_page_t *page = map_pages_lru.first;
+        map_cache_t *cache;
+	    while (splock_trylock(&cache->lock) != 0) {
+		    // TODO -- don't touch MIN lasts items!
+		    page = llnext(&page->node, map_cache_t, node);
+		}
+		
+        ++del;
+	    // TODO pop from on LRU
+		// kSYS.map_pages_lru
+        bbtree_remove(&cache->tree, page->bnode.value_);
+        page_release(page->phys);
+        splock_unlock(&cache->lock);
+   }
+   return del;
+} */
+
+
 
 page_t map_fetch(map_cache_t *cache, off_t off)
 {
@@ -67,6 +99,7 @@ page_t map_fetch(map_cache_t *cache, off_t off)
     splock_lock(&cache->lock);
     map_page_t *page = bbtree_search_eq(&cache->tree, off, map_page_t, bnode);
     if (page != NULL) {
+        // TODO - ensure not in LRU
         page->rcu++;
         splock_unlock(&cache->lock);
         cnd_wait(&page->cond, NULL);
@@ -92,8 +125,20 @@ page_t map_fetch(map_cache_t *cache, off_t off)
 
 void map_sync(map_cache_t *cache, off_t off, page_t pg)
 {
-    assert(kCPU.irq_semaphore == 0);
+	assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
+    splock_lock(&cache->lock);
+    map_page_t *page = bbtree_search_eq(&cache->tree, off, map_page_t, bnode);
+    assert (page != NULL);
+    if (!page->dirty) {
+        splock_unlock(&cache->lock);
+        return;
+    }
+    
+    assert(pg == page->phys);
+    // TODO - async io, using CoW !?
+    splock_unlock(&cache->lock);
+ 
     void *ptr = kmap(PAGE_SIZE, NULL, (off_t)pg, VMA_PHYSIQ);
     assert(kCPU.irq_semaphore == 0);
     cache->write(cache->ino, ptr, PAGE_SIZE, off);
@@ -103,16 +148,13 @@ void map_sync(map_cache_t *cache, off_t off, page_t pg)
 
 void map_release(map_cache_t *cache, off_t off, page_t pg)
 {
+    // TODO - map_sync(cache, off, pg);
     assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&cache->lock);
     map_page_t *page = bbtree_search_eq(&cache->tree, off, map_page_t, bnode);
     assert (page != NULL);
-    if (--page->rcu == 0) {
-        // bbtree_remove(&cache->tree, off);
-        // page_release(page->phys);
-        // TODO - sync or lru! 
-    }
+    map_close(cache, page);
     splock_unlock(&cache->lock);
 }
 
