@@ -74,7 +74,7 @@ void async_wait(splock_t *lock, llhead_t *list, long timeout_us)
 }
 
 
-void kernel_tasklet(void *start, void *arg, CSTR name)
+void task_create(void *start, void *arg, CSTR name)
 {
     if ((void *)arg == &eth1)
         thrd_create(&thread1, (pfunc_t)net_start, arg);

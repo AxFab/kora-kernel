@@ -31,7 +31,6 @@ void cpu_stack(task_t *task, size_t entry, size_t param)
     stack--;
     *stack = param;
     stack--;
-    *stack = (size_t)kexit;
     task->state[4] = (size_t)stack;
 }
 
