@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -61,29 +61,29 @@ void map_destroy(map_cache_t *cache)
 
 static void map_close(map_cache_t *cache, map_page_t *page)
 {
-	if (--page->rcu == 0) {
+    if (--page->rcu == 0) {
         // IF DIRTY SYNC
-		// TODO push on LRU
-		// kSYS.map_pages_lru
+        // TODO push on LRU
+        // kSYS.map_pages_lru
     }
 }
 
 /*
 int map_scavenge(int count, int min)
 {
-	int del = 0;
-	while (count-- > 0 && kSYS.map_pages_lru.count_ > min) {
+    int del = 0;
+    while (count-- > 0 && kSYS.map_pages_lru.count_ > min) {
 
         map_page_t *page = map_pages_lru.first;
         map_cache_t *cache;
-	    while (splock_trylock(&cache->lock) != 0) {
-		    // TODO -- don't touch MIN lasts items!
-		    page = llnext(&page->node, map_cache_t, node);
-		}
+        while (splock_trylock(&cache->lock) != 0) {
+            // TODO -- don't touch MIN lasts items!
+            page = llnext(&page->node, map_cache_t, node);
+        }
 
         ++del;
-	    // TODO pop from on LRU
-		// kSYS.map_pages_lru
+        // TODO pop from on LRU
+        // kSYS.map_pages_lru
         bbtree_remove(&cache->tree, page->bnode.value_);
         page_release(page->phys);
         splock_unlock(&cache->lock);
@@ -128,11 +128,11 @@ page_t map_fetch(map_cache_t *cache, off_t off)
 
 void map_sync(map_cache_t *cache, off_t off, page_t pg)
 {
-	assert(kCPU.irq_semaphore == 0);
+    assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&cache->lock);
     map_page_t *page = bbtree_search_eq(&cache->tree, off / PAGE_SIZE, map_page_t, bnode);
-    assert (page != NULL);
+    assert(page != NULL);
     if (!page->dirty) {
         splock_unlock(&cache->lock);
         return;

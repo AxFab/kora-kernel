@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -234,7 +234,7 @@ int sys_window(int width, int height, unsigned features, unsigned evmask)
 {
     // TODO - Look for the desktop attached to the session
     resx_t *resx = kCPU.running->resx;
-    inode_t * ino = window_open(NULL, width, height, features);
+    inode_t *ino = window_open(NULL, width, height, features);
     if (ino == NULL)
         return -1;
 

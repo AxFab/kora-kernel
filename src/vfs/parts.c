@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#if 0
 #include <kernel/core.h>
+#if 0
 #include <kernel/device.h>
 #include <string.h>
 #include <errno.h>

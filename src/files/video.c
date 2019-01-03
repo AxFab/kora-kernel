@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -27,9 +27,9 @@ void vds_rect(surface_t *win, int x, int y, int w, int h, uint32_t color)
     int i, j, dp = win->depth;
     for (j = 0; j < h; ++j) {
         for (i = 0; i < w; ++i) {
-            win->pixels[(j+y)*win->pitch+(i+x)* dp + 0] = (color >> 0) & 0xFF;
-            win->pixels[(j+y)*win->pitch+(i+x)* dp + 1] = (color >> 8) & 0xFF;
-            win->pixels[(j+y)*win->pitch+(i+x)* dp + 2] = (color >> 16) & 0xFF;
+            win->pixels[(j + y)*win->pitch + (i + x)* dp + 0] = (color >> 0) & 0xFF;
+            win->pixels[(j + y)*win->pitch + (i + x)* dp + 1] = (color >> 8) & 0xFF;
+            win->pixels[(j + y)*win->pitch + (i + x)* dp + 2] = (color >> 16) & 0xFF;
         }
     }
 }

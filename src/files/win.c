@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -227,7 +227,8 @@ surface_t *create_win()
 #define TTY_WRITE(t,s)  tty_write(t,s,strlen(s))
 
 
-void krn_ls(tty_t *tty, inode_t *dir) {
+void krn_ls(tty_t *tty, inode_t *dir)
+{
     inode_t *ino;
     char buf[256];
     char name[256];
@@ -242,7 +243,8 @@ void krn_ls(tty_t *tty, inode_t *dir) {
     vfs_closedir(dir, dir_ctx);
 }
 
-void krn_cat(tty_t *tty, const char *path) {
+void krn_cat(tty_t *tty, const char *path)
+{
     char *buf = kalloc(512);
     int fd = sys_open(-1, path, 0);
     if (fd == -1) {
@@ -272,9 +274,9 @@ void graphic_task()
     // const char *txt_filename = "BOOT/GRUB/MENU.LST";
 
 
-    inode_t *ino = window_open(&kDESK, 0,0,0,0);
+    inode_t *ino = window_open(&kDESK, 0, 0, 0, 0);
     tty_t *tty = tty_create(128);
-    tty_window(tty, ((window_t*)ino->info)->fb, &font_8x15);
+    tty_window(tty, ((window_t *)ino->info)->fb, &font_8x15);
     // void* pixels = kmap(2 * _Mib_, ino, 0, VMA_FILE_RW | VMA_RESOLVE);
     // MAP NODE / USE IT TO DRAW ON SURFACE
 
@@ -317,7 +319,7 @@ void desktop_event(desktop_t *desk, event_t *event)
     splock_lock(&desk->lock);
     window_t *win = desk->focus;
     splock_unlock(&desk->lock);
-    pipe_write(win->mq, (char*)&event, sizeof(event), 0);
+    pipe_write(win->mq, (char *)&event, sizeof(event), 0);
 }
 
 static int input_event_kdbdown(desktop_t *desk, event_t *event)
@@ -341,9 +343,8 @@ static int input_event_kdbdown(desktop_t *desk, event_t *event)
             ll_push_back(&desk->list, &win->node);
         }
         splock_unlock(&desk->lock);
-    } else {
+    } else
         desktop_event(desk, event);
-    }
     return 0;
 }
 
@@ -380,9 +381,8 @@ void input_event(inode_t *dev, int type, int param, pipe_t *pipe)
         break;
     }
 
-    if (pipe != NULL) {
-        pipe_write(pipe, (char*)&event, sizeof(event), 0);
-    }
+    if (pipe != NULL)
+        pipe_write(pipe, (char *)&event, sizeof(event), 0);
 }
 
 
@@ -403,11 +403,11 @@ void desktop()
     kprintf(-1, "Desktop %dx%d\n", width, height);
 
     // create window
-    inode_t *ino1 = window_open(&kDESK, 0,0,0,0);
-    surface_t *win1 = ((window_t*)ino1->info)->fb;
+    inode_t *ino1 = window_open(&kDESK, 0, 0, 0, 0);
+    surface_t *win1 = ((window_t *)ino1->info)->fb;
     task_create(graphic_task, NULL, "Example app");
     task_create(graphic_task, NULL, "Example app");
-    kDESK.focus = (window_t*)ino1->info;
+    kDESK.focus = (window_t *)ino1->info;
 
     tty_window(slog, win1, &font_7x13);
 
@@ -419,7 +419,7 @@ void desktop()
         window_t *win;
         for ll_each(&kDESK.list, win, window_t, node) {
             vds_rect(screen, win->fb->x, win->fb->y - FRAME_SZ,  win->fb->width,
-                FRAME_SZ, kDESK.focus == win ? 0x8b9b4e : 0xdddddd);
+                     FRAME_SZ, kDESK.focus == win ? 0x8b9b4e : 0xdddddd);
             vds_copy(screen, win->fb, win->fb->x, win->fb->y);
         }
         splock_unlock(&kDESK.lock);
