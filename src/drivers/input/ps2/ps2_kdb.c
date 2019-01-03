@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -78,7 +78,7 @@ void PS2_kdb_handler()
             kdb_status |= KDB_HOST;
 
 
-        input_event(kdb_ino, EV_KEY_PRESS, (kdb_status << 16) | c, (pipe_t*)kdb_ino->info);
+        input_event(kdb_ino, EV_KEY_PRESS, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
         // PS2_event(kdb_ino, EV_KEY_PRESS, 0, (kdb_status << 16) | c);
 
     } else {
@@ -98,7 +98,7 @@ void PS2_kdb_handler()
         else if (c == KEY_HOST)
             kdb_status &= ~KDB_HOST;
 
-        input_event(kdb_ino, EV_KEY_RELEASE, (kdb_status << 16) | c, (pipe_t*)kdb_ino->info);
+        input_event(kdb_ino, EV_KEY_RELEASE, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
         // PS2_event(kdb_ino, EV_KEY_RELEASE, 0, (kdb_status << 16) | c);
     }
 }

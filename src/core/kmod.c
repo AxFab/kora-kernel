@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -208,10 +208,10 @@ void kmod_dump()
     kprintf(KLOG_MSG, "Loaded driver:\n");
     for ll_each(&kmod_started, mod, kmod_t, node) {
         kprintf(KLOG_MSG, " %-20s  %d.%d.%d   %s\n", mod->name,
-            VERS32_MJ(mod->version),
-            VERS32_MN(mod->version),
-            VERS32_PT(mod->version),
-            mod->dlib ? "LOADED" : "EMBEDED");
+                VERS32_MJ(mod->version),
+                VERS32_MN(mod->version),
+                VERS32_PT(mod->version),
+                mod->dlib ? "LOADED" : "EMBEDED");
     }
     splock_unlock(&kmod_lock);
 }
