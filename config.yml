@@ -17,6 +17,3 @@ drivers:
   net:
     e1000: y
 
-
-
-

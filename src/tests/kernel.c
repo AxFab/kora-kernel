@@ -69,14 +69,14 @@ KMODULE(lnet);
 void platform_setup()
 {
     // Load fake disks drivers
-    kernel_tasklet(kernel_module, &kmod_info_imgdk, kmod_info_imgdk.name);
+    task_create(kernel_module, &kmod_info_imgdk, kmod_info_imgdk.name);
     // Load fake network driver
-    kernel_tasklet(kernel_module, &kmod_info_lnet, kmod_info_lnet.name);
+    task_create(kernel_module, &kmod_info_lnet, kmod_info_lnet.name);
     // Load fake screen
 
     // Load file systems
-    kernel_tasklet(kernel_module, &kmod_info_isofs, kmod_info_isofs.name);
-    kernel_tasklet(kernel_module, &kmod_info_fatfs, kmod_info_fatfs.name);
+    task_create(kernel_module, &kmod_info_isofs, kmod_info_isofs.name);
+    task_create(kernel_module, &kmod_info_fatfs, kmod_info_fatfs.name);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

@@ -264,7 +264,6 @@ void krn_cat(tty_t *tty, const char *path) {
     kfree(buf);
 }
 
-extern inode_t *root;
 
 void graphic_task()
 {
@@ -279,10 +278,8 @@ void graphic_task()
     // void* pixels = kmap(2 * _Mib_, ino, 0, VMA_FILE_RW | VMA_RESOLVE);
     // MAP NODE / USE IT TO DRAW ON SURFACE
 
-    while (root == NULL)
-        sys_sleep(10000);
+    inode_t *root = resx_fs_pwd(kCPU.running->resx_fs);
 
-    kCPU.running->pwd = root;
     TTY_WRITE(tty, "shell> ls\n");
     krn_ls(tty, root);
     TTY_WRITE(tty, "shell> cat ");
@@ -408,8 +405,8 @@ void desktop()
     // create window
     inode_t *ino1 = window_open(&kDESK, 0,0,0,0);
     surface_t *win1 = ((window_t*)ino1->info)->fb;
-    kernel_tasklet(graphic_task, NULL, "Example app");
-    kernel_tasklet(graphic_task, NULL, "Example app");
+    task_create(graphic_task, NULL, "Example app");
+    task_create(graphic_task, NULL, "Example app");
     kDESK.focus = (window_t*)ino1->info;
 
     tty_window(slog, win1, &font_7x13);

@@ -56,8 +56,6 @@ void platform_setup();
 page_t mmu_read(size_t vaddr);
 void page_range(long long base, long long length);
 
-void kernel_tasklet(void *start, void *arg, CSTR name);
-void kexit();
 
 __STDI int rand(void);
 uint8_t rand8();
@@ -188,7 +186,7 @@ int window_poll_push(inode_t *win, event_t *event);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-_Noreturn void task_fatal(CSTR error, int signum);
+_Noreturn void task_fatal(CSTR error, unsigned signum);
 
 struct kCpu {
     task_t *running;

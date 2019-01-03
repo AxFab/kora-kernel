@@ -23,7 +23,58 @@
 #include <kora/rwlock.h>
 #include <errno.h>
 
+resx_fs_t *resx_fs_create()
+{
+    resx_fs_t *resx = (resx_fs_t *)kalloc(sizeof(resx_fs_t));
+    if (kCPU.running) {
+        resx->root = resx_fs_root(kCPU.running->resx_fs);
+        resx->pwd = resx_fs_pwd(kCPU.running->resx_fs);
+    }
+    resx->umask = 022;
+    atomic_inc(&resx->users);
+    return resx;
+}
 
+resx_fs_t *resx_fs_open(resx_fs_t *resx)
+{
+    atomic_inc(&resx->users);
+    return resx;
+}
+
+void resx_fs_close(resx_fs_t *resx)
+{
+    if (atomic32_xadd(&resx->users, -1) == 1) {
+        vfs_close(resx->root);
+        vfs_close(resx->pwd);
+        return NULL;
+    }
+}
+
+inode_t *resx_fs_root(resx_fs_t *resx)
+{
+    inode_t *ino = vfs_open(resx->root);
+    return ino;
+}
+
+inode_t *resx_fs_pwd(resx_fs_t *resx)
+{
+    inode_t *ino = vfs_open(resx->pwd);
+    return ino;
+}
+
+void resx_fs_chroot(resx_fs_t *resx, inode_t *ino)
+{
+    vfs_close(resx->root);
+    resx->root = vfs_open(ino);
+}
+
+void resx_fs_chpwd(resx_fs_t *resx, inode_t *ino)
+{
+    vfs_close(resx->pwd);
+    resx->pwd = vfs_open(ino);
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 resx_t *resx_create()
 {
@@ -34,19 +85,23 @@ resx_t *resx_create()
     return resx;
 }
 
-resx_t *resx_rcu(resx_t *resx, int usage)
+resx_t *resx_open(resx_t *resx)
 {
-    if (usage == 1)
-        atomic_inc(&resx->users);
-    else {
-        if (atomic32_xadd(&resx->users, -1) == 1) {
-            // WE CAN DESALLOCATE THIS ONE !
-            kfree(resx);
-            return NULL;
-        }
-    }
+    atomic_inc(&resx->users);
     return resx;
 }
+
+void resx_close(resx_t *resx)
+{
+    if (atomic32_xadd(&resx->users, -1) == 1) {
+        while (resx->tree.count_ > 0)
+            resx_rm(resx, resx->tree.root_->value_);
+        kfree(resx);
+        return NULL;
+    }
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 stream_t *resx_get(resx_t *resx, int fd)
 {
@@ -85,7 +140,7 @@ stream_t *resx_set(resx_t *resx, inode_t *ino)
     return stm;
 }
 
-int resx_close(resx_t *resx, int fd)
+int resx_rm(resx_t *resx, int fd)
 {
     rwlock_wrlock(&resx->lock);
     stream_t *stm = bbtree_search_eq(&resx->tree, (size_t)fd, stream_t, node);
@@ -96,6 +151,7 @@ int resx_close(resx_t *resx, int fd)
     }
     bbtree_remove(&resx->tree, (size_t)fd);
     rwlock_wrunlock(&resx->lock);
+
     // TODO -- free using RCU
     vfs_close(stm->ino);
     kfree(stm);

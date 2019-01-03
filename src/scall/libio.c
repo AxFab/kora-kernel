@@ -43,7 +43,7 @@ int sys_open(int fd, const char *path, unsigned long flags, unsigned long mode)
 int sys_close(int fd)
 {
     task_t *task = kCPU.running;
-    return resx_close(task->resx, fd);
+    return resx_rm(task->resx, fd);
 }
 
 int sys_read(int fd, const struct iovec *vec, unsigned long vlen)

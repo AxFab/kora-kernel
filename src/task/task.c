@@ -28,81 +28,181 @@
 #include <errno.h>
 
 
-void task_core(task_t *task)
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+// TODO -- Put that on a config header !
+#define MIN_PID 1
+#define MAX_PID 99999
+#define TASK_DEFAULT_PRIO 20
+
+
+unsigned AUTO_PID = MIN_PID;
+bool pid_init = false;
+bbtree_t pid_tree;
+splock_t tsk_lock;
+
+static task_t *task_search_unkocked(pid_t pid)
 {
-    kprintf(KLOG_DBG, "Task Core %d =========================\n", task->pid);
-    mspace_display(task->usmem);
+    if (!pid_init) {
+        bbtree_init(&pid_tree);
+        pid_init = true;
+    }
+
+    task_t *task = bbtree_search_eq(&pid_tree, pid, task_t, bnode);
+    return task;
 }
 
 
-_Noreturn void task_fatal(CSTR error, int signum)
+static task_t *task_allocat()
 {
-    kprintf(KLOG_ERR, "Fatal error on CPU.%d: \033[91m%s\033[0m\n", cpu_no(), error);
+    pid_t pid;
+    task_t *task = (task_t *)kalloc(sizeof(task_t));
+    task->kstack = (size_t *)kmap(KSTACK, NULL, 0, VMA_STACK_RW | VMA_RESOLVE);
+    task->kstack_len = KSTACK;
+
+    task->status = TS_ZOMBIE;
+    task->prio = TASK_DEFAULT_PRIO;
+    if (kCPU.running != NULL)
+        task->parent = kCPU.running;
+
+    splock_lock(&tsk_lock);
+    do {
+        task->pid = AUTO_PID++;
+        if (AUTO_PID > MAX_PID)
+            AUTO_PID = MIN_PID;
+    } while (task_search_unkocked(task->pid) != NULL);
+    task->bnode.value_ = task->pid;
+    bbtree_insert(&pid_tree, &task->bnode);
+    splock_unlock(&tsk_lock);
+
+    time_elapsed(&task->last);
+    return task;
+}
+
+task_t *task_search(pid_t pid)
+{
+    splock_lock(&tsk_lock);
+    task_t *task = task_search_unkocked(pid);
+    splock_unlock(&tsk_lock);
+    return task;
+}
+
+
+task_t *task_create(void *entry, void *param, CSTR name)
+{
+    task_t *task = task_allocat();
+    task->name = strdup(name);
+    task->resx = resx_create();
+    task->resx_fs = resx_fs_create();
+    // task->user != NULL;
+
+    // kprintf(KLOG_TSK, "Create task #%d, %s\n", task->pid, name);
+    cpu_stack(task, (size_t)entry, (size_t)param);
+    scheduler_add(task);
+    return task;
+}
+
+
+task_t *task_fork(unsigned flags, void *entry, void *param)
+{
+    assert(kCPU.running);
+    task_t *model = kCPU.running;
+    task_t *task = task_allocat();
+    task->name = strdup(model->name);
+    task->user = model->user;
+
+    task->resx = flags & FORK_FILES ? resx_create() : resx_open(model->resx);
+    task->resx_fs = flags & FORK_FS ? resx_fs_create() : resx_fs_open(model->resx_fs);
+
+    if (flags & FORK_THREAD) {
+        if (model->usmem) {
+            assert(task->user);
+            if (flags & FORK_VM)
+                task->usmem = mspace_create();
+            else
+                task->usmem = mspace_open(task->usmem);
+            // TODO - Need to create a user stack !?
+        }
+        cpu_stack(task, (size_t)entry, (size_t)param);
+    } else {
+        // TODO -- MSPACE COPY ON WRITE !
+        assert("NotImplemented");
+    }
+
+    scheduler_add(task);
+    return task;
+}
+
+
+void task_destroy(task_t *task)
+{
+    assert(task->status == TS_ZOMBIE);
+    splock_lock(&task->lock);
+
+    if (task->usmem)
+        mspace_close(task->usmem);
+    resx_close(task->resx);
+    resx_fs_close(task->resx_fs);
+
+    kunmap(task->kstack, task->kstack_len);
+
+    bbtree_remove(&pid_tree, task->pid);
+    splock_unlock(&task->lock);
+    kfree(task->name);
+    kfree(task);
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+void task_core(task_t *task)
+{
+    kprintf(KLOG_DBG, "Dump core - Task #%d =========================\n", task->pid);
+    stackdump(8);
+    if (task->usmem)
+        mspace_display(task->usmem);
+}
+
+
+_Noreturn void task_fatal(CSTR error, unsigned signum)
+{
     if (kCPU.running != NULL) {
-        // task_raise(kCPU.running, signum);
+        kprintf(KLOG_ERR, "Fatal error on CPU.%d Task #%d: \033[91m%s\033[0m\n", cpu_no(), kCPU.running->pid, error);
+        task_core(kCPU.running);
+        // task_kill(kCPU.running, signum);
         task_stop(kCPU.running, -1);
     }
-    kprintf(KLOG_ERR, "Unrecoverable kernel error\n");
+    kprintf(KLOG_ERR, "Unrecoverable error on CPU.%d: \033[91m%s\033[0m\n", cpu_no(), error);
     // Disable scheduler
     // Play dead screen
     for (;;); // scheduler_switch(0, -1);
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-// /**
-//  * Indicate that current task is enter into Kernel code.
-//  */
-// void task_enter_sys(regs_t *regs, bool kernel)
-// {
-//     task_t *task = kCPU.running;
-//     if (task) {
-//         splock_lock(&task->lock);
-//         task->regs/*[++task->rp]*/ = regs;
-//         splock_unlock(&task->lock);
-//         if (kernel) {
-//             task->sys_elapsed += time_elapsed(&task->last);
-//             kCPU.sys_elapsed += time_elapsed(&kCPU.last);
-//         } else {
-//             task->user_elapsed += time_elapsed(&task->last);
-//             kCPU.user_elapsed += time_elapsed(&kCPU.last);
-//         }
-//     } else {
-//         kCPU.sys_elapsed += time_elapsed(&kCPU.last);
-//     }
-// }
-
-// void task_leave_sys()
-// {
-//     task_t *task = kCPU.running;
-//     kCPU.sys_elapsed += time_elapsed(&kCPU.last);
-//     if (task) {
-//         splock_lock(&task->lock);
-//         // --task->rp;
-//         splock_unlock(&task->lock);
-//         task->sys_elapsed += time_elapsed(&task->last);
-//     }
-// }
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-void task_start(task_t *task, void *entry, void *args)
+void task_show_all()
 {
-    if (task->status != TS_ZOMBIE) {
-        kprintf(KLOG_ERR, "[TASK] Try to grab a used task.");
-        return;
+    static char *status = "ZBWRE???????";
+    splock_lock(&tsk_lock);
+    task_t *task = bbtree_first(&pid_tree, task_t, bnode);
+    kprintf(-1, "  PID PPID USER    PR ST %%CPU %%MEM  UP TIME  NAME\n");
+    for (; task; task = bbtree_next(&task->bnode, task_t, bnode)) {
+        // PID / USER / PRIO / VIRT / RES / SHR / ST / %CPU %MEM  TIME+ CMD
+        if (task->parent != NULL)
+            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
+                    task->pid, task->parent->pid, "no-user", 0,
+                    status[task->status], task->name);
+        else
+            kprintf(-1, " %4d    - %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
+                    task->bnode.value_, "no-user", 0,
+                    status[task->status], task->name);
     }
-
-    if (task->usmem && !task->ustack) {
-        // TODO -- Map at the end
-        task->ustack_len = 1 * _Mib_;
-        task->ustack = mspace_map(task->usmem, 0, task->ustack_len, NULL, 0, VMA_STACK_RW);
-    }
-
-    cpu_stack(task, (size_t)entry, (size_t)args);
-    scheduler_add(task);
+    splock_unlock(&tsk_lock);
 }
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+
 
 int task_stop(task_t *task, int code)
 {
@@ -134,6 +234,20 @@ int task_stop(task_t *task, int code)
         kCPU.running = NULL;
         scheduler_switch(TS_ZOMBIE, 0);
     }
+    return 0;
+}
+
+int task_resume(task_t *task)
+{
+    splock_lock(&task->lock);
+    if (task->status <= TS_ZOMBIE || task->status >= TS_READY) {
+        splock_unlock(&task->lock);
+        return -1;
+    }
+
+    task->status = TS_READY;
+    scheduler_add(task);
+    splock_unlock(&task->lock);
     return 0;
 }
 
@@ -171,20 +285,6 @@ int task_kill(task_t *task, unsigned signum)
 //     splock_unlock(&task->lock);
 //     scheduler_next();
 // }
-
-int task_resume(task_t *task)
-{
-    splock_lock(&task->lock);
-    if (task->status <= TS_ZOMBIE || task->status >= TS_READY) {
-        splock_unlock(&task->lock);
-        return -1;
-    }
-
-    task->status = TS_READY;
-    scheduler_add(task);
-    splock_unlock(&task->lock);
-    return 0;
-}
 
 // /* Handle signal of the current task */
 // void task_signals()
@@ -225,174 +325,39 @@ int task_resume(task_t *task)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-// TODO -- Put that on a config header !
-#define MIN_PID 1
-#define MAX_PID 99999
-#define TASK_DEFAULT_PRIO 20
 
-unsigned AUTO_PID = MIN_PID;
-bool pid_init = false;
-bbtree_t pid_tree;
-splock_t tsk_lock;
-
-static task_t *task_allocat()
-{
-    task_t *task = (task_t *)kalloc(sizeof(task_t));
-    task->kstack = (size_t *)kmap(KSTACK, NULL, 0, VMA_STACK_RW | VMA_RESOLVE);
-    task->kstack_len = KSTACK;
-
-    task->status = TS_ZOMBIE;
-    task->prio = TASK_DEFAULT_PRIO;
-
-    time_elapsed(&task->last);
-
-    return task;
-}
-
-
-static pid_t task_new_pid()
-{
-    pid_t pid;
-    // TODO -- Lock
-    do {
-        pid = AUTO_PID++;
-        if (AUTO_PID > MAX_PID)
-            AUTO_PID = MIN_PID;
-    } while (task_search(pid) != NULL);
-    return pid;
-}
-
-
-task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name)
-{
-    task_t *task = task_allocat();
-    task->pid = task_new_pid();
-    task->user = user;
-
-    // kprintf(KLOG_TSK, "Create %s task #%d, %s\n",
-    //         flags & TSK_USER_SPACE ? "user" : "kernel", task->pid, name);
-    task->name = strdup(name);
-    task->root = root ? vfs_open(root) : NULL;
-    task->pwd = root ? vfs_open(root) : NULL;
-    task->resx = resx_create();
-
-    if (flags & TSK_USER_SPACE)
-        task->usmem = mspace_create();
-    task->bnode.value_ = task->pid;
-    if (kCPU.running != NULL)
-        task->parent = kCPU.running;
-    bbtree_insert(&pid_tree, &task->bnode);
-    return task;
-}
-
-
-// task_t *task_clone(task_t *model, int clone, int flags)
+// /**
+//  * Indicate that current task is enter into Kernel code.
+//  */
+// void task_enter_sys(regs_t *regs, bool kernel)
 // {
-//     task_t *task = task_allocat();
-//     task->pid = task_new_pid();
-//     // Keep file descriptor
-//     if (clone & CLONE_FILES) {
-//         task->resx = resx_rcu(model->resx, 1);
-//     } else {
-//         task->resx = resx_create();
-//     }
-//     // Keep FS informations
-//     if (clone & CLONE_FS) {
-//         task->root = vfs_open(model->root);
-//         task->pwd = vfs_open(model->pwd);
-//     } else {
-//         task->root = NULL; // TODO - default root !?
-//         task->pwd = NULL;
-//     }
-//     if (clone & CLONE_PARENT) {
-//         task->parent = model->parent;
-//     } else {
-//         if (kCPU.running != NULL) {
-//             task->parent = kCPU.running;
-//         }
-//     }
-//     if (clone & CLONE_TLS) {
-//     } else {
-//     }
-//     if (clone & CLONE_SIGNAL) {
-//     } else {
-//     }
-//     if (clone & CLONE_SCALL) {
-//     } else {
-//     }
-//     if (clone & CLONE_THREAD) {
-//         task->usmem = mspace_open(model->usmem);
-//     } else {
-//         if (clone & CLONE_MSPACE) {
-//         task->usmem = mspace_clone(model->usmem);
+//     task_t *task = kCPU.running;
+//     if (task) {
+//         splock_lock(&task->lock);
+//         task->regs/*[++task->rp]*/ = regs;
+//         splock_unlock(&task->lock);
+//         if (kernel) {
+//             task->sys_elapsed += time_elapsed(&task->last);
+//             kCPU.sys_elapsed += time_elapsed(&kCPU.last);
 //         } else {
-//             task->usmem = flags & TSK_USER_SPACE ? mspace_create() : NULL;
+//             task->user_elapsed += time_elapsed(&task->last);
+//             kCPU.user_elapsed += time_elapsed(&kCPU.last);
 //         }
-//     }
-//     if (clone & CLONE_USER) {
-//         task->user = model->user;
 //     } else {
-//         task->user = NULL;
+//         kCPU.sys_elapsed += time_elapsed(&kCPU.last);
 //     }
-//     task->bnode.value_ = task->pid;
-//     bbtree_insert(&pid_tree, &task->bnode);
-//     return task;
 // }
 
-void task_destroy(task_t *task)
-{
-    // assert(task->status == TS_ZOMBIE);
+// void task_leave_sys()
+// {
+//     task_t *task = kCPU.running;
+//     kCPU.sys_elapsed += time_elapsed(&kCPU.last);
+//     if (task) {
+//         splock_lock(&task->lock);
+//         // --task->rp;
+//         splock_unlock(&task->lock);
+//         task->sys_elapsed += time_elapsed(&task->last);
+//     }
+// }
 
-    splock_lock(&task->lock);
-    vfs_close(task->root);
-    vfs_close(task->pwd);
-
-    // TODO Close all open FD
-    if (task->usmem)
-        mspace_close(task->usmem);
-    if (task->resx)
-        resx_rcu(task->resx, 0);
-
-    kunmap(task->kstack, task->kstack_len);
-
-    bbtree_remove(&pid_tree, task->pid);
-    splock_unlock(&task->lock);
-    kfree(task->name);
-    kfree(task);
-}
-
-task_t *task_search(pid_t pid)
-{
-    splock_lock(&tsk_lock);
-    if (!pid_init) {
-        bbtree_init(&pid_tree);
-        pid_init = true;
-    }
-
-    task_t *task = bbtree_search_eq(&pid_tree, pid, task_t, bnode);
-
-    splock_unlock(&tsk_lock);
-    return task;
-}
-
-
-void task_show_all()
-{
-    static char *status = "ZBWRE???????";
-    splock_lock(&tsk_lock);
-    task_t *task = bbtree_first(&pid_tree, task_t, bnode);
-    kprintf(-1, "  PID PPID USER    PR ST %%CPU %%MEM  UP TIME  NAME\n");
-    for (; task; task = bbtree_next(&task->bnode, task_t, bnode)) {
-        // PID / USER / PRIO / VIRT / RES / SHR / ST / %CPU %MEM  TIME+ CMD
-        if (task->parent != NULL)
-            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
-                    task->pid, task->parent->pid, "no-user", 0,
-                    status[task->status], task->name);
-        else
-            kprintf(-1, " %4d    - %8s %2d  %c  0.0  0.0  00:00:00 %s\n",
-                    task->bnode.value_, "no-user", 0,
-                    status[task->status], task->name);
-    }
-    splock_unlock(&tsk_lock);
-}
 
