@@ -236,7 +236,8 @@ inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx)
 
 int isofs_read(inode_t *ino, void *buffer, size_t length, off_t offset)
 {
-    return vfs_read(ino->und.vol->dev, buffer, length, ino->lba * ISOFS_SECTOR_SIZE + offset, 0);
+    int ret = vfs_read(ino->und.vol->dev, buffer, length, ino->lba * ISOFS_SECTOR_SIZE + offset, 0);
+    return ret == length ? 0 : -1;
 }
 
 page_t isofs_fetch(inode_t *ino, off_t off)

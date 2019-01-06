@@ -33,6 +33,7 @@ typedef struct sig_handler sig_handler_t;
 
 typedef struct stream stream_t;
 typedef struct resx resx_t;
+typedef struct resx_fs resx_fs_t;
 
 struct user {
     uint8_t id[16];
@@ -56,7 +57,7 @@ enum TS_TaskState {
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-typedef struct resx_fs resx_fs_t;
+
 
 struct stream {
     inode_t *ino;

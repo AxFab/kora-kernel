@@ -95,6 +95,11 @@ int map_scavenge(int count, int min)
 
 page_t map_fetch(map_cache_t *cache, off_t off)
 {
+    kprintf(-1, "FETCH page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
+    if (cache->ino->length != 0 && off > cache->ino->length) {
+        kprintf(-1, "!?");
+    }
+
     assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&cache->lock);
@@ -117,7 +122,10 @@ page_t map_fetch(map_cache_t *cache, off_t off)
 
     void *ptr = kmap(PAGE_SIZE, NULL, 0, VMA_PHYSIQ);
     assert(kCPU.irq_semaphore == 0);
-    cache->read(cache->ino, ptr, PAGE_SIZE, off);
+    if (cache->read(cache->ino, ptr, PAGE_SIZE, off) != 0) {
+        kprintf(-1, "\033[35mError while reading page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
+        // TODO -- Handle pad page or retry  !?
+    }
     assert(kCPU.irq_semaphore == 0);
     page_t pg = mmu_read((size_t)ptr);
     kunmap(ptr, PAGE_SIZE);
@@ -151,6 +159,7 @@ void map_sync(map_cache_t *cache, off_t off, page_t pg)
 
 void map_release(map_cache_t *cache, off_t off, page_t pg)
 {
+    kprintf(-1, "RELEASE page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&cache->lock);
     map_page_t *page = bbtree_search_eq(&cache->tree, off / PAGE_SIZE, map_page_t, bnode);

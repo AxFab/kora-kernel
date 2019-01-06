@@ -267,6 +267,31 @@ void krn_cat(tty_t *tty, const char *path)
 }
 
 
+proc_t *dlib_process(resx_fs_t *fs);
+int dlib_openexec(proc_t *proc, const char *execname);
+
+
+void exec_task()
+{
+    inode_t *win = window_open(&kDESK, 0, 0, 0, 0);
+    tty_t *tty = tty_create(128);
+    tty_window(tty, ((window_t *)win->info)->fb, &font_8x15);
+
+    inode_t *root = resx_fs_root(kCPU.running->resx_fs);
+    inode_t *ino = vfs_search(root, root, "bin/basename", NULL);
+
+    if (ino != NULL)
+        TTY_WRITE(tty, "found basename!!\n");
+
+    proc_t *proc = dlib_process(kCPU.running->resx_fs);
+    dlib_openexec(proc, "bin/basename");
+    TTY_WRITE(tty, "Proc opened!!\n");
+
+
+    for (;;)
+        sys_sleep(100000);
+}
+
 void graphic_task()
 {
     // sys_sleep(10000);
@@ -405,8 +430,9 @@ void desktop()
     // create window
     inode_t *ino1 = window_open(&kDESK, 0, 0, 0, 0);
     surface_t *win1 = ((window_t *)ino1->info)->fb;
-    task_create(graphic_task, NULL, "Example app");
-    task_create(graphic_task, NULL, "Example app");
+    task_create(exec_task, NULL, "Example app");
+    // task_create(graphic_task, NULL, "Example app");
+    // task_create(graphic_task, NULL, "Example app");
     kDESK.focus = (window_t *)ino1->info;
 
     tty_window(slog, win1, &font_7x13);

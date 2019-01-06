@@ -322,7 +322,7 @@ static long ginfo(bool expr, CSTR info, void *buf, int len)
     return 0;
 }
 
-static long sinfo(bool expr, CSTR *info, void *buf, int len)
+static long sinfo(bool expr, char **info, void *buf, int len)
 {
     if (!expr)  {
         errno = EPERM;
