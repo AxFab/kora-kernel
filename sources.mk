@@ -43,7 +43,6 @@ $(eval $(call ccpl,krn))
 
 core_src-y += $(wildcard $(srcdir)/core/*.c)
 core_src-y += $(wildcard $(srcdir)/files/*.c)
-# core_src-y += $(wildcard $(srcdir)/io/*.c)
 core_src-y += $(wildcard $(srcdir)/task/*.c)
 core_src-y += $(wildcard $(srcdir)/mem/*.c)
 core_src-y += $(wildcard $(srcdir)/vfs/*.c)
@@ -57,10 +56,8 @@ kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.asm)
 kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.s)
 kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.c)
 kImage_src-y += $(wildcard $(srcdir)/libc/*.c)
-# kImage_src-y += $(wildcard $(srcdir)/scall/*.c)
 kImage_src-y += $(core_src-y)
 kImage_src-y += $(drv_src-y)
-# kImage_omit-y += $(srcdir)/io/seat.c $(srcdir)/io/termio.c
 $(eval $(call kimg,kImage,krn))
 DV_UTILS += $(bindir)/kImage
 
