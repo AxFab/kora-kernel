@@ -32,12 +32,12 @@ proc_t kproc;
 CSTR proc_getenv(proc_t *proc, CSTR name);
 
 
-proc_t *dlib_process(CSTR execname)
+proc_t *dlib_process(resx_fs_t *fs)
 {
     proc_t *proc = kalloc(sizeof(proc_t));
-    proc->execname = strdup(execname);
-    proc->root = NULL;
-    proc->pwd = NULL;
+    // proc->execname = strdup(execname);
+    proc->root = resx_fs_root(fs);
+    proc->pwd =  resx_fs_pwd(fs);
     proc->acl = NULL;
     proc->env = "PATH=/usr/bin:/bin\n"
                 "OS=Kora\n"
@@ -149,11 +149,11 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
 }
 
 
-int dlib_openexec(proc_t *proc)
+int dlib_openexec(proc_t *proc, const char *execname)
 {
     dynlib_t *lib;
     // Look for executable file
-    inode_t *ino = dlib_lookfor(proc, proc->pwd, proc->execname, "PATH", "/usr/bin:/bin");
+    inode_t *ino = dlib_lookfor(proc, proc->pwd, execname, "PATH", "/usr/bin:/bin");
     if (ino == NULL) {
         assert(errno != 0);
         return -1;

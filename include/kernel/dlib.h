@@ -24,6 +24,7 @@
 #include <kora/stddef.h>
 #include <kora/mcrs.h>
 #include <kora/hmap.h>
+#include <kernel/task.h>
 
 
 struct dynsec {
@@ -107,7 +108,7 @@ struct proc {
 bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib);
 void dlib_destroy(dynlib_t *lib);
 void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
-int dlib_openexec(proc_t *proc);
+int dlib_openexec(proc_t *proc, const char *execname);
 void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
 
 int elf_parse(dynlib_t *dlib);
