@@ -11,7 +11,7 @@ drivers:
     fat: y
     ext2: n
   input:
-    ps2: i
+    ps2: y
   media:
     vga: y
   net:

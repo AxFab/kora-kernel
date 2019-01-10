@@ -62,7 +62,7 @@ void elf_section(elf_phead_t *ph, dynsec_t *section)
     section->end = (ph->file_addr + ph->file_size) - section->lower;
     section->offset = ph->virt_addr - ph->file_addr;
     section->rights = ph->flags & 7;
-    // kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->lower, section->upper, section->start, section->end, section->offset, rights[section->rights]);
+    kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->lower, section->upper, section->start, section->end, section->offset, rights[section->rights]);
 }
 
 void elf_dynamic(elf_phead_t *ph, elf_dynamic_t *dynamic, bio_t *io)
@@ -90,6 +90,7 @@ void elf_requires(dynlib_t *dlib, elf_phead_t *ph, const char *strtab, bio_t *io
         int idx = dyen[i * 2 + 1];
         dyndep_t *dep = kalloc(sizeof(dyndep_t));
         dep->name = strdup(&strtab[idx]);
+        kprintf(-1, "Rq:  %s \n", dep->name);
         ll_append(&dlib->depends, &dep->node);
     }
     bio_clean(io, ph->file_addr / PAGE_SIZE);
@@ -101,7 +102,7 @@ void elf_symbol(dynsym_t *symbol, elf_sym32_t *sym, const char *strtab)
     symbol->name = strdup(&strtab[sym->name]);
     symbol->size = sym->size;
     symbol->flags = 0;
-    // kprintf(-1, "S: %06x  %s \n", symbol->address, symbol->name);
+    kprintf(-1, "S: %06x  %s \n", symbol->address, symbol->name);
 }
 
 void elf_relocation(dynrel_t *reloc, uint32_t *rel, llhead_t *symbols)
@@ -111,7 +112,7 @@ void elf_relocation(dynrel_t *reloc, uint32_t *rel, llhead_t *symbols)
     reloc->type = rel[1] & 0xF;
     if (sym_idx != 0)
         reloc->symbol = ll_index(symbols, sym_idx - 1, dynsym_t, node);
-    // kprintf(-1, "R: %06x  %x  %s \n", reloc->address, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
+    kprintf(-1, "R: %06x  %x  %s \n", reloc->address, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
 }
 
 
@@ -151,7 +152,7 @@ int elf_parse(dynlib_t *dlib)
         bio_clean(dlib->io, 0);
         return 0;
     }
-    if (dynamic.str_tab == 0) {
+    if (dynamic.str_tab == 0/* TODO || dynamic.str_tab > length*/) {
         bio_clean(dlib->io, 0);
         return -1;
     }
@@ -185,7 +186,7 @@ int elf_parse(dynlib_t *dlib)
         // TODO -- How to detect the end of table!
         dynrel_t *rel = kalloc(sizeof(dynrel_t));
         elf_relocation(rel, &rel_tbl[i * ent_sz], &symbols);
-        if (rel->address == NULL) {
+        if (rel->address == 0) {
             kfree(rel);
             break;
         }

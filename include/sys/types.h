@@ -17,36 +17,14 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kora/mcrs.h>
-// #include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <time.h>
-#include "../check.h"
+#ifndef __SYS_TYPES_H
+#define __SYS_TYPES_H 1
 
-void fixture_rwfs(Suite *s);
+#define __time_t long
+#define __clock_t long
+#define __off_t long
 
-Suite *suite_fs(void)
-{
-    Suite *s;
-    s = suite_create("POSIX RW File systems");
-    fixture_rwfs(s);
-    return s;
-}
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-jmp_buf __tcase_jump;
+typedef __off_t off_t;
 
-int main(int argc, char **argv)
-{
-    // Create suites
-    int errors;
-    SRunner *sr = srunner_create(NULL);
-    srunner_add_suite(sr, suite_fs());
-
-    // Run test-suites
-    srunner_run_all(sr, CK_NORMAL);
-    errors = srunner_ntests_failed(sr);
-    srunner_free(sr);
-    return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
-}
+#endif /* __SYS_TYPES_H */

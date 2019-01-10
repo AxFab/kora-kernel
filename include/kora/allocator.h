@@ -67,8 +67,16 @@ void _PRT(free)(void *ptr);
 /*  */
 void setup_allocator(void *address, size_t length);
 void sweep_allocator();
+void sweep_allocator();
 
-void *heap_map(size_t length);
-void *heap_unmap(void *address, size_t length);
+#ifdef KORA_KRN
+#include <kernel/core.h>
+#define MMAP(l) kmap(l, NULL, 0, VMA_HEAP_RW)
+#define MUNMAP(a,l) kunmap(a, l)
+#else
+#include <sys/mmap.h>
+#define MMAP(l) mmap(NULL, l, 0, 0, MMAP_HEAP, PROT_READ | PROT_WRITE)
+#define MUNMAP(a,l) munmap(a, l)
+#endif
 
 #endif /* _KORA_ALLOCATOR_H */

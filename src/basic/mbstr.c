@@ -17,36 +17,45 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kora/mcrs.h>
-// #include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <time.h>
-#include "../check.h"
+#include <stddef.h>
+#include <errno.h>
 
-void fixture_rwfs(Suite *s);
-
-Suite *suite_fs(void)
+int mbtowc(wchar_t *wc, const char *str, size_t len)
 {
-    Suite *s;
-    s = suite_create("POSIX RW File systems");
-    fixture_rwfs(s);
-    return s;
+    wchar_t dummy;
+    errno = 0;
+    if (str == NULL)
+        return 0;
+    if (wc == NULL)
+        wc = &dummy;
+
+    if (len < 1) {
+        errno = EILSEQ;
+        return -1;
+    }
+
+    if (*str >= 0)
+        /* Returns 0 if '\0' or 1 in other cases */
+        return !!(*wc = *str);
+
+
+    *wc = 1;
+    return -1;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-jmp_buf __tcase_jump;
-
-int main(int argc, char **argv)
+/*
+size_t mbstowcs (wchar_t *ws, const char **str, size_t wn, mbstate_t *st)
 {
-    // Create suites
-    int errors;
-    SRunner *sr = srunner_create(NULL);
-    srunner_add_suite(sr, suite_fs());
+    return 0;
+}
 
-    // Run test-suites
-    srunner_run_all(sr, CK_NORMAL);
-    errors = srunner_ntests_failed(sr);
-    srunner_free(sr);
-    return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+size_t mbstowcs (wchar_t *ws, const char *str, size_t wn)
+{
+    return mbsrtowcs(ws, &s, wn, 0);
+}
+*/
+
+int mblen(const char *str, size_t len)
+{
+    return mbtowc(0, str, len);
 }

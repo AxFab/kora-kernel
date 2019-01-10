@@ -145,6 +145,7 @@ inode_t *window_open(desktop_t *desk, int width, int height, unsigned features, 
 
     ino->ops = &win_ops;
     ino->info = win;
+    return ino;
 }
 
 

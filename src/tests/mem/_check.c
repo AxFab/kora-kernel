@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kora/mcrs.h>
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <stdarg.h>
 #include <time.h>
 #include "../check.h"

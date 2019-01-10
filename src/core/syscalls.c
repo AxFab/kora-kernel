@@ -377,26 +377,27 @@ long sys_ginfo(unsigned info, void *buf, int len)
     }
 }
 
-// long sys_sinfo(unsigned info, const void *buf, int len)
-// {
-//  if (scall_check_buf(buf, len))
-//      return -1;
-//  switch (info) {
-//  case SNFO_HOSTNAME:
-//      rwlock_wrlock(&kSYS.lock) ;
-//      ret = sinfo(true, &kSYS.hostname, buf, len);
-//      rwlock_wrunlock(&kSYS.lock) ;
-//      return ret;
-//  case SNFO_DOMAIN:
-//      rwlock_wrlock(&kSYS.lock) ;
-//      ret = sinfo(true, &kSYS.domain, buf, len);
-//      rwlock_wrunlock(&kSYS.lock) ;
-//      return ret;
-//  default:
-//      errno = EINVAL;
-//      return -1;
-//  }
-// }
+long sys_sinfo(unsigned info, const void *buf, int len)
+{
+    int ret;
+    if (scall_check_buf(buf, len))
+        return -1;
+    switch (info) {
+    case SNFO_HOSTNAME:
+        rwlock_wrlock(&kSYS.lock) ;
+        ret = sinfo(true, &kSYS.hostname, buf, len);
+        rwlock_wrunlock(&kSYS.lock) ;
+        return ret;
+    case SNFO_DOMAIN:
+        rwlock_wrlock(&kSYS.lock) ;
+        ret = sinfo(true, &kSYS.domain, buf, len);
+        rwlock_wrunlock(&kSYS.lock) ;
+        return ret;
+    default:
+        errno = EINVAL;
+        return -1;
+    }
+}
 
 // long sys_log(CSTR msg)
 // {

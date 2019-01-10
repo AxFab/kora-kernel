@@ -77,6 +77,14 @@ void vds_flip(surface_t *surface);
 
 
 
+inode_t *window_open(desktop_t *desk, int width, int height, unsigned features, unsigned evmask);
+void window_close(desktop_t *desk, inode_t *win);
+void *window_map(mspace_t *mspace, inode_t *win);
+int window_set_features(inode_t *win, int features, int *args);
+int window_get_features(inode_t *win, int features, int *args);
+
+
+
 void wmgr_register_screen(surface_t *screen);
 surface_t *wmgr_surface(desktop_t *desktop, int width, int height, int depth);
 surface_t *wmgr_window(desktop_t *desktop, int width, int height);

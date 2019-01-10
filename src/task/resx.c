@@ -46,7 +46,6 @@ void resx_fs_close(resx_fs_t *resx)
     if (atomic32_xadd(&resx->users, -1) == 1) {
         vfs_close(resx->root);
         vfs_close(resx->pwd);
-        return NULL;
     }
 }
 

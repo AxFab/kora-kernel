@@ -17,36 +17,20 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kora/mcrs.h>
-// #include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <time.h>
-#include "../check.h"
+#ifndef _KORA_FUTEX_H
+#define _KORA_FUTEX_H 1
 
-void fixture_rwfs(Suite *s);
+#include <threads.h>
 
-Suite *suite_fs(void)
-{
-    Suite *s;
-    s = suite_create("POSIX RW File systems");
-    fixture_rwfs(s);
-    return s;
-}
+struct _US_MUTEX {
+    atomic_t counter;
+    int flags;
+    thrd_t thread;
+    splock_t splock;
+    // emitter_t emitter;
+};
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-jmp_buf __tcase_jump;
+int futex_wait(struct _US_MUTEX *mutex, const struct timespec *ts);
+void futex_raise(struct _US_MUTEX *mutex);
 
-int main(int argc, char **argv)
-{
-    // Create suites
-    int errors;
-    SRunner *sr = srunner_create(NULL);
-    srunner_add_suite(sr, suite_fs());
-
-    // Run test-suites
-    srunner_run_all(sr, CK_NORMAL);
-    errors = srunner_ntests_failed(sr);
-    srunner_free(sr);
-    return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
-}
+#endif /* _KORA_FUTEX_H */
