@@ -17,36 +17,36 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kora/mcrs.h>
-// #include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <time.h>
-#include "../check.h"
+#include <stdint.h>
 
-void fixture_rwfs(Suite *s);
+static unsigned int __seed;
 
-Suite *suite_fs(void)
+#define RAND_MAX 0x7FFF
+
+/* Sets the seed for a new sequence of pseudo-random integers. */
+void srand(unsigned int seed)
 {
-    Suite *s;
-    s = suite_create("POSIX RW File systems");
-    fixture_rwfs(s);
-    return s;
+    __seed = seed;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-jmp_buf __tcase_jump;
-
-int main(int argc, char **argv)
+/* Pseudo-random generator based on Minimal Standard by
+   Lewis, Goodman, and Miller in 1969: I[j+1] = a*I[j] (mod m) */
+int rand_r(unsigned int *seed)
 {
-    // Create suites
-    int errors;
-    SRunner *sr = srunner_create(NULL);
-    srunner_add_suite(sr, suite_fs());
+    long k;
+    long s = (long)(*seed);
+    if (s == 0)
+        s = 0x12345987;
+    k = s / 127773;
+    s = 16807 * (s - k * 127773) - 2836 * k;
+    if (s < 0)
+        s += 2147483647;
+    (*seed) = (unsigned int)s;
+    return (int)(s & RAND_MAX);
+}
 
-    // Run test-suites
-    srunner_run_all(sr, CK_NORMAL);
-    errors = srunner_ntests_failed(sr);
-    srunner_free(sr);
-    return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+/* Pseudo-random generator */
+int rand(void)
+{
+    return rand_r(&__seed);
 }

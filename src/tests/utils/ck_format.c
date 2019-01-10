@@ -17,9 +17,12 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <stdlib.h>
-#include <errno.h>
+#include <kora/mcrs.h>
 #include <kora/format.h>
+// #include <stdlib.h>
+// #include <stdio.h>
+#include <time.h>
+#include <errno.h>
 #include "../check.h"
 
 

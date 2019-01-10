@@ -17,36 +17,19 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kora/mcrs.h>
-// #include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <time.h>
-#include "../check.h"
+#ifndef __SYS_MMAP_H
+#define __SYS_MMAP_H 1
 
-void fixture_rwfs(Suite *s);
+#include <sys/types.h>
 
-Suite *suite_fs(void)
-{
-    Suite *s;
-    s = suite_create("POSIX RW File systems");
-    fixture_rwfs(s);
-    return s;
-}
+#define PROT_EXEC 1
+#define PROT_WRITE 2
+#define PROT_READ 4
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-jmp_buf __tcase_jump;
+#define PAGE_SIZE 4096
 
-int main(int argc, char **argv)
-{
-    // Create suites
-    int errors;
-    SRunner *sr = srunner_create(NULL);
-    srunner_add_suite(sr, suite_fs());
+void *mmap(void *, size_t, int, off_t, int, int);
+int munmap(void *, size_t);
 
-    // Run test-suites
-    srunner_run_all(sr, CK_NORMAL);
-    errors = srunner_ntests_failed(sr);
-    srunner_free(sr);
-    return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
-}
+#define MMAP_HEAP  (1 << 8)
+#endif /* __SYS_MMAP_H */

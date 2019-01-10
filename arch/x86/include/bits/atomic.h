@@ -33,11 +33,6 @@ static inline void cpu_barrier()
     asm volatile("");
 }
 
-void irq_reset(bool enable);
-bool irq_enable();
-void irq_disable();
-
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 typedef volatile uint16_t atomic16_t;

@@ -337,6 +337,7 @@ KMODULE(serial);
 KMODULE(ps2);
 
 KMODULE(isofs);
+KMODULE(ide_ata);
 KMODULE(fatfs);
 
 
@@ -351,8 +352,7 @@ void platform_setup()
     kmod_register(&kmod_info_csl);
     kmod_register(&kmod_info_serial);
 
-    // Load file systems
-    kmod_register(&kmod_info_ps2);
+    // kmod_register(&kmod_info_ps2);
+    // kmod_register(&kmod_info_ide_ata);
     // kmod_register(&kmod_info_isofs);
-    // kmod_register(&kmod_info_fatfs);
 }

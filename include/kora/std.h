@@ -17,36 +17,15 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kora/mcrs.h>
-// #include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <time.h>
-#include "../check.h"
+#ifndef __KORA_STD_H
+#define __KORA_STD_H 1
 
-void fixture_rwfs(Suite *s);
+#include <stddef.h>
 
-Suite *suite_fs(void)
-{
-    Suite *s;
-    s = suite_create("POSIX RW File systems");
-    fixture_rwfs(s);
-    return s;
-}
+void __libc_init();
+_Noreturn void exit(int status);
+void *malloc(size_t lg);
+void free(void *ptr);
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-jmp_buf __tcase_jump;
 
-int main(int argc, char **argv)
-{
-    // Create suites
-    int errors;
-    SRunner *sr = srunner_create(NULL);
-    srunner_add_suite(sr, suite_fs());
-
-    // Run test-suites
-    srunner_run_all(sr, CK_NORMAL);
-    errors = srunner_ntests_failed(sr);
-    srunner_free(sr);
-    return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
-}
+#endif /* __KORA_STD_H */

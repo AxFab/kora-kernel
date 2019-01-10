@@ -152,7 +152,37 @@ void kclock(struct timespec *ts)
     ts->tv_nsec = 0;
 }
 
-void kexit()
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+int rand_r(unsigned int *seed);
+
+uint64_t rand64()
 {
+    uint64_t r = (uint64_t)rand_r(&kCPU.seed);
+    r |= (uint64_t)rand_r(&kCPU.seed) << 15;
+    r |= (uint64_t)rand_r(&kCPU.seed) << 30;
+    r |= (uint64_t)rand_r(&kCPU.seed) << 45;
+    r |= (uint64_t)rand_r(&kCPU.seed) << 60;
+    return r;
 }
 
+uint32_t rand32()
+{
+    uint32_t r = (uint32_t)rand_r(&kCPU.seed);
+    r |= (uint32_t)rand_r(&kCPU.seed) << 15;
+    r |= (uint32_t)rand_r(&kCPU.seed) << 30;
+    return r;
+}
+
+uint16_t rand16()
+{
+    uint32_t r = (uint16_t)rand_r(&kCPU.seed);
+    r |= (uint16_t)rand_r(&kCPU.seed) << 15;
+    return r & 0xFFFF;
+}
+
+uint8_t rand8()
+{
+    uint32_t r = (uint16_t)rand_r(&kCPU.seed);
+    return r & 0xFF;
+}

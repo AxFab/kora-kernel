@@ -55,7 +55,6 @@ static task_t *task_search_unkocked(pid_t pid)
 
 static task_t *task_allocat()
 {
-    pid_t pid;
     task_t *task = (task_t *)kalloc(sizeof(task_t));
     task->kstack = (size_t *)kmap(KSTACK, NULL, 0, VMA_STACK_RW | VMA_RESOLVE);
     task->kstack_len = KSTACK;

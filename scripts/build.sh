@@ -70,7 +70,7 @@ build_x86 () {
         *) export CROSS=i386-elf- ;;
     esac
 
-    make -f $SRC_KRN/Makefile kImage
+    make -f $SRC_KRN/Makefile -j 6
 
     rm -rf iso
     mkdir -p iso/{etc,bin,boot,lib}
@@ -82,6 +82,8 @@ build_x86 () {
 
     # Import files
     cp -v $SRC_KRN/bin/kImage iso/boot/kImage
+    cp -v $SRC_KRN/bin/* iso/bin/
+    cp -v $SRC_KRN/lib/* iso/lib/
 
     mkdir -p iso/boot/grub
 
