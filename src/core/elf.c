@@ -131,13 +131,17 @@ int elf_parse(dynlib_t *dlib)
     }
 
     dlib->entry = head->entry;
+    dlib->base = 0xffffffff;
     /* Open program table */
     elf_phead_t *ph_tbl = ADDR_OFF(head, head->ph_off);
+    elf_shead_t *sh_tbl = ADDR_OFF(head, head->sh_off);
     for (i = 0; i < head->ph_count; ++i) {
         if (ph_tbl[i].type == ELF_PH_LOAD) {
             dynsec_t *section = kalloc(sizeof(dynsec_t));
             ll_append(&dlib->sections, &section->node);
             elf_section(&ph_tbl[i], section);
+            if (dlib->base < section->lower + section->offset)
+                dlib->base = section->lower + section->offset;
             if (dlib->length < section->upper + section->offset)
                 dlib->length = section->upper + section->offset;
         } else if (ph_tbl[i].type == ELF_PH_DYNAMIC) {
@@ -179,10 +183,16 @@ int elf_parse(dynlib_t *dlib)
     /* Read relocation table */
     uint32_t *rel_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.rel / PAGE_SIZE), dynamic.rel % PAGE_SIZE);
     int ent_sz = dynamic.rel_ent / sizeof(uint32_t);
-    for (i = 0; ; ++i) {
-        int rel_type = rel_tbl[i * ent_sz + 1] & 0xF;
+    int rel_sz = 0;
+    for (i = 0; i < head->sh_count; ++i) {
+        if (sh_tbl[i].type != 9)
+            continue;
+        rel_sz += sh_tbl[i].size / dynamic.rel_ent;
+    }
+    for (i = 0; i < rel_sz; ++i) {
+        /*int rel_type = rel_tbl[i * ent_sz + 1] & 0xF;
         if (rel_type == 0)
-            break;
+            break;*/
         // TODO -- How to detect the end of table!
         dynrel_t *rel = kalloc(sizeof(dynrel_t));
         elf_relocation(rel, &rel_tbl[i * ent_sz], &symbols);
