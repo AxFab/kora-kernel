@@ -47,6 +47,7 @@ static int vfs_read_block(inode_t *ino, char *buf, size_t len, off_t off)
         memcpy(buf, map + disp, cap);
         len -= cap;
         off += cap;
+        buf += cap;
         bytes += cap;
     }
     kunmap(map, PAGE_SIZE);
@@ -77,6 +78,7 @@ static int vfs_write_block(inode_t *ino, const char *buf, size_t len, off_t off)
         memcpy(map + disp, buf, cap);
         len -= cap;
         off += cap;
+        buf += cap;
         bytes += cap;
     }
     kunmap(map, PAGE_SIZE);
