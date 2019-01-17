@@ -268,7 +268,7 @@ void krn_cat(tty_t *tty, const char *path)
 }
 
 
-proc_t *dlib_process(resx_fs_t *fs);
+proc_t *dlib_process(resx_fs_t *fs, mspace_t *mspace);
 int dlib_openexec(proc_t *proc, const char *execname);
 
 
@@ -284,10 +284,12 @@ void exec_task()
     if (ino != NULL)
         TTY_WRITE(tty, "found basename!!\n");
 
-    proc_t *proc = dlib_process(kCPU.running->resx_fs);
-    dlib_openexec(proc, "bin/basename");
-    TTY_WRITE(tty, "Proc opened!!\n");
-
+    proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace_create());
+    int ret = dlib_openexec(proc, "bin/basename");
+    if (ret == 0)
+        TTY_WRITE(tty, "Proc opened!!\n");
+    else
+        TTY_WRITE(tty, "Proc error!!\n");
 
     for (;;)
         sys_sleep(100000);

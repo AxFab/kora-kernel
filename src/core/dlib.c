@@ -32,7 +32,7 @@ proc_t kproc;
 CSTR proc_getenv(proc_t *proc, CSTR name);
 
 
-proc_t *dlib_process(resx_fs_t *fs)
+proc_t *dlib_process(resx_fs_t *fs, mspace_t *mspace)
 {
     proc_t *proc = kalloc(sizeof(proc_t));
     // proc->execname = strdup(execname);
@@ -51,6 +51,9 @@ proc_t *dlib_process(resx_fs_t *fs)
                 "UID=9fe14c6\n"
                 "LD_LIBRARY_PATH=\n"
                 "SHELL=krish\n";
+    hmp_init(&proc->libs_map, 16);
+    hmp_init(&proc->symbols, 16);
+    proc->mspace = mspace;
     // TODO
     return proc;
 }
@@ -143,7 +146,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
         lib = kalloc(sizeof(dynlib_t));
         lib->ino = ino;
         dep->lib = lib;
-        ll_enqueue(&proc->queue, &proc->exec.node);
+        ll_enqueue(&proc->queue, &lib->node);
     }
     return 0;
 }
@@ -175,11 +178,11 @@ int dlib_openexec(proc_t *proc, const char *execname)
     }
 
     // Add libraries to process memory space
-    for ll_each(&proc->queue, lib, dynlib_t, node)
+    for ll_each(&proc->libraries, lib, dynlib_t, node)
         dlib_rebase(proc, proc->mspace, lib);
 
     // Resolve symbols -- Might be done lazy!
-    for ll_each(&proc->queue, lib, dynlib_t, node) {
+    for ll_each_reverse(&proc->libraries, lib, dynlib_t, node) {
         if (!dlib_resolve_symbols(proc, lib)) {
             dlib_destroy(&proc->exec);
             // Missing symbols !?
@@ -213,7 +216,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
     for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
         symbol->address += (size_t)base;
         // kprintf(-1, " -> %s at %p\n", symbol->name, symbol->address);
-        // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
+        hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
         // TODO - Do not replace first occurence of a symbol.
     }
 }
@@ -234,7 +237,7 @@ bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
         sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
         if (sym == NULL) {
             missing++;
-            // kprintf(-1, "Missing symbol %s\n", symbol->name);
+            kprintf(-1, "Missing symbol '%s'\n", symbol->name);
             continue;
             // return false;
         }

@@ -65,9 +65,9 @@ kImage_src-y += $(wildcard $(srcdir)/task/*.c)
 kImage_src-y += $(wildcard $(srcdir)/mem/*.c)
 kImage_src-y += $(wildcard $(srcdir)/vfs/*.c)
 kImage_src-y += $(wildcard $(srcdir)/net/*.c)
-kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.asm)
-kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.s)
-kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.c)
+kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.asm)
+kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.s)
+kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.c)
 kImage_src-y += $(wildcard $(srcdir)/basic/*.c)
 kImage_src-y += $(wildcard $(srcdir)/c89/*.c) $(srcdir)/c11/mutex.c
 kImage_src-y += # Drivers
@@ -80,7 +80,8 @@ DV_UTILS += $(bindir)/kImage
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # S T A N D A R D   L I B R A I R Y -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-c_src-y += $(wildcard $(topdir)/arch/$(target_arch)/arch/*.c)
+c_src-y += $(wildcard $(topdir)/arch/$(target_arch)/libc/*.c)
+c_src-y += $(wildcard $(topdir)/arch/$(target_arch)/libc/*.asm)
 c_src-y += $(wildcard $(srcdir)/basic/*.c)
 c_src-y += $(wildcard $(srcdir)/c89/*.c)
 c_src-y += $(srcdir)/c89.c
