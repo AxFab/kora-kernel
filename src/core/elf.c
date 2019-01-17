@@ -102,7 +102,7 @@ void elf_symbol(dynsym_t *symbol, elf_sym32_t *sym, const char *strtab)
     symbol->name = strdup(&strtab[sym->name]);
     symbol->size = sym->size;
     symbol->flags = 0;
-    kprintf(-1, "S: %06x  %s \n", symbol->address, symbol->name);
+    // kprintf(-1, "S: %06x  %s \n", symbol->address, symbol->name);
 }
 
 void elf_relocation(dynrel_t *reloc, uint32_t *rel, llhead_t *symbols)
@@ -112,7 +112,7 @@ void elf_relocation(dynrel_t *reloc, uint32_t *rel, llhead_t *symbols)
     reloc->type = rel[1] & 0xF;
     if (sym_idx != 0)
         reloc->symbol = ll_index(symbols, sym_idx - 1, dynsym_t, node);
-    kprintf(-1, "R: %06x  %x  %s \n", reloc->address, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
+    // kprintf(-1, "R: %06x  %x  %s \n", reloc->address, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
 }
 
 
@@ -134,13 +134,12 @@ int elf_parse(dynlib_t *dlib)
     dlib->base = 0xffffffff;
     /* Open program table */
     elf_phead_t *ph_tbl = ADDR_OFF(head, head->ph_off);
-    elf_shead_t *sh_tbl = ADDR_OFF(head, head->sh_off);
     for (i = 0; i < head->ph_count; ++i) {
         if (ph_tbl[i].type == ELF_PH_LOAD) {
             dynsec_t *section = kalloc(sizeof(dynsec_t));
             ll_append(&dlib->sections, &section->node);
             elf_section(&ph_tbl[i], section);
-            if (dlib->base < section->lower + section->offset)
+            if (dlib->base > section->lower + section->offset)
                 dlib->base = section->lower + section->offset;
             if (dlib->length < section->upper + section->offset)
                 dlib->length = section->upper + section->offset;
@@ -149,6 +148,12 @@ int elf_parse(dynlib_t *dlib)
             elf_dynamic(&ph_tbl[i], &dynamic, dlib->io);
         }
     }
+
+    dynamic.init -= dlib->base;
+    dynamic.fini -= dlib->base;
+    dynamic.str_tab -= dlib->base;
+    dynamic.sym_tab -= dlib->base;
+    dynamic.rel -= dlib->base;
 
     dlib->init = dynamic.init;
     dlib->fini = dynamic.fini;
@@ -185,15 +190,17 @@ int elf_parse(dynlib_t *dlib)
     int ent_sz = dynamic.rel_ent / sizeof(uint32_t);
     int rel_sz = 0;
     for (i = 0; i < head->sh_count; ++i) {
-        if (sh_tbl[i].type != 9)
-            continue;
-        rel_sz += sh_tbl[i].size / dynamic.rel_ent;
+        size_t sh_offset = head->sh_off + i * sizeof(elf_shead_t);
+        elf_shead_t *sh_tbl = ADDR_OFF(bio_access(dlib->io, sh_offset / PAGE_SIZE), sh_offset % PAGE_SIZE);
+        if (sh_tbl->type == 9)
+            rel_sz += sh_tbl->size / dynamic.rel_ent;
+        bio_clean(dlib->io, sh_offset / PAGE_SIZE);
     }
+
     for (i = 0; i < rel_sz; ++i) {
-        /*int rel_type = rel_tbl[i * ent_sz + 1] & 0xF;
+        int rel_type = rel_tbl[i * ent_sz + 1] & 0xF;
         if (rel_type == 0)
-            break;*/
-        // TODO -- How to detect the end of table!
+            break;
         dynrel_t *rel = kalloc(sizeof(dynrel_t));
         elf_relocation(rel, &rel_tbl[i * ent_sz], &symbols);
         if (rel->address == 0) {
