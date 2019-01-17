@@ -96,10 +96,18 @@ void elf_requires(dynlib_t *dlib, elf_phead_t *ph, const char *strtab, bio_t *io
     bio_clean(io, ph->file_addr / PAGE_SIZE);
 }
 
-void elf_symbol(dynsym_t *symbol, elf_sym32_t *sym, const char *strtab)
+void elf_symbol(dynsym_t *symbol, elf_sym32_t *sym, dynlib_t *lib, elf_dynamic_t *dynamic, const char *strtab)
 {
     symbol->address = sym->value;
-    symbol->name = strdup(&strtab[sym->name]);
+    char *name = &strtab[sym->name];
+    if (ALIGN_DW((size_t)name, PAGE_SIZE) == ALIGN_DW((size_t)strtab, PAGE_SIZE)) {
+        symbol->name = strdup(name);
+    } else {
+        size_t off = dynamic->str_tab + sym->name;
+        name = ADDR_OFF(bio_access(lib->io, off / PAGE_SIZE), off % PAGE_SIZE);
+        symbol->name = strdup(name);
+        bio_clean(lib->io, off / PAGE_SIZE);
+    }
     symbol->size = sym->size;
     symbol->flags = 0;
     // kprintf(-1, "S: %06x  %s \n", symbol->address, symbol->name);
@@ -181,7 +189,7 @@ int elf_parse(dynlib_t *dlib)
             break;
         dynsym_t *sym = kalloc(sizeof(dynsym_t));
         ll_append(&symbols, &sym->node);
-        elf_symbol(sym, &sym_tbl[i], strtab);
+        elf_symbol(sym, &sym_tbl[i], dlib, &dynamic, strtab);
     }
     bio_clean(dlib->io, dynamic.sym_tab / PAGE_SIZE);
 

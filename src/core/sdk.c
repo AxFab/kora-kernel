@@ -152,6 +152,8 @@ kdk_api_t base_kapi[] = {
     // KAPI(sys_sysctl),
     // KAPI(sys_copy),
 
+    /* ARCH DEPENDENT ROUTINES */
+    KAPI(mmu_read),
 
     { NULL, 0, NULL },
 };
