@@ -17,7 +17,7 @@ build:
 test:
   stage: test
   before_script:
-    - apt update && apt install -y binutils make gcc nasm lcov valgrind
+    - apt update && apt install -y binutils make gcc nasm lcov valgrind libpthread-workqueue-dev
   script:
     - make clean
     - make check
