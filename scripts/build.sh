@@ -52,7 +52,7 @@ run_raspi2 () {
 export iso_name=KoraOs.iso
 
 build_raspi2 () {
-    export target=arm-raspberry2-none
+    export target=arm-raspberry2-kora
     case "`uname -m`"
     in
         raspi2) unset CROSS ;;
@@ -63,7 +63,7 @@ build_raspi2 () {
 }
 
 build_x86 () {
-    export target=x86-pc-none
+    export target=x86-pc-kora
     case "`uname -m`"
     in
         i386|i486|i686) unset CROSS ;;

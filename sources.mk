@@ -42,11 +42,13 @@ chk_CFLAGS += -I$(topdir)/src/tests/_${CC}/include-${target_arch}
 krn_CFLAGS += $(CFLAGS)  -DKORA_STDC -DKORA_KRN
 krn_CFLAGS += -I$(topdir)/include
 krn_CFLAGS += -I$(topdir)/arch/$(target_arch)/include
+krn_CFLAGS += -I$(topdir)/os/$(target_os)
 # krn_CFLAGS += -I$(topdir)/include/cc
 
 std_CFLAGS += $(CFLAGS)  -DKORA_STDC -D__SYS_CALL
 std_CFLAGS += -I$(topdir)/include
 std_CFLAGS += -I$(topdir)/arch/$(target_arch)/include
+std_CFLAGS += -I$(topdir)/os/$(target_os)
 # std_CFLAGS += -I$(topdir)/include/cc
 
 $(eval $(call ccpl,chk))
