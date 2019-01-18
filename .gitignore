@@ -32,6 +32,7 @@
 !arch/**/*.s
 !arch/**/*.c
 !arch/**/*.h
+!os/**/*.h
 
 # Exceptions
 !doc/snippet/**/*

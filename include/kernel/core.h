@@ -42,6 +42,7 @@ void *kalloc(size_t size);
 void kfree(void *ptr);
 void kprintf(int log, const char *msg, ...);
 char *sztoa(size_t lg);
+char *sztoa_r(size_t number, char *sz_format);
 void *kmap(size_t length, inode_t *ino, off_t offset, int flags);
 void kunmap(void *address, size_t length);
 _Noreturn void kpanic(const char *ms, ...);

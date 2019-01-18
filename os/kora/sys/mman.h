@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef __SYS_MMAP_H
-#define __SYS_MMAP_H 1
+#ifndef __SYS_MMAN_H
+#define __SYS_MMAN_H 1
 
 #include <sys/types.h>
 
@@ -32,4 +32,4 @@ void *mmap(void *, size_t, int, off_t, int, int);
 int munmap(void *, size_t);
 
 #define MMAP_HEAP  (1 << 8)
-#endif /* __SYS_MMAP_H */
+#endif /* __SYS_MMAN_H */

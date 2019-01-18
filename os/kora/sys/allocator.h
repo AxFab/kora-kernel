@@ -26,7 +26,7 @@
 #define MMAP(l) kmap(l, NULL, 0, VMA_HEAP_RW)
 #define MUNMAP(a,l) kunmap(a, l)
 #else
-#include <sys/mmap.h>
+#include <sys/mman.h>
 #define MMAP(l) mmap(NULL, l, 0, 0, MMAP_HEAP, PROT_READ | PROT_WRITE)
 #define MUNMAP(a,l) munmap(a, l)
 #endif
