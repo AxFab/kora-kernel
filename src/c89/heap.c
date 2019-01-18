@@ -35,7 +35,7 @@ static heap_arena_t *new_arena(size_t length)
     ++__empty_arena;
     heap_arena_t *arena = (heap_arena_t *)_PRT(malloc)(sizeof(heap_arena_t));
     void *map = MMAP(length);
-    if (map == NULL) {
+    if (map == NULL || map == (void*)-1) {
         __FAIL(ENOMEM, ""); /* TODO */
         return NULL;
     }
