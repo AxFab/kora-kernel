@@ -75,8 +75,8 @@ static int mspace_set_flags(int flags, bool is_kernel)
     if ((flags & caps) != (flags & VMA_RIGHTS))
         return 0;
     /* Forbid a map write and execute */
-    if (caps & VMA_WRITE && caps & VMA_EXEC)
-        return 0;
+    // if (caps & VMA_WRITE && caps & VMA_EXEC)
+    //     return 0;
     /* Flags forbidden, intern code only */
     if (flags & VMA_COPY_ON_WRITE)
         return 0;

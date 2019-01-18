@@ -107,62 +107,7 @@ void kmod_loader()
                 continue;
             }
             kprintf(-1, "Open module %s (%s)\n", filename, sztoa(ino->length));
-
-            dynsec_t *sec;
-            for ll_each(&dlib->sections, sec, dynsec_t, node) {
-
-                // kprintf(-1, "Section %4x - %4x - %4x - %4x - %4x , %o\n", sec->lower, sec->upper,
-                //         sec->start, sec->end, sec->offset, sec->rights);
-
-                // Copy sections
-                void *sbase = (void *)(dlib->base + sec->lower + sec->offset);
-                size_t slen = sec->upper - sec->lower;
-                memset(sbase, 0, slen);
-                int i, n = (sec->upper - sec->lower) / PAGE_SIZE;
-                for (i = 0; i < n; ++i) {
-                    uint8_t *page = bio_access(dlib->io, i + sec->lower / PAGE_SIZE);
-                    size_t start = i == 0 ? sec->start : 0;
-                    void *src = ADDR_OFF(page, start);
-                    void *dst = (void *)(dlib->base + sec->lower + sec->offset + start + i * PAGE_SIZE);
-                    int lg = (i + 1 == n ? (sec->end & (PAGE_SIZE - 1)) : PAGE_SIZE) - start;
-                    memcpy(dst, src, lg);
-                }
-
-                // kprintf(-1, "Section : %p - %x\n", sbase, slen);
-                // kdump(sbase, slen);
-            }
-
-            // Relocations
-            dynrel_t *reloc;
-            // dynsym_t *symbol;
-            for ll_each(&dlib->relocations, reloc, dynrel_t, node) {
-
-                // kprintf(-1, "R: %06x  %x  %p  %s \n", reloc->address, reloc->type, reloc->symbol == NULL ? NULL : (void*)reloc->symbol->address, reloc->symbol == NULL ? "-" : reloc->symbol->name);
-                switch (reloc->type) {
-                case 6:
-                case 7:
-                    *((size_t *)(dlib->base + reloc->address)) = reloc->symbol->address;
-                    break;
-                case 1:
-                    *((size_t *)(dlib->base + reloc->address)) += reloc->symbol->address;
-                    break;
-                case 8:
-                    *((size_t *)(dlib->base + reloc->address)) += dlib->base;
-                    break;
-                }
-
-                // kprintf(-1, " -> %s at %p\n", reloc->symbol->name, reloc->symbol->address );
-                // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
-                // TODO - Do not replace first occurence of a symbol.
-            }
-
-            // Change map access rights
-            for ll_each(&dlib->sections, sec, dynsec_t, node) {
-                size_t sbase = dlib->base + sec->lower + sec->offset;
-                size_t slen = sec->upper - sec->lower;
-                mspace_protect(kMMU.kspace, sbase, slen, sec->rights & 7);
-            }
-
+            dlib_map(dlib, kMMU.kspace);
 
             // Look for kernel module references
             dynsym_t *symbol;

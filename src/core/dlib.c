@@ -208,7 +208,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
         size_t addr = rand32() % (mspace->upper_bound - mspace->lower_bound);
         addr += mspace->lower_bound;
         addr = ALIGN_DW(addr, PAGE_SIZE);
-        base = mspace_map(mspace, addr, lib->length, NULL, 0, VMA_ANON_RW | VMA_MAP_FIXED);
+        base = mspace_map(mspace, addr, lib->length, NULL, 0, VMA_ANON_RW | 0x11 | VMA_MAP_FIXED);
     } while (base == NULL);
 
     // List symbols
@@ -248,6 +248,73 @@ bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
     return missing == 0;
 }
 
+int dlib_map(dynlib_t *dlib, mspace_t *mspace)
+{
+    dynsec_t *sec;
+    for ll_each(&dlib->sections, sec, dynsec_t, node) {
+
+        // kprintf(-1, "Section %4x - %4x - %4x - %4x - %4x , %o\n", sec->lower, sec->upper,
+        //         sec->start, sec->end, sec->offset, sec->rights);
+
+        // Copy sections
+        void *sbase = (void *)(dlib->base + sec->lower + sec->offset);
+        size_t slen = sec->upper - sec->lower;
+        memset(sbase, 0, slen);
+        int i, n = (sec->upper - sec->lower) / PAGE_SIZE;
+        for (i = 0; i < n; ++i) {
+            uint8_t *page = bio_access(dlib->io, i + sec->lower / PAGE_SIZE);
+            size_t start = i == 0 ? sec->start : 0;
+            void *src = ADDR_OFF(page, start);
+            void *dst = (void *)(dlib->base + sec->lower + sec->offset + start + i * PAGE_SIZE);
+            int lg = (i + 1 == n ? (sec->end & (PAGE_SIZE - 1)) : PAGE_SIZE) - start;
+            memcpy(dst, src, lg);
+        }
+
+        // kprintf(-1, "Section : %p - %x\n", sbase, slen);
+        // kdump(sbase, slen);
+    }
+
+    // Relocations
+    dynrel_t *reloc;
+    // dynsym_t *symbol;
+    for ll_each(&dlib->relocations, reloc, dynrel_t, node) {
+
+        // kprintf(-1, "R: %06x  %x  %p  %s \n", reloc->address, reloc->type, reloc->symbol == NULL ? NULL : (void*)reloc->symbol->address, reloc->symbol == NULL ? "-" : reloc->symbol->name);
+        switch (reloc->type) {
+        case 6:
+        case 7:
+            *((size_t *)(dlib->base + reloc->address)) = reloc->symbol->address;
+            break;
+        case 1:
+            *((size_t *)(dlib->base + reloc->address)) += reloc->symbol->address;
+            break;
+        case 8:
+            *((size_t *)(dlib->base + reloc->address)) += dlib->base;
+            break;
+        }
+
+        // kprintf(-1, " -> %s at %p\n", reloc->symbol->name, reloc->symbol->address );
+        // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
+        // TODO - Do not replace first occurence of a symbol.
+    }
+
+    // Change map access rights
+    for ll_each(&dlib->sections, sec, dynsec_t, node) {
+        size_t sbase = dlib->base + sec->lower + sec->offset;
+        size_t slen = sec->upper - sec->lower;
+        mspace_protect(mspace, sbase, slen, sec->rights & 7);
+    }
+
+    return 0;
+}
+
+int dlib_map_all(proc_t *proc)
+{
+    dynlib_t *lib;
+    for ll_each(&proc->libraries, lib, dynlib_t, node)
+        dlib_map(lib, proc->mspace);
+    return 0;
+}
 
 CSTR proc_getenv(proc_t *proc, CSTR name)
 {

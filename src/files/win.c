@@ -22,6 +22,7 @@
 #include <kernel/files.h>
 #include <kernel/task.h>
 #include <kernel/input.h>
+#include <string.h>
 #include <errno.h>
 
 typedef struct window window_t;
@@ -90,7 +91,7 @@ int win_read(inode_t *ino, char *buf, size_t len, int flags)
 }
 
 
-void win_reset(inode_t *ino)
+int win_reset(inode_t *ino)
 {
     assert(ino->type == FL_WIN);
     window_t *win = (window_t *)ino->info;
@@ -132,7 +133,7 @@ inode_t *window_open(desktop_t *desk, int width, int height, unsigned features, 
     surface_t *fb = create_win(/*width, height*/);
     if (fb == NULL)
         return NULL;
-    inode_t *ino = vfs_inode(atomic_xadd(desk->win_no, 1), FL_WIN, NULL);
+    inode_t *ino = vfs_inode(atomic_xadd(&desk->win_no, 1), FL_WIN, NULL);
 
     window_t *win = kalloc(sizeof(window_t));
     win->fb = fb;
@@ -226,6 +227,8 @@ surface_t *create_win()
 }
 
 #define TTY_WRITE(t,s)  tty_write(t,s,strlen(s))
+#include <kernel/dlib.h>
+#include <kernel/syscalls.h>
 
 
 void krn_ls(tty_t *tty, inode_t *dir)
@@ -268,8 +271,8 @@ void krn_cat(tty_t *tty, const char *path)
 }
 
 
-proc_t *dlib_process(resx_fs_t *fs, mspace_t *mspace);
-int dlib_openexec(proc_t *proc, const char *execname);
+// proc_t *dlib_process(resx_fs_t *fs, mspace_t *mspace);
+// int dlib_openexec(proc_t *proc, const char *execname);
 
 
 void exec_task()
@@ -282,14 +285,25 @@ void exec_task()
     inode_t *ino = vfs_search(root, root, "bin/basename", NULL);
 
     if (ino != NULL)
-        TTY_WRITE(tty, "found basename!!\n");
+        TTY_WRITE(tty, "Found basename!!\n");
 
-    proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace_create());
+    mspace_t *mspace = mspace_create();
+    mspace_display(mspace);
+    kCPU.running->usmem = mspace;
+    proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace);
     int ret = dlib_openexec(proc, "bin/basename");
     if (ret == 0)
         TTY_WRITE(tty, "Proc opened!!\n");
     else
         TTY_WRITE(tty, "Proc error!!\n");
+
+    mspace_display(mspace);
+    ret = dlib_map_all(proc);
+    if (ret == 0)
+        TTY_WRITE(tty, "Proc mapped!!\n");
+    else
+        TTY_WRITE(tty, "Proc mapping error!!\n");
+    mspace_display(mspace);
 
     for (;;)
         sys_sleep(100000);

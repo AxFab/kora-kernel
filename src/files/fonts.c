@@ -434,7 +434,7 @@ const font_bmp_t font_8x8 = {
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-void font_paint(surface_t *sfc, font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y)
+void font_paint(surface_t *sfc, const font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y)
 {
     int px, l;
     int py = y;
