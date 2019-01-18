@@ -25,7 +25,7 @@
 
 typedef struct tty_cell tty_cell_t;
 
-void tty_window(tty_t *tty, surface_t *sfc, font_bmp_t *font);
+void tty_window(tty_t *tty, surface_t *sfc, const font_bmp_t *font);
 void tty_paint(tty_t *tty);
 void tty_paint_cell(tty_t *tty, tty_cell_t *cell, int *row, int *col);
 
@@ -36,7 +36,7 @@ void tty_paint_cell(tty_t *tty, tty_cell_t *cell, int *row, int *col);
 
 struct tty {
     surface_t *sfc;
-    font_bmp_t *font;
+    const font_bmp_t *font;
     short w, h;
     int count, top, end;
     int smin, smax;
@@ -67,7 +67,7 @@ tty_t *tty_create(int count)
     return tty;
 }
 
-void tty_window(tty_t *tty, surface_t *sfc, font_bmp_t *font)
+void tty_window(tty_t *tty, surface_t *sfc, const font_bmp_t *font)
 {
     tty->sfc = sfc;
     tty->font = font;
@@ -254,7 +254,7 @@ int tty_escape(tty_t *tty, const char *buf, int len)
     }
 }
 
-void tty_write(tty_t *tty, const char *buf, int len)
+int tty_write(tty_t *tty, const char *buf, int len)
 {
     tty_cell_t *cell = &tty->cells[tty->end];
     while (len > 0) {
@@ -306,4 +306,5 @@ void tty_write(tty_t *tty, const char *buf, int len)
     }
 
     tty_paint(tty);
+    return 0;
 }

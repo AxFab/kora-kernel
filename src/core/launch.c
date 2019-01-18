@@ -75,7 +75,6 @@ void tty_start()
         sys_sleep(10000);
 
     event_t event;
-    int status = 0;
     for (;;) {
         vfs_read(dev, (char *)&event, sizeof(event), 0, 0);
         int key = event.param2 & 0xFFF;
@@ -151,7 +150,6 @@ long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
     kprintf(-1, "Syscall\n");
     return -1;
 }
-
 
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()

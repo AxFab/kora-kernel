@@ -105,11 +105,14 @@ struct proc {
     bool req_set_uid;
 };
 
+proc_t *dlib_process(resx_fs_t *fs, mspace_t *mspace);
 bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib);
 void dlib_destroy(dynlib_t *lib);
 void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
 int dlib_openexec(proc_t *proc, const char *execname);
 void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
+int dlib_map(dynlib_t *dlib, mspace_t *mspace);
+int dlib_map_all(proc_t *proc);
 
 int elf_parse(dynlib_t *dlib);
 

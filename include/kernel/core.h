@@ -112,7 +112,8 @@ struct kmod {
 
 void kmod_init();
 void kmod_mount(inode_t *root);
-
+void kmod_register(kmod_t *mod);
+void kmod_dump();
 
 #define MODULE(n,s,t) \
     kmod_t kmod_info_##n = { \

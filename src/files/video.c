@@ -151,7 +151,7 @@ void vds_destroy(surface_t *srf)
 
 page_t vds_fetch(surface_t *fb, off_t off)
 {
-    return mmu_read(&fb->pixels[off]);
+    return mmu_read((size_t)&fb->pixels[off]);
 }
 
 

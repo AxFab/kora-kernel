@@ -99,10 +99,10 @@ void elf_requires(dynlib_t *dlib, elf_phead_t *ph, const char *strtab, bio_t *io
 void elf_symbol(dynsym_t *symbol, elf_sym32_t *sym, dynlib_t *lib, elf_dynamic_t *dynamic, const char *strtab)
 {
     symbol->address = sym->value;
-    char *name = &strtab[sym->name];
-    if (ALIGN_DW((size_t)name, PAGE_SIZE) == ALIGN_DW((size_t)strtab, PAGE_SIZE)) {
+    const char *name = &strtab[sym->name];
+    if (ALIGN_DW((size_t)name, PAGE_SIZE) == ALIGN_DW((size_t)strtab, PAGE_SIZE))
         symbol->name = strdup(name);
-    } else {
+    else {
         size_t off = dynamic->str_tab + sym->name;
         name = ADDR_OFF(bio_access(lib->io, off / PAGE_SIZE), off % PAGE_SIZE);
         symbol->name = strdup(name);
@@ -157,11 +157,18 @@ int elf_parse(dynlib_t *dlib)
         }
     }
 
+    /* Relocate executable to address zero */
     dynamic.init -= dlib->base;
     dynamic.fini -= dlib->base;
     dynamic.str_tab -= dlib->base;
     dynamic.sym_tab -= dlib->base;
     dynamic.rel -= dlib->base;
+    dlib->length -= dlib->base;
+
+    dynsec_t *sec;
+    for ll_each(&dlib->sections, sec, dynsec_t, node)
+        sec->offset -= dlib->base;
+
 
     dlib->init = dynamic.init;
     dlib->fini = dynamic.fini;
@@ -196,7 +203,7 @@ int elf_parse(dynlib_t *dlib)
     /* Read relocation table */
     uint32_t *rel_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.rel / PAGE_SIZE), dynamic.rel % PAGE_SIZE);
     int ent_sz = dynamic.rel_ent / sizeof(uint32_t);
-    int rel_sz = 0;
+    unsigned rel_sz = 0;
     for (i = 0; i < head->sh_count; ++i) {
         size_t sh_offset = head->sh_off + i * sizeof(elf_shead_t);
         elf_shead_t *sh_tbl = ADDR_OFF(bio_access(dlib->io, sh_offset / PAGE_SIZE), sh_offset % PAGE_SIZE);
@@ -215,6 +222,7 @@ int elf_parse(dynlib_t *dlib)
             kfree(rel);
             break;
         }
+        rel->address -= dlib->base;
         ll_append(&dlib->relocations, &rel->node);
         rel += dynamic.rel_ent / sizeof(uint32_t);
     }

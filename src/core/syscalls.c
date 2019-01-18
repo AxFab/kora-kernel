@@ -20,6 +20,7 @@
 #include <kernel/syscalls.h>
 #include <kernel/memory.h>
 #include <kernel/vfs.h>
+#include <kernel/files.h>
 #include <kernel/device.h>
 #include <kernel/net.h>
 #include <kernel/task.h>
@@ -234,7 +235,7 @@ int sys_window(int width, int height, unsigned features, unsigned evmask)
 {
     // TODO - Look for the desktop attached to the session
     resx_t *resx = kCPU.running->resx;
-    inode_t *ino = window_open(NULL, width, height, features);
+    inode_t *ino = window_open(NULL, width, height, features, 0);
     if (ino == NULL)
         return -1;
 
@@ -322,7 +323,7 @@ static long ginfo(bool expr, CSTR info, void *buf, int len)
     return 0;
 }
 
-static long sinfo(bool expr, char **info, void *buf, int len)
+static long sinfo(bool expr, char **info, const void *buf, int len)
 {
     if (!expr)  {
         errno = EPERM;

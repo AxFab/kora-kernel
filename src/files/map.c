@@ -96,9 +96,8 @@ int map_scavenge(int count, int min)
 page_t map_fetch(map_cache_t *cache, off_t off)
 {
     // kprintf(-1, "FETCH page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
-    if (cache->ino->length != 0 && off > cache->ino->length) {
+    if (cache->ino->length != 0 && off > cache->ino->length)
         kprintf(-1, "!?");
-    }
 
     assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));

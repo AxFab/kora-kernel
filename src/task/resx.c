@@ -96,7 +96,6 @@ void resx_close(resx_t *resx)
         while (resx->tree.count_ > 0)
             resx_rm(resx, resx->tree.root_->value_);
         kfree(resx);
-        return NULL;
     }
 }
 

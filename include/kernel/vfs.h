@@ -90,7 +90,7 @@ struct ino_ops {
     // Fifo
     int(*read)(inode_t *ino, char *buf, size_t len, int flags);
     int(*write)(inode_t *ino, const char *buf, size_t len, int flags);
-    void(*reset)(inode_t *ino);
+    int(*reset)(inode_t *ino);
     // Directory
     void *(*opendir)(inode_t *dir);
     inode_t *(*readdir)(inode_t *dir, char *name, void *ctx);
