@@ -144,7 +144,7 @@ cknet_src-y += $(srcdir)/tests/_$(CC)/threads.c
 cknet_src-y += $(wildcard $(srcdir)/net/*.c)
 cknet_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
 cknet_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
-cknet_LFLAGS += -lpthread
+cknet_LIBS += -lpthread
 $(eval $(call test,net))
 
 # -------------------------

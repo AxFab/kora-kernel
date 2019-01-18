@@ -9,7 +9,7 @@ build:
     - ./scripts/toolchain.sh install
   script:
     - make clean
-    - make CROSS=./opt/bin/i386-elf- target=x86-pc-kora kImage
+    - make CROSS=./opt/bin/i386-elf- target=x86-pc-kora
   artifacts:
     paths:
       - bin/kImage
@@ -17,7 +17,7 @@ build:
 test:
   stage: test
   before_script:
-    - apt update && apt install -y binutils make gcc nasm lcov valgrind libpthread-workqueue-dev
+    - apt update && apt install -y binutils make gcc nasm lcov valgrind
   script:
     - make clean
     - make check
