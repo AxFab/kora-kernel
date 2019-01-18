@@ -36,6 +36,7 @@ include $(topdir)/arch/$(target_arch)/make.mk
 # We define compilation modes and associated flags
 chk_CFLAGS += $(CFLAGS)  $(COV_FLAGS)
 chk_CFLAGS += -I$(topdir)/include
+chk_CFLAGS += -I$(topdir)/os/$(target_os)
 chk_CFLAGS += -I$(topdir)/src/tests/include
 chk_CFLAGS += -I$(topdir)/src/tests/_${CC}/include-${target_arch}
 

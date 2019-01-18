@@ -5,7 +5,9 @@ LD = $(CROSS)ld
 
 CFLAGS = -fPIC -Wall -Wextra -fno-builtin -Wno-unused-parameter
 CFLAGS += -I ${srcdir}/../../include
-CFLAGS += -I ${srcdir}/../../include/cc -I ${srcdir}/../../arch/x86/include
+CFLAGS += -I ${srcdir}/../../include/cc
+CFLAGS += -I ${srcdir}/../../arch/x86/include
+CFLAGS += -I ${srcdir}/../../os/kora
 LFLAGS =
 
 V = @

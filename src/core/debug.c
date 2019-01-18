@@ -71,9 +71,8 @@ void kdump(const void *buf, int len)
 
 
 /* Store in a temporary buffer a size in bytes in a human-friendly format. */
-char *sztoa(size_t number)
+char *sztoa_r(size_t number, char *sz_format)
 {
-    static char sz_format[20];
     static const char *prefix[] = { "bs", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb" };
     int k = 0;
     int rest = 0;
@@ -85,7 +84,7 @@ char *sztoa(size_t number)
     };
 
     if (k == 0)
-        snprintf(sz_format, 20, "%d bytes", (int)number);
+        snprintf(sz_format, 20, "%4d by", (int)number);
 
 
     else if (number < 10) {
@@ -105,6 +104,13 @@ char *sztoa(size_t number)
     }
 
     return sz_format;
+}
+
+/* Store in a temporary buffer a size in bytes in a human-friendly format. */
+char *sztoa(size_t number)
+{
+    static char sz_format[20];
+    return sztoa_r(number, sz_format);
 }
 
 static uint32_t CRC32_T[] = { /* CRC polynomial 0xedb88320 */

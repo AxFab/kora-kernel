@@ -20,8 +20,7 @@
 #ifndef _SYS_ALLOCATOR_H
 #define _SYS_ALLOCATOR_H 1
 
-
-#include <sys/mmap.h>
+#include <sys/mman.h>
 #define MMAP(l) mmap(NULL, l, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,-1, 0)
 #define MUNMAP(a,l) munmap(a, l)
 
