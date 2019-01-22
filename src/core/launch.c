@@ -119,6 +119,7 @@ void kernel_master()
     sys_sleep(10000);
     task_show_all();
     kmod_dump();
+    memory_info();
 
     // sys_sleep(1000000);
     // mspace_display(kMMU.kspace);

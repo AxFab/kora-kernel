@@ -226,7 +226,7 @@ surface_t *create_win()
     return win;
 }
 
-#define TTY_WRITE(t,s)  tty_write(t,s,strlen(s))
+#define TTY_WRITE(t,s)  do { tty_write(t,s,strlen(s)); kprintf(-1, s); } while(0)
 #include <kernel/dlib.h>
 #include <kernel/syscalls.h>
 
@@ -288,7 +288,7 @@ void exec_task()
         TTY_WRITE(tty, "Found basename!!\n");
 
     mspace_t *mspace = mspace_create();
-    mspace_display(mspace);
+    mmu_context(mspace);
     kCPU.running->usmem = mspace;
     proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace);
     int ret = dlib_openexec(proc, "bin/basename");
@@ -297,13 +297,19 @@ void exec_task()
     else
         TTY_WRITE(tty, "Proc error!!\n");
 
-    mspace_display(mspace);
     ret = dlib_map_all(proc);
     if (ret == 0)
         TTY_WRITE(tty, "Proc mapped!!\n");
     else
         TTY_WRITE(tty, "Proc mapping error!!\n");
+
+    void* start = dlib_exec_entry(proc);
+    void* stack = mspace_map(mspace, NULL, _Mib_, NULL, 0, VMA_STACK_RW);
+    stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
+    kprintf(-1, "basename: start:%p, stack:%p\n", start, stack);
     mspace_display(mspace);
+
+    cpu_usermode(start, stack);
 
     for (;;)
         sys_sleep(100000);

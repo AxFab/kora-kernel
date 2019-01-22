@@ -90,7 +90,7 @@ void elf_requires(dynlib_t *dlib, elf_phead_t *ph, const char *strtab, bio_t *io
         int idx = dyen[i * 2 + 1];
         dyndep_t *dep = kalloc(sizeof(dyndep_t));
         dep->name = strdup(&strtab[idx]);
-        kprintf(-1, "Rq:  %s \n", dep->name);
+        // kprintf(-1, "Rq:  %s \n", dep->name);
         ll_append(&dlib->depends, &dep->node);
     }
     bio_clean(io, ph->file_addr / PAGE_SIZE);
@@ -164,6 +164,7 @@ int elf_parse(dynlib_t *dlib)
     dynamic.sym_tab -= dlib->base;
     dynamic.rel -= dlib->base;
     dlib->length -= dlib->base;
+    dlib->entry -= dlib->base;
 
     dynsec_t *sec;
     for ll_each(&dlib->sections, sec, dynsec_t, node)

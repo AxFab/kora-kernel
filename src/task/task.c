@@ -157,6 +157,7 @@ void task_destroy(task_t *task)
 void task_core(task_t *task)
 {
     kprintf(KLOG_DBG, "Dump core - Task #%d =========================\n", task->pid);
+    mspace_display(kMMU.kspace);
     stackdump(8);
     if (task->usmem)
         mspace_display(task->usmem);
@@ -181,20 +182,25 @@ _Noreturn void task_fatal(CSTR error, unsigned signum)
 void task_show_all()
 {
     static char *status = "ZBWRE???????";
-    static char *buf1[10];
-    static char *buf2[10];
+    static char buf1[10];
+    static char buf2[10];
     splock_lock(&tsk_lock);
     task_t *task = bbtree_first(&pid_tree, task_t, bnode);
     kprintf(-1, "  PID PPID USER    PR ST %%CPU %%MEM   V.MEM    P.MEM   UP TIME  NAME\n");
     for (; task; task = bbtree_next(&task->bnode, task_t, bnode)) {
         // PID / USER / PRIO / VIRT / RES / SHR / ST / %CPU %MEM  TIME+ CMD
-        if (task->parent != NULL)
-            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  0.0  %s  %s  00:00:00 %s\n",
+        if (task->usmem != NULL)
+            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  %3d  %s  %s  00:00:00 %s\n",
                     task->pid, task->parent->pid, "no-user", 0,
                     status[task->status],
+                    task->usmem->p_size * 100 / kMMU.pages_amount,
                     task->usmem ? sztoa_r(task->usmem->v_size, buf1) : "      -",
                     task->usmem ? sztoa_r(task->usmem->p_size * PAGE_SIZE, buf2) : "      -",
                     task->name);
+        else if (task->parent != NULL)
+            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  0.0        -        -  00:00:00 %s\n",
+                    task->pid, task->parent->pid, "no-user", 0,
+                    status[task->status], task->name);
         else
             kprintf(-1, " %4d    - %8s %2d  %c  0.0  0.0        -        -  00:00:00 %s\n",
                     task->bnode.value_, "no-user", 0,

@@ -51,10 +51,23 @@ void stackdump(size_t frame)
 void kdump(const void *buf, int len)
 {
     int i, j;
+    int zero = 0;
     const uint8_t *ptr = (const uint8_t *)buf;
     for (i = 0; i < len; i += 16) {
-        kprintf(KLOG_DBG, "%04x   ", i);
         int n = MIN(16, len - i);
+        zero++;
+        for (j = 0; j < n; ++j) {
+            if (ptr[i + j] != 0) {
+                zero = 0;
+                break;
+            }
+        }
+        if (zero) {
+            if (zero == 1)
+                kprintf(KLOG_DBG, "%04x    *** \n", i);
+            continue;
+        }
+        kprintf(KLOG_DBG, "%04x   ", i);
         for (j = 0; j < n; ++j)
             kprintf(KLOG_DBG, "%02x ", ptr[i + j]);
         for (j = n; j < 16; ++j)

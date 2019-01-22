@@ -159,6 +159,7 @@ page_t mmu_protect(size_t vaddr, int flags)
 
 void mmu_create_uspace(mspace_t *mspace)
 {
+    unsigned i;
     page_t dir_pg = page_new();
     page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
     memset(dir, 0,  PAGE_SIZE);
@@ -166,8 +167,11 @@ void mmu_create_uspace(mspace_t *mspace)
     dir[1022] = (page_t)MMU_KRN_DIR_PG | MMU_K_RW;
     dir[0] = (page_t)MMU_KRN_TBL_PG | MMU_K_RW;
     // TODO - COPY KERNEL HEAP TABLE PAGES
+    for (i = MMU_KSPACE_LOWER >> 22; i < MMU_KSPACE_UPPER >> 22; ++i)
+        dir[i] = ((page_t*)0xFFBFF000)[i];
     kunmap(dir, PAGE_SIZE);
 
+    mspace->p_size++; // TODO g_size
     mspace->lower_bound = MMU_USPACE_LOWER;
     mspace->upper_bound = MMU_USPACE_UPPER;
     mspace->directory = dir_pg;
@@ -192,8 +196,13 @@ void mmu_destroy_uspace(mspace_t *mspace)
 
 void mmu_context(mspace_t *mspace)
 {
-    page_t dir = mspace->directory;
-    x86_set_cr3(dir);
+    page_t dir_pg = mspace->directory;
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
+    unsigned table = ((unsigned)&mspace) >> 22;
+    /* Check the current stack page is present  */
+    dir[table] = ((page_t*)0xFFBFF000)[table];
+    kunmap(dir, PAGE_SIZE);
+    x86_set_cr3(dir_pg);
 }
 
 void mmu_explain(size_t vaddr)
