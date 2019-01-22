@@ -26,8 +26,6 @@
 #define PROT_WRITE 2
 #define PROT_READ 4
 
-#define PAGE_SIZE 4096
-
 void *mmap(void *, size_t, int, off_t, int, int);
 int munmap(void *, size_t);
 

@@ -20,6 +20,7 @@
 #ifndef __SYS_TYPES_H
 #define __SYS_TYPES_H 1
 
+#include <bits/cdefs.h>
 #define __time_t long
 #define __clock_t long
 #define __off_t long
