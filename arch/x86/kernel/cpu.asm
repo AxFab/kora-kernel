@@ -17,11 +17,15 @@
 ; C P U   R O U T I N E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use32
 
-global cpu_no, cpu_save, cpu_restore, cpu_halt
+global cpu_no, cpu_save, cpu_restore, cpu_halt, cpu_usermode
 extern apic_regs, cpu_table
 
 %define KCS 0x8
 %define KDS 0x10
+%define KSS 0x18
+%define UCS 0x23
+%define UDS 0x2B
+%define USS 0x33
 
 cpu_no:
     mov eax, [apic_regs]
@@ -104,3 +108,27 @@ cpu_halt:
     hlt
     pause
     jmp .halt
+
+
+
+cpu_usermode:
+    cli
+    mov ebx, [esp + 4]
+    mov eax, [esp + 8]
+    push USS ; Stack segment
+    push eax ; User stack
+
+    pushf ; Flags
+    pop eax
+    or eax, 0x200 ; Interupt flags (on)
+    and eax, 0xffffbfff ; Nested task (off)
+    push eax
+
+    push UCS ; Code segment
+    push ebx ; Instruction pointer
+
+    push UDS ; Data segment
+    pop ds
+
+    iret
+

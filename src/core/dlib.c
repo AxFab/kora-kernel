@@ -178,11 +178,11 @@ int dlib_openexec(proc_t *proc, const char *execname)
     }
 
     // Add libraries to process memory space
-    for ll_each(&proc->libraries, lib, dynlib_t, node)
+    for ll_each_reverse(&proc->libraries, lib, dynlib_t, node)
         dlib_rebase(proc, proc->mspace, lib);
 
     // Resolve symbols -- Might be done lazy!
-    for ll_each_reverse(&proc->libraries, lib, dynlib_t, node) {
+    for ll_each(&proc->libraries, lib, dynlib_t, node) {
         if (!dlib_resolve_symbols(proc, lib)) {
             dlib_destroy(&proc->exec);
             // Missing symbols !?
@@ -217,8 +217,19 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
         symbol->address += (size_t)base;
         // kprintf(-1, " -> %s at %p\n", symbol->name, symbol->address);
         hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
-        // TODO - Do not replace first occurence of a symbol.
     }
+}
+
+void *dlib_exec_entry(proc_t *proc)
+{
+    return (void*)(proc->exec.base + proc->exec.entry);
+}
+
+void *dlib_symbol_address(proc_t *proc, CSTR name)
+{
+    dynsym_t *symbol;
+    symbol = hmp_get(&proc->symbols, name, strlen(name));
+    return symbol ? symbol->address : NULL;
 }
 
 void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
