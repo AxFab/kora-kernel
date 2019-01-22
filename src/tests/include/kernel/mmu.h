@@ -20,7 +20,7 @@
 #ifndef _KERNEL_ASM_MMU_H
 #define _KERNEL_ASM_MMU_H 1
 
-#define PAGE_SIZE 4096
+#include <bits/cdefs.h>
 typedef unsigned long page_t;
 
 

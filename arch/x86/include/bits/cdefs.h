@@ -25,6 +25,7 @@
 #define unlikely(c) c
 #define likely(c) c
 
+#define PAGE_SIZE 4096
 #define __ARCH "x86"
 #define __ILP32
 
