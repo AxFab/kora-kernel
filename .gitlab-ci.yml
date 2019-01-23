@@ -9,7 +9,7 @@ build:
     - ./scripts/toolchain.sh install
   script:
     - make clean
-    - make CROSS=./opt/bin/i386-elf- target=x86-pc-kora kImage
+    - make CROSS=./opt/bin/i386-elf- target=x86-pc-kora
   artifacts:
     paths:
       - bin/kImage

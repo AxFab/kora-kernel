@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -275,7 +275,7 @@ int net_device(netdev_t *ifnet)
     kprintf(-1, "Network interface (eth%d) - MAC: \033[92m%s\033[0m\n", ifnet->no,
             net_ethstr(tmp, ifnet->eth_addr));
     snprintf(tmp, 20, "Ethernet.#%d", ifnet->no);
-    kernel_tasklet(&net_tasklet, ifnet, tmp);
+    task_create(&net_tasklet, ifnet, tmp);
     return 0;
 }
 

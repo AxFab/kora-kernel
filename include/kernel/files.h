@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -57,7 +57,7 @@ struct font_bmp {
     char width, height, dispx, dispy;
 };
 
-void font_paint(surface_t *sfc, font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y);
+void font_paint(surface_t *sfc, const font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y);
 
 
 #define IO_NO_BLOCK  (1 << 4)
@@ -74,6 +74,15 @@ surface_t *vds_create(int width, int height, int depth);
 void vds_destroy(surface_t *srf);
 void vds_mouse(surface_t *scr, int x, int y);
 void vds_flip(surface_t *surface);
+page_t vds_fetch(surface_t *fb, off_t off);
+void vds_rect(surface_t *win, int x, int y, int w, int h, uint32_t color);
+
+
+inode_t *window_open(desktop_t *desk, int width, int height, unsigned features, unsigned evmask);
+void window_close(desktop_t *desk, inode_t *win);
+void *window_map(mspace_t *mspace, inode_t *win);
+int window_set_features(inode_t *win, int features, int *args);
+int window_get_features(inode_t *win, int features, int *args);
 
 
 
@@ -91,7 +100,7 @@ int pipe_resize(pipe_t *pipe, int size);
 int pipe_erase(pipe_t *pipe, int len);
 int pipe_write(pipe_t *pipe, const char *buf, int len, int flags);
 int pipe_read(pipe_t *pipe, char *buf, int len, int flags);
-
+int pipe_reset(pipe_t *pipe);
 
 
 
@@ -114,6 +123,11 @@ void ioblk_dirty(inode_t *ino, off_t off);
 int ioblk_read(inode_t *ino, char *buf, int len, off_t off);
 int ioblk_write(inode_t *ino, const char *buf, int len, off_t off);
 
+
+tty_t *tty_create(int count);
+void tty_window(tty_t *tty, surface_t *sfc, const font_bmp_t *font);
+void tty_paint(tty_t *tty);
+int tty_write(tty_t *tty, const char *buf, int len);
 
 int elf_parse(dynlib_t *dlib);
 

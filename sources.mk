@@ -17,167 +17,164 @@
 NAME=kora-kernel
 VERSION=0.0-$(GIT)
 
-CFLAGS += -Wall -Wextra -Wno-unused-parameter -fno-builtin
+CFLAGS += -Wall -Wextra -Wno-unused-parameter -Wno-char-subscripts
 CFLAGS += -Wno-multichar -Wno-implicit-fallthrough
+CFLAGS += -fno-builtin -ffreestanding -fPIC -nostartfiles
 CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
-CFLAGS += -ggdb3 -I$(topdir)/include
+CFLAGS += -ggdb
+
 
 COV_FLAGS += --coverage -fprofile-arcs -ftest-coverage
-KRN_FLAGS += -DKORA_STDC
 # KRN_FLAGS += -DSPLOCK_TICKET
 
-include $(srcdir)/drivers/drivers.mk
+# include $(srcdir)/drivers/drivers.mk
 include $(topdir)/arch/$(target_arch)/make.mk
 
+
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-# We define modes of compiling
-chk_CFLAGS += $(CFLAGS)  $(COV_FLAGS) -D_FAKE_TIME -D_FAKE_TASK
+# We define compilation modes and associated flags
+chk_CFLAGS += $(CFLAGS)  $(COV_FLAGS)
+chk_CFLAGS += -I$(topdir)/include
+chk_CFLAGS += -I$(topdir)/os/$(target_os)
 chk_CFLAGS += -I$(topdir)/src/tests/include
 chk_CFLAGS += -I$(topdir)/src/tests/_${CC}/include-${target_arch}
-krn_CFLAGS += $(CFLAGS)  $(KRN_FLAGS)
+
+krn_CFLAGS += $(CFLAGS)  -DKORA_STDC -DKORA_KRN
+krn_CFLAGS += -I$(topdir)/include
 krn_CFLAGS += -I$(topdir)/arch/$(target_arch)/include
-krn_CFLAGS += -I$(topdir)/include/cc
+krn_CFLAGS += -I$(topdir)/os/$(target_os)
+# krn_CFLAGS += -I$(topdir)/include/cc
+
+std_CFLAGS += $(CFLAGS)  -DKORA_STDC -D__SYS_CALL
+std_CFLAGS += -I$(topdir)/include
+std_CFLAGS += -I$(topdir)/arch/$(target_arch)/include
+std_CFLAGS += -I$(topdir)/os/$(target_os)
+# std_CFLAGS += -I$(topdir)/include/cc
+
 $(eval $(call ccpl,chk))
 $(eval $(call ccpl,krn))
-
-core_src-y += $(wildcard $(srcdir)/core/*.c)
-core_src-y += $(wildcard $(srcdir)/files/*.c)
-# core_src-y += $(wildcard $(srcdir)/io/*.c)
-core_src-y += $(wildcard $(srcdir)/task/*.c)
-core_src-y += $(wildcard $(srcdir)/mem/*.c)
-core_src-y += $(wildcard $(srcdir)/vfs/*.c)
-core_src-y += $(wildcard $(srcdir)/net/*.c)
+$(eval $(call ccpl,std))
 
 
+LFLAGS_app += -nostdlib -L $(libdir) -lc
+LFLAGS_ck += --coverage -fprofile-arcs -ftest-coverage
 
-# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-# We create the `kernel` delivery
-kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.asm)
-kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.s)
-kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/src/*.c)
-kImage_src-y += $(wildcard $(srcdir)/libc/*.c)
-# kImage_src-y += $(wildcard $(srcdir)/scall/*.c)
-kImage_src-y += $(core_src-y)
-kImage_src-y += $(drv_src-y)
-# kImage_omit-y += $(srcdir)/io/seat.c $(srcdir)/io/termio.c
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# K E R N E L   I M A G E -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+kImage_src-y += $(wildcard $(srcdir)/core/*.c)
+kImage_src-y += $(wildcard $(srcdir)/files/*.c)
+kImage_src-y += $(wildcard $(srcdir)/task/*.c)
+kImage_src-y += $(wildcard $(srcdir)/mem/*.c)
+kImage_src-y += $(wildcard $(srcdir)/vfs/*.c)
+kImage_src-y += $(wildcard $(srcdir)/net/*.c)
+kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.asm)
+kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.s)
+kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.c)
+kImage_src-y += $(wildcard $(srcdir)/basic/*.c)
+kImage_src-y += $(wildcard $(srcdir)/c89/*.c) $(srcdir)/c11/mutex.c
+kImage_src-y += # Drivers
+kImage_omit-y += $(srcdir)/c89/libio.c
 $(eval $(call kimg,kImage,krn))
 DV_UTILS += $(bindir)/kImage
+
+# -------------------------
+
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# S T A N D A R D   L I B R A I R Y -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+c_src-y += $(wildcard $(topdir)/arch/$(target_arch)/libc/*.c)
+c_src-y += $(wildcard $(topdir)/arch/$(target_arch)/libc/*.asm)
+c_src-y += $(wildcard $(srcdir)/basic/*.c)
+c_src-y += $(wildcard $(srcdir)/c89/*.c)
+c_src-y += $(srcdir)/c89.c
+c_LFLAGS := $(LFLAGS) -nostdlib
+$(eval $(call llib,c,std))
+DV_LIBS += $(libdir)/libc.so
+
+
 
 
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # T E S T I N G   U T I L I T I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+define testo
+ck$(1)_src-y += $(wildcard $(srcdir)/basic/*.c)
+ck$(1)_src-y += $(wildcard $(srcdir)/c89/*.c)
+ck$(1)_src-y += $(wildcard $(srcdir)/tests/$(1)/*.c)
+ck$(1)_src-y += $(wildcard $(srcdir)/tests/_stub/*.c)
+ck$(1)_omit-y += $(srcdir)/c89/libio.c
+ck$(1)_LFLAGS += $(LFLAGS_ck)
+DV_CHECK += $(bindir)/ck$(1)
+endef
+define test
+$(eval $(call testo,$1))
+$(eval $(call link,ck$(1),chk))
+endef
 
-ckFiles_src-y += $(srcdir)/libc/bbtree.c
-ckFiles_src-y += $(srcdir)/libc/hmap.c
-ckFiles_src-y += $(srcdir)/files/pipe.c
-ckFiles_src-y += $(srcdir)/task/async.c
-ckFiles_src-y += $(wildcard $(srcdir)/tests/files/*.c)
-ckFiles_src-y += $(srcdir)/tests/_stub/stub_core.c
-ckFiles_src-y += $(srcdir)/tests/_stub/stub_map.c
-ckFiles_src-y += $(srcdir)/tests/_stub/stub_mem.c
-ckFiles_src-y += $(srcdir)/tests/_stub/stub_irq.c
-ckFiles_src-y += $(srcdir)/tests/_stub/stub_vfs.c
-ckFiles_src-y += $(srcdir)/tests/_stub/stub_task.c
-ckFiles_src-y += $(srcdir)/tests/_stub/stub_time.c
-ckFiles_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-$(eval $(call link,ckFiles,chk))
-DV_CHECK += $(bindir)/ckFiles
+# -------------------------
+# ckfiles_src-y += $(wildcard $(srcdir)/files/*.c)
+ckfiles_src-y += $(srcdir)/files/pipe.c
+ckfiles_src-y += $(srcdir)/task/async.c
+ckfiles_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
+ckfiles_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
+$(eval $(call test,files))
+# -------------------------
+ckfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
+# ckfs_src-y += $(wildcard $(srcdir)/files/*.c) # Yes or no !?
+ckfs_src-y += $(srcdir)/files/pipe.c
+ckfs_src-y += $(srcdir)/task/async.c
+ckfs_src-y += $(srcdir)/core/bio.c
+ckfs_src-y += $(srcdir)/core/debug.c
+ckfs_src-y += $(wildcard $(srcdir)/drivers/disk/imgdk/*.c)
+ckfs_src-y += $(wildcard $(srcdir)/drivers/fs/fat/*.c)
+ckfs_src-y += # Drivers
+ckfs_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
+ckfs_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
+ckfs_omit-y += $(srcdir)/tests/_stub/stub_vfs.c
+$(eval $(call test,fs))
+
+# -------------------------
+ckmem_src-y += $(srcdir)/core/debug.c
+ckmem_src-y += $(wildcard $(srcdir)/mem/*.c)
+ckmem_omit-y += $(srcdir)/tests/_stub/stub_mem.c
+ckmem_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
+$(eval $(call test,mem))
+
+# -------------------------
+cknet_src-y += $(srcdir)/core/debug.c
+cknet_src-y += $(srcdir)/tests/_$(CC)/threads.c
+cknet_src-y += $(wildcard $(srcdir)/net/*.c)
+cknet_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
+cknet_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
+cknet_LIBS += -lpthread
+$(eval $(call test,net))
+
+# -------------------------
+ckutils_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
+ckutils_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
+ckutils_omit-y += $(srcdir)/tests/_stub/stub_irq.c
+$(eval $(call test,utils))
 
 # -------------------------
 
-ckFs_src-y += $(wildcard $(srcdir)/libc/*.c)
-ckFs_src-y += $(wildcard $(srcdir)/vfs/*.c)
-ckFs_src-y += $(srcdir)/files/pipe.c
-ckFs_src-y += $(wildcard $(srcdir)/core/bio.c)
-ckFs_src-y += $(wildcard $(srcdir)/core/debug.c)
-ckFs_src-y += $(wildcard $(srcdir)/task/async.c)
-ckFs_src-y += $(wildcard $(srcdir)/drivers/fs/fat/*.c)
-ckFs_src-y += $(wildcard $(srcdir)/drivers/fs/isofs/*.c)
-ckFs_src-y += $(wildcard $(srcdir)/drivers/disk/imgdk/*.c)
-ckFs_src-y += $(wildcard $(srcdir)/tests/fs/*.c)
-ckFs_src-y += $(srcdir)/tests/_stub/stub_core.c
-ckFs_src-y += $(srcdir)/tests/_stub/stub_irq.c
-ckFs_src-y += $(srcdir)/tests/_stub/stub_map.c
-ckFs_src-y += $(srcdir)/tests/_stub/stub_mem.c
-ckFs_src-y += $(srcdir)/tests/_stub/stub_task.c
-ckFs_src-y += $(srcdir)/tests/_stub/stub_time.c
-ckFs_omit-y += $(srcdir)/libc/mutex.c
-ckFs_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-$(eval $(call link,ckFs,chk))
-DV_CHECK += $(bindir)/ckFs
 
-# -------------------------
 
-ckMem_src-y += $(wildcard $(srcdir)/mem/*.c)
-ckMem_src-y += $(srcdir)/libc/bbtree.c
-ckMem_src-y += $(srcdir)/libc/hmap.c
-ckMem_src-y += $(srcdir)/libc/mutex.c
-ckMem_src-y += $(srcdir)/core/debug.c
-ckMem_src-y += $(wildcard $(srcdir)/task/async.c)
-ckMem_src-y += $(wildcard $(srcdir)/tests/mem/*.c)
-ckMem_src-y += $(srcdir)/tests/_stub/stub_core.c
-ckMem_src-y += $(srcdir)/tests/_stub/stub_irq.c
-ckMem_src-y += $(srcdir)/tests/_stub/stub_mmu.c
-ckMem_src-y += $(srcdir)/tests/_stub/stub_vfs.c
-ckMem_src-y += $(srcdir)/tests/_stub/stub_task.c
-ckMem_src-y += $(srcdir)/tests/_stub/stub_time.c
-ckMem_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-$(eval $(call link,ckMem,chk))
-DV_CHECK += $(bindir)/ckMem
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# T E S T I N G   U T I L I T I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+define utilo
+$(1)_src-y += $(topdir)/arch/$(target_arch)/crt0.asm
+$(1)_src-y += $(srcdir)/utils/$(1).c
+$(1)_LFLAGS := $(LFLAGS_app)
+$(1)_DLIBS += c
+DV_UTILS += $(bindir)/$(1)
+endef
+define util
+$(eval $(call utilo,$1))
+$(eval $(call link,$1,std))
+endef
 
-# -------------------------
-
-ckNet_src-y += $(wildcard $(srcdir)/net/*.c)
-ckNet_src-y += $(wildcard $(srcdir)/arch/um2/*.c)
-ckNet_src-y += $(srcdir)/core/debug.c $(srcdir)/libc/random.c $(srcdir)/libc/hmap.c
-ckNet_src-y += $(wildcard $(srcdir)/tests/net/*.c)
-ckNet_src-y += $(srcdir)/tests/_gcc/threads.c
-ckNet_src-y += $(srcdir)/tests/_stub/stub_core.c
-ckNet_src-y += $(srcdir)/tests/_stub/stub_irq.c
-ckNet_src-y += $(srcdir)/tests/_stub/stub_vfs.c
-ckNet_src-y += $(srcdir)/tests/_stub/stub_time.c
-ckNet_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-ckNet_LIBS += -lpthread
-$(eval $(call link,ckNet,chk))
-DV_CHECK += $(bindir)/ckNet
-
-# -------------------------
-
-ckTask_src-y += $(wildcard $(srcdir)/task/*.c)
-ckTask_src-y += $(srcdir)/libc/bbtree.c $(srcdir)/libc/setjmp_$(target_arch).asm
-ckTask_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
-ckTask_src-y += $(srcdir)/core/debug.c $(srcdir)/arch/um2/cpu.c
-ckTask_src-y += $(srcdir)/tests/ck_task.c
-ckTask_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-$(eval $(call link,ckTask,chk))
-# DV_CHECK += $(bindir)/ckTask
-
-# -------------------------
-
-ckUtils_src-y += $(wildcard $(srcdir)/libc/*.c)
-ckUtils_src-y += $(wildcard $(srcdir)/tests/utils/*.c)
-ckUtils_src-y += $(srcdir)/tests/_stub/stub_core.c
-ckUtils_src-y += $(srcdir)/tests/_stub/stub_irq.c
-ckUtils_src-y += $(srcdir)/tests/_stub/stub_vfs.c
-ckUtils_src-y += $(srcdir)/tests/_stub/stub_time.c
-ckUtils_omit-y += $(srcdir)/libc/mutex.c
-ckUtils_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-$(eval $(call link,ckUtils,chk))
-DV_CHECK += $(bindir)/ckUtils
-
-# -------------------------
-
-ckVfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
-ckVfs_src-y += $(srcdir)/libc/bbtree.c $(srcdir)/libc/hmap.c
-ckVfs_src-y += $(drv_src-y)
-ckVfs_src-y += $(srcdir)/arch/um2/common.c $(srcdir)/arch/um2/irq.c
-ckVfs_src-y += $(srcdir)/core/debug.c
-ckVfs_src-y += $(srcdir)/tests/ck_vfs.c
-ckVfs_LFLAGS += $(LFLAGS) $(COV_FLAGS)
-$(eval $(call link,ckVfs,chk))
-# DV_CHECK += $(bindir)/ckVfs
-
+$(eval $(call util,basename))
+$(eval $(call util,cat))
 
 

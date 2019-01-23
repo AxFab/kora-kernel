@@ -28,11 +28,11 @@
 !src/**/*.h
 !scripts/**/*.sh
 !arch/**/*.ld
-!arch/**/include/**/*.h
-!arch/**/src/**/*.asm
-!arch/**/src/**/*.s
-!arch/**/src/**/*.c
-!arch/**/src/**/*.h
+!arch/**/*.asm
+!arch/**/*.s
+!arch/**/*.c
+!arch/**/*.h
+!os/**/*.h
 
 # Exceptions
 !doc/snippet/**/*

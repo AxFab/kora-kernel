@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -47,6 +47,7 @@ static int vfs_read_block(inode_t *ino, char *buf, size_t len, off_t off)
         memcpy(buf, map + disp, cap);
         len -= cap;
         off += cap;
+        buf += cap;
         bytes += cap;
     }
     kunmap(map, PAGE_SIZE);
@@ -77,6 +78,7 @@ static int vfs_write_block(inode_t *ino, const char *buf, size_t len, off_t off)
         memcpy(map + disp, buf, cap);
         len -= cap;
         off += cap;
+        buf += cap;
         bytes += cap;
     }
     kunmap(map, PAGE_SIZE);
@@ -136,28 +138,5 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
         errno = ENOSYS;
         return -1;
     }
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-page_t mem_fetch(inode_t *ino, off_t off)
-{
-    if (ino->ops->fetch == NULL)
-        return 0;
-    return ino->ops->fetch(ino, off);
-}
-
-void mem_sync(inode_t *ino, off_t off, page_t pg)
-{
-    if (ino->ops->sync == NULL)
-        return;
-    ino->ops->sync(ino, off, pg);
-}
-
-void mem_release(inode_t *ino, off_t off, page_t pg)
-{
-    if (ino->ops->release == NULL)
-        return;
-    ino->ops->release(ino, off, pg);
 }
 

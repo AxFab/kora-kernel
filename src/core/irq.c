@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -211,12 +211,15 @@ void irq_pagefault(size_t vaddr, int reason)
 {
     irq_disable();
     assert(kCPU.irq_semaphore == 1);
+    mspace_t *mspace = NULL;
     task_t *task = kCPU.running;
-    // if (task)
-    //     task->elapsed_user = time_elapsed(&task->elapsed_last);
+    if (task) {
+        mspace = task->usmem;
+        // task->elapsed_user = time_elapsed(&task->elapsed_last);
+    }
     // kCPU.elapsed_user = time_elapsed(&kCPU->elapsed_last);
 
-    if (page_fault(/*task ? task->uspace: */NULL, vaddr, reason) != 0) {
+    if (page_fault(mspace, vaddr, reason) != 0) {
         task_kill(kCPU.running, SIGSEGV);
         if (task->status == TS_ABORTED)
             scheduler_switch(TS_ZOMBIE, -1);

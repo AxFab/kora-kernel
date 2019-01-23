@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@
 #include <kernel/drv/pci.h>
 #include <kernel/cpu.h>
 #include <kernel/task.h>
+#include <kernel/syscalls.h>
 #include <kora/mcrs.h>
 #include <string.h>
 #include "e1000_hw.h"

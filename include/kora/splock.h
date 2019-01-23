@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -22,9 +22,17 @@
 
 #include <bits/atomic.h>
 #include <stdbool.h>
+
+#ifdef KORA_KRN
+extern void irq_reset(bool enable);
 extern bool irq_enable();
 extern void irq_disable();
-
+#define THROW_ON irq_enable()
+#define THROW_OFF irq_disable()
+#else
+#define THROW_ON ((void)0)
+#define THROW_OFF ((void)0)
+#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -51,7 +59,7 @@ static inline void splock_init(splock_t *lock)
 /* Block the cpu until the lock might be taken */
 static inline void splock_lock(splock_t *lock)
 {
-    irq_disable();
+    THROW_OFF;
     uint16_t ticket = atomic16_xadd(&lock->users, 1);
     while (lock->ticket != ticket)
         cpu_relax();
@@ -62,19 +70,19 @@ static inline void splock_unlock(splock_t *lock)
 {
     cpu_barrier();
     atomic16_inc(&lock->ticket);
-    irq_enable();
+    THROW_ON;
 }
 
 /* Try to grab the lock but without blocking. */
 static inline bool splock_trylock(splock_t *lock)
 {
-    irq_disable();
+    THROW_OFF;
     uint16_t ticket = lock->users;
     unsigned cmp1 = ((unsigned)ticket << 16) + ticket;
     unsigned cmp2 = ((unsigned)(ticket + 1) << 16) + ticket;
     if (atomic32_cmpxchg(&lock->val, cmp1, cmp2))
         return true;
-    irq_enable();
+    THROW_ON;
     return false;
 }
 
@@ -103,7 +111,7 @@ static inline void splock_init(splock_t *lock)
 /* Block the cpu until the lock might be taken */
 static inline void splock_lock(splock_t *lock)
 {
-    irq_disable();
+    THROW_OFF;
     for (;;) {
         if (atomic_xchg(lock, 1) == 0)
             return;
@@ -117,16 +125,16 @@ static inline void splock_unlock(splock_t *lock)
 {
     cpu_barrier();
     *lock = 0;
-    irq_enable();
+    THROW_ON;
 }
 
 /* Try to grab the lock but without blocking. */
 static inline bool splock_trylock(splock_t *lock)
 {
-    irq_disable();
+    THROW_OFF;
     if (atomic_xchg(lock, 1) == 0)
         return true;
-    irq_enable();
+    THROW_ON;
     return false;
 }
 

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -23,6 +23,7 @@
 #include <kora/stddef.h>
 #include <kora/splock.h>
 #include <kora/llist.h>
+#include <sys/allocator.h>
 
 #define HEAP_PARANO  (1 << 0)
 #define HEAP_CHECK  (1 << 1)
@@ -68,7 +69,6 @@ void _PRT(free)(void *ptr);
 void setup_allocator(void *address, size_t length);
 void sweep_allocator();
 
-void *heap_map(size_t length);
-void *heap_unmap(void *address, size_t length);
+
 
 #endif /* _KORA_ALLOCATOR_H */

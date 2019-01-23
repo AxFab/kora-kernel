@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -32,12 +32,12 @@ proc_t kproc;
 CSTR proc_getenv(proc_t *proc, CSTR name);
 
 
-proc_t *dlib_process(CSTR execname)
+proc_t *dlib_process(resx_fs_t *fs, mspace_t *mspace)
 {
     proc_t *proc = kalloc(sizeof(proc_t));
-    proc->execname = strdup(execname);
-    proc->root = NULL;
-    proc->pwd = NULL;
+    // proc->execname = strdup(execname);
+    proc->root = resx_fs_root(fs);
+    proc->pwd =  resx_fs_pwd(fs);
     proc->acl = NULL;
     proc->env = "PATH=/usr/bin:/bin\n"
                 "OS=Kora\n"
@@ -51,6 +51,9 @@ proc_t *dlib_process(CSTR execname)
                 "UID=9fe14c6\n"
                 "LD_LIBRARY_PATH=\n"
                 "SHELL=krish\n";
+    hmp_init(&proc->libs_map, 16);
+    hmp_init(&proc->symbols, 16);
+    proc->mspace = mspace;
     // TODO
     return proc;
 }
@@ -143,17 +146,17 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
         lib = kalloc(sizeof(dynlib_t));
         lib->ino = ino;
         dep->lib = lib;
-        ll_enqueue(&proc->queue, &proc->exec.node);
+        ll_enqueue(&proc->queue, &lib->node);
     }
     return 0;
 }
 
 
-int dlib_openexec(proc_t *proc)
+int dlib_openexec(proc_t *proc, const char *execname)
 {
     dynlib_t *lib;
     // Look for executable file
-    inode_t *ino = dlib_lookfor(proc, proc->pwd, proc->execname, "PATH", "/usr/bin:/bin");
+    inode_t *ino = dlib_lookfor(proc, proc->pwd, execname, "PATH", "/usr/bin:/bin");
     if (ino == NULL) {
         assert(errno != 0);
         return -1;
@@ -175,11 +178,11 @@ int dlib_openexec(proc_t *proc)
     }
 
     // Add libraries to process memory space
-    for ll_each(&proc->queue, lib, dynlib_t, node)
+    for ll_each_reverse(&proc->libraries, lib, dynlib_t, node)
         dlib_rebase(proc, proc->mspace, lib);
 
     // Resolve symbols -- Might be done lazy!
-    for ll_each(&proc->queue, lib, dynlib_t, node) {
+    for ll_each(&proc->libraries, lib, dynlib_t, node) {
         if (!dlib_resolve_symbols(proc, lib)) {
             dlib_destroy(&proc->exec);
             // Missing symbols !?
@@ -199,23 +202,38 @@ void dlib_destroy(dynlib_t *lib)
 void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
 {
     dynsym_t *symbol;
-    void *base;
+    void *base = NULL;
+    kprintf(-1, "\033[94mRebase lib: %08x\033[0m\n", lib->base);
     // ASRL
-    do {
+    if (lib->base != NULL)
+        base = mspace_map(mspace, lib->base, lib->length, NULL, 0, VMA_ANON_RW | 0x11 | VMA_MAP_FIXED);
+
+    while (base == NULL) {
         size_t addr = rand32() % (mspace->upper_bound - mspace->lower_bound);
         addr += mspace->lower_bound;
         addr = ALIGN_DW(addr, PAGE_SIZE);
-        base = mspace_map(mspace, addr, lib->length, NULL, 0, VMA_ANON_RW | VMA_MAP_FIXED);
-    } while (base == NULL);
+        base = mspace_map(mspace, addr, lib->length, NULL, 0, VMA_ANON_RW | 0x11 | VMA_MAP_FIXED);
+    }
 
     // List symbols
     lib->base = (size_t)base;
     for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
         symbol->address += (size_t)base;
         // kprintf(-1, " -> %s at %p\n", symbol->name, symbol->address);
-        // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
-        // TODO - Do not replace first occurence of a symbol.
+        hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
     }
+}
+
+void *dlib_exec_entry(proc_t *proc)
+{
+    return (void*)(proc->exec.base + proc->exec.entry);
+}
+
+void *dlib_symbol_address(proc_t *proc, CSTR name)
+{
+    dynsym_t *symbol;
+    symbol = hmp_get(&proc->symbols, name, strlen(name));
+    return symbol ? symbol->address : NULL;
 }
 
 void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
@@ -234,7 +252,7 @@ bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
         sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
         if (sym == NULL) {
             missing++;
-            // kprintf(-1, "Missing symbol %s\n", symbol->name);
+            kprintf(-1, "Missing symbol '%s'\n", symbol->name);
             continue;
             // return false;
         }
@@ -245,6 +263,73 @@ bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
     return missing == 0;
 }
 
+int dlib_map(dynlib_t *dlib, mspace_t *mspace)
+{
+    dynsec_t *sec;
+    for ll_each(&dlib->sections, sec, dynsec_t, node) {
+
+        // kprintf(-1, "Section %4x - %4x - %4x - %4x - %4x , %o\n", sec->lower, sec->upper,
+        //         sec->start, sec->end, sec->offset, sec->rights);
+
+        // Copy sections
+        void *sbase = (void *)(dlib->base + sec->lower + sec->offset);
+        size_t slen = sec->upper - sec->lower;
+        memset(sbase, 0, slen);
+        int i, n = (sec->upper - sec->lower) / PAGE_SIZE;
+        for (i = 0; i < n; ++i) {
+            uint8_t *page = bio_access(dlib->io, i + sec->lower / PAGE_SIZE);
+            size_t start = i == 0 ? sec->start : 0;
+            void *src = ADDR_OFF(page, start);
+            void *dst = (void *)(dlib->base + sec->lower + sec->offset + start + i * PAGE_SIZE);
+            int lg = (i + 1 == n ? (sec->end & (PAGE_SIZE - 1)) : PAGE_SIZE) - start;
+            memcpy(dst, src, lg);
+        }
+
+        // kprintf(-1, "Section : %p - %x\n", sbase, slen);
+        // kdump(sbase, slen);
+    }
+
+    // Relocations
+    dynrel_t *reloc;
+    // dynsym_t *symbol;
+    for ll_each(&dlib->relocations, reloc, dynrel_t, node) {
+
+        // kprintf(-1, "R: %06x  %x  %p  %s \n", reloc->address, reloc->type, reloc->symbol == NULL ? NULL : (void*)reloc->symbol->address, reloc->symbol == NULL ? "-" : reloc->symbol->name);
+        switch (reloc->type) {
+        case 6:
+        case 7:
+            *((size_t *)(dlib->base + reloc->address)) = reloc->symbol->address;
+            break;
+        case 1:
+            *((size_t *)(dlib->base + reloc->address)) += reloc->symbol->address;
+            break;
+        case 8:
+            *((size_t *)(dlib->base + reloc->address)) += dlib->base;
+            break;
+        }
+
+        // kprintf(-1, " -> %s at %p\n", reloc->symbol->name, reloc->symbol->address );
+        // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
+        // TODO - Do not replace first occurence of a symbol.
+    }
+
+    // Change map access rights
+    for ll_each(&dlib->sections, sec, dynsec_t, node) {
+        size_t sbase = dlib->base + sec->lower + sec->offset;
+        size_t slen = sec->upper - sec->lower;
+        mspace_protect(mspace, sbase, slen, sec->rights & 7);
+    }
+
+    return 0;
+}
+
+int dlib_map_all(proc_t *proc)
+{
+    dynlib_t *lib;
+    for ll_each(&proc->libraries, lib, dynlib_t, node)
+        dlib_map(lib, proc->mspace);
+    return 0;
+}
 
 CSTR proc_getenv(proc_t *proc, CSTR name)
 {

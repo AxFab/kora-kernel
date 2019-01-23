@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -18,7 +18,6 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <errno.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdarg.h>
@@ -206,7 +205,7 @@ void ck_reset()
     krn_mmap_init = false;
 }
 
-_Noreturn void task_fatal(CSTR error, int signum)
+_Noreturn void task_fatal(CSTR error, unsigned signum)
 {
     assert(false);
     for (;;);
@@ -243,3 +242,39 @@ void nanosleep(struct timespec *tm, struct timespec *rs)
     }
 }
 #endif
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+int rand_r(unsigned int *seed);
+
+uint64_t rand64()
+{
+    uint64_t r = (uint64_t)rand_r(&kCPU.seed);
+    r |= (uint64_t)rand_r(&kCPU.seed) << 15;
+    r |= (uint64_t)rand_r(&kCPU.seed) << 30;
+    r |= (uint64_t)rand_r(&kCPU.seed) << 45;
+    r |= (uint64_t)rand_r(&kCPU.seed) << 60;
+    return r;
+}
+
+uint32_t rand32()
+{
+    uint32_t r = (uint32_t)rand_r(&kCPU.seed);
+    r |= (uint32_t)rand_r(&kCPU.seed) << 15;
+    r |= (uint32_t)rand_r(&kCPU.seed) << 30;
+    return r;
+}
+
+uint16_t rand16()
+{
+    uint32_t r = (uint16_t)rand_r(&kCPU.seed);
+    r |= (uint16_t)rand_r(&kCPU.seed) << 15;
+    return r & 0xFFFF;
+}
+
+uint8_t rand8()
+{
+    uint32_t r = (uint16_t)rand_r(&kCPU.seed);
+    return r & 0xFF;
+}

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -242,7 +242,7 @@ inode_t *vfs_lookup(inode_t *dir, CSTR name)
     assert(dir != NULL && name != NULL);
     dirent_t *ent = vfs_lookup_(dir, name);
     if (ent == NULL) {
-        assert(errno != 0);
+        // assert(errno != 0);
         return NULL;
     }
     inode_t *ino = ent->ino;

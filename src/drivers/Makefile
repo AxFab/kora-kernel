@@ -5,7 +5,9 @@ LD = $(CROSS)ld
 
 CFLAGS = -fPIC -Wall -Wextra -fno-builtin -Wno-unused-parameter
 CFLAGS += -I ${srcdir}/../../include
-CFLAGS += -I ${srcdir}/../../include/cc -I ${srcdir}/../../arch/x86/include
+CFLAGS += -I ${srcdir}/../../include/cc
+CFLAGS += -I ${srcdir}/../../arch/x86/include
+CFLAGS += -I ${srcdir}/../../os/kora
 LFLAGS =
 
 V = @
@@ -14,13 +16,14 @@ Q = @ echo
 srcdir := .
 objdir := ./obj
 bindir := ./bin
+libdir := ./lib
 driver := fs/isofs
 name = ${shell basename ${driver}}
 
 srcs=$(wildcard ${srcdir}/${driver}/*.c)
 objs=$(patsubst ${srcdir}/${driver}/%.c, ${objdir}/%.o, ${srcs})
 
-all: ${bindir}/${name}.kmo
+all: ${bindir}/${name}.kmo ${libdir}/${name}.a
 
 echo:
 	${Q} '  NAME  '${name}
@@ -28,6 +31,12 @@ echo:
 	${Q} '  OBJ   '${objdir}
 	${Q} '  SRCS  '${srcs}
 	${Q} '  OBJS  '${objs}
+
+${libdir}/${name}.a: ${objs}
+	${Q} '    AR  '$@
+	@ mkdir -p ${libdir}
+	${V} ${AR} rc $@ ${objs}
+
 
 ${bindir}/${name}.kmo: ${objs}
 	${Q} '    LD  '$@
