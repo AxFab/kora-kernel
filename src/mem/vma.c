@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -163,7 +163,7 @@ int vma_close(mspace_t *mspace, vma_t *vma, int arg)
             // TODO -- Look if page is dirty
             page_t pg = mmu_read(vma->node.value_ + off);
             mmu_drop(vma->node.value_ + off);
-            vma->ino->ops->release(vma->ino, off, pg);
+            vma->ino->ops->release(vma->ino, vma->offset + off, pg);
         }
         break;
     default:

@@ -1,6 +1,7 @@
 #!/bin/bash
+#
 #      This file is part of the KoraOS project.
-#  Copyright (C) 2018  <Fabien Bavent>
+#  Copyright (C) 2015-2019  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as
@@ -15,7 +16,6 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
 SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
 
@@ -52,7 +52,7 @@ run_raspi2 () {
 export iso_name=KoraOs.iso
 
 build_raspi2 () {
-    export target=arm-raspberry2-none
+    export target=arm-raspberry2-kora
     case "`uname -m`"
     in
         raspi2) unset CROSS ;;
@@ -63,14 +63,14 @@ build_raspi2 () {
 }
 
 build_x86 () {
-    export target=x86-pc-none
+    export target=x86-pc-kora
     case "`uname -m`"
     in
         i386|i486|i686) unset CROSS ;;
         *) export CROSS=i386-elf- ;;
     esac
 
-    make -f $SRC_KRN/Makefile kImage
+    make -f $SRC_KRN/Makefile -j 6
 
     rm -rf iso
     mkdir -p iso/{etc,bin,boot,lib}
@@ -82,6 +82,8 @@ build_x86 () {
 
     # Import files
     cp -v $SRC_KRN/bin/kImage iso/boot/kImage
+    cp -v $SRC_KRN/bin/* iso/bin/
+    cp -v $SRC_KRN/lib/* iso/lib/
 
     mkdir -p iso/boot/grub
 

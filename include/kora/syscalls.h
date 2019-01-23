@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -38,7 +38,7 @@
 #define SYS_SIGRETURN  17
 
 #define SYS_MMAP  3
-#define SYS_UNMAP  4
+#define SYS_MUNMAP  4
 #define SYS_MPROTECT  5
 
 #define SYS_OPEN  6
@@ -72,7 +72,8 @@ int sys_syslog(const char *msg);
 int sys_sysinfo(unsigned long info, char *buf, size_t len);
 /* Task */
 int sys_yield(unsigned long flags);
-void sys_exit(long status, unsigned long type);
+long sys_exit(int status);
+void sys_stop(long status, unsigned long type);
 int sys_wait(unsigned long cause, long param, unsigned long timeout_us);
 int sys_exec(const char *exec, char **args, char **env, unsigned long flags);
 int sys_clone(unsigned long flags);
@@ -81,7 +82,7 @@ int sys_sigraise(unsigned long signum, long pid);
 int sys_sigaction(unsigned long signum, void *sigaction);
 void sys_sigreturn();
 /* Memory */
-void *sys_mmap(size_t addr, size_t len, int fd, off_t off, unsigned long flags);
+void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off);
 int sys_munmap(size_t addr, size_t len);
 int sys_mprotect(size_t addr, size_t len, unsigned int flags);
 /* Stream */
@@ -93,6 +94,22 @@ int sys_seek(int fd, off_t off, unsigned long whence);
 /* - */
 int sys_window(void *img, int fd, void *info, unsigned long features,
                unsigned long events);
-int sys_pipe(int *fds, size_t size);
+int sys_pipe(int *fds);
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+int __syscall(int no, ...);
+
+#define sz(i)   ((size_t)(i))
+#define syscall(no,...)                 syscall_x(no, __VA_ARGS__, 5, 4, 3, 2, 1, 0)
+#define syscall_x(a,b,c,d,e,f,g,...)    syscall_ ## g (a,b,c,d,e,f,g)
+#define syscall_0(a,b,c,d,e,f,g)        __syscall(a)
+#define syscall_1(a,b,c,d,e,f,g)        __syscall(a,sz(b))
+#define syscall_2(a,b,c,d,e,f,g)        __syscall(a,sz(b),sz(c))
+#define syscall_3(a,b,c,d,e,f,g)        __syscall(a,sz(b),sz(c),sz(d))
+#define syscall_4(a,b,c,d,e,f,g)        __syscall(a,sz(b),sz(c),sz(d),sz(e))
+#define syscall_5(a,b,c,d,e,f,g)        __syscall(a,sz(b),sz(c),sz(d),sz(e),sz(f))
+
 
 #endif  /* _KORA_SYSCALLS_H */

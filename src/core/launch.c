@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -25,7 +25,7 @@
 #include <kernel/input.h>
 #include <kernel/task.h>
 #include <kernel/cpu.h>
-#include <kernel/syscalls.h>
+#include <kora/syscalls.h>
 #include <kora/iofile.h>
 #include <kora/llist.h>
 #include <string.h>
@@ -43,13 +43,6 @@ struct kCpu kCPU0;
 
 
 llhead_t modules = INIT_LLHEAD;
-
-
-void kernel_tasklet(void *start, void *arg, CSTR name)
-{
-    task_t *task = task_create(NULL, NULL, 0, name);
-    task_start(task, start, arg);
-}
 
 extern int no_dbg;
 
@@ -82,7 +75,6 @@ void tty_start()
         sys_sleep(10000);
 
     event_t event;
-    int status = 0;
     for (;;) {
         vfs_read(dev, (char *)&event, sizeof(event), 0, 0);
         int key = event.param2 & 0xFFF;
@@ -95,14 +87,11 @@ void tty_start()
 extern tty_t *slog;
 void desktop();
 
-inode_t *root;
-
 
 void kernel_master()
 {
-    kernel_tasklet(desktop, NULL, "Desktop #1");
-    // kernel_tasklet(tty_start, NULL, "Syslog Tty");
-    // kernel_tasklet(kernel_top, (void *)5, "Dbg top 5s");
+    // task_create(tty_start, NULL, "Syslog Tty");
+    // task_create(kernel_top, (void *)5, "Dbg top 5s");
     sys_sleep(5000);
     for (;;) {
         inode_t *dev = vfs_search_device("sdC");
@@ -115,15 +104,22 @@ void kernel_master()
     // vfs_mount(root, "tmp", NULL, "tmpfs");
 
     // Look for home file system
-    root = vfs_mount("sdC", "isofs");
+    inode_t *root = vfs_mount("sdC", "isofs");
     if (root == NULL) {
         kprintf(-1, "Expected mount point over 'sdC' !\n");
         sys_exit(0);
     }
 
+    resx_fs_chroot(kCPU.running->resx_fs, root);
+    resx_fs_chpwd(kCPU.running->resx_fs, root);
+    vfs_close(root);
+
+    task_create(desktop, NULL, "Desktop #1");
+
     sys_sleep(10000);
     task_show_all();
     kmod_dump();
+    memory_info();
 
     // sys_sleep(1000000);
     // mspace_display(kMMU.kspace);
@@ -152,10 +148,49 @@ void kmod_loader();
 
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
-    kprintf(-1, "Syscall\n");
+    long ret;
+    kprintf(-1, "Syscall [%d] %08x %08x %08x %08x %08x\n", no, a1, a2, a3, a4, a5);
+    switch (no) {
+    // case SYS_POWER:
+    // case SYS_SCALL:
+    // case SYS_SYSLOG:
+    // case SYS_SYSINFO:
+
+    // case SYS_YIELD:
+    case SYS_EXIT:
+        kprintf(-1, "\033[96msys_exit(%d)\033[0m\n", a1);
+        sys_exit(a1);
+        break;
+    // case SYS_WAIT:
+    // case SYS_EXEC:
+    // case SYS_CLONE:
+
+    // case SYS_SIGRAISE:
+    // case SYS_SIGACTION:
+    // case SYS_SIGRETURN:
+
+    case SYS_MMAP:
+        ret = sys_mmap(a1, a2, a3, a4, a5);
+        kprintf(-1, "\033[96msys_mmap(%p, %p, 0%o, %d, %d) = %x\033[0m\n", a1, a2, a3, a4, a5, ret);
+        return ret;
+    case SYS_MUNMAP:
+        ret = sys_munmap(a1, a2);
+        kprintf(-1, "\033[96msys_munmap(%p, %p) = %x\033[0m\n", a1, a2, ret);
+        return ret;
+    // case SYS_MPROTECT:
+
+    // case SYS_OPEN:
+    // case SYS_CLOSE:
+    // case SYS_READ:
+    // case SYS_WRITE:
+    // case SYS_SEEK:
+
+    // case SYS_WINDOW:
+    // case SYS_PIPE:
+    // default:
+    }
     return -1;
 }
-
 
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()
@@ -185,9 +220,9 @@ void kernel_start()
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 
-    kernel_tasklet(kmod_loader, NULL, "Kernel loader #1");
-    kernel_tasklet(kmod_loader, NULL, "Kernel loader #2");
-    kernel_tasklet(kernel_master, NULL, "Master");
+    task_create(kmod_loader, NULL, "Kernel loader #1");
+    task_create(kmod_loader, NULL, "Kernel loader #2");
+    task_create(kernel_master, NULL, "Master");
 
     clock_init();
     assert(kCPU.irq_semaphore == 1);

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -144,7 +144,7 @@ desktop_t *wmgr_desktop()
         desktop->height = screen->height;
     }
     current_desktop = desktop;
-    kernel_tasklet(wmgr_tasket, desktop, "Desktop");
+    task_create(wmgr_tasket, desktop, "Desktop");
     return desktop;
 }
 

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -51,10 +51,23 @@ void stackdump(size_t frame)
 void kdump(const void *buf, int len)
 {
     int i, j;
+    int zero = 0;
     const uint8_t *ptr = (const uint8_t *)buf;
     for (i = 0; i < len; i += 16) {
-        kprintf(KLOG_DBG, "%04x   ", i);
         int n = MIN(16, len - i);
+        zero++;
+        for (j = 0; j < n; ++j) {
+            if (ptr[i + j] != 0) {
+                zero = 0;
+                break;
+            }
+        }
+        if (zero) {
+            if (zero == 1)
+                kprintf(KLOG_DBG, "%04x    *** \n", i);
+            continue;
+        }
+        kprintf(KLOG_DBG, "%04x   ", i);
         for (j = 0; j < n; ++j)
             kprintf(KLOG_DBG, "%02x ", ptr[i + j]);
         for (j = n; j < 16; ++j)
@@ -71,9 +84,8 @@ void kdump(const void *buf, int len)
 
 
 /* Store in a temporary buffer a size in bytes in a human-friendly format. */
-char *sztoa(size_t number)
+char *sztoa_r(size_t number, char *sz_format)
 {
-    static char sz_format[20];
     static const char *prefix[] = { "bs", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb" };
     int k = 0;
     int rest = 0;
@@ -85,7 +97,7 @@ char *sztoa(size_t number)
     };
 
     if (k == 0)
-        snprintf(sz_format, 20, "%d bytes", (int)number);
+        snprintf(sz_format, 20, "%4d by", (int)number);
 
 
     else if (number < 10) {
@@ -105,6 +117,13 @@ char *sztoa(size_t number)
     }
 
     return sz_format;
+}
+
+/* Store in a temporary buffer a size in bytes in a human-friendly format. */
+char *sztoa(size_t number)
+{
+    static char sz_format[20];
+    return sztoa_r(number, sz_format);
 }
 
 static uint32_t CRC32_T[] = { /* CRC polynomial 0xedb88320 */

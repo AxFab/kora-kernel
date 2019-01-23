@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -20,6 +20,7 @@
 #include <kernel/syscalls.h>
 #include <kernel/memory.h>
 #include <kernel/vfs.h>
+#include <kernel/files.h>
 #include <kernel/device.h>
 #include <kernel/net.h>
 #include <kernel/task.h>
@@ -153,16 +154,20 @@ long sys_open(int fd, CSTR path, int flags)
     if (scall_check_str(path))
         return -1;
     resx_t *resx = kCPU.running->resx;
-    inode_t *dir = kCPU.running->pwd;
+    inode_t *dir = resx_fs_pwd(kCPU.running->resx_fs);
     if (fd != -1) {
         stream_t *stream = resx_get(resx, fd);
         if (stream == NULL) {
             errno = EBADF;
             return -1;
         }
-        dir = stream->ino;
+        vfs_close(dir);
+        dir = vfs_open(stream->ino);
     }
-    inode_t *ino = vfs_search(kCPU.running->root, dir, path, NULL);
+    inode_t *root = resx_fs_root(kCPU.running->resx_fs);
+    inode_t *ino = vfs_search(root, dir, path, NULL);
+    vfs_close(root);
+    vfs_close(dir);
     if (ino == NULL) {
         assert(errno != 0);
         return -1;
@@ -179,7 +184,7 @@ long sys_open(int fd, CSTR path, int flags)
 long sys_close(int fd)
 {
     resx_t *resx = kCPU.running->resx;
-    return resx_close(resx, fd);
+    return resx_rm(resx, fd);
 }
 
 // lseek
@@ -230,7 +235,7 @@ int sys_window(int width, int height, unsigned features, unsigned evmask)
 {
     // TODO - Look for the desktop attached to the session
     resx_t *resx = kCPU.running->resx;
-    inode_t * ino = window_open(NULL, width, height, features);
+    inode_t *ino = window_open(NULL, width, height, features, 0);
     if (ino == NULL)
         return -1;
 
@@ -259,26 +264,27 @@ int sys_socket(int protocol, const char *address, int port)
   Memory
 --------- */
 
-// void *sys_mmap(void *address, size_t length, int fd, off_t off, unsigned flags)
-// {
-//  mspace_t *mspace = kCPU.running->uspace;
-//  if (mspace == NULL) {
-//      errno = EACCESS;
-//      return -1;
-//  }
-//  // TODO - inode and flags
-//  return mspace_map(address, length,, off, flags);
-// }
+void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off)
+{
+    mspace_t *mspace = kCPU.running->usmem;
+    if (mspace == NULL) {
+        errno = EACCES;
+        return -1;
+    }
+    // TODO - inode and flags
+    int vma = (flags & 7) | ((flags & 7) << 4) | VMA_HEAP;
+    return mspace_map(mspace, addr, length, NULL, off, vma);
+}
 
-// long sys_munmap(void *address, size_t length)
-// {
-//  mspace_t *mspace = kCPU.running->uspace;
-//  if (mspace == NULL) {
-//      errno = EACCESS;
-//      return -1;
-//  }
-//  return mspace_unmap(address, length);
-// }
+long sys_munmap(void *addr, size_t length)
+{
+    mspace_t *mspace = kCPU.running->usmem;
+    if (mspace == NULL) {
+        errno = EACCES;
+        return -1;
+    }
+    return mspace_unmap(mspace, addr, length);
+}
 
 // long sys_mprotect(void *address, size_t length, unsigned flags)
 // {
@@ -318,7 +324,7 @@ static long ginfo(bool expr, CSTR info, void *buf, int len)
     return 0;
 }
 
-static long sinfo(bool expr, CSTR *info, void *buf, int len)
+static long sinfo(bool expr, char **info, const void *buf, int len)
 {
     if (!expr)  {
         errno = EPERM;
@@ -373,26 +379,27 @@ long sys_ginfo(unsigned info, void *buf, int len)
     }
 }
 
-// long sys_sinfo(unsigned info, const void *buf, int len)
-// {
-//  if (scall_check_buf(buf, len))
-//      return -1;
-//  switch (info) {
-//  case SNFO_HOSTNAME:
-//      rwlock_wrlock(&kSYS.lock) ;
-//      ret = sinfo(true, &kSYS.hostname, buf, len);
-//      rwlock_wrunlock(&kSYS.lock) ;
-//      return ret;
-//  case SNFO_DOMAIN:
-//      rwlock_wrlock(&kSYS.lock) ;
-//      ret = sinfo(true, &kSYS.domain, buf, len);
-//      rwlock_wrunlock(&kSYS.lock) ;
-//      return ret;
-//  default:
-//      errno = EINVAL;
-//      return -1;
-//  }
-// }
+long sys_sinfo(unsigned info, const void *buf, int len)
+{
+    int ret;
+    if (scall_check_buf(buf, len))
+        return -1;
+    switch (info) {
+    case SNFO_HOSTNAME:
+        rwlock_wrlock(&kSYS.lock) ;
+        ret = sinfo(true, &kSYS.hostname, buf, len);
+        rwlock_wrunlock(&kSYS.lock) ;
+        return ret;
+    case SNFO_DOMAIN:
+        rwlock_wrlock(&kSYS.lock) ;
+        ret = sinfo(true, &kSYS.domain, buf, len);
+        rwlock_wrunlock(&kSYS.lock) ;
+        return ret;
+    default:
+        errno = EINVAL;
+        return -1;
+    }
+}
 
 // long sys_log(CSTR msg)
 // {

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -16,8 +16,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *   - - - - - - - - - - - - - - -
- *
- *      Atomic operation.
  */
 #ifndef _KORA_ATOMIC_H
 #define _KORA_ATOMIC_H 1
@@ -34,11 +32,6 @@ static inline void cpu_barrier()
 {
     asm volatile("");
 }
-
-void irq_reset(bool enable);
-bool irq_enable();
-void irq_disable();
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

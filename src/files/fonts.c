@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -434,7 +434,7 @@ const font_bmp_t font_8x8 = {
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-void font_paint(surface_t *sfc, font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y)
+void font_paint(surface_t *sfc, const font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y)
 {
     int px, l;
     int py = y;

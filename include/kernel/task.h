@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -33,10 +33,30 @@ typedef struct sig_handler sig_handler_t;
 
 typedef struct stream stream_t;
 typedef struct resx resx_t;
+typedef struct resx_fs resx_fs_t;
 
 struct user {
     uint8_t id[16];
 };
+
+#define FORK_THREAD  (1 << 2)
+#define FORK_VM  (1 << 3)  /* Fork the memory address space */
+#define FORK_FILES  (1 << 0)  /* Fork open files */
+#define FORK_FS  (1 << 1)  /* Fork file system information */
+// PARENT, TLS, SIGNAL, SCALL
+
+
+enum TS_TaskState {
+    TS_ZOMBIE = 0,  /* The task structure is not used. */
+    TS_BLOCKED,  /* The task is paused and listen only for its own events. */
+    TS_INTERRUPTIBLE,  /* The task is paused and wait for any events. */
+    TS_READY,  /* The task is waiting for cpu time. */
+    TS_RUNNING,  /* Task is currently running on a cpu. */
+    TS_ABORTED,  /* Task should be aborded, but is currently running. */
+};
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
 struct stream {
@@ -53,24 +73,12 @@ struct resx {
     atomic32_t users;
 };
 
-enum TS_TaskState {
-    TS_ZOMBIE = 0,  /* The task structure is not used. */
-    TS_BLOCKED,  /* The task is paused and listen only for its own events. */
-    TS_INTERRUPTIBLE,  /* The task is paused and wait for any events. */
-    TS_READY,  /* The task is waiting for cpu time. */
-    TS_RUNNING,  /* Task is currently running on a cpu. */
-    TS_ABORTED,  /* Task should be aborded, but is currently running. */
+struct resx_fs {
+    inode_t *root;  /* Inode used as a root for this task */
+    inode_t *pwd;
+    int umask;
+    atomic32_t users;
 };
-
-#define CLONE_FILES     0x001  /* Share open files */
-#define CLONE_FS        0x002  /* Share file system information */
-#define CLONE_PARENT    0x004  /* Share parent and siblings */
-#define CLONE_TLS       0x008  /* Share the thread local storage */
-#define CLONE_SIGNAL    0x010  /* Share signal handler and blocked signal */
-#define CLONE_SCALL     0x020  /* Share syscalls table */
-#define CLONE_THREAD    0x040  /* The clone is placed on the same thread group */
-#define CLONE_MSPACE    0x080  /* Share the memory address space */
-#define CLONE_USER      0x100  /* Share the same user credential */
 
 struct sig_handler {
     int num;
@@ -103,8 +111,6 @@ struct task {
 
     /* Scheduler entity */
     llnode_t node;
-    // task_t *prev;
-    // task_t *next;
 
     // unsigned long stack_canary;
 
@@ -116,24 +122,18 @@ struct task {
 
     user_t *user;
 
-    /* Open files */
-    resx_t *resx;
-
-    /* File system information */
-    inode_t *root;  /* Inode used as a root for this task */
-    inode_t *pwd;
+    resx_t *resx;  /* Open files */
+    resx_fs_t *resx_fs;  /* File system information */
+    mspace_t *usmem;  /* User space memory */
 
     /* Thread Local Storage */
-
     /* Signal handling */
-
     /* System calls */
 
     /* Thread group */
     pid_t pid;
 
     /* Memory address space */
-    mspace_t *usmem;  /* User space memory */
 
     emitter_t wlist;
     advent_t *advent;
@@ -142,7 +142,6 @@ struct task {
 #define TSK_USER_SPACE  0x001
 
 
-void task_start(task_t *task, void *entry, void *args);
 int task_stop(task_t *task, int code);
 int task_kill(task_t *task, unsigned signum);
 int task_resume(task_t *task);
@@ -151,7 +150,7 @@ void task_destroy(task_t *task);
 _Noreturn int task_pause(int state);
 void task_signals();
 
-task_t *task_create(user_t *user, inode_t *root, int flags, CSTR name);
+task_t *task_create(void *entry, void *param, CSTR name);
 task_t *task_clone(task_t *model, int clone, int flags);
 task_t *task_search(pid_t pid);
 void task_show_all();
@@ -183,11 +182,25 @@ void cpu_stack(task_t *task, size_t entry, size_t param);
 int cpu_save(cpu_state_t state);
 void cpu_restore(cpu_state_t state);
 
+
+
+
+
+resx_fs_t *resx_fs_create();
+resx_fs_t *resx_fs_open(resx_fs_t *resx);
+void resx_fs_close(resx_fs_t *resx);
+inode_t *resx_fs_root(resx_fs_t *resx);
+inode_t *resx_fs_pwd(resx_fs_t *resx);
+void resx_fs_chroot(resx_fs_t *resx, inode_t *ino);
+void resx_fs_chpwd(resx_fs_t *resx, inode_t *ino);
+
+
 resx_t *resx_create();
-resx_t *resx_rcu(resx_t *resx, int usage);
+resx_t *resx_open(resx_t *resx);
+void resx_close(resx_t *resx);
 stream_t *resx_get(resx_t *resx, int fd);
 stream_t *resx_set(resx_t *resx, inode_t *ino);
-int resx_close(resx_t *resx, int fd);
+int resx_rm(resx_t *resx, int fd);
 
 
 

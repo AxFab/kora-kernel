@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -77,7 +77,7 @@ int mtx_init(mtx_t *mutex, int flags)
     ptr->counter = 0;
     ptr->flags = flags;
     ptr->thread = 0;
-    splock_lock(&ptr->splock);
+    splock_init(&ptr->splock);
     *mutex = ptr;
     return 0;
 }

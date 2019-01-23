@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -22,6 +22,7 @@
 #include <kernel/files.h>
 #include <kernel/task.h>
 #include <kernel/input.h>
+#include <string.h>
 #include <errno.h>
 
 typedef struct window window_t;
@@ -90,7 +91,7 @@ int win_read(inode_t *ino, char *buf, size_t len, int flags)
 }
 
 
-void win_reset(inode_t *ino)
+int win_reset(inode_t *ino)
 {
     assert(ino->type == FL_WIN);
     window_t *win = (window_t *)ino->info;
@@ -132,7 +133,7 @@ inode_t *window_open(desktop_t *desk, int width, int height, unsigned features, 
     surface_t *fb = create_win(/*width, height*/);
     if (fb == NULL)
         return NULL;
-    inode_t *ino = vfs_inode(atomic_xadd(desk->win_no, 1), FL_WIN, NULL);
+    inode_t *ino = vfs_inode(atomic_xadd(&desk->win_no, 1), FL_WIN, NULL);
 
     window_t *win = kalloc(sizeof(window_t));
     win->fb = fb;
@@ -145,6 +146,7 @@ inode_t *window_open(desktop_t *desk, int width, int height, unsigned features, 
 
     ino->ops = &win_ops;
     ino->info = win;
+    return ino;
 }
 
 
@@ -224,10 +226,13 @@ surface_t *create_win()
     return win;
 }
 
-#define TTY_WRITE(t,s)  tty_write(t,s,strlen(s))
+#define TTY_WRITE(t,s)  do { tty_write(t,s,strlen(s)); kprintf(-1, s); } while(0)
+#include <kernel/dlib.h>
+#include <kernel/syscalls.h>
 
 
-void krn_ls(tty_t *tty, inode_t *dir) {
+void krn_ls(tty_t *tty, inode_t *dir)
+{
     inode_t *ino;
     char buf[256];
     char name[256];
@@ -242,7 +247,8 @@ void krn_ls(tty_t *tty, inode_t *dir) {
     vfs_closedir(dir, dir_ctx);
 }
 
-void krn_cat(tty_t *tty, const char *path) {
+void krn_cat(tty_t *tty, const char *path)
+{
     char *buf = kalloc(512);
     int fd = sys_open(-1, path, 0);
     if (fd == -1) {
@@ -264,7 +270,50 @@ void krn_cat(tty_t *tty, const char *path) {
     kfree(buf);
 }
 
-extern inode_t *root;
+
+// proc_t *dlib_process(resx_fs_t *fs, mspace_t *mspace);
+// int dlib_openexec(proc_t *proc, const char *execname);
+
+
+void exec_task()
+{
+    inode_t *win = window_open(&kDESK, 0, 0, 0, 0);
+    tty_t *tty = tty_create(128);
+    tty_window(tty, ((window_t *)win->info)->fb, &font_8x15);
+
+    inode_t *root = resx_fs_root(kCPU.running->resx_fs);
+    inode_t *ino = vfs_search(root, root, "bin/basename", NULL);
+
+    if (ino != NULL)
+        TTY_WRITE(tty, "Found basename!!\n");
+
+    mspace_t *mspace = mspace_create();
+    mmu_context(mspace);
+    kCPU.running->usmem = mspace;
+    proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace);
+    int ret = dlib_openexec(proc, "bin/basename");
+    if (ret == 0)
+        TTY_WRITE(tty, "Proc opened!!\n");
+    else
+        TTY_WRITE(tty, "Proc error!!\n");
+
+    ret = dlib_map_all(proc);
+    if (ret == 0)
+        TTY_WRITE(tty, "Proc mapped!!\n");
+    else
+        TTY_WRITE(tty, "Proc mapping error!!\n");
+
+    void* start = dlib_exec_entry(proc);
+    void* stack = mspace_map(mspace, NULL, _Mib_, NULL, 0, VMA_STACK_RW);
+    stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
+    kprintf(-1, "basename: start:%p, stack:%p\n", start, stack);
+    mspace_display(mspace);
+
+    cpu_usermode(start, stack);
+
+    for (;;)
+        sys_sleep(100000);
+}
 
 void graphic_task()
 {
@@ -273,16 +322,14 @@ void graphic_task()
     // const char *txt_filename = "BOOT/GRUB/MENU.LST";
 
 
-    inode_t *ino = window_open(&kDESK, 0,0,0,0);
+    inode_t *ino = window_open(&kDESK, 0, 0, 0, 0);
     tty_t *tty = tty_create(128);
-    tty_window(tty, ((window_t*)ino->info)->fb, &font_8x15);
+    tty_window(tty, ((window_t *)ino->info)->fb, &font_8x15);
     // void* pixels = kmap(2 * _Mib_, ino, 0, VMA_FILE_RW | VMA_RESOLVE);
     // MAP NODE / USE IT TO DRAW ON SURFACE
 
-    while (root == NULL)
-        sys_sleep(10000);
+    inode_t *root = resx_fs_pwd(kCPU.running->resx_fs);
 
-    kCPU.running->pwd = root;
     TTY_WRITE(tty, "shell> ls\n");
     krn_ls(tty, root);
     TTY_WRITE(tty, "shell> cat ");
@@ -320,7 +367,7 @@ void desktop_event(desktop_t *desk, event_t *event)
     splock_lock(&desk->lock);
     window_t *win = desk->focus;
     splock_unlock(&desk->lock);
-    pipe_write(win->mq, (char*)&event, sizeof(event), 0);
+    pipe_write(win->mq, (char *)&event, sizeof(event), 0);
 }
 
 static int input_event_kdbdown(desktop_t *desk, event_t *event)
@@ -344,9 +391,8 @@ static int input_event_kdbdown(desktop_t *desk, event_t *event)
             ll_push_back(&desk->list, &win->node);
         }
         splock_unlock(&desk->lock);
-    } else {
+    } else
         desktop_event(desk, event);
-    }
     return 0;
 }
 
@@ -383,9 +429,8 @@ void input_event(inode_t *dev, int type, int param, pipe_t *pipe)
         break;
     }
 
-    if (pipe != NULL) {
-        pipe_write(pipe, (char*)&event, sizeof(event), 0);
-    }
+    if (pipe != NULL)
+        pipe_write(pipe, (char *)&event, sizeof(event), 0);
 }
 
 
@@ -406,11 +451,12 @@ void desktop()
     kprintf(-1, "Desktop %dx%d\n", width, height);
 
     // create window
-    inode_t *ino1 = window_open(&kDESK, 0,0,0,0);
-    surface_t *win1 = ((window_t*)ino1->info)->fb;
-    kernel_tasklet(graphic_task, NULL, "Example app");
-    kernel_tasklet(graphic_task, NULL, "Example app");
-    kDESK.focus = (window_t*)ino1->info;
+    inode_t *ino1 = window_open(&kDESK, 0, 0, 0, 0);
+    surface_t *win1 = ((window_t *)ino1->info)->fb;
+    task_create(exec_task, NULL, "Example app");
+    // task_create(graphic_task, NULL, "Example app");
+    // task_create(graphic_task, NULL, "Example app");
+    kDESK.focus = (window_t *)ino1->info;
 
     tty_window(slog, win1, &font_7x13);
 
@@ -422,7 +468,7 @@ void desktop()
         window_t *win;
         for ll_each(&kDESK.list, win, window_t, node) {
             vds_rect(screen, win->fb->x, win->fb->y - FRAME_SZ,  win->fb->width,
-                FRAME_SZ, kDESK.focus == win ? 0x8b9b4e : 0xdddddd);
+                     FRAME_SZ, kDESK.focus == win ? 0x8b9b4e : 0xdddddd);
             vds_copy(screen, win->fb, win->fb->x, win->fb->y);
         }
         splock_unlock(&kDESK.lock);

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -74,7 +74,7 @@ void async_wait(splock_t *lock, llhead_t *list, long timeout_us)
 }
 
 
-void kernel_tasklet(void *start, void *arg, CSTR name)
+void task_create(void *start, void *arg, CSTR name)
 {
     if ((void *)arg == &eth1)
         thrd_create(&thread1, (pfunc_t)net_start, arg);

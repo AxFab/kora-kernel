@@ -1,6 +1,7 @@
 #!/bin/bash
+#
 #      This file is part of the KoraOS project.
-#  Copyright (C) 2015-2018  <Fabien Bavent>
+#  Copyright (C) 2015-2019  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as
@@ -15,7 +16,6 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
 SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
 
@@ -23,18 +23,39 @@ DIR="$SCRIPT_HOME/src/drivers"
 TMP="`readlink -f .`/drivers"
 PFX="`readlink -f .`/iso/boot"
 
-MAKE () {
+function parse_yaml {
+   local prefix=$2
+   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+   sed -ne "s|^\($s\):|\1|" \
+        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+   awk -F$fs '{
+      indent = length($1)/2;
+      vname[indent] = $2;
+      for (i in vname) {if (i > indent) {delete vname[i]}}
+      if (length($3) > 0) {
+         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+      }
+   }'
+}
+
+
+function make_driver {
     make  -f "$DIR/Makefile" bindir="$TMP/bin" srcdir="$DIR" driver="$1"
 }
 
-MAKE 'disk/ata'
-# MAKE 'input/ps2'
-MAKE 'net/e1000'
-MAKE 'media/vga'
 
-# MAKE 'fs/ext2'
-MAKE 'fs/fat'
-MAKE 'fs/isofs'
+. <(parse_yaml $SCRIPT_HOME/config.yml)
+for d in `find $DIR/ -type d | sed "s%$DIR/%%"`
+do
+    v=drivers_`echo $d | sed s%/%_%g`
+    if [[ ${!v} == 'y' ]]
+    then
+        make_driver $d
+    fi
+done
+
 
 cd "$TMP"
 mkdir -p "$PFX"

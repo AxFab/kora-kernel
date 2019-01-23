@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -42,6 +42,7 @@ void *kalloc(size_t size);
 void kfree(void *ptr);
 void kprintf(int log, const char *msg, ...);
 char *sztoa(size_t lg);
+char *sztoa_r(size_t number, char *sz_format);
 void *kmap(size_t length, inode_t *ino, off_t offset, int flags);
 void kunmap(void *address, size_t length);
 _Noreturn void kpanic(const char *ms, ...);
@@ -56,8 +57,6 @@ void platform_setup();
 page_t mmu_read(size_t vaddr);
 void page_range(long long base, long long length);
 
-void kernel_tasklet(void *start, void *arg, CSTR name);
-void kexit();
 
 __STDI int rand(void);
 uint8_t rand8();
@@ -114,7 +113,8 @@ struct kmod {
 
 void kmod_init();
 void kmod_mount(inode_t *root);
-
+void kmod_register(kmod_t *mod);
+void kmod_dump();
 
 #define MODULE(n,s,t) \
     kmod_t kmod_info_##n = { \
@@ -188,7 +188,7 @@ int window_poll_push(inode_t *win, event_t *event);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-_Noreturn void task_fatal(CSTR error, int signum);
+_Noreturn void task_fatal(CSTR error, unsigned signum);
 
 struct kCpu {
     task_t *running;
