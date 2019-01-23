@@ -157,8 +157,8 @@ void task_destroy(task_t *task)
 void task_core(task_t *task)
 {
     kprintf(KLOG_DBG, "Dump core - Task #%d =========================\n", task->pid);
-    mspace_display(kMMU.kspace);
-    stackdump(8);
+    // mspace_display(kMMU.kspace);
+    stackdump(10);
     if (task->usmem)
         mspace_display(task->usmem);
 }

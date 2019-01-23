@@ -19,11 +19,10 @@
  */
 #include <kora/fd.h>
 #include <kora/splock.h>
-#include <sys/syscalls.h>
+#include <kora/mcrs.h>
+#include <kora/syscalls.h>
+#include <sys/mman.h>
 #include <errno.h>
-
-
-
 
 
 _Noreturn void exit(int status)
@@ -45,15 +44,14 @@ int fork()
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void *mmap(void *address, size_t length, int fd, off_t off, int flags, int protect)
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t off)
 {
-    return NULL;
+    return syscall(SYS_MMAP, addr, length, prot | flags, fd, off);
 }
 
-
-int munmap(void *address, size_t length)
+int munmap(void *addr, size_t length)
 {
-    return syscall(SYS_MUNMAP, address, length);
+    return syscall(SYS_MUNMAP, addr, length);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -122,6 +120,7 @@ int *__errno_location()
 
 void __perror_fail(int err, const char *file, int line, const char *msg)
 {
+    exit(-1);
 }
 
 _Noreturn void __assert_fail(const char *expr, const char *file, int line)
@@ -131,6 +130,11 @@ _Noreturn void __assert_fail(const char *expr, const char *file, int line)
 
 void __libc_init()
 {
+    void *heap = mmap(NULL, 16 * _Mib_, 06, MMAP_HEAP, -1, 0);
+    if (heap == NULL || heap == -1)
+        __perror_fail(ENOMEM, __FILE__, __LINE__, "Unable to allocate first heap segment");
+    setup_allocator(heap, 16 * _Mib_);
+
     stdin = fvopen(0, O_RDONLY);
     stdout = fvopen(1, O_WRONLY);
     stderr = fvopen(2, O_WRONLY);

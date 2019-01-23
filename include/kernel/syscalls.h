@@ -94,7 +94,7 @@ int sys_socket(int protocol, const char *address, int port);
   Memory
 --------- */
 
-void *sys_mmap(void *address, size_t length, int fd, off_t off, unsigned flags);
+void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off);
 long sys_munmap(void *address, size_t length);
 long sys_mprotect(void *address, size_t length, unsigned flags);
 
