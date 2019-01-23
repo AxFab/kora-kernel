@@ -25,7 +25,7 @@
 #include <kernel/input.h>
 #include <kernel/task.h>
 #include <kernel/cpu.h>
-#include <kernel/syscalls.h>
+#include <kora/syscalls.h>
 #include <kora/iofile.h>
 #include <kora/llist.h>
 #include <string.h>
@@ -148,7 +148,47 @@ void kmod_loader();
 
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
-    kprintf(-1, "Syscall\n");
+    long ret;
+    kprintf(-1, "Syscall [%d] %08x %08x %08x %08x %08x\n", no, a1, a2, a3, a4, a5);
+    switch (no) {
+    // case SYS_POWER:
+    // case SYS_SCALL:
+    // case SYS_SYSLOG:
+    // case SYS_SYSINFO:
+
+    // case SYS_YIELD:
+    case SYS_EXIT:
+        kprintf(-1, "\033[96msys_exit(%d)\033[0m\n", a1);
+        sys_exit(a1);
+        break;
+    // case SYS_WAIT:
+    // case SYS_EXEC:
+    // case SYS_CLONE:
+
+    // case SYS_SIGRAISE:
+    // case SYS_SIGACTION:
+    // case SYS_SIGRETURN:
+
+    case SYS_MMAP:
+        ret = sys_mmap(a1, a2, a3, a4, a5);
+        kprintf(-1, "\033[96msys_mmap(%p, %p, 0%o, %d, %d) = %x\033[0m\n", a1, a2, a3, a4, a5, ret);
+        return ret;
+    case SYS_MUNMAP:
+        ret = sys_munmap(a1, a2);
+        kprintf(-1, "\033[96msys_munmap(%p, %p) = %x\033[0m\n", a1, a2, ret);
+        return ret;
+    // case SYS_MPROTECT:
+
+    // case SYS_OPEN:
+    // case SYS_CLOSE:
+    // case SYS_READ:
+    // case SYS_WRITE:
+    // case SYS_SEEK:
+
+    // case SYS_WINDOW:
+    // case SYS_PIPE:
+    // default:
+    }
     return -1;
 }
 

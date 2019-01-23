@@ -9,11 +9,11 @@ __syscall:
     mov ebp, esp
     pusha
     mov eax, [ebp + 8]
-    mov ecx, [ebp + 16]
-    mov edx, [ebp + 24]
-    mov ebx, [ebp + 32]
-    mov edi, [ebp + 40]
-    mov esi, [ebp + 48]
+    mov ecx, [ebp + 12]
+    mov edx, [ebp + 16]
+    mov ebx, [ebp + 20]
+    mov esi, [ebp + 24]
+    mov edi, [ebp + 28]
     int 0x40
     mov edi, eax
     call __errno_location

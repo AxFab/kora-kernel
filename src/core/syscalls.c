@@ -264,26 +264,27 @@ int sys_socket(int protocol, const char *address, int port)
   Memory
 --------- */
 
-// void *sys_mmap(void *address, size_t length, int fd, off_t off, unsigned flags)
-// {
-//  mspace_t *mspace = kCPU.running->uspace;
-//  if (mspace == NULL) {
-//      errno = EACCESS;
-//      return -1;
-//  }
-//  // TODO - inode and flags
-//  return mspace_map(address, length,, off, flags);
-// }
+void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off)
+{
+    mspace_t *mspace = kCPU.running->usmem;
+    if (mspace == NULL) {
+        errno = EACCES;
+        return -1;
+    }
+    // TODO - inode and flags
+    int vma = (flags & 7) | ((flags & 7) << 4) | VMA_HEAP;
+    return mspace_map(mspace, addr, length, NULL, off, vma);
+}
 
-// long sys_munmap(void *address, size_t length)
-// {
-//  mspace_t *mspace = kCPU.running->uspace;
-//  if (mspace == NULL) {
-//      errno = EACCESS;
-//      return -1;
-//  }
-//  return mspace_unmap(address, length);
-// }
+long sys_munmap(void *addr, size_t length)
+{
+    mspace_t *mspace = kCPU.running->usmem;
+    if (mspace == NULL) {
+        errno = EACCES;
+        return -1;
+    }
+    return mspace_unmap(mspace, addr, length);
+}
 
 // long sys_mprotect(void *address, size_t length, unsigned flags)
 // {

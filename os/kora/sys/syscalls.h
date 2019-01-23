@@ -23,16 +23,16 @@
 #include <stddef.h>
 
 
-#define SYS_EXIT        0
-#define SYS_MMAP        1
-#define SYS_MUNMAP      2
-#define SYS_MPROTECT    3
+#define SYS_EXIT        0x0000
+#define SYS_MMAP        0x0001
+#define SYS_MUNMAP      0x0002
+#define SYS_MPROTECT    0x0003
 
-#define SYS_OPEN    3
-#define SYS_CLOSE    3
-#define SYS_READ    3
-#define SYS_WRITE    3
-#define SYS_LSEEK    3
+#define SYS_OPEN        0x1001
+#define SYS_CLOSE       0x1002
+#define SYS_READ        0x1004
+#define SYS_WRITE       0x1008
+#define SYS_LSEEK       0x1010
 
 
 

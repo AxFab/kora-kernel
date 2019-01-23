@@ -26,8 +26,8 @@
 #define PROT_WRITE 2
 #define PROT_READ 4
 
-void *mmap(void *, size_t, int, off_t, int, int);
-int munmap(void *, size_t);
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t off);
+int munmap(void *addr, size_t length);
 
 #define MMAP_HEAP  (1 << 8)
 #endif /* __SYS_MMAN_H */

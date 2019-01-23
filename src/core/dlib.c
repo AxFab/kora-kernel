@@ -202,14 +202,18 @@ void dlib_destroy(dynlib_t *lib)
 void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
 {
     dynsym_t *symbol;
-    void *base;
+    void *base = NULL;
+    kprintf(-1, "\033[94mRebase lib: %08x\033[0m\n", lib->base);
     // ASRL
-    do {
+    if (lib->base != NULL)
+        base = mspace_map(mspace, lib->base, lib->length, NULL, 0, VMA_ANON_RW | 0x11 | VMA_MAP_FIXED);
+
+    while (base == NULL) {
         size_t addr = rand32() % (mspace->upper_bound - mspace->lower_bound);
         addr += mspace->lower_bound;
         addr = ALIGN_DW(addr, PAGE_SIZE);
         base = mspace_map(mspace, addr, lib->length, NULL, 0, VMA_ANON_RW | 0x11 | VMA_MAP_FIXED);
-    } while (base == NULL);
+    }
 
     // List symbols
     lib->base = (size_t)base;
