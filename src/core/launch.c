@@ -146,51 +146,68 @@ void kernel_master()
 
 void kmod_loader();
 
+typedef struct scall_entry scall_entry_t;
+struct scall_entry {
+    char *name;
+    char *args;
+    long (*routine)(long,long,long,long,long);
+    bool ret;
+};
+
+#define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)n, r }
+
+scall_entry_t syscall_entries[] = {
+    // SYS_POWER
+    // SYS_SCALL
+    // SCALL_ENTRY(SYS_SYSLOG, sys_syslog, "%p", false),
+    // SCALL_ENTRY(SYS_SYSINFO, sys_sysinfo, "%d, %p, %d", false),
+
+    // SYS_YIELD
+    SCALL_ENTRY(SYS_EXIT, sys_exit, "%d", false),
+    // SYS_WAIT
+    // SYS_EXEC
+    // SYS_CLONE
+
+    // SYS_SIGRAISE
+    // SYS_SIGACTION
+    // SYS_SIGRETURN
+
+    SCALL_ENTRY(SYS_MMAP, sys_mmap, "%p, %p, 0%o, %d, %d", true),
+    SCALL_ENTRY(SYS_MUNMAP, sys_munmap, "%p, %p", true),
+    // SYS_MPROTECT
+
+    SCALL_ENTRY(SYS_OPEN, sys_open, "%d, %s, 0%o, 0%o", true),
+    SCALL_ENTRY(SYS_CLOSE, sys_close, "%d", true),
+    SCALL_ENTRY(SYS_READ, sys_read, "%d, %p, %d", true),
+    SCALL_ENTRY(SYS_WRITE, sys_write, "%d, %p, %d", true),
+    // SYS_SEEK
+
+    // SYS_WINDOW
+    // SYS_PIPE
+};
+
+
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
     long ret;
-    kprintf(-1, "Syscall [%d] %08x %08x %08x %08x %08x\n", no, a1, a2, a3, a4, a5);
-    switch (no) {
-    // case SYS_POWER:
-    // case SYS_SCALL:
-    // case SYS_SYSLOG:
-    // case SYS_SYSINFO:
+    scall_entry_t *entry = &syscall_entries[no];
+    if (entry == NULL)
+        return -1;
 
-    // case SYS_YIELD:
-    case SYS_EXIT:
-        kprintf(-1, "\033[96msys_exit(%d)\033[0m\n", a1);
-        sys_exit(a1);
-        break;
-    // case SYS_WAIT:
-    // case SYS_EXEC:
-    // case SYS_CLONE:
+    char arg_buf[50];
+    snprintf(arg_buf, 50, entry->args, a1, a2, a3, a4, a5);
 
-    // case SYS_SIGRAISE:
-    // case SYS_SIGACTION:
-    // case SYS_SIGRETURN:
+    if (!entry->ret)
+        kprintf(-1, "\033[96m%s(%s)\033[0m\n", entry->name, arg_buf);
+    ret = entry->routine(a1, a2, a3, a4, a5);
+    if (entry->ret)
+        kprintf(-1, "\033[96m%s(%s) = %d\033[0m\n", entry->name, arg_buf, ret);
 
-    case SYS_MMAP:
-        ret = sys_mmap(a1, a2, a3, a4, a5);
-        kprintf(-1, "\033[96msys_mmap(%p, %p, 0%o, %d, %d) = %x\033[0m\n", a1, a2, a3, a4, a5, ret);
-        return ret;
-    case SYS_MUNMAP:
-        ret = sys_munmap(a1, a2);
-        kprintf(-1, "\033[96msys_munmap(%p, %p) = %x\033[0m\n", a1, a2, ret);
-        return ret;
-    // case SYS_MPROTECT:
-
-    // case SYS_OPEN:
-    // case SYS_CLOSE:
-    // case SYS_READ:
-    // case SYS_WRITE:
-    // case SYS_SEEK:
-
-    // case SYS_WINDOW:
-    // case SYS_PIPE:
-    // default:
-    }
-    return -1;
+    return ret;
 }
+
+
+
 
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()

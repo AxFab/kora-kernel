@@ -26,6 +26,12 @@
 #include <kora/hmap.h>
 #include <kernel/task.h>
 
+#define R_386_32 1
+#define R_386_PC32 2
+#define R_386_COPY 5
+#define R_386_GLOB_DAT 6
+#define R_386_JUMP_SLOT 7
+#define R_386_RELATIVE 8
 
 struct dynsec {
     size_t lower;
