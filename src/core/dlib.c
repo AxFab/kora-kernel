@@ -295,16 +295,23 @@ int dlib_map(dynlib_t *dlib, mspace_t *mspace)
     for ll_each(&dlib->relocations, reloc, dynrel_t, node) {
 
         // kprintf(-1, "R: %06x  %x  %p  %s \n", reloc->address, reloc->type, reloc->symbol == NULL ? NULL : (void*)reloc->symbol->address, reloc->symbol == NULL ? "-" : reloc->symbol->name);
+        size_t *place = (size_t *)(dlib->base + reloc->address);
         switch (reloc->type) {
-        case 6:
-        case 7:
-            *((size_t *)(dlib->base + reloc->address)) = reloc->symbol->address;
+        case R_386_32:
+            *place += reloc->symbol->address;
             break;
-        case 1:
-            *((size_t *)(dlib->base + reloc->address)) += reloc->symbol->address;
+        case R_386_PC32:
+            *place += reloc->symbol->address - (size_t)place;
             break;
-        case 8:
-            *((size_t *)(dlib->base + reloc->address)) += dlib->base;
+        case R_386_GLOB_DAT:
+        case R_386_JUMP_SLOT:
+            *place = reloc->symbol->address;
+            break;
+        case R_386_RELATIVE:
+            *place += dlib->base;
+            break;
+        default:
+            kprintf(-1, "REL:%d\n", reloc->type);
             break;
         }
 
