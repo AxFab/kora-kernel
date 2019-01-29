@@ -17,45 +17,15 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <stddef.h>
-#include <errno.h>
+#ifndef __SYS_TYPES_H
+#define __SYS_TYPES_H 1
 
-int mbtowc(wchar_t *wc, const char *str, size_t len)
-{
-    wchar_t dummy;
-    errno = 0;
-    if (str == NULL)
-        return 0;
-    if (wc == NULL)
-        wc = &dummy;
-
-    if (len < 1) {
-        errno = EILSEQ;
-        return -1;
-    }
-
-    if (*str >= 0)
-        /* Returns 0 if '\0' or 1 in other cases */
-        return !!(*wc = *str);
+#include <bits/cdefs.h>
+#define __time_t long
+#define __clock_t long
+#define __off_t long
 
 
-    *wc = 1;
-    return -1;
-}
+typedef __off_t off_t;
 
-/*
-size_t mbstowcs (wchar_t *ws, const char **str, size_t wn, mbstate_t *st)
-{
-    return 0;
-}
-
-size_t mbstowcs (wchar_t *ws, const char *str, size_t wn)
-{
-    return mbsrtowcs(ws, &s, wn, 0);
-}
-*/
-
-int mblen(const char *str, size_t len)
-{
-    return mbtowc(0, str, len);
-}
+#endif /* __SYS_TYPES_H */
