@@ -37,11 +37,13 @@ typedef int pid_t;
 #else
 # define __time_t long long
 #endif
-#define __time64_t long long // in us -> Max is +/-292'471 years (start from EPOCH)
+#define __clock64_t long long // in us -> Max is +/-292'471 years (start from EPOCH)
 #define __clock_t long
 
-typedef __time64_t time64_t;
-time64_t time64();
+typedef __clock64_t clock64_t;
+
+
+clock64_t kclock();
 #define USEC_PER_SEC  1000000ULL
 
 /* Kernel development kit */

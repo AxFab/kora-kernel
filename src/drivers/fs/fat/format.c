@@ -169,7 +169,7 @@ int fatfs_format(inode_t *ino)
     memset(entry->DIR_Name, ' ', 11);
     memcpy(entry->DIR_Name, volume, MIN(strlen(volume), 11));
     entry->DIR_Attr = ATTR_VOLUME_ID;
-    fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, time64());
+    fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, kclock());
     entry->DIR_WrtDate = entry->DIR_CrtDate;
     entry->DIR_WrtTime = entry->DIR_CrtTime;
     entry->DIR_LstAccDate = entry->DIR_CrtDate;

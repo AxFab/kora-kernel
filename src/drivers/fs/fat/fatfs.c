@@ -40,8 +40,8 @@ int fatfs_truncate(inode_t *ino, off_t length)
         return -1;
     } else if (lg == mx) {
         entry->DIR_FileSize = length;
-        fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, time64());
-        // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, time64()); -- on unix but not windows
+        fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, kclock());
+        // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, kclock()); -- on unix but not windows
         bio_clean(info->io_data_rw, lba);
         return 0;
     }
@@ -66,8 +66,8 @@ int fatfs_truncate(inode_t *ino, off_t length)
     }
 
     entry->DIR_FileSize = length;
-    fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, time64());
-    // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, time64()); -- on unix but not windows
+    fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, kclock());
+    // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, kclock()); -- on unix but not windows
     bio_clean(info->io_data_rw, lba);
     bio_sync(info->io_data_rw);
     return 0;

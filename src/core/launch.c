@@ -25,7 +25,6 @@
 #include <kernel/input.h>
 #include <kernel/task.h>
 #include <kernel/cpu.h>
-#include <kora/syscalls.h>
 #include <kora/iofile.h>
 #include <kora/llist.h>
 #include <string.h>
@@ -146,68 +145,8 @@ void kernel_master()
 
 void kmod_loader();
 
-typedef struct scall_entry scall_entry_t;
-struct scall_entry {
-    char *name;
-    char *args;
-    long (*routine)(long,long,long,long,long);
-    bool ret;
-};
 
-#define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)n, r }
-
-scall_entry_t syscall_entries[] = {
-    // SYS_POWER
-    // SYS_SCALL
-    // SCALL_ENTRY(SYS_SYSLOG, sys_syslog, "%p", false),
-    // SCALL_ENTRY(SYS_SYSINFO, sys_sysinfo, "%d, %p, %d", false),
-
-    // SYS_YIELD
-    SCALL_ENTRY(SYS_EXIT, sys_exit, "%d", false),
-    // SYS_WAIT
-    // SYS_EXEC
-    // SYS_CLONE
-
-    // SYS_SIGRAISE
-    // SYS_SIGACTION
-    // SYS_SIGRETURN
-
-    SCALL_ENTRY(SYS_MMAP, sys_mmap, "%p, %p, 0%o, %d, %d", true),
-    SCALL_ENTRY(SYS_MUNMAP, sys_munmap, "%p, %p", true),
-    // SYS_MPROTECT
-
-    SCALL_ENTRY(SYS_OPEN, sys_open, "%d, %s, 0%o, 0%o", true),
-    SCALL_ENTRY(SYS_CLOSE, sys_close, "%d", true),
-    SCALL_ENTRY(SYS_READ, sys_read, "%d, %p, %d", true),
-    SCALL_ENTRY(SYS_WRITE, sys_write, "%d, %p, %d", true),
-    // SYS_SEEK
-
-    // SYS_WINDOW
-    // SYS_PIPE
-};
-
-
-long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
-{
-    long ret;
-    scall_entry_t *entry = &syscall_entries[no];
-    if (entry == NULL)
-        return -1;
-
-    char arg_buf[50];
-    snprintf(arg_buf, 50, entry->args, a1, a2, a3, a4, a5);
-
-    if (!entry->ret)
-        kprintf(-1, "\033[96m%s(%s)\033[0m\n", entry->name, arg_buf);
-    ret = entry->routine(a1, a2, a3, a4, a5);
-    if (entry->ret)
-        kprintf(-1, "\033[96m%s(%s) = %d\033[0m\n", entry->name, arg_buf, ret);
-
-    return ret;
-}
-
-
-
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()

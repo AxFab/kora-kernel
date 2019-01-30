@@ -209,7 +209,7 @@ int main(int argc, char **argv)
         float h = hour * PI / 6.0f;
         draw_line(&img, sz, sz, sz + sin(h) * sz*0.45, sz - cos(h) * sz*0.45, 0x181818);
         float s = sec * PI / 30.0f;
-        draw_line(&img, sz, sz, sz + sin(s) * sz*0.85, sz - cos(s) * sz*0.85, 0xa61818);
+        draw_line(&img, sz + sin(s) * sz*-0.15, sz - cos(s) * sz*-0.15, sz + sin(s) * sz*0.85, sz - cos(s) * sz*0.85, 0xa61818);
         for (k = 0; k < 5; ++k)
             draw_circle(&img, sz, sz, k, 0x181818);
 
