@@ -65,36 +65,36 @@ struct image {
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-/* System */
-int sys_power(unsigned long action, unsigned long delay_us);
-int sys_scall(const char *module);
-int sys_syslog(const char *msg);
-int sys_sysinfo(unsigned long info, char *buf, size_t len);
-/* Task */
-int sys_yield(unsigned long flags);
-long sys_exit(int status);
-void sys_stop(long status, unsigned long type);
-int sys_wait(unsigned long cause, long param, unsigned long timeout_us);
-int sys_exec(const char *exec, char **args, char **env, unsigned long flags);
-int sys_clone(unsigned long flags);
-/* Signals */
-int sys_sigraise(unsigned long signum, long pid);
-int sys_sigaction(unsigned long signum, void *sigaction);
-void sys_sigreturn();
-/* Memory */
-void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off);
-int sys_munmap(size_t addr, size_t len);
-int sys_mprotect(size_t addr, size_t len, unsigned int flags);
-/* Stream */
-int sys_open(int fd, const char *path, unsigned long flags, unsigned long mode);
-int sys_close(int fd);
-int sys_read(int fd, const struct iovec *iovec, unsigned long count);
-int sys_write(int fd, const struct iovec *iovec, unsigned long count);
-int sys_seek(int fd, off_t off, unsigned long whence);
-/* - */
-int sys_window(void *img, int fd, void *info, unsigned long features,
-               unsigned long events);
-int sys_pipe(int *fds);
+// /* System */
+// int sys_power(unsigned long action, unsigned long delay_us);
+// int sys_scall(const char *module);
+// int sys_syslog(const char *msg);
+// int sys_sysinfo(unsigned long info, char *buf, size_t len);
+// /* Task */
+// int sys_yield(unsigned long flags);
+// long sys_exit(int status);
+// void sys_stop(long status, unsigned long type);
+// int sys_wait(unsigned long cause, long param, unsigned long timeout_us);
+// int sys_exec(const char *exec, char **args, char **env, unsigned long flags);
+// int sys_clone(unsigned long flags);
+// /* Signals */
+// int sys_sigraise(unsigned long signum, long pid);
+// int sys_sigaction(unsigned long signum, void *sigaction);
+// void sys_sigreturn();
+// /* Memory */
+// void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off);
+// int sys_munmap(size_t addr, size_t len);
+// int sys_mprotect(size_t addr, size_t len, unsigned int flags);
+// /* Stream */
+// int sys_open(int fd, const char *path, unsigned long flags, unsigned long mode);
+// int sys_close(int fd);
+// int sys_read(int fd, const struct iovec *iovec, unsigned long count);
+// int sys_write(int fd, const struct iovec *iovec, unsigned long count);
+// int sys_seek(int fd, off_t off, unsigned long whence);
+// /* - */
+// int sys_window(void *img, int fd, void *info, unsigned long features,
+//                unsigned long events);
+// int sys_pipe(int *fds);
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

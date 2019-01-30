@@ -79,9 +79,9 @@ void sys_ticks_um()
     // kprintf(KLOG_DBG, "[x86 ] IRQ %d\n", no);
     // bufdump(regs, 0x60);
     sys_ticks(0);
-    kCPU.io_elapsed += time_elapsed(&kCPU.last);
+    kCPU.io_elapsed += clock_elapsed(&kCPU.last);
     if (kCPU.running)
-        kCPU.running->other_elapsed += time_elapsed(&kCPU.running->last);
+        kCPU.running->other_elapsed += clock_elapsed(&kCPU.running->last);
     // task_signals();
     // task_leave_sys();
     assert(kCPU.irq_semaphore == 1);

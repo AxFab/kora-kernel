@@ -108,7 +108,7 @@ struct dhcp_lease {
     uint32_t lease_timeout;
     int flags;
     splock_t lock;
-    time64_t timeout;
+    clock64_t timeout;
     char *hostname;
 };
 
@@ -410,7 +410,7 @@ static int dhcp_on_offer(skb_t *skb, dhcp_info_t *info)
     }*/
 
     ifnet->dhcp_mode = DHCP_REQUEST;
-    ifnet->dhcp_lastsend = time64();
+    ifnet->dhcp_lastsend = kclock();
     assert(ifnet->dhcp_transaction != 0);
     memcpy(info->query_ip, info->client_ip, IP4_ALEN);
     // STORE INFO AS IN PROPATION
@@ -448,7 +448,7 @@ static int dhcp_on_ack(skb_t *skb, dhcp_info_t *info)
     /* We did request this IP, so take it */
     ifnet->dhcp_mode = 0;
     ifnet->dhcp_transaction = 0;
-    ifnet->dhcp_lastsend = time64();
+    ifnet->dhcp_lastsend = kclock();
     memcpy(ifnet->ip4_addr, info->client_ip, IP4_ALEN);
     memcpy(ifnet->gateway_ip, info->rooter_ip, IP4_ALEN);
     ifnet->subnet_bits = 8; // TODO - info->submask_ip
@@ -539,7 +539,7 @@ static int dhcp_on_discover(skb_t *skb, dhcp_server_t *srv, dhcp_info_t *info)
         lease->hostname = strdup(info->hostname);
     }
 
-    lease->timeout = time64() + info->lease_time * USEC_PER_SEC;
+    lease->timeout = kclock() + info->lease_time * USEC_PER_SEC;
 
     host_register(lease->mac, lease->ip, lease->hostname, skb->ifnet->domain,
                   HOST_TEMPORARY);
@@ -562,7 +562,7 @@ static int dhcp_on_request(skb_t *skb, dhcp_server_t *srv, dhcp_info_t *info)
     splock_unlock(&srv->lock);
 
     // CHECK
-    lease->timeout = time64() + info->lease_time * USEC_PER_SEC;
+    lease->timeout = kclock() + info->lease_time * USEC_PER_SEC;
     memcpy(info->client_ip, info->query_ip, IP4_ALEN);
     dhcp_packet(skb->ifnet, info->client_ip, info->uid, DHCP_PACK, info, lease);
     splock_unlock(&lease->lock);
@@ -689,12 +689,12 @@ int dhcp_packet(netdev_t *ifnet, const uint8_t *ip, uint32_t uid, int mode,
 int dhcp_discovery(netdev_t *ifnet)
 {
     splock_lock(&ifnet->lock);
-    if (ifnet->dhcp_mode != 0 && ifnet->dhcp_lastsend < time64() - DHCP_DELAY) {
+    if (ifnet->dhcp_mode != 0 && ifnet->dhcp_lastsend < kclock() - DHCP_DELAY) {
         splock_unlock(&ifnet->lock);
         return -1;
     }
     ifnet->dhcp_mode = DHCP_DISCOVER;
-    ifnet->dhcp_lastsend = time64();
+    ifnet->dhcp_lastsend = kclock();
     ifnet->dhcp_transaction = rand32();
     splock_unlock(&ifnet->lock);
     return dhcp_packet(ifnet, ip4_broadcast, ifnet->dhcp_transaction, DHCP_DISCOVER,

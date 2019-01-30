@@ -45,7 +45,7 @@ void mmu_destroy_uspace(mspace_t *mspace) {}
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void cpu_halt() {}
-time64_t cpu_clock()
+clock64_t cpu_clock()
 {
     return 0;
 }

@@ -197,18 +197,18 @@ void net_print(netdev_t *ifnet)
 void net_tasklet(netdev_t *ifnet)
 {
     bool printed_ip4 = false;
-    time64_t timeout = time64() + NET_DELAY;
+    clock64_t timeout = kclock() + NET_DELAY;
     while ((ifnet->flags & NET_QUIT) == 0)  {
 
         /* Read available packets */
         for (;;) {
             splock_lock(&ifnet->lock);
             skb_t *skb = NULL;
-            while (timeout - time64() > 0) {
+            while (timeout - kclock() > 0) {
                 skb = ll_dequeue(&ifnet->queue, skb_t, node);
                 if (skb != NULL)
                     break;
-                async_wait(&ifnet->lock, &ifnet->waiters, 1000); // timeout - time64());
+                async_wait(&ifnet->lock, &ifnet->waiters, 1000); // timeout - kclock());
             }
             splock_unlock(&ifnet->lock);
             if (skb == NULL)
@@ -222,7 +222,7 @@ void net_tasklet(netdev_t *ifnet)
             kfree(skb);
         }
 
-        timeout = time64() + NET_DELAY;
+        timeout = kclock() + NET_DELAY;
 
         /* Initialize hardware */
         if (!(ifnet->flags & NET_CONNECTED)) {
@@ -251,18 +251,18 @@ void net_tasklet(netdev_t *ifnet)
         //     continue;
         // }
 
-        // if ((ifnet->lease_out - time64()) * 4 < ifnet->lease_full && time64() - ifnet->lease_last > NET_LEASE_25P) {
+        // if ((ifnet->lease_out - kclock()) * 4 < ifnet->lease_full && kclock() - ifnet->lease_last > NET_LEASE_25P) {
         //     dhcp_renew(ifnet);
         //     continue;
         // }
 
-        // if ((ifnet->lease_out - time64()) * 2 < ifnet->lease_full && time64() - ifnet->lease_last > NET_LEASE_50P) {
+        // if ((ifnet->lease_out - kclock()) * 2 < ifnet->lease_full && kclock() - ifnet->lease_last > NET_LEASE_50P) {
         //     dhcp_renew(ifnet);
         //     continue;
         // }
 
         /* Longer delay when no imediate requirement */
-        timeout = time64() + NET_LONG_DELAY;
+        timeout = kclock() + NET_LONG_DELAY;
     }
 }
 
@@ -281,7 +281,7 @@ int net_device(netdev_t *ifnet)
 
 // for (;;) {
 //     if (rule == NULL) {
-//         timeout = time64() + NET_LONG_DELAY;
+//         timeout = kclock() + NET_LONG_DELAY;
 //         break;
 //     }
 //     if (rule->test(ifnet)) {

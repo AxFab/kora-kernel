@@ -166,8 +166,8 @@ void fatfs_umount(volume_t *vol);
 
 int fatfs_truncate(inode_t *ino, off_t length);
 
-void fatfs_settime(unsigned short *date, unsigned short *time, time64_t value);
-time64_t fatfs_gettime(unsigned short *date, unsigned short *time);
+void fatfs_settime(unsigned short *date, unsigned short *time, clock64_t value);
+clock64_t fatfs_gettime(unsigned short *date, unsigned short *time);
 void fatfs_read_shortname(struct FAT_ShortEntry *entry, char *shortname);
 void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname);
 inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume, FAT_volume_t *info);

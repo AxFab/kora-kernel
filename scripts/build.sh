@@ -70,7 +70,7 @@ build_x86 () {
         *) export CROSS=i386-elf- ;;
     esac
 
-    make -f $SRC_KRN/Makefile -j 6
+    make -f $SRC_KRN/Makefile
 
     rm -rf iso
     mkdir -p iso/{etc,bin,boot,lib}

@@ -21,6 +21,7 @@
 #include <kora/splock.h>
 #include <kora/mcrs.h>
 #include <kora/syscalls.h>
+#include <kora/allocator.h>
 #include <sys/mman.h>
 #include <errno.h>
 
@@ -46,7 +47,7 @@ int fork()
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t off)
 {
-    return syscall(SYS_MMAP, addr, length, prot | flags, fd, off);
+    return (void*)syscall(SYS_MMAP, addr, length, prot | flags, fd, off);
 }
 
 int munmap(void *addr, size_t length)
@@ -131,7 +132,7 @@ _Noreturn void __assert_fail(const char *expr, const char *file, int line)
 void __libc_init()
 {
     void *heap = mmap(NULL, 16 * _Mib_, 06, MMAP_HEAP, -1, 0);
-    if (heap == NULL || heap == -1)
+    if (heap == NULL || heap == (void*)-1)
         __perror_fail(ENOMEM, __FILE__, __LINE__, "Unable to allocate first heap segment");
     setup_allocator(heap, 16 * _Mib_);
 

@@ -44,7 +44,11 @@ uint64_t cpu_clock()
     return 0;
 }
 
+time_t rtc_time();
+void pit_interval(int hz);
+
 time_t cpu_time()
 {
-    return 0;
+    pit_interval(HZ);
+    return rtc_time();
 }

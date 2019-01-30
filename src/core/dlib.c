@@ -205,7 +205,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
     void *base = NULL;
     kprintf(-1, "\033[94mRebase lib: %08x\033[0m\n", lib->base);
     // ASRL
-    if (lib->base != NULL)
+    if (lib->base != 0)
         base = mspace_map(mspace, lib->base, lib->length, NULL, 0, VMA_ANON_RW | 0x11 | VMA_MAP_FIXED);
 
     while (base == NULL) {
@@ -233,7 +233,7 @@ void *dlib_symbol_address(proc_t *proc, CSTR name)
 {
     dynsym_t *symbol;
     symbol = hmp_get(&proc->symbols, name, strlen(name));
-    return symbol ? symbol->address : NULL;
+    return symbol ? (void*)symbol->address : NULL;
 }
 
 void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
