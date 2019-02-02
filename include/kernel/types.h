@@ -37,11 +37,13 @@ typedef int pid_t;
 #else
 # define __time_t long long
 #endif
-#define __time64_t long long // in us -> Max is +/-292'471 years (start from EPOCH)
+#define __clock64_t long long // in us -> Max is +/-292'471 years (start from EPOCH)
 #define __clock_t long
 
-typedef __time64_t time64_t;
-time64_t time64();
+typedef __clock64_t clock64_t;
+
+
+clock64_t kclock();
 #define USEC_PER_SEC  1000000ULL
 
 /* Kernel development kit */
@@ -61,6 +63,14 @@ typedef struct mspace mspace_t;
 typedef struct inode inode_t;
 typedef struct device device_t;
 typedef struct volume volume_t;
+
+typedef struct screen screen_t;
+typedef struct window window_t;
+typedef struct desktop desktop_t;
+typedef struct framebuffer framebuffer_t;
+typedef struct pointer pointer_t;
+typedef struct rect rect_t;
+
 
 // Network
 typedef struct netdev netdev_t;

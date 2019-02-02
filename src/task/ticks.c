@@ -21,29 +21,15 @@
 #include <kernel/cpu.h>
 #include <kernel/task.h>
 
-
-#define HZ 100
-#define TICKS_PER_SEC (1000000/HZ)
-// #define TICKS_PER_SEC 10000 /* 100 µs */
-
-
-
-int timer_cpu = 0;
-splock_t xtime_lock;
-uint64_t jiffies = 0; // Number of CPU ticks
-
 uint64_t ticks_last = 0;
 uint64_t ticks_elapsed = 0;
 
-time64_t time_us;
-
-time64_t time64()
+clock64_t kclock()
 {
-    return time_us;
+    return kSYS.clock_us + kSYS.clock_adj;
 }
 
-
-uint64_t time_elapsed(uint64_t *last)
+uint64_t clock_elapsed(uint64_t *last)
 {
     uint64_t ticks = cpu_clock();
     uint64_t elapsed = ticks - *last;
@@ -51,19 +37,31 @@ uint64_t time_elapsed(uint64_t *last)
     return elapsed;
 }
 
-void sys_ticks()
-{
-    // kprintf(-1, "CPU.%d Ticks\n", cpu_no());
+#define  SEC_PER_DAY (24*60*60)
+#define  SEC_PER_HOUR (60*60)
+#define  SEC_PER_MIN (60)
 
-    // irq_disable();
-    if (timer_cpu == cpu_no()) {
-        splock_lock(&xtime_lock);
-        time_us += TICKS_PER_SEC;
-        ticks_elapsed += time_elapsed(&ticks_last);
-        jiffies++;
-        // Update Wall time
-        // Compute global load
-        splock_unlock(&xtime_lock);
+int ls = 0;
+
+void clock_ticks()
+{
+    if (ls++ > HZ) {
+        ls = 0;
+        clock64_t now = KTIME_TO_SEC(kclock());
+        int secs = now % SEC_PER_DAY;
+        int sec = (secs % SEC_PER_MIN);
+        int min = secs % SEC_PER_HOUR / 60;
+        int hour = secs / 3600;
+        kprintf(-1, "Hour: %02d:%02d:%02d\n", hour, min, sec);
+    }
+
+    // kprintf(-1, "CPU.%d Ticks\n", cpu_no());
+    if (kSYS.timer_cpu == cpu_no()) {
+        splock_lock(&kSYS.time_lock);
+        kSYS.clock_us += KTICKS_PER_SEC;
+        ticks_elapsed += clock_elapsed(&ticks_last);
+        kSYS.jiffies++;
+        splock_unlock(&kSYS.time_lock);
     }
     if (kCPU.flags & CPU_NO_TASK)
         return;
@@ -73,11 +71,10 @@ void sys_ticks()
 
 void clock_init()
 {
-    irq_register(0, (irq_handler_t)sys_ticks, NULL);
-
-    time_us = cpu_time() * 1000000LL;
-    timer_cpu = cpu_no();
-    splock_init(&xtime_lock);
-    time_elapsed(&ticks_last);
+    irq_register(0, (irq_handler_t)clock_ticks, NULL);
+    kSYS.clock_us = 0;
+    kSYS.clock_adj = SEC_TO_KTIME(cpu_time());
+    kSYS.timer_cpu = cpu_no();
+    splock_init(&kSYS.time_lock);
+    clock_elapsed(&ticks_last);
 }
-

@@ -93,7 +93,7 @@ kdk_api_t base_kapi[] = {
     KAPI(mktime),
     KAPI(gmtime),
     KAPI(gmtime_r),
-    KAPI(time64),
+    KAPI(kclock),
 
     /* VFS */
     KAPI(vfs_inode),
@@ -115,14 +115,15 @@ kdk_api_t base_kapi[] = {
     KAPI(map_sync),
     KAPI(map_release),
     KAPI(map_destroy),
-    KAPI(vds_create_empty),
-    KAPI(vds_fill),
+    KAPI(gfx_create),
+    KAPI(gfx_clear),
     KAPI(bio_create),
     KAPI(bio_create2),
     KAPI(bio_destroy),
     KAPI(bio_access),
     KAPI(bio_sync),
     KAPI(bio_clean),
+    KAPI(wmgr_input),
 
     /* NETWORK */
     KAPI(net_recv),

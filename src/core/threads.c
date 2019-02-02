@@ -44,7 +44,7 @@ int thrd_equal(thrd_t l, thrd_t r)
 
 int futex_wait(struct _US_MUTEX *mutex, const struct timespec *ts)
 {
-    time64_t until = 0;
+    clock64_t until = 0;
     for (;;) {
         splock_lock(&mutex->splock);
         if (atomic_cmpxchg(&mutex->counter, 0, 1) == 0) {
@@ -52,7 +52,7 @@ int futex_wait(struct _US_MUTEX *mutex, const struct timespec *ts)
             splock_unlock(&mutex->splock);
             return 0;
         }
-        int res = async_wait(&mutex->splock, &mutex->emitter, until - time64());
+        int res = async_wait(&mutex->splock, &mutex->emitter, until - kclock());
         if (res == EAGAIN) {
             splock_unlock(&mutex->splock);
             return -1;

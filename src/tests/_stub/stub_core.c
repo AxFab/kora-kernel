@@ -83,12 +83,6 @@ _Noreturn void kpanic(CSTR msg, ...)
     __assert_fail("Kernel panic!", __FILE__, __LINE__);
 }
 
-void kclock(struct timespec *ts)
-{
-    time64_t ticks = time64();
-    ts->tv_sec = ticks / _PwNano_;
-    ts->tv_nsec = ticks % _PwNano_;
-}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -229,9 +223,9 @@ void heap_unmap(void *adddress, size_t length)
 
 void nanosleep(struct timespec *tm, struct timespec *rs)
 {
-    time64_t start = time64();
+    clock64_t start = kclock();
     Sleep(tm->tv_sec * 1000 + tm->tv_nsec / 1000000);
-    time64_t elasped = start - time64();
+    clock64_t elasped = start - kclock();
     elasped = tm->tv_sec * _PwNano_ + tm->tv_nsec - elasped;
     if (elasped < 0) {
         rs->tv_sec = 0;

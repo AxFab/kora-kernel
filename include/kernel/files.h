@@ -37,17 +37,30 @@ typedef struct desktop desktop_t;
 typedef struct display display_t;
 typedef struct pipe pipe_t;
 
-struct surface {
-    int width;
-    int height;
-    int pitch;
-    int depth;
+struct framebuffer {
+    int width, height;
+    int pitch, depth;
     uint8_t *pixels;
     uint8_t *backup;
+};
+
+struct rect {
+    int x, y, w, h;
+};
+
+struct window {
+    int no;
+    desktop_t *desk;
+    rect_t sz, rq;
+    framebuffer_t *frame;
+    pipe_t *pipe;
+    int queries;
+    rwlock_t lock;
+
+    int grid, rq_grid;
+    int ml, mt, mr, mb;
     llnode_t node;
-    void (*flip)(surface_t *screen);
-    int x;
-    int y;
+    uint32_t color;
 };
 
 
@@ -57,7 +70,7 @@ struct font_bmp {
     char width, height, dispx, dispy;
 };
 
-void font_paint(surface_t *sfc, const font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y);
+void font_paint(framebuffer_t *fb, const font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y);
 
 
 #define IO_NO_BLOCK  (1 << 4)
@@ -66,32 +79,18 @@ void font_paint(surface_t *sfc, const font_bmp_t *data, uint32_t unicode, uint32
 
 
 
-void vds_fill(surface_t *win, uint32_t color);
-void vds_slide(surface_t *sfc, int height, uint32_t color);
-void vds_copy(surface_t *dest, surface_t *src, int x, int y);
-surface_t *vds_create_empty(int width, int height, int depth);
-surface_t *vds_create(int width, int height, int depth);
-void vds_destroy(surface_t *srf);
-void vds_mouse(surface_t *scr, int x, int y);
-void vds_flip(surface_t *surface);
-page_t vds_fetch(surface_t *fb, off_t off);
-void vds_rect(surface_t *win, int x, int y, int w, int h, uint32_t color);
+
+framebuffer_t *gfx_create(int width, int height, int depth, void *pixels);
+void gfx_rect(framebuffer_t *fb, int x, int y, int w, int h, uint32_t color);
+void gfx_clear(framebuffer_t *fb, uint32_t color);
+void gfx_slide(framebuffer_t *sfc, int height, uint32_t color);
+void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int h);
+void gfx_copy_blend(framebuffer_t *dest, framebuffer_t *src, int x, int y);
+void gfx_flip(framebuffer_t *fb);
 
 
-inode_t *window_open(desktop_t *desk, int width, int height, unsigned features, unsigned evmask);
-void window_close(desktop_t *desk, inode_t *win);
-void *window_map(mspace_t *mspace, inode_t *win);
-int window_set_features(inode_t *win, int features, int *args);
-int window_get_features(inode_t *win, int features, int *args);
-
-
-
-void wmgr_register_screen(surface_t *screen);
-surface_t *wmgr_surface(desktop_t *desktop, int width, int height, int depth);
-surface_t *wmgr_window(desktop_t *desktop, int width, int height);
-void wmgr_event(event_t *ev);
-desktop_t *wmgr_desktop();
-
+void wmgr_input(inode_t *ino, int type, int param, pipe_t *pipe);
+inode_t *wmgr_create_window(desktop_t *desk, int width, int height);
 
 
 pipe_t *pipe_create();
@@ -125,9 +124,10 @@ int ioblk_write(inode_t *ino, const char *buf, int len, off_t off);
 
 
 tty_t *tty_create(int count);
-void tty_window(tty_t *tty, surface_t *sfc, const font_bmp_t *font);
-void tty_paint(tty_t *tty);
+void tty_window(tty_t *tty, inode_t *ino, const font_bmp_t *font);
 int tty_write(tty_t *tty, const char *buf, int len);
+int tty_puts(tty_t *tty, const char *buf);
+
 
 int elf_parse(dynlib_t *dlib);
 

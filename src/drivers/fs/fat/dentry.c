@@ -19,7 +19,7 @@
  */
 #include "fatfs.h"
 
-void fatfs_settime(unsigned short *date, unsigned short *time, time64_t value)
+void fatfs_settime(unsigned short *date, unsigned short *time, clock64_t value)
 {
     time_t sec = value / _PwNano_;
     struct tm datetime;
@@ -28,7 +28,7 @@ void fatfs_settime(unsigned short *date, unsigned short *time, time64_t value)
     *time = (datetime.tm_sec >> 1) | (datetime.tm_min << 5) | (datetime.tm_hour << 11);
 }
 
-time64_t fatfs_gettime(unsigned short *date, unsigned short *time)
+clock64_t fatfs_gettime(unsigned short *date, unsigned short *time)
 {
     struct tm datetime;
     memset(&datetime, 0, sizeof(datetime));
@@ -121,7 +121,7 @@ void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t t
     else if (type == FL_REG)
         entry->DIR_Attr = ATTR_ARCHIVE;
 
-    fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, time64());
+    fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, kclock());
     entry->DIR_LstAccDate = entry->DIR_CrtDate;
     entry->DIR_WrtDate = entry->DIR_CrtDate;
     entry->DIR_WrtTime = entry->DIR_CrtTime;

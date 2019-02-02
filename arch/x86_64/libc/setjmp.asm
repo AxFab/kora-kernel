@@ -1,8 +1,8 @@
 use64
 
-global cpu_save, cpu_restore
+global setjmp, longjmp
 
-cpu_save:
+setjmp:
     mov [rdi], rbx  ; Store RBX
     mov [rdi + 8], rbp ; Store RBP
     mov [rdi + 16], r12
@@ -16,7 +16,7 @@ cpu_save:
     xor rax, rax
     ret
 
-cpu_restore:
+longjmp:
     mov rax, rsi
     test rax, rax
     jnz .n

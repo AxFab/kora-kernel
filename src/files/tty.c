@@ -18,137 +18,52 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/files.h>
+#include <kernel/input.h>
 #include <string.h>
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+#define TTY_BUF_SIZE (64 - 3 * 4)
 
 
 typedef struct tty_cell tty_cell_t;
 
-void tty_window(tty_t *tty, surface_t *sfc, const font_bmp_t *font);
-void tty_paint(tty_t *tty);
-void tty_paint_cell(tty_t *tty, tty_cell_t *cell, int *row, int *col);
-
-#define TF_EOL 1
-#define TF_EOF 2
-
-/* --------------------------------------------------------------------------------*/
-
-struct tty {
-    surface_t *sfc;
-    const font_bmp_t *font;
-    short w, h;
-    int count, top, end;
-    int smin, smax;
-    uint32_t fg, bg;
-    tty_cell_t *cells;
-};
-
 struct tty_cell {
     uint32_t fg, bg;
     int8_t row, col, len, sz;
-    char str[50];
-    uint8_t unused, flags;
+    char str[TTY_BUF_SIZE];
 };
 
+struct tty {
+    tty_cell_t prompt;
+    tty_cell_t *cells;
+    int end, count;
+    int rows, cols, scroll;
+    inode_t *win;
+    framebuffer_t *fb;
+    const font_bmp_t *font;
+    pipe_t *pipe;
+};
 
-tty_t *tty_create(int count)
-{
-    tty_t *tty = kalloc(sizeof(tty_t));
-    tty->count = count;
-    tty->cells = kalloc(count * sizeof(tty_cell_t));
-    tty->cells->fg = 0xa6a6a6;
-    tty->cells->bg = 0x121212;
-    tty->fg = 0xa6a6a6;
-    tty->bg = 0x121212;
-    tty->cells->flags = TF_EOF;
-    tty->w = 1024;
-    tty->h = 1024;
-    return tty;
-}
-
-void tty_window(tty_t *tty, surface_t *sfc, const font_bmp_t *font)
-{
-    tty->sfc = sfc;
-    tty->font = font;
-    tty->w = sfc->width / font->dispx;
-    tty->h = sfc->height / font->dispy;
-    vds_fill(sfc, tty->cells->bg);
-    tty_paint(tty);
-}
-
-void tty_paint_cell(tty_t *tty, tty_cell_t *cell, int *row, int *col)
-{
-    int i;
-    char *str = cell->str;
-    for (i = 0; i < cell->len; ++i) {
-        if ((*col) >= tty->w) {
-            *col = 0;
-            (*row)++;
-        }
-        if ((*row) >= 0 && (*row) < tty->h && tty->sfc != NULL) {
-            uint32_t unicode = *str;
-            font_paint(tty->sfc, tty->font, unicode, &cell->fg, (*col) * tty->font->dispx, (*row) * tty->font->dispy);
-        }
-        str++;
-        (*col)++;
-    }
-    if (cell->flags & TF_EOL) {
-        if ((*row) >= 0 && (*row) < tty->h && tty->sfc != NULL) {
-            while ((*col) < tty->w) {
-                font_paint(tty->sfc, tty->font, ' ', &cell->fg, (*col) * tty->font->dispx, (*row) * tty->font->dispy);
-                (*col)++;
-            }
-        }
-        *col = 0;
-        (*row)++;
-    }
-}
+extern const font_bmp_t font_6x10;
+extern const font_bmp_t font_8x15;
+extern const font_bmp_t font_7x13;
+extern const font_bmp_t font_6x9;
+extern const font_bmp_t font_8x8;
 
 
-void tty_paint(tty_t *tty)
-{
-    int idx = tty->top;
-    int col = 0;
-    int row = tty->smax;
-    for (; ;) {
-        int r = row;
-        int c = col;
-        tty_paint_cell(tty, &tty->cells[idx], &row, &col);
-        if (row >= tty->h && tty->sfc != NULL) { // Go to bottom
-            vds_slide(tty->sfc, tty->font->dispy * (tty->h - row - 1), tty->bg);
-            idx--;
-            row = r + (tty->h - row - 1);
-            col = c;
-        }
-        if (tty->cells[idx].flags & TF_EOF) {
-            if (row >= tty->h && tty->sfc != NULL)  // Go to bottom ?
-                tty->smax += tty->h - row - 1;
+uint32_t colors_std[] = {
+    0x000000, 0x800000, 0x008000, 0x808000,
+    0x000080, 0x800080, 0x008080, 0x808080,
+    0xD0D0D0, 0xFF0000, 0x00FF00, 0xFFFF00,
+    0x0000FF, 0xFF00FF, 0x00FFFF, 0xFFFFFF,
+};
 
-            if (tty->sfc != NULL)
-                vds_flip(tty->sfc);
-            return;
-        }
-        idx = (idx + 1) % tty->count;
-    }
-}
+uint32_t colors_kora[] = {
+    0x181818, 0xA61010, 0x10A610, 0xA66010,
+    0x1010A6, 0xA610A6, 0x10A6A6, 0xA6A6A6,
+    0x323232, 0xD01010, 0x10D010, 0xD06010,
+    0x1010D0, 0xD010D0, 0x10D0D0, 0xD0D0D0,
+};
 
-tty_cell_t *tty_next_cell(tty_t *tty)
-{
-    tty_cell_t *cell = &tty->cells[tty->end];
-    if (cell->sz == 0 && !(cell->flags & TF_EOL))
-        return cell;
-    int next = (tty->end + 1) % tty->count;
-    if (tty->top == next)
-        tty->top = (tty->top + 1) % tty->count;
-    memset(&tty->cells[next], 0, sizeof(tty_cell_t));
-    tty->cells[next].fg = tty->cells[tty->end].fg;
-    tty->cells[next].bg = tty->cells[tty->end].bg;
-    tty->cells[next].flags = TF_EOF;
-    tty->cells[tty->end].flags &= ~TF_EOF;
-    tty->end = next;
-    return &tty->cells[next];
-}
 
 uint32_t consoleDarkColor[] = {
     0x121212, 0xa61010, 0x10a610, 0xa66010,
@@ -159,11 +74,33 @@ uint32_t consoleLightColor[] = {
     0x1060d0, 0xd010d0, 0x10d0d0, 0xd0d0d0,
 };
 
+tty_cell_t *tty_next(tty_t *tty);
 
-void tty_excape_apply_csi_m(tty_t *tty, int *val, int cnt)
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+tty_t *tty_create(int size)
+{
+    tty_t *tty = kalloc(sizeof(tty_t));
+    tty->end = 0;
+    int sz = ALIGN_UP(size * sizeof(tty_cell_t), PAGE_SIZE);
+    tty->count = sz / sizeof(tty_cell_t);
+    tty->cells = kmap(sz, NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
+    tty->cells[0].fg = 0xf2f2f2;
+    tty->cells[0].bg = 0x181818;
+    tty->prompt.fg = 0xf2f2f2;
+    tty->prompt.bg = 0x181818;
+    tty->rows = 3;
+    tty->cols = 4096;
+    tty->pipe = pipe_create();
+    return tty;
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+static tty_cell_t *tty_apply_csi_m(tty_t *tty, int *val, int cnt)
 {
     int i;
-    tty_cell_t *cell = tty_next_cell(tty);
+    tty_cell_t *cell = tty_next(tty);
     for (i = 0; i < cnt; ++i) {
         if (val[i] == 0) { // Reset
             cell->fg = consoleDarkColor[7];
@@ -211,14 +148,16 @@ void tty_excape_apply_csi_m(tty_t *tty, int *val, int cnt)
         else if (val[i] >= 100 && val[i] <= 107)   // Select bright background
             cell->bg = consoleLightColor[val[i] - 100];
     }
+    return cell;
 }
 
-int tty_excape_csi(tty_t *tty, const char *buf, int len)
+
+static tty_cell_t *tty_command_csi(tty_t *tty, const char *buf, int *plen)
 {
     int val[10] = { 0 };
     int sp = 0;
-    int s = 2;
-    len -= 2;
+    int s = 1;
+    int len = *plen - 1;
     while (len > 0 && sp < 10) {
         if (buf[s] >= '0' && buf[s] <= '9')
             val[sp] = val[sp] * 10 + buf[s] - '0';
@@ -230,81 +169,292 @@ int tty_excape_csi(tty_t *tty, const char *buf, int len)
         len--;
     }
     if (len == 0)
-        return 1;
+        return tty_next(tty);
     switch (buf[s]) {
     case 'm':
-        tty_excape_apply_csi_m(tty, val, sp + 1);
-        break;
+        *plen -= s + 1;
+        return tty_apply_csi_m(tty, val, sp + 1);
     default:
-        return 1;
+        return &tty->cells[tty->end];
     }
-    return s + 1;
 }
 
-int tty_escape(tty_t *tty, const char *buf, int len)
-{
-    if (len < 2)
-        return -1;
 
-    switch (buf[1]) {
+tty_cell_t *tty_command(tty_t *tty, const char *buf, int *plen)
+{
+    if (*plen < 2)
+        return &tty->cells[tty->end];
+    switch (*buf) {
     case '[': // CSI
-        return tty_excape_csi(tty, buf, len);
+        return tty_command_csi(tty, buf, plen);
     default:
-        return 1;
+        return &tty->cells[tty->end];
     }
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+void tty_clear_row(framebuffer_t *fb, int row, const font_bmp_t *font, uint32_t color)
+{
+    gfx_rect(fb, 0, row * font->dispy, fb->width, font->dispy, color);
+}
+
+void tty_paint_cell(tty_t *tty, tty_cell_t *cell)
+{
+    if (tty->fb == NULL)
+        return;
+    if ((cell->row - tty->scroll) < 0 || (cell->row - tty->scroll) >= tty->rows)
+        return;
+    const font_bmp_t *font = tty->font;
+    int c = cell->col;
+    int x = cell->col * font->dispx;
+    int y = (cell->row - tty->scroll) * font->dispy;
+    framebuffer_t *fb = tty->fb;
+    int i = 0;
+    while (i < cell->sz) {
+        int unicode = cell->str[i];
+        i++; // TODO - Unicode characters
+        if (unicode > 0x20 && unicode < 0x80)
+            font_paint(fb, font, unicode, &cell->fg, x, y);
+        x += font->dispx;
+        if (++c >= tty->cols)
+            break;
+    }
+}
+
+
+void tty_repaint_all(tty_t *tty)
+{
+    if (tty->fb == NULL)
+        return;
+    int i;
+    for (i = 0; i < tty->end; ++i) {
+        tty_paint_cell(tty, &tty->cells[i]);
+    }
+    tty->win->ops->flip(tty->win);
+}
+
+void tty_window(tty_t *tty, inode_t *win, const font_bmp_t *font)
+{
+    tty->win = win;
+    tty->font = font;
+    tty->fb = ((window_t*)win->info)->frame;
+    gfx_clear(tty->fb, 0x181818);
+    tty->rows = tty->fb->height / font->dispy;
+    tty->cols = tty->fb->width / font->dispx;
+    kprintf(-1, "Tty attached to a window: %dx%d\n", tty->cols, tty->rows);
+    tty_repaint_all(tty);
+}
+
+
+tty_cell_t *tty_next(tty_t *tty)
+{
+    int next_idx = (tty->end + 1) % tty->count;
+    tty_cell_t *cell = &tty->cells[tty->end];
+    tty_cell_t *next = &tty->cells[next_idx];
+    // TODO - If line is on screen, clear row
+    next->row = cell->row;
+    next->col = cell->col + cell->len;
+    next->sz = 0;
+    next->len = 0;
+    next->fg = cell->fg;
+    next->bg = cell->bg;
+    if (tty->fb) {
+        tty_paint_cell(tty, cell);
+    }
+    tty->end = next_idx;
+    return next;
+}
+
+tty_cell_t *tty_putchar(tty_t *tty, tty_cell_t *cell, int unicode)
+{
+    if (cell->sz >= TTY_BUF_SIZE)
+        cell = tty_next(tty);
+    if (cell->len + cell->col >= tty->cols) {
+        cell = tty_next(tty);
+        cell->row++;
+        cell->col = 0;
+    }
+    cell->str[cell->sz] = unicode & 0x7F;
+    cell->len++;
+    cell->sz++;
+    return cell;
 }
 
 int tty_write(tty_t *tty, const char *buf, int len)
 {
     tty_cell_t *cell = &tty->cells[tty->end];
     while (len > 0) {
-        if (*buf >= 0x20) {
-            if (cell->sz >= 50)
-                cell = tty_next_cell(tty);
-            cell->str[cell->sz] = *buf;
-            cell->sz++;
-            cell->len++;
-            len--;
-            buf++;
-        } else if (*buf < 0) {
-            char s = *buf;
-            int lg = 1;
-            while (lg < 5 && (s >> (7 - lg)))
-                ++lg;
-            if (lg < 2 || lg > 4) {
-                len--;
-                buf++;
-                continue;
+        int unicode = *buf;
+        len--;
+        buf++;
+        // TODO - Unicode
+
+        if (unicode <= 0)
+            continue;
+
+        if (unicode < 0x20) {
+            if (unicode == '\n' || unicode == '\r') {
+                cell = tty_next(tty);
+                cell->row++;
+                cell->col = 0;
+            } else if (unicode == '\t' ) {
+                cell = tty_next(tty);
+                cell->col = ALIGN_UP(cell->col + 1, 8);
+            } else if (unicode == '\033') {
+                // Command -- Must be send in one block!
+                int sv = len;
+                cell = tty_command(tty, buf, &sv);
+                buf += len - sv;
+                len = sv;
             }
-            if (cell->sz + lg > 50)
-                cell = tty_next_cell(tty);
-            memcpy(&cell->str[cell->sz], buf, lg);
-            cell->sz += lg;
-            cell->len++;
-            len -= lg;
-            buf += lg;
-        } else if (*buf == '\n') {
-            cell->flags |= TF_EOL;
-            cell = tty_next_cell(tty);
-            len--;
-            buf++;
-        } else if (*buf == '\r') {
-            cell->flags |= TF_EOL;
-            cell = tty_next_cell(tty);
-            cell->row = -1;
-            len--;
-            buf++;
-        } else if (*buf == '\033') {
-            int lg = tty_escape(tty, buf, len);
-            cell = &tty->cells[tty->end];
-            len -= lg;
-            buf += lg;
-        } else {
-            len--;
-            buf++;
+            continue;
         }
+
+        cell = tty_putchar(tty, cell, unicode);
     }
 
-    tty_paint(tty);
+    if (tty->fb) {
+        tty_paint_cell(tty, cell);
+        tty->win->ops->flip(tty->win);
+    }
     return 0;
 }
+
+int tty_puts(tty_t *tty, const char *buf)
+{
+    return tty_write(tty, buf, strlen(buf));
+}
+
+void tty_input(tty_t *tty, int unicode)
+{
+    if (unicode >= 0x20 && unicode < 0x7F) {
+        tty->prompt.str[tty->prompt.len] = '\0';
+        strcat(tty->prompt.str, (char*)&unicode);
+        tty->prompt.len = strlen(tty->prompt.str);
+        tty->prompt.sz = tty->prompt.len;
+    } else if (unicode == 8 && tty->prompt.len > 0) {
+            tty->prompt.len--;
+            tty->prompt.sz = tty->prompt.len;
+            if (tty->fb)
+                tty_clear_row(tty->fb, tty->prompt.row, tty->font, tty->prompt.bg);
+    } else if (unicode == 10) {
+        if (tty->fb) {
+            tty_clear_row(tty->fb, tty->prompt.row, tty->font, tty->prompt.bg);
+            tty->prompt.str[tty->prompt.len] = '\n';
+            tty_write(tty, tty->prompt.str, tty->prompt.sz + 1);
+        }
+        pipe_write(tty->pipe, tty->prompt.str, tty->prompt.sz + 1, 0);
+        tty->prompt.sz = 0;
+        tty->prompt.len = 0;
+        return;
+    }
+    tty->prompt.row = tty->cells[tty->end].row + 1;
+    tty->prompt.col = 0;
+    if (tty->fb) {
+        tty_paint_cell(tty, &tty->prompt);
+        tty->win->ops->flip(tty->win);
+    }
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+#define _K4(n) {n,n,n,n}
+#define _K2(l,u) {l,u,l,u}
+#define _KL(n) {(n)|0x20,n,(n)|0x20,n}
+
+
+int keyboard[256][4] = {
+
+    _K4(0), _K4(0), _K2('1', '!'), _K2('2', '@'),
+    _K2('3', '#'), _K2('4', '$'), _K2('5', '%'), _K2('6', '^'),
+    _K2('7', '&'), _K2('8', '*'), _K2('9', '('), _K2('0', ')'),
+    _K2('-', '_'), _K2('=', '+'), _K4(8), _K4('\t'),
+
+    _KL('Q'), _KL('W'), _KL('E'), _KL('R'),
+    _KL('T'), _KL('Y'), _KL('U'), _KL('I'),
+    _KL('O'), _KL('P'), _K2('[', '{'), _K2(']', '}'),
+    _K4(10), _K4(0), _KL('A'), _KL('S'),
+
+    _KL('D'), _KL('F'), _KL('G'), _KL('H'),
+    _KL('J'), _KL('K'), _KL('L'),  _K2(';', ':'),
+    _K2('\'', '"'), _K2('`', '~'), _K4(0), _K2('\\', '|'),
+    _KL('Z'), _KL('X'), _KL('C'), _KL('V'),
+
+    _KL('B'), _KL('N'), _KL('M'), _K2(',', '<'),
+    _K2('.', '>'), _K2('/', '?'), _K4(0), _K4('*'),
+    _K4(0), _K4(' '), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0),
+    // 0x40
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
+};
+
+
+extern tty_t *slog;
+void tty_main()
+{
+    inode_t *win0 = wmgr_create_window(NULL, 640, 800);
+    tty_window(slog, win0, &font_7x13);
+
+    inode_t *win1 = wmgr_create_window(NULL, 7 * 80, 13 * 25);
+    // framebuffer_t *fb = ((window_t*)win1->info)->frame;
+    tty_t *tty = tty_create(256);
+
+    tty_puts(tty, "Hello, secret message\n");
+
+    tty_window(tty, win1, &font_7x13);
+
+    event_t event;
+
+    tty_puts(tty, "Hello, welcome on Kora Tty\n");
+
+    for (;;) {
+        vfs_read(win1, (char *)&event, sizeof(event), 0, 0);
+        int status = event.param2 >> 16;
+        int shift = (status & 8 ? 1 : 0);
+        if (status & 4)
+            shift = 1 - status;
+        int unicode = keyboard[event.param1 & 0x0FF][shift];
+        // kprintf0(-1, "EV %x) %x %x  [%x] \n", event.type, event.param1, status, unicode);
+        if (event.type == 3 && unicode != 0) {
+            tty_input(tty, unicode);
+        }
+    }
+}
+
+

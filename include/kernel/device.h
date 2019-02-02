@@ -101,7 +101,7 @@ struct net_ops {
 struct fs_ops {
     inode_t *(*open)(inode_t *dir, const char *name, ftype_t type, acl_t *acl, int flags);
     void(*chacl)(inode_t *ino, acl_t *acl);
-    void(*utimes)(inode_t *ino, time64_t time, int flags);
+    void(*utimes)(inode_t *ino, clock64_t time, int flags);
     int(*link)(inode_t *ino, inode_t *dir, const char *name);
     int(*unlink)(inode_t *dir, const char *name);
     int(*rename)(inode_t *ino, inode_t *dir, const char *name);

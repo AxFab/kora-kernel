@@ -1,8 +1,8 @@
 use32
 
-global cpu_save, cpu_restore
+global setjmp, longjmp
 
-cpu_save:
+setjmp:
     mov eax, [esp + 4] ; Get buffer
     mov [eax], ebx ; Store EBX
     mov [eax + 4], esi ; Store ESI
@@ -15,7 +15,7 @@ cpu_save:
     xor eax, eax
     ret
 
-cpu_restore:
+longjmp:
     mov edx, [esp + 4] ; Get buffer
     mov eax, [esp + 8] ; Get value
     test eax, eax

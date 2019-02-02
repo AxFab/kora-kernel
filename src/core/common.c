@@ -146,11 +146,6 @@ _Noreturn void kpanic(const char *msg, ...)
     abort();
 }
 
-void kclock(struct timespec *ts)
-{
-    ts->tv_sec = 0;
-    ts->tv_nsec = 0;
-}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

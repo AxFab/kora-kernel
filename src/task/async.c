@@ -27,11 +27,11 @@
 
 splock_t async_lock;
 llhead_t async_queue = INIT_LLHEAD;
-time64_t async_timeout = INT64_MAX;
+clock64_t async_timeout = INT64_MAX;
 
 struct advent {
     emitter_t *emitter;
-    time64_t timeout;
+    clock64_t timeout;
     llnode_t em_node;
     llnode_t qu_node;
     task_t *task;
@@ -46,7 +46,7 @@ static advent_t *async_advent(emitter_t *emitter, long timeout_us)
     advent_t *advent = (advent_t *)kalloc(sizeof(advent_t));
     advent->task = kCPU.running;
     advent->task->advent = advent;
-    advent->timeout = timeout_us >= 0 ? time64() + timeout_us : INT64_MAX;
+    advent->timeout = timeout_us >= 0 ? kclock() + timeout_us : INT64_MAX;
     advent->emitter = emitter;
 
     /* We use a system-wide lock for waiting queues */
@@ -148,8 +148,8 @@ void async_timesup()
 {
     advent_t *advent;
     advent_t *next;
-    time64_t later = INT64_MAX;
-    time64_t now = time64();
+    clock64_t later = INT64_MAX;
+    clock64_t now = kclock();
     if (now < async_timeout)
         return;
     if (!splock_trylock(&async_lock))

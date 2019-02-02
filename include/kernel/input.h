@@ -55,12 +55,12 @@ struct kUsr {
 };
 
 struct event {
-    uint32_t tm_sec;
-    uint32_t tm_nsec;
+    clock64_t timestamp;
     int32_t param1;
     int32_t param2;
     uint8_t type;
     uint8_t unsued;
+    uint16_t unsued0;
 };
 
 
