@@ -46,7 +46,7 @@ char *sztoa_r(size_t number, char *sz_format);
 void *kmap(size_t length, inode_t *ino, off_t offset, int flags);
 void kunmap(void *address, size_t length);
 _Noreturn void kpanic(const char *ms, ...);
-void kclock(struct timespec *ts);
+// void kclock(struct timespec *ts);
 
 void kernel_start();
 void kernel_ready();
@@ -160,7 +160,7 @@ void cpu_setup();
 /* - */
 uint64_t cpu_clock();
 /* - */
-uint64_t time_elapsed(uint64_t *last);
+uint64_t clock_elapsed(uint64_t *last);
 /* - */
 _Noreturn void cpu_halt();
 
@@ -184,6 +184,22 @@ int window_set_features(inode_t *win, int features, int *args);
 int window_get_features(inode_t *win, int features, int *args);
 int window_push_event(inode_t *win, event_t *event);
 int window_poll_push(inode_t *win, event_t *event);
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+/* Ticks = 1 µs */
+#define SEC_TO_KTIME(t)  ((t) * 1000000LL)
+#define MSEC_TO_KTIME(t)  ((t) * 1000LL)
+#define USEC_TO_KTIME(t)  ((t) * 1LL)
+#define KTIME_TO_USEC(t)  ((t) / 1LL)
+#define KTIME_TO_MSEC(t)  ((t) / 1000LL)
+#define KTIME_TO_SEC(t)  ((t) / 1000000LL)
+
+#define HZ 100 /* 10 µs */
+#define KTICKS_PER_SEC (1000000 / HZ)
+
+clock64_t kclock();
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -215,13 +231,18 @@ struct kSys {
     rwlock_t lock;
     char *hostname;
     char *domain;
+    /* Time managment */
+    clock64_t clock_us; // Monotonic clock since BOOT
+    clock64_t clock_adj; // Adjustable difference form BOOT to EPOCH
+    uint64_t jiffies; // Number of CPU ticks
+    splock_t time_lock;
+    int timer_cpu;
+
 };
 
 extern struct kSys kSYS;
 
 #define kCPU (kSYS.cpus[cpu_no()])
-
-#define CLOCK_HZ  100 // 10ms
 
 
 #endif  /* _KERNEL_CORE_H */

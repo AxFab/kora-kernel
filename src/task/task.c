@@ -74,7 +74,7 @@ static task_t *task_allocat()
     bbtree_insert(&pid_tree, &task->bnode);
     splock_unlock(&tsk_lock);
 
-    time_elapsed(&task->last);
+    clock_elapsed(&task->last);
     return task;
 }
 
@@ -347,26 +347,26 @@ int task_kill(task_t *task, unsigned signum)
 //         task->regs/*[++task->rp]*/ = regs;
 //         splock_unlock(&task->lock);
 //         if (kernel) {
-//             task->sys_elapsed += time_elapsed(&task->last);
-//             kCPU.sys_elapsed += time_elapsed(&kCPU.last);
+//             task->sys_elapsed += clock_elapsed(&task->last);
+//             kCPU.sys_elapsed += clock_elapsed(&kCPU.last);
 //         } else {
-//             task->user_elapsed += time_elapsed(&task->last);
-//             kCPU.user_elapsed += time_elapsed(&kCPU.last);
+//             task->user_elapsed += clock_elapsed(&task->last);
+//             kCPU.user_elapsed += clock_elapsed(&kCPU.last);
 //         }
 //     } else {
-//         kCPU.sys_elapsed += time_elapsed(&kCPU.last);
+//         kCPU.sys_elapsed += clock_elapsed(&kCPU.last);
 //     }
 // }
 
 // void task_leave_sys()
 // {
 //     task_t *task = kCPU.running;
-//     kCPU.sys_elapsed += time_elapsed(&kCPU.last);
+//     kCPU.sys_elapsed += clock_elapsed(&kCPU.last);
 //     if (task) {
 //         splock_lock(&task->lock);
 //         // --task->rp;
 //         splock_unlock(&task->lock);
-//         task->sys_elapsed += time_elapsed(&task->last);
+//         task->sys_elapsed += clock_elapsed(&task->last);
 //     }
 // }
 

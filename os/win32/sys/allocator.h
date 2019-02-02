@@ -17,38 +17,11 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/files.h>
-
-void csl_early_init();
-int csl_write(inode_t *ino, const char *buf, int len);
-
-void com_early_init();
-int com_output(int no, const char *buf, int len);
+#ifndef _SYS_ALLOCATOR_H
+#define _SYS_ALLOCATOR_H 1
 
 
-tty_t *slog;
-int tty_write(tty_t *tty, const char *buf, int len);
+#define MMAP(l) __aligned_malloc(l, PAGE_SIZE)
+#define MUNMAP(a,l) __aligned_free(a)
 
-void kwrite(const char *buf, int len)
-{
-    com_output(0, buf, len);
-    if (slog != NULL)
-        tty_write(slog, buf, len);
-    // else
-    //     csl_write(NULL, buf, len);
-}
-
-uint64_t cpu_clock()
-{
-    return 0;
-}
-
-time_t rtc_time();
-void pit_interval(int hz);
-
-time_t cpu_time()
-{
-    pit_interval(HZ);
-    return rtc_time();
-}
+#endif /* _SYS_ALLOCATOR_H */

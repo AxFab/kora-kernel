@@ -23,7 +23,7 @@
 #include "../check.h"
 
 #if !defined(_WIN32)
-time64_t time64()
+clock64_t kclock()
 {
     clock_t ticks = clock();
     if (_PwNano_ > CLOCKS_PER_SEC)
@@ -34,7 +34,7 @@ time64_t time64()
 }
 #else
 #include <windows.h>
-time64_t time64()
+clock64_t kclock()
 {
     // January 1, 1970 (start of Unix epoch) in ticks
     const INT64 UNIX_START = 0x019DB1DED53E8000;

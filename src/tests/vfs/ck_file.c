@@ -33,7 +33,7 @@ int fwrite(const void *, size_t, size_t, FILE *);
 int fclose(FILE *);
 
 
-// time64_t time64()
+// clock64_t kclock()
 // {
 //     return time(NULL) * 1000000LL;
 // }

@@ -110,10 +110,10 @@ struct inode {
     off_t length;
     ftype_t type;
     acl_t *acl;
-    time64_t btime;
-    time64_t ctime;
-    time64_t mtime;
-    time64_t atime;
+    clock64_t btime;
+    clock64_t ctime;
+    clock64_t mtime;
+    clock64_t atime;
     atomic_t rcu;
     splock_t lock;
 

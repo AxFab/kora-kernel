@@ -21,6 +21,8 @@
 #include <kernel/cpu.h>
 #include <kora/llist.h>
 #include <kernel/task.h>
+#include <kernel/syscalls.h>
+#include <kora/syscalls.h>
 #include <sys/signum.h>
 #include <assert.h>
 
@@ -105,55 +107,6 @@ void irq_disable()
 
 void irq_ack(int no);
 
-void sys_irq(int no) // TODO -- same as irq_enter without irq management
-{
-    // irq_disable();
-    assert(no >= 0 && no < IRQ_COUNT);
-    irq_record_t *record;
-    if (irqv[no].list.count_ == 0) {
-        irq_ack(no);
-        kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d, no handlers.\n", no, cpu_no());
-        return;
-    }
-    kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d.\n", no, cpu_no());
-    for ll_each(&irqv[no].list, record, irq_record_t, node)
-        record->func(record->data);
-    irq_ack(no);
-    // irq_enable();
-}
-
-// #define HZ 100
-// #define TICKS_PER_SEC 10000 /* 100 µs */
-// int timer_cpu = 0;
-// splock_t xtime_lock;
-// uint64_t jiffies = 0;
-// uint64_t ticks = 0;
-// uint64_t ticks_last = 0;
-// uint64_t ticks_elapsed = 0;
-
-// void scheduler_ticks();
-
-// void ticks_init()
-// {
-//     splock_init(&xtime_lock);
-//     time_elapsed(&ticks_last);
-// }
-
-// void sys_ticks()
-// {
-//     if (timer_cpu == cpu_no()) {
-//         splock_lock(&xtime_lock);
-//         ticks += TICKS_PER_SEC / HZ;
-//         ticks_elapsed += time_elapsed(&ticks_last);
-//         jiffies++;
-//         // Update Wall time
-//         // Compute global load
-//         splock_unlock(&xtime_lock);
-//     }
-
-//     // seat_ticks();
-//     scheduler_ticks();
-// }
 
 void irq_enter(int no)
 {
@@ -161,8 +114,8 @@ void irq_enter(int no)
     assert(kCPU.irq_semaphore == 1);
     // task_t *task = kCPU.running;
     // if (task)
-    //     task->elapsed_user = time_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_user = time_elapsed(&kCPU->elapsed_last);
+    //     task->elapsed_user = clock_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_user = clock_elapsed(&kCPU->elapsed_last);
 
     assert(no >= 0 && no < IRQ_MAX);
     irq_record_t *record;
@@ -173,8 +126,8 @@ void irq_enter(int no)
     irq_ack(no);
 
     // if (task)
-    //     task->elapsed_others = time_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_io = time_elapsed(&kCPU->elapsed_last);
+    //     task->elapsed_others = clock_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_io = clock_elapsed(&kCPU->elapsed_last);
 
     assert(kCPU.irq_semaphore == 1);
     irq_reset(false);
@@ -186,8 +139,8 @@ void irq_fault(const fault_t *fault)
     // assert(kCPU.irq_semaphore == 0);
     // assert(kCPU.running != NULL);
     task_t *task = kCPU.running;
-    // task->elapsed_user = time_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_user = time_elapsed(&kCPU->elapsed_last);
+    // task->elapsed_user = clock_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_user = clock_elapsed(&kCPU->elapsed_last);
     if (task == NULL) {
         stackdump(8);
         kprintf(KLOG_IRQ, "Fault on CPU%d raise exception: %s\n", cpu_no(), fault->name);
@@ -202,8 +155,8 @@ void irq_fault(const fault_t *fault)
         scheduler_switch(TS_ZOMBIE, -1);
     // if (task->signals != 0)
     //     task_signals();
-    // task->elapsed_system = time_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_system = time_elapsed(&kCPU->elapsed_last);
+    // task->elapsed_system = clock_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_system = clock_elapsed(&kCPU->elapsed_last);
     // assert(kCPU.irq_semaphore == 0);
 }
 
@@ -215,9 +168,9 @@ void irq_pagefault(size_t vaddr, int reason)
     task_t *task = kCPU.running;
     if (task) {
         mspace = task->usmem;
-        // task->elapsed_user = time_elapsed(&task->elapsed_last);
+        // task->elapsed_user = clock_elapsed(&task->elapsed_last);
     }
-    // kCPU.elapsed_user = time_elapsed(&kCPU->elapsed_last);
+    // kCPU.elapsed_user = clock_elapsed(&kCPU->elapsed_last);
 
     if (page_fault(mspace, vaddr, reason) != 0) {
         task_kill(kCPU.running, SIGSEGV);
@@ -228,6 +181,69 @@ void irq_pagefault(size_t vaddr, int reason)
     }
 
     // if (task)
-    //     task->elapsed_system = time_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_system = time_elapsed(&kCPU->elapsed_last);
+    //     task->elapsed_system = clock_elapsed(&task->elapsed_last);
+    // kCPU.elapsed_system = clock_elapsed(&kCPU->elapsed_last);
 }
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+typedef struct scall_entry scall_entry_t;
+struct scall_entry {
+    char *name;
+    char *args;
+    long (*routine)(long,long,long,long,long);
+    bool ret;
+};
+
+#define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)n, r }
+
+scall_entry_t syscall_entries[] = {
+    // SYS_POWER
+    // SYS_SCALL
+    // SCALL_ENTRY(SYS_SYSLOG, sys_syslog, "%p", false),
+    // SCALL_ENTRY(SYS_SYSINFO, sys_sysinfo, "%d, %p, %d", false),
+
+    // SYS_YIELD
+    SCALL_ENTRY(SYS_EXIT, sys_exit, "%d", false),
+    // SYS_WAIT
+    // SYS_EXEC
+    // SYS_CLONE
+
+    // SYS_SIGRAISE
+    // SYS_SIGACTION
+    // SYS_SIGRETURN
+
+    SCALL_ENTRY(SYS_MMAP, sys_mmap, "%p, %p, 0%o, %d, %d", true),
+    SCALL_ENTRY(SYS_MUNMAP, sys_munmap, "%p, %p", true),
+    // SYS_MPROTECT
+
+    SCALL_ENTRY(SYS_OPEN, sys_open, "%d, %s, 0%o, 0%o", true),
+    SCALL_ENTRY(SYS_CLOSE, sys_close, "%d", true),
+    SCALL_ENTRY(SYS_READ, sys_read, "%d, %p, %d", true),
+    SCALL_ENTRY(SYS_WRITE, sys_write, "%d, %p, %d", true),
+    // SYS_SEEK
+
+    // SYS_WINDOW
+    // SYS_PIPE
+};
+
+
+long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
+{
+    long ret;
+    scall_entry_t *entry = &syscall_entries[no];
+    if (entry == NULL)
+        return -1;
+
+    char arg_buf[50];
+    snprintf(arg_buf, 50, entry->args, a1, a2, a3, a4, a5);
+
+    if (!entry->ret)
+        kprintf(-1, "\033[96m%s(%s)\033[0m\n", entry->name, arg_buf);
+    ret = entry->routine(a1, a2, a3, a4, a5);
+    if (entry->ret)
+        kprintf(-1, "\033[96m%s(%s) = %d\033[0m\n", entry->name, arg_buf, ret);
+
+    return ret;
+}
+

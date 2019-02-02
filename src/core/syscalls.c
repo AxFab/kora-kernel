@@ -235,7 +235,7 @@ int sys_window(int width, int height, unsigned features, unsigned evmask)
 {
     // TODO - Look for the desktop attached to the session
     resx_t *resx = kCPU.running->resx;
-    inode_t *ino = window_open(NULL, width, height, features, 0);
+    inode_t *ino = wmgr_create_window(NULL, width, height);
     if (ino == NULL)
         return -1;
 
@@ -269,11 +269,11 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off)
     mspace_t *mspace = kCPU.running->usmem;
     if (mspace == NULL) {
         errno = EACCES;
-        return -1;
+        return (void*)-1;
     }
     // TODO - inode and flags
     int vma = (flags & 7) | ((flags & 7) << 4) | VMA_HEAP;
-    return mspace_map(mspace, addr, length, NULL, off, vma);
+    return mspace_map(mspace, (size_t)addr, length, NULL, off, vma);
 }
 
 long sys_munmap(void *addr, size_t length)
@@ -283,7 +283,7 @@ long sys_munmap(void *addr, size_t length)
         errno = EACCES;
         return -1;
     }
-    return mspace_unmap(mspace, addr, length);
+    return mspace_unmap(mspace, (size_t)addr, length);
 }
 
 // long sys_mprotect(void *address, size_t length, unsigned flags)
