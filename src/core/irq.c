@@ -107,24 +107,6 @@ void irq_disable()
 
 void irq_ack(int no);
 
-void sys_irq(int no) // TODO -- same as irq_enter without irq management
-{
-    // irq_disable();
-    assert(no >= 0 && no < IRQ_COUNT);
-    irq_record_t *record;
-    if (irqv[no].list.count_ == 0) {
-        irq_ack(no);
-        kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d, no handlers.\n", no, cpu_no());
-        return;
-    }
-    kprintf(KLOG_IRQ, "Received IRQ%d on cpu %d.\n", no, cpu_no());
-    for ll_each(&irqv[no].list, record, irq_record_t, node)
-        record->func(record->data);
-    irq_ack(no);
-    // irq_enable();
-}
-
-
 
 void irq_enter(int no)
 {

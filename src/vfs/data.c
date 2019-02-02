@@ -106,6 +106,10 @@ int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
             return -1;
         }
         return ino->ops->read(ino, buf, size, flags);
+
+    case FL_WIN:
+        return pipe_read(((window_t *)ino->info)->pipe, buf, size, flags);
+        break;
     case FL_SOCK:
     default: // DIR, VOL, NET, VDO, WIN
         errno = ENOSYS;

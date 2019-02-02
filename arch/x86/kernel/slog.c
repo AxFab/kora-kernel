@@ -27,7 +27,7 @@ void com_early_init();
 int com_output(int no, const char *buf, int len);
 
 
-extern tty_t *slog;
+tty_t *slog;
 int tty_write(tty_t *tty, const char *buf, int len);
 
 void kwrite(const char *buf, int len)
@@ -35,8 +35,8 @@ void kwrite(const char *buf, int len)
     com_output(0, buf, len);
     if (slog != NULL)
         tty_write(slog, buf, len);
-    else
-        csl_write(NULL, buf, len);
+    // else
+    //     csl_write(NULL, buf, len);
 }
 
 uint64_t cpu_clock()
