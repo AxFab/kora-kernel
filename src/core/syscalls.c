@@ -235,7 +235,7 @@ int sys_window(int width, int height, unsigned features, unsigned evmask)
 {
     // TODO - Look for the desktop attached to the session
     resx_t *resx = kCPU.running->resx;
-    inode_t *ino = window_open(NULL, width, height, features, 0);
+    inode_t *ino = wmgr_create_window(NULL, width, height);
     if (ino == NULL)
         return -1;
 

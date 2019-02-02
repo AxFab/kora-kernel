@@ -434,7 +434,7 @@ const font_bmp_t font_8x8 = {
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-void font_paint(surface_t *sfc, const font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y)
+void font_paint(framebuffer_t *fb, const font_bmp_t *data, uint32_t unicode, uint32_t *color, int x, int y)
 {
     int px, l;
     int py = y;
@@ -444,21 +444,21 @@ void font_paint(surface_t *sfc, const font_bmp_t *data, uint32_t unicode, uint32
     int sy = y + data->dispy;
     uint8_t *glyph = ADDR_OFF(data->glyphs, (unicode - 0x20) * data->glyph_size);
     for (l = 0; py < gy; ++py) {
-        int pxrow = sfc->pitch * py;
+        int pxrow = fb->pitch * py;
         for (px = x; px < gx; ++px, ++l) {
-            uint32_t *pixel = ADDR_OFF(sfc->pixels, pxrow + px * 4);
+            uint32_t *pixel = ADDR_OFF(fb->pixels, pxrow + px * 4);
             *pixel = color[(glyph[l / 8] & (1 << l % 8)) ? 0 : 1];
         }
         for (; px < sx; ++px) {
-            uint32_t *pixel = ADDR_OFF(sfc->pixels, pxrow + px * 4);
+            uint32_t *pixel = ADDR_OFF(fb->pixels, pxrow + px * 4);
             *pixel = color[1];
         }
     }
 
     for (; py < sy; ++py) {
-        int pxrow = sfc->pitch * py;
+        int pxrow = fb->pitch * py;
         for (px = x; px < sx; ++px) {
-            uint32_t *pixel = ADDR_OFF(sfc->pixels, pxrow + px * 4);
+            uint32_t *pixel = ADDR_OFF(fb->pixels, pxrow + px * 4);
             *pixel = color[1];
         }
     }

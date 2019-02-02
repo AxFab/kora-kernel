@@ -102,16 +102,17 @@ static void vga_change_offset(uint16_t offset)
     outw(VGA_PORT_DATA, offset);
 }
 
-void vga_flip(surface_t *screen)
+void vga_flip(inode_t *ino)
 {
-    vga_change_offset(screen->pixels > screen->backup ? screen->height : 0);
-    uint8_t *tmp = screen->pixels;
-    screen->pixels = screen->backup;
-    screen->backup = tmp;
+    framebuffer_t *fb = ( framebuffer_t *)ino->info;
+    vga_change_offset(fb->pixels > fb->backup ? fb->height : 0);
+    uint8_t *tmp = fb->pixels;
+    fb->pixels = fb->backup;
+    fb->backup = tmp;
 }
 
 ino_ops_t vga_ino_ops = {
-
+    .flip = vga_flip,
 };
 
 dev_ops_t vga_dev_ops = {
@@ -149,22 +150,18 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
         --i;
     vga_change_resol(size[i * 2], size[i * 2 + 1]);
 
-
-    surface_t *screen = vds_create_empty(size[i * 2], size[i * 2 + 1], 4);
-    uint32_t pixels1 = pixels0 + screen->pitch * screen->height;
-    screen->pixels = (uint8_t *)pixels1;
-    vds_fill(screen, 0xe2e2e2);
-    screen->pixels = (uint8_t *)pixels0;
-    screen->backup = (uint8_t *)pixels1;
-    screen->flip = vga_flip;
-    vga_change_offset(screen->height);
+    framebuffer_t *fb = gfx_create(size[i * 2], size[i * 2 + 1], 4, (void*)-1);
+    uint32_t pixels1 = pixels0 + fb->pitch * fb->height;
+    fb->pixels = (uint8_t *)pixels1;
+    fb->pixels = (uint8_t *)pixels0;
+    fb->backup = (uint8_t *)pixels1;
+    vga_change_offset(fb->height);
 
     inode_t *ino = vfs_inode(1, FL_VDO, NULL);
-    ino->info = screen;
+    ino->info = fb;
     ino->ops = &vga_ino_ops;
     ino->und.dev->ops = &vga_dev_ops;
     ino->und.dev->model = (char *)info->name;
     ino->und.dev->devclass = "VGA Screen";
     vfs_mkdev(ino, "fb0");
-    // wmgr_register_screen(screen);
 }

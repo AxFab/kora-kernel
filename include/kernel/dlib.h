@@ -119,8 +119,11 @@ int dlib_openexec(proc_t *proc, const char *execname);
 void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
 int dlib_map(dynlib_t *dlib, mspace_t *mspace);
 int dlib_map_all(proc_t *proc);
+void *dlib_exec_entry(proc_t *proc);
+
 
 int elf_parse(dynlib_t *dlib);
+void cpu_usermode(void *start, void *stack);
 
 
 #endif  /* _KERNEL_DLIB_H */

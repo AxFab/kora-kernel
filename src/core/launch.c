@@ -24,6 +24,7 @@
 #include <kernel/files.h>
 #include <kernel/input.h>
 #include <kernel/task.h>
+#include <kernel/syscalls.h>
 #include <kernel/cpu.h>
 #include <kora/iofile.h>
 #include <kora/llist.h>
@@ -84,7 +85,7 @@ void tty_start()
 
 
 extern tty_t *slog;
-void desktop();
+void wmgr_main();
 
 
 void kernel_master()
@@ -113,7 +114,7 @@ void kernel_master()
     resx_fs_chpwd(kCPU.running->resx_fs, root);
     vfs_close(root);
 
-    task_create(desktop, NULL, "Desktop #1");
+    task_create(wmgr_main, NULL, "Local display");
 
     sys_sleep(10000);
     task_show_all();
@@ -167,7 +168,7 @@ void kernel_start()
     assert(kCPU.irq_semaphore == 1);
 
     kprintf(KLOG_MSG, "\n");
-    slog = tty_create(128);
+    slog = tty_create(1024);
     kprintf(KLOG_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
 
     assert(kCPU.irq_semaphore == 1);
