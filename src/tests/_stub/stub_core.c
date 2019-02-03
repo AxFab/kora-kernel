@@ -272,3 +272,10 @@ uint8_t rand8()
     uint32_t r = (uint16_t)rand_r(&kCPU.seed);
     return r & 0xFF;
 }
+
+
+const char *ksymbol(void *eip, char *buf, int lg)
+{
+    return "???";
+}
+

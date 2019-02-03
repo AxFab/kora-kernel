@@ -121,6 +121,7 @@ struct task {
     uint64_t other_elapsed;  /* Time spend on other task */
 
     user_t *user;
+    proc_t *proc;
 
     resx_t *resx;  /* Open files */
     resx_fs_t *resx_fs;  /* File system information */

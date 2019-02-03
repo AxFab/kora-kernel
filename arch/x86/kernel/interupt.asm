@@ -124,7 +124,7 @@ int_exSS:
 int_exGP:
     SAVE_REGS
     push esp
-    push dword [esp + 52] ; get error code
+    push dword [esp + 56] ; get error code
     call x86_error
     add esp, 8
     LOAD_REGS
@@ -133,7 +133,7 @@ int_exGP:
 int_exPF:
     SAVE_REGS
     push esp
-    push dword [esp + 52] ; get error code
+    push dword [esp + 56] ; get error code
     mov eax, cr2
     push eax
     call x86_pgflt

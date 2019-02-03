@@ -20,16 +20,15 @@
 #include <kernel/core.h>
 #include <kora/mcrs.h>
 
-
-const char *ksymbol(void *eip)
-{
-    return "???";
-}
+#define STACK_MASK (~(PAGE_SIZE - 1))
 
 void stackdump(size_t frame)
 {
+    int usermode = 0;
+    char buf[30];
     size_t *ebp = &frame - 2;
     size_t *args;
+    size_t stack = (size_t)ebp & STACK_MASK;
     kprintf(KLOG_DBG, "Stack trace: [%x]\n", (size_t)ebp);
 
     while (frame-- > 0) {
@@ -41,9 +40,31 @@ void stackdump(size_t frame)
 
         // Unwind to previous stack frame
         ebp = (size_t *)(ebp[0]);
+        if (stack != (ebp[0] & STACK_MASK)) {
+            if (usermode++ == 0) {
+                kprintf(KLOG_DBG, "  0x%x - %s ()     no standard call\n", eip,
+                        ksymbol((void *)eip, buf, 30));
+                if (ebp[2] == 0x23 && ebp[5] == 0x33)
+                    ebp = (size_t*)ebp[4];
+                else if (ebp[3] == 0x23 && ebp[6] == 0x33)
+                    ebp = (size_t*)ebp[5];
+                else
+                    break;
+                stack = (size_t)ebp & STACK_MASK;
+                while (stack != (ebp[0] & STACK_MASK) && stack == ((size_t)ebp & STACK_MASK))
+                    ebp++;
+                if (stack == ((size_t)ebp & STACK_MASK))
+                    continue;
+            } else {
+                kprintf(KLOG_DBG, "  0x%x - %s ()     top of user stack\n", eip,
+                        ksymbol((void *)eip, buf, 30));
+            }
+            break;
+        }
+
         args = &ebp[2];
         kprintf(KLOG_DBG, "  0x%x - %s ()         [args: %x] \n", eip,
-                ksymbol((void *)eip),
+                ksymbol((void *)eip, buf, 30),
                 (size_t)args);
     }
 }

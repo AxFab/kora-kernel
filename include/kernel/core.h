@@ -76,7 +76,7 @@ __STDI void *malloc(size_t size);
 __STDI void free(void *ptr);
 
 
-const char *ksymbol(void *eip);
+const char *ksymbol(void *eip, char *buf, int lg);
 void stackdump(size_t frame);
 void kdump(const void *buf, int len);
 /* Store in a temporary buffer a size in bytes in a human-friendly format. */

@@ -161,3 +161,36 @@ void kmod_dump()
     splock_unlock(&kmod_lock);
 }
 
+
+const char *ksymbol(void *eip, char *buf, int lg)
+{
+    dynlib_t *lib;
+    dynsym_t *symbol;
+    dynsym_t *best = NULL;
+    proc_t *proc = &kproc;
+    task_t *task = kCPU.running;
+    if (task != NULL && task->usmem != NULL) {
+        if (task->usmem->lower_bound <= (size_t)eip && task->usmem->upper_bound > (size_t)eip)
+            proc = task->proc;
+    }
+    for ll_each(&proc->libraries, lib, dynlib_t, node) {
+        if ((size_t)eip < lib->base || (size_t)eip > lib->base + lib->length)
+            continue;
+        for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
+            if (symbol->address > (size_t)eip)
+                continue;
+            if (best == NULL || best->address < symbol->address)
+                best = symbol;
+        }
+    }
+
+    if (best == NULL)
+        return "???";
+
+    if ((size_t)eip == best->address)
+        snprintf(buf, lg, "%s", best->name);
+    else
+        snprintf(buf, lg, "%s (+%d)", best->name, (size_t)eip - best->address);
+    return buf;
+}
+

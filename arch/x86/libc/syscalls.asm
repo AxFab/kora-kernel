@@ -18,7 +18,8 @@ __syscall:
     mov edi, eax
     call __errno_location
     mov [eax], edx
-    mov eax, edi
+    mov [esp], edi
     popa
+    mov eax, edi
     leave
     ret

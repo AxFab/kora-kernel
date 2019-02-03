@@ -2,5 +2,5 @@ default 0
 timeout 0
 
 title KoraOS x86
-kernel /boot/kImage
+kernel /boot/kora-x86.krn
 module /boot/x86.miniboot.tar
