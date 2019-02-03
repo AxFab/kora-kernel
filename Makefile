@@ -87,7 +87,7 @@ endef
 
 define llib
 DEPS += $(call obj,$2,$1,d)
-$1: $(libdir)/lib$1.so
+lib$1: $(libdir)/lib$1.so
 $(libdir)/lib$1.a: $(call obj,$2,$1,o) $(call libs,$1_SLIBS,a)
 $(libdir)/lib$1.so: $(call obj,$2,$1,o) $(call libs,$1_SLIBS,a) $(call libs,$1_DLIBS,a)
 	$(S) mkdir -p $$(dir $$@)
@@ -115,8 +115,8 @@ endef
 
 define kimg
 DEPS += $(call obj,$2,$1,d)
-$1: $(bindir)/$1
-$(bindir)/$1: $(call obj,$2,$1,o)
+$(kname): $(gendir)/$(kname)
+$(gendir)/$(kname): $(call obj,$2,$1,o)
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  "$$@
 	$(V) $(LD) -T $(topdir)/arch/$(target_arch)/kernel.ld $($(1)_LFLAGS) -o $$@ $(call obj,$2,$1,o)

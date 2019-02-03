@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     char *name = NULL;
     char *suffix = NULL;
 
-    int o, n;
+    int o, n = 0;
     char eol = '\n';
     for (o = 1; o < argc; ++o) {
         if (argv[o][0] != '-') {

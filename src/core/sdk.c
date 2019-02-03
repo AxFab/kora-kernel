@@ -19,11 +19,14 @@
  */
 #include <kernel/sdk.h>
 
+dynlib_t klib;
+
 void kmod_symbol(CSTR name, void *ptr)
 {
     dynsym_t *symbol = kalloc(sizeof(dynsym_t));
     symbol->name = strdup(name);
     symbol->address = (size_t)ptr;
+    ll_append(&klib.intern_symbols, &symbol->node);
     hmp_put(&kproc.symbols, name, strlen(name), symbol);
 }
 
@@ -164,6 +167,10 @@ KMODULE(dev);
 void kmod_init()
 {
     hmp_init(&kproc.symbols, 32);
+    memset(&klib, 0, sizeof(klib));
+    klib.base = 0;
+    klib.length = 4 * _Mib_; // TODO arch specific!
+    ll_append(&kproc.libraries, &klib.node);
     kmod_symbols(base_kapi);
     kmod_register(&kmod_info_dev);
 }

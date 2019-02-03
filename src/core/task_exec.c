@@ -117,6 +117,7 @@ void exec_task()
     mmu_context(mspace);
     kCPU.running->usmem = mspace;
     proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace);
+    kCPU.running->proc = proc;
     int ret = dlib_openexec(proc, "bin/basename");
     if (ret == 0)
         tty_puts(tty, "Proc opened!!\n");

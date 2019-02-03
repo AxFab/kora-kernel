@@ -81,7 +81,7 @@ build_x86 () {
     $SCRIPT_HOME/scripts/drivers.sh
 
     # Import files
-    cp -v $SRC_KRN/bin/kImage iso/boot/kImage
+    cp -v $SRC_KRN/bin/kora-x86.krn iso/boot/kora-x86.krn
     cp -v $SRC_KRN/bin/* iso/bin/
     cp -v $SRC_KRN/lib/* iso/lib/
 

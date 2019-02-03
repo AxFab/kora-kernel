@@ -60,23 +60,26 @@ $(eval $(call ccpl,std))
 LFLAGS_app += -nostdlib -L $(libdir) -lc
 LFLAGS_ck += --coverage -fprofile-arcs -ftest-coverage
 
+kname := bin/kora-$(target_arch).krn
+kernel: ${kname}
+
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # K E R N E L   I M A G E -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-kImage_src-y += $(wildcard $(srcdir)/core/*.c)
-kImage_src-y += $(wildcard $(srcdir)/files/*.c)
-kImage_src-y += $(wildcard $(srcdir)/task/*.c)
-kImage_src-y += $(wildcard $(srcdir)/mem/*.c)
-kImage_src-y += $(wildcard $(srcdir)/vfs/*.c)
-kImage_src-y += $(wildcard $(srcdir)/net/*.c)
-kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.asm)
-kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.s)
-kImage_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.c)
-kImage_src-y += $(wildcard $(srcdir)/basic/*.c)
-kImage_src-y += $(wildcard $(srcdir)/c89/*.c) $(srcdir)/c11/mutex.c
-kImage_src-y += # Drivers
-kImage_omit-y += $(srcdir)/c89/libio.c
-$(eval $(call kimg,kImage,krn))
-DV_UTILS += $(bindir)/kImage
+kernel_src-y += $(wildcard $(srcdir)/core/*.c)
+kernel_src-y += $(wildcard $(srcdir)/files/*.c)
+kernel_src-y += $(wildcard $(srcdir)/task/*.c)
+kernel_src-y += $(wildcard $(srcdir)/mem/*.c)
+kernel_src-y += $(wildcard $(srcdir)/vfs/*.c)
+kernel_src-y += $(wildcard $(srcdir)/net/*.c)
+kernel_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.asm)
+kernel_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.s)
+kernel_src-y += $(wildcard $(topdir)/arch/$(target_arch)/kernel/*.c)
+kernel_src-y += $(wildcard $(srcdir)/basic/*.c)
+kernel_src-y += $(wildcard $(srcdir)/c89/*.c) $(srcdir)/c11/mutex.c
+kernel_src-y += # Drivers
+kernel_omit-y += $(srcdir)/c89/libio.c
+$(eval $(call kimg,kernel,krn))
+DV_UTILS += $(gendir)/${kname}
 
 # -------------------------
 

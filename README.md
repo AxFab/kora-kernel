@@ -7,7 +7,7 @@ This repository contains code for the kernel of the system, along with some driv
 
 I've been trying to build my own kernel from some time. After many rework, breaks and rethinking I restart one entirely with meticulous care for the design. My objective has always been to build program that do just what they supposed to do and nothing more, light and fast with a strongly decoupled architecture.
 
-This software is still a young pup but I have hope to build a reliable system soon. It'll provide all the basics features of a modern system and will be portable on several architecture (goal: x86, x86_64, ARM).
+This software is still a young pup but I have hope to build a reliable system soon. It'll provide all the basics features of a modern system and will be portable on several architectures (goal: x86, x86_64, ARM).
 
 > **Interoperability**: As I try to understand how things are made, and why, I sometimes get outside of strict POSIX or UNIX specifications. I definitively try to be as compliant as possible -- with both NT and UNIX world -- but I sure authorize myself to take different choices.
 
@@ -28,7 +28,7 @@ It take a list of commands that are executed in order:
 
 **Do it all**: `./scripts/build.sh -m x86 clean build run`
 
-> **Note**: This script might several packages to be installed...
+> **Note**: This script might require several packages to be installed...
 > As:  cross-gcc, nasm, make, grub...
 
 ## Build the kernel
@@ -40,15 +40,16 @@ You must check you have all required packages installed: `binutils, gcc, gnu-mak
 The `make` command will required 2 environment variables to be set correctly `CROSS` and `target` :
 
  - `CROSS` is the prefix to used with the compiler (`CC, default gcc`). If you set `CROSS=i386-elf-` then you are gonna use the compiler `i386-elf-gcc` also make sure the command is available on the `PATH`.
- - `target` is a triplet for the target platform. by default we have `target=${uname -m}-pc-none`. At this moment only the architecture matters, later I will had check for vendor, and the os should be `kora` but is simply ignored by the scripts. Only **x86** is complete, but to see which architectures are available, look at the content of `/arch/` directory.
+ - `target` is a triplet for the target platform. by default we have `target=${uname -m}-pc-kora`. Only **x86** architecture is available yet, but to see which architectures are for support, look at the content of `/arch/` directory.
 
 > By default tests programs make use of `gcov, lcov` and `check` library.
-After the build, if you're here to get dirty, think about `qemu` and `gdb`.
+After the build, if you're here to get dirty, think about `qemu` and `gdb` for debugging.
 
 > **Note:** A clean build is fast but make will require `*.d` files on a second run, which will increase build time. It's perfectly normal and most makefiles always build them anyway. You can avoid this by a `make clean` or use the option `NODEPS=1`. To ignore `*.d` files. Be aware of the effects of each command.
 
 ```bash
-make [kImage]         # Will build the kernel image as './bin/kImage
+make kernel         # Will build the kernel image as './bin/kora.krn
+make libc           # Will build the library './lib/lic.so
 make check          # Will run every tests available
 make cov_ck*        # Will run coverage on a single test program
 make clean          # Remove temporary building files
