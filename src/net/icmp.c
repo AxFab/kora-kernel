@@ -42,7 +42,7 @@ static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type,
     skb_t *skb = net_packet(ifnet, 128);
     if (skb == NULL)
         return -1;
-    if (ip4_header(skb, ip, rand(), 0, sizeof(ICMP_header_t) + len, IP4_ICMP) != 0)
+    if (ip4_header(skb, ip, rand32(), 0, sizeof(ICMP_header_t) + len, IP4_ICMP) != 0)
         return net_trash(skb);
     strncat(skb->log, "icmp:", NET_LOG_SIZE);
     ICMP_header_t header;
@@ -60,7 +60,7 @@ static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type,
 
 int icmp_ping(netdev_t *ifnet, const uint8_t *ip)
 {
-    short id = rand();
+    short id = rand16();
     short seq = 1;
     return icmp_packet(ifnet, ip, ICMP_PING, 0, id | (seq << 16),
                        "abcdefghijklmnop", 16);

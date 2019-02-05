@@ -26,10 +26,11 @@
 clock64_t kclock()
 {
     clock_t ticks = clock();
-    if (_PwNano_ > CLOCKS_PER_SEC)
-        ticks *= _PwNano_ / CLOCKS_PER_SEC;
-    else
-        ticks /= CLOCKS_PER_SEC / _PwNano_;
+#if _PwMicro_ > CLOCKS_PER_SEC
+    ticks *= _PwMicro_ / CLOCKS_PER_SEC;
+#elif _PwMicro_ < CLOCKS_PER_SEC
+        ticks /= CLOCKS_PER_SEC / _PwMicro_;
+#endif 
     return ticks;
 }
 #else
@@ -46,6 +47,6 @@ clock64_t kclock()
     li.LowPart = ft.dwLowDateTime;
     li.HighPart = ft.dwHighDateTime;
     // Convert ticks since EPOCH into nano-seconds
-    return (li.QuadPart - UNIX_START) * 100;
+    return (li.QuadPart - UNIX_START) / 10;
 }
 #endif

@@ -42,7 +42,7 @@ struct advent {
 
 static advent_t *async_advent(emitter_t *emitter, long timeout_us)
 {
-    /* Create an advent structure to hold event-comimg info */
+    /* Create an advent structure to hold event-coming info */
     advent_t *advent = (advent_t *)kalloc(sizeof(advent_t));
     advent->task = kCPU.running;
     advent->task->advent = advent;
@@ -65,6 +65,7 @@ static void async_terminate(advent_t *advent, int err)
 {
     assert(splock_locked(&async_lock));
     advent->err = err;
+    // TODO - - Emitter might require a lock (to grab before async_lock) 
     if (advent->emitter != NULL)
         ll_remove(&advent->emitter->list, &advent->em_node);
     ll_remove(&async_queue, &advent->qu_node);
@@ -122,6 +123,7 @@ int async_wait_rd(rwlock_t *lock, emitter_t *emitter, long timeout_us)
 void async_cancel(task_t *task)
 {
     splock_lock(&async_lock);
+    assert(task->advent != NULL);
     async_terminate(task->advent, 0);
     splock_unlock(&async_lock);
 }

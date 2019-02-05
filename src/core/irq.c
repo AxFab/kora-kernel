@@ -133,6 +133,8 @@ void irq_enter(int no)
     irq_reset(false);
 }
 
+#ifdef KORA_KRN
+
 void irq_fault(const fault_t *fault)
 {
     assert(fault != NULL);
@@ -247,3 +249,4 @@ long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
     return ret;
 }
 
+#endif

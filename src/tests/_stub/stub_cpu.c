@@ -25,16 +25,6 @@ void cpu_awake()
     kprintf(KLOG_MSG, "CPU: %s, Single CPU\n", "HostSimulatedCPU");
 }
 
-uint64_t cpu_clock()
-{
-    static uint64_t ticks = 0;
-    return ++ticks;
-}
-
-int cpu_no()
-{
-    return 0;
-}
 
 void cpu_run() {}
 void cpu_setup_signal() {}
@@ -50,10 +40,17 @@ void cpu_reboot()
 {
 }
 
-
-
-void cpu_save_task(task_t *task)
+uint64_t cpu_clock()
 {
-
+    static uint64_t ticks = 0;
+    return ++ticks;
 }
 
+int cpu_save(cpu_state_t *state)
+{
+    return 0;
+}
+
+void cpu_restore(cpu_state_t *state)
+{
+}

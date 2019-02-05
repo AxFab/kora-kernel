@@ -60,7 +60,6 @@ void cpu_setup()
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-void kernel_module(kmod_t *mod);
 KMODULE(imgdk);
 KMODULE(isofs);
 KMODULE(fatfs);
@@ -69,14 +68,14 @@ KMODULE(lnet);
 void platform_setup()
 {
     // Load fake disks drivers
-    task_create(kernel_module, &kmod_info_imgdk, kmod_info_imgdk.name);
+    // task_create(kernel_module, &kmod_info_imgdk, kmod_info_imgdk.name);
     // Load fake network driver
-    task_create(kernel_module, &kmod_info_lnet, kmod_info_lnet.name);
+    // task_create(kernel_module, &kmod_info_lnet, kmod_info_lnet.name);
     // Load fake screen
 
     // Load file systems
-    task_create(kernel_module, &kmod_info_isofs, kmod_info_isofs.name);
-    task_create(kernel_module, &kmod_info_fatfs, kmod_info_fatfs.name);
+    // task_create(kernel_module, &kmod_info_isofs, kmod_info_isofs.name);
+    // task_create(kernel_module, &kmod_info_fatfs, kmod_info_fatfs.name);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -94,7 +93,7 @@ int main()
     if (setjmp(__tcase_jump) != 0)
         return -1;
     for (;;) {
-        sys_ticks();
+        clock_ticks();
         async_timesup();
         Sleep(10);
     }

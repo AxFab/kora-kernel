@@ -17,6 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <kora/strlib.h>
 #include <stddef.h>
 #include <string.h>
 #include <ctype.h>
@@ -24,9 +25,6 @@
 
 #undef isspace
 
-/* TODO define somewhere else */
-#define __long long
-#define __ulong unsigned __long
 
 #define LONG_MAX  2147483647L
 #define LONG_MIN  (-LONG_MAX - 1)
@@ -114,10 +112,10 @@ __ulong _strtox(const char *str, char **endptr, int base, char *sign)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 /* Convert ASCII string to floating-point number */
-double strtod(const char *nptr, char **endptr);
+double _PRT(strtod)(const char *nptr, char **endptr);
 
 /* Convert ASCII string to long integer */
-long strtol(const char *nptr, char **endptr, int base)
+long _PRT(strtol)(const char *nptr, char **endptr, int base)
 {
     char sign;
     __ulong value;
@@ -161,7 +159,7 @@ long strtol(const char *nptr, char **endptr, int base)
 }
 
 /* Convert ASCII string to unsigned long integer */
-unsigned long strtoul(const char *nptr, char **endptr, int base)
+unsigned long _PRT(strtol)(const char *nptr, char **endptr, int base)
 {
     char sign;
     __ulong value;
@@ -203,10 +201,10 @@ unsigned long strtoul(const char *nptr, char **endptr, int base)
 
 
 /* Convert a string to a double */
-double atof(const char *nptr);
+double _PRT(atof)(const char *nptr);
 
 /* Convert a string to an integer */
-int atoi(const char *nptr)
+int _PRT(atoi)(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
@@ -214,7 +212,7 @@ int atoi(const char *nptr)
 }
 
 /* Convert a string to an integer */
-long atol(const char *nptr)
+long _PRT(atol)(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
@@ -223,7 +221,7 @@ long atol(const char *nptr)
 
 #ifdef __USE_C99
 /* Convert a string to an integer */
-long long atoll(const char *nptr)
+long long _PRT(atoll)(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
@@ -231,14 +229,14 @@ long long atoll(const char *nptr)
 }
 
 /* Convert a string to an integer */
-long long atoq(const char *nptr)
+long long _PRT(atoq)(const char *nptr)
 {
     char sign;
     __ulong value = _strtox(nptr, NULL, 10, &sign);
     return (long long)(sign == '+') ? value : -value;
 }
 
-long long strtoll(const char *nptr, char **endptr, int base)
+long long _PRT(strtoll)(const char *nptr, char **endptr, int base)
 {
     char sign;
     __ulong value;
@@ -287,7 +285,7 @@ long long strtoll(const char *nptr, char **endptr, int base)
     }
 }
 
-unsigned long long strtoull(const char *nptr, char **endptr, int base)
+unsigned long long _PRT(strtoull)(const char *nptr, char **endptr, int base)
 {
     char sign;
     __ulong value;
@@ -358,7 +356,7 @@ char *_utoa(__ulong value, char *str, int base, const char *digits)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
-char *itoa(int value, char *str, int base)
+char *_PRT(itoa)(int value, char *str, int base)
 {
     char *ptr = str;
     if (base < 2 || base > 36)

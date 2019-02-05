@@ -142,7 +142,7 @@ inode_t *wmgr_create_window(desktop_t *desk, int width, int height)
     win->rq.h = MAX(10, height);
 
     win->frame = gfx_create(width, height, 4, NULL);
-    win->color = RGB(rand(), rand(), rand());
+    win->color = RGB(rand8(), rand8(), rand8());
     win->desk = desk;
     win->pipe = pipe_create();
     desk->ox += 2 * DESK_PADDING;

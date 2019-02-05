@@ -52,7 +52,7 @@ int futex_wait(struct _US_MUTEX *mutex, const struct timespec *ts)
             splock_unlock(&mutex->splock);
             return 0;
         }
-        int res = async_wait(&mutex->splock, &mutex->emitter, until - kclock());
+        int res = async_wait(&mutex->splock, &mutex->emitter, (long)(until - kclock()));
         if (res == EAGAIN) {
             splock_unlock(&mutex->splock);
             return -1;

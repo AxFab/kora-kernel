@@ -159,7 +159,7 @@ void task_show_all();
 _Noreturn void cpu_halt();
 
 void scheduler_add(task_t *item);
-void scheduler_rm(task_t *item);
+void scheduler_rm(task_t *item, int status);
 void scheduler_switch(int status, int retcode);
 
 

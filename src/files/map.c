@@ -127,6 +127,7 @@ page_t map_fetch(map_cache_t *cache, off_t off)
     }
     assert(kCPU.irq_semaphore == 0);
     page_t pg = mmu_read((size_t)ptr);
+    assert(pg != 0);
     kunmap(ptr, PAGE_SIZE);
     page->phys = pg;
     cnd_broadcast(&page->cond);
