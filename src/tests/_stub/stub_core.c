@@ -137,6 +137,8 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
         void *buf = ptr;
         while (length > 0) {
             page_t pg = ino->ops->fetch(ino, off);
+            if (pg == 0)
+                kprintf (-1, "Error mapping à file \n");
             memcpy(buf, (void *)pg, PAGE_SIZE);
             ino->ops->release(ino, off, pg);
             length -= PAGE_SIZE;
@@ -224,15 +226,19 @@ void heap_unmap(void *adddress, size_t length)
 void nanosleep(struct timespec *tm, struct timespec *rs)
 {
     clock64_t start = kclock();
-    Sleep(tm->tv_sec * 1000 + tm->tv_nsec / 1000000);
+    Sleep((DWORD)(tm->tv_sec * 1000 + tm->tv_nsec / 1000000));
     clock64_t elasped = start - kclock();
     elasped = tm->tv_sec * _PwNano_ + tm->tv_nsec - elasped;
     if (elasped < 0) {
-        rs->tv_sec = 0;
-        rs->tv_nsec = 0;
+        if (rs != NULL) {  
+            rs->tv_sec = 0;
+            rs->tv_nsec = 0;
+        } 
     } else {
-        rs->tv_sec = elasped / _PwNano_;
-        rs->tv_nsec = elasped % _PwNano_;
+        if (rs != NULL) {  
+            rs->tv_sec = elasped / _PwNano_;
+            rs->tv_nsec = elasped % _PwNano_;
+        } 
     }
 }
 #endif

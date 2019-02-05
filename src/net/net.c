@@ -140,7 +140,7 @@ char *net_ip4str(char *buf, uint8_t *ip)
 
 uint16_t net_rand_port()
 {
-    return (rand() & 0xFFFF) | 0x400;
+    return (rand16() & 0xFFFF) | 0x400;
 }
 
 uint16_t net_ephemeral_port(socket_t *socket)

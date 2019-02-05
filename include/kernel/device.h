@@ -116,6 +116,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume);
 int vfs_mkdev(inode_t *ino, CSTR name);
 void vfs_rmdev(CSTR name);
 inode_t *vfs_search_device(CSTR name);
+void vfs_show_devices();
 
 void register_fs(CSTR, fs_mount mount);
 void unregister_fs(CSTR name);

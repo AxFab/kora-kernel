@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kora/mcrs.h>
-// #include <stdlib.h>
+#include <kora/strlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>
@@ -28,56 +28,56 @@ START_TEST(test_integer_001)
 {
     char *ptr;
 
-    ck_assert(strtol("157", &ptr, 10) == 157);
+    ck_assert(_PRT(strtol)("157", &ptr, 10) == 157);
     ck_assert(strcmp(ptr, "") == 0);
     ck_assert(errno == 0);
 
-    ck_assert(strtol("-983", &ptr, 10) == -983);
+    ck_assert(_PRT(strtol)("-983", &ptr, 10) == -983);
     ck_assert(strcmp(ptr, "") == 0);
     ck_assert(errno == 0);
 
-    ck_assert(strtol("20", &ptr, 16) == 32);
+    ck_assert(_PRT(strtol)("20", &ptr, 16) == 32);
     ck_assert(strcmp(ptr, "") == 0);
     ck_assert(errno == 0);
 
-    ck_assert(strtol("42A", &ptr, 5) == 22);
+    ck_assert(_PRT(strtol)("42A", &ptr, 5) == 22);
     ck_assert(strcmp(ptr, "A") == 0);
     ck_assert(errno == 0);
 
-    ck_assert(strtol("96!", &ptr, 12) == 114);
+    ck_assert(_PRT(strtol)("96!", &ptr, 12) == 114);
     ck_assert(strcmp(ptr, "!") == 0);
     ck_assert(errno == 0);
 
-    ck_assert(strtol("Hello", &ptr, 5) == 0);
+    ck_assert(_PRT(strtol)("Hello", &ptr, 5) == 0);
     ck_assert(strcmp(ptr, "Hello") == 0);
     ck_assert(errno == EINVAL);
 
-    ck_assert(strtol("@78", &ptr, 10) == 0);
+    ck_assert(_PRT(strtol)("@78", &ptr, 10) == 0);
     ck_assert(strcmp(ptr, "@78") == 0);
     ck_assert(errno == EINVAL);
 
-    ck_assert(strtol("5123456789", &ptr, 0) == 0);
+    ck_assert(_PRT(strtol)("5123456789", &ptr, 0) == 0);
     ck_assert(errno == EOVERFLOW);
 
-    ck_assert(strtoul("01244", &ptr, 0) == 01244);
+    ck_assert(_PRT(strtoul)("01244", &ptr, 0) == 01244);
     ck_assert(errno == 0);
 
-    ck_assert(strtoul("0x16EFac8", &ptr, 0) == 0x16EFac8);
+    ck_assert(_PRT(strtoul)("0x16EFac8", &ptr, 0) == 0x16EFac8);
     ck_assert(errno == 0);
 
-    ck_assert(strtol("14", &ptr, 1) == 0);
+    ck_assert(_PRT(strtol)("14", &ptr, 1) == 0);
     ck_assert(errno == EINVAL);
 
-    ck_assert(strtol("96", &ptr, 87) == 0);
+    ck_assert(_PRT(strtol)("96", &ptr, 87) == 0);
     ck_assert(errno == EINVAL);
 
-    ck_assert(strtoul("14", &ptr, 1) == 0);
+    ck_assert(_PRT(strtoul)("14", &ptr, 1) == 0);
     ck_assert(errno == EINVAL);
 
-    ck_assert(strtoul("96", &ptr, 87) == 0);
+    ck_assert(_PRT(strtoul)("96", &ptr, 87) == 0);
     ck_assert(errno == EINVAL);
 
-    ck_assert(strtoul("-879", &ptr, 10) == 0);
+    ck_assert(_PRT(strtoul)("-879", &ptr, 10) == 0);
     ck_assert(errno == EINVAL);
 
 }
@@ -85,32 +85,30 @@ END_TEST
 
 START_TEST(test_integer_002)
 {
-    ck_assert(atoi("1244") == 1244);
-    ck_assert(atoi("+546") == 546);
-    ck_assert(atoi("   -864") == -864);
-    ck_assert(atoi(" \n\t 989") == 989);
+    ck_assert(_PRT(atoi)("1244") == 1244);
+    ck_assert(_PRT(atoi)("+546") == 546);
+    ck_assert(_PRT(atoi)("   -864") == -864);
+    ck_assert(_PRT(atoi)(" \n\t 989") == 989);
 
-    ck_assert(atol("-984") == -984);
-    ck_assert(atol("7876") == 7876);
-    ck_assert(atol(" +8465") == 8465);
+    ck_assert(_PRT(atol)("-984") == -984);
+    ck_assert(_PRT(atol)("7876") == 7876);
+    ck_assert(_PRT(atol)(" +8465") == 8465);
 
 }
 END_TEST
 
 
-char *itoa(int, char *, int);
-
 START_TEST(test_integer_003)
 {
     char buf[50];
 
-    ck_assert(strcmp(itoa(546, buf, 10), "546") == 0);
-    ck_assert(strcmp(itoa(144, buf, 12), "100") == 0);
-    ck_assert(strcmp(itoa(0, buf, 7), "0") == 0);
-    ck_assert(strcmp(itoa(0, buf, 10), "0") == 0);
-    ck_assert(strcmp(itoa(-9464, buf, 10), "-9464") == 0);
-    ck_assert(itoa(464, buf, 0) == NULL);
-    ck_assert(itoa(798654, buf, 765) == NULL);
+    ck_assert(strcmp(_PRT(itoa)(546, buf, 10), "546") == 0);
+    ck_assert(strcmp(_PRT(itoa)(144, buf, 12), "100") == 0);
+    ck_assert(strcmp(_PRT(itoa)(0, buf, 7), "0") == 0);
+    ck_assert(strcmp(_PRT(itoa)(0, buf, 10), "0") == 0);
+    ck_assert(strcmp(_PRT(itoa)(-9464, buf, 10), "-9464") == 0);
+    ck_assert(_PRT(itoa)(464, buf, 0) == NULL);
+    ck_assert(_PRT(itoa)(798654, buf, 765) == NULL);
 
 }
 END_TEST

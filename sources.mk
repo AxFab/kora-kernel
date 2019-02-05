@@ -85,7 +85,7 @@ DV_UTILS += $(gendir)/${kname}
 
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-# S T A N D A R D   L I B R A I R Y -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# S T A N D A R D   L I B R A R Y -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 c_src-y += $(wildcard $(topdir)/arch/$(target_arch)/libc/*.c)
 c_src-y += $(wildcard $(topdir)/arch/$(target_arch)/libc/*.asm)
 c_src-y += $(wildcard $(srcdir)/basic/*.c)
@@ -119,6 +119,7 @@ endef
 # ckfiles_src-y += $(wildcard $(srcdir)/files/*.c)
 ckfiles_src-y += $(srcdir)/files/pipe.c
 ckfiles_src-y += $(srcdir)/task/async.c
+ckfiles_src-y += $(srcdir)/core/irq.c
 ckfiles_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
 ckfiles_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
 $(eval $(call test,files))
@@ -127,6 +128,7 @@ ckfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
 # ckfs_src-y += $(wildcard $(srcdir)/files/*.c) # Yes or no !?
 ckfs_src-y += $(srcdir)/files/pipe.c
 ckfs_src-y += $(srcdir)/task/async.c
+ckfs_src-y += $(srcdir)/core/irq.c
 ckfs_src-y += $(srcdir)/core/bio.c
 ckfs_src-y += $(srcdir)/core/debug.c
 ckfs_src-y += $(wildcard $(srcdir)/drivers/disk/imgdk/*.c)
@@ -140,12 +142,14 @@ $(eval $(call test,fs))
 # -------------------------
 ckmem_src-y += $(srcdir)/core/debug.c
 ckmem_src-y += $(wildcard $(srcdir)/mem/*.c)
+ckmem_src-y += $(srcdir)/core/irq.c
 ckmem_omit-y += $(srcdir)/tests/_stub/stub_mem.c
 ckmem_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
 $(eval $(call test,mem))
 
 # -------------------------
 cknet_src-y += $(srcdir)/core/debug.c
+cknet_src-y += $(srcdir)/core/irq.c
 cknet_src-y += $(srcdir)/tests/_$(CC)/threads.c
 cknet_src-y += $(wildcard $(srcdir)/net/*.c)
 cknet_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
@@ -164,7 +168,7 @@ $(eval $(call test,utils))
 
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-# T E S T I N G   U T I L I T I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# S H E L L   U T I L I T I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 define utilo
 $(1)_src-y += $(topdir)/arch/$(target_arch)/crt0.asm
 $(1)_src-y += $(srcdir)/utils/$(1).c

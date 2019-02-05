@@ -29,13 +29,15 @@ void scheduler_add(task_t *task)
 {
     splock_lock(&task_lock);
     ll_enqueue(&task_list, &task->node);
+    task->status = TS_READY;
     splock_unlock(&task_lock);
 }
 
-void scheduler_rm(task_t *task)
+void scheduler_rm(task_t *task, int status)
 {
     splock_lock(&task_lock);
     ll_remove(&task_list, &task->node);
+    task->status = status;
     splock_unlock(&task_lock);
 }
 

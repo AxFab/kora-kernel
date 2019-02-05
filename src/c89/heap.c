@@ -21,7 +21,6 @@
 #include <errno.h>
 #include <kora/allocator.h>
 #include <kora/mcrs.h>
-#include <sys/mman.h>
 
 static int __empty_arena = 0;
 static int __arena_option = HEAP_CHECK;

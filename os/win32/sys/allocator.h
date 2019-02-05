@@ -20,8 +20,9 @@
 #ifndef _SYS_ALLOCATOR_H
 #define _SYS_ALLOCATOR_H 1
 
+#include <stdlib.h>
 
-#define MMAP(l) __aligned_malloc(l, PAGE_SIZE)
-#define MUNMAP(a,l) __aligned_free(a)
+#define MMAP(l)  _aligned_malloc(l, PAGE_SIZE)
+#define MUNMAP(a,l)  _aligned_free(a)
 
 #endif /* _SYS_ALLOCATOR_H */

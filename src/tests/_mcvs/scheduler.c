@@ -30,13 +30,17 @@ void scheduler_add(task_t *task)
 {
     splock_lock(&task_lock);
     ll_enqueue(&task_list, &task->node);
+    task->status = TS_READY;
+    // kprintf(-1, "Scheduler add #%d\n", task->pid);
     splock_unlock(&task_lock);
 }
 
-void scheduler_rm(task_t *task)
+void scheduler_rm(task_t *task, int status)
 {
     splock_lock(&task_lock);
     ll_remove(&task_list, &task->node);
+    // kprintf(-1, "Scheduler remove #%d\n", task->pid);
+    task->status = status;
     splock_unlock(&task_lock);
 }
 
@@ -58,8 +62,11 @@ task_t *scheduler_next()
             break;
         }
     }
-    if (task == NULL)
-        task = ll_dequeue(&task_list, task_t, node);
+
+    if (task != NULL) {
+        task->status = TS_RUNNING;
+        // kprintf(-1, "Scheduler next #%d\n", task->pid);
+    } 
     splock_unlock(&task_lock);
     return task;
 }
@@ -133,7 +140,7 @@ void scheduler_switch(int status, int retcode)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-extern __declspec(thread) int __cpu_no;
+extern __thread int __cpu_no;
 
 DWORD WINAPI new_cpu_thread(LPVOID lpParameter)
 {

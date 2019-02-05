@@ -79,6 +79,8 @@ inode_t *vfs_open(inode_t *ino)
 */
 void vfs_close(inode_t *ino)
 {
+	if (ino == NULL) 
+	    return;
     unsigned int cnt = atomic32_xadd(&ino->rcu, -1);
     if (cnt <= 1) {
         // TODO -- Close IO file

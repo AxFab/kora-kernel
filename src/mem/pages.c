@@ -62,7 +62,7 @@ void page_range(long long base, long long length)
     }
 }
 
-/* Allocat a single page for the system and return it's physical address */
+/* Allocate a single page for the system and return it's physical address */
 page_t page_new()
 {
     int i = 0, j = 0;
@@ -80,7 +80,7 @@ page_t page_new()
     return (page_t)(i * 8 + j) * PAGE_SIZE;
 }
 
-/* Look for count pages in continous memory */
+/* Look for count pages in continuous memory */
 page_t page_get(int zone, int count)
 {
     assert((count & 7) == 0);

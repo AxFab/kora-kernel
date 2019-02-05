@@ -63,9 +63,9 @@ void clock_ticks()
         kSYS.jiffies++;
         splock_unlock(&kSYS.time_lock);
     }
+    async_timesup();
     if (kCPU.flags & CPU_NO_TASK)
         return;
-    async_timesup();
     scheduler_switch(TS_READY, 0);
 }
 

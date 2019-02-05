@@ -164,19 +164,6 @@ void task_core(task_t *task)
 }
 
 
-_Noreturn void task_fatal(CSTR error, unsigned signum)
-{
-    if (kCPU.running != NULL) {
-        kprintf(KLOG_ERR, "Fatal error on CPU.%d Task #%d: \033[91m%s\033[0m\n", cpu_no(), kCPU.running->pid, error);
-        task_core(kCPU.running);
-        // task_kill(kCPU.running, signum);
-        task_stop(kCPU.running, -1);
-    }
-    kprintf(KLOG_ERR, "Unrecoverable error on CPU.%d: \033[91m%s\033[0m\n", cpu_no(), error);
-    // Disable scheduler
-    // Play dead screen
-    for (;;); // scheduler_switch(0, -1);
-}
 
 
 void task_show_all()
@@ -229,9 +216,13 @@ int task_stop(task_t *task, int code)
     } else if (task->status == TS_ZOMBIE) {
         splock_unlock(&task->lock);
         return -1;
+    } else if (task->status == TS_BLOCKED) {
+        async_cancel(task);
+        task->status = TS_ZOMBIE;
+        splock_unlock(&task->lock);
     } else
         assert(false);
-    task->status = TS_ZOMBIE;
+    assert(task->status == TS_ZOMBIE);
     task->retcode = code;
     task_t *parent = task->parent;
     // TODO - All children become orphans
@@ -370,4 +361,20 @@ int task_kill(task_t *task, unsigned signum)
 //     }
 // }
 
+#ifdef KORA_KRN
 
+_Noreturn void task_fatal(CSTR error, unsigned signum)
+{
+    if (kCPU.running != NULL) {
+        kprintf(KLOG_ERR, "Fatal error on CPU.%d Task #%d: \033[91m%s\033[0m\n", cpu_no(), kCPU.running->pid, error);
+        task_core(kCPU.running);
+        // task_kill(kCPU.running, signum);
+        task_stop(kCPU.running, -1);
+    }
+    kprintf(KLOG_ERR, "Unrecoverable error on CPU.%d: \033[91m%s\033[0m\n", cpu_no(), error);
+    // Disable scheduler
+    // Play dead screen
+    for (;;); // scheduler_switch(0, -1);
+}
+
+#endif

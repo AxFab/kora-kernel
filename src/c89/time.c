@@ -58,9 +58,9 @@ static const char *const shMonthStrings[] = {
 };
 
 
-static long long __yeartosecs(long long year, int *is_leap)
+static long long __yeartosecs(long year, int *is_leap)
 {
-    if (year - 2ULL <= 136) {
+    if (year - 2UL <= 136) {
         int y = year;
         int leaps = (y - 68) >> 2;
 
@@ -145,7 +145,7 @@ static int __monthtosecs(int month, int is_leap)
 static long long __tmtosecs(const struct tm *tm)
 {
     int is_leap;
-    long long year = tm->tm_year;
+    long year = tm->tm_year;
     int month = tm->tm_mon;
 
     if (month >= 12 || month < 0) {
@@ -196,7 +196,7 @@ static int __secstotm(long long t, struct tm *tm)
     if (wday < 0)
         wday += 7;
 
-    qc_cycles = days / DAYS_PER_400Y;
+    qc_cycles = (int)(days / DAYS_PER_400Y);
     remdays = days % DAYS_PER_400Y;
 
     if (remdays < 0) {

@@ -21,6 +21,7 @@
 #include <kora/mcrs.h>
 #include <kernel/memory.h>
 #include <kernel/vfs.h>
+#include <kernel/device.h>
 #include "../check.h"
 
 extern size_t __um_mspace_pages_count;
