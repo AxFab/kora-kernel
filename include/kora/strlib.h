@@ -34,7 +34,7 @@ __ulong _strtox(const char *str, char **endptr, int base, char *sign);
 long _PRT(strtol)(const char *nptr, char **endptr, int base);
 
 /* Convert ASCII string to unsigned long integer */
-unsigned long _PRT(strtol)(const char *nptr, char **endptr, int base);
+unsigned long _PRT(strtoul)(const char *nptr, char **endptr, int base);
 
 /* Convert a string to an integer */
 int _PRT(atoi)(const char *nptr);
