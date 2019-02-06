@@ -159,7 +159,7 @@ long _PRT(strtol)(const char *nptr, char **endptr, int base)
 }
 
 /* Convert ASCII string to unsigned long integer */
-unsigned long _PRT(strtol)(const char *nptr, char **endptr, int base)
+unsigned long _PRT(strtoul)(const char *nptr, char **endptr, int base)
 {
     char sign;
     __ulong value;
