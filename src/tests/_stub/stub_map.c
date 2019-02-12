@@ -35,7 +35,7 @@ struct map_page {
 struct map_cache {
     inode_t *ino;
     size_t block;
-    int(*read)(inode_t *, const *data, size_t, off_t);
+    int(*read)(inode_t *, void *data, size_t, off_t);
     int(*write)(inode_t *, const void *data, size_t, off_t);
     bbtree_t tree;
     splock_t lock;
@@ -74,7 +74,7 @@ page_t map_fetch(map_cache_t *cache, off_t off)
     assert(IS_ALIGNED(off, PAGE_SIZE));
     void *ptr = kmap(PAGE_SIZE, NULL, 0, VMA_PHYSIQ);
     cache->read(cache->ino, ptr, PAGE_SIZE, off);
-    return (void *)ptr;
+    return (page_t)ptr;
 }
 
 void map_sync(map_cache_t *cache, off_t off, page_t pg)

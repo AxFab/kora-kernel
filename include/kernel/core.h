@@ -147,6 +147,8 @@ void irq_unregister(int no, irq_handler_t func, void *data);
 void irq_fault(const fault_t *fault);
 /* - */
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5);
+/* - */
+void irq_enter(int no);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -163,6 +165,8 @@ uint64_t cpu_clock();
 uint64_t clock_elapsed(uint64_t *last);
 /* - */
 _Noreturn void cpu_halt();
+
+void cpu_reboot();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

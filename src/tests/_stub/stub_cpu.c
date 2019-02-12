@@ -54,3 +54,19 @@ int cpu_save(cpu_state_t *state)
 void cpu_restore(cpu_state_t *state)
 {
 }
+
+void cpu_usermode(void *entry, void *args)
+{
+
+}
+
+void cpu_halt()
+{
+}
+
+
+void cpu_setup()
+{
+    kSYS.cpus = kalloc(sizeof(struct kCpu) * 32);
+    kSYS.cpus[0].irq_semaphore = 1;
+}
