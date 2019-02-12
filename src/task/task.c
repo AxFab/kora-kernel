@@ -56,6 +56,7 @@ static task_t *task_search_unkocked(pid_t pid)
 static task_t *task_allocat()
 {
     task_t *task = (task_t *)kalloc(sizeof(task_t));
+    task->rcu = 2;
     task->kstack = (size_t *)kmap(KSTACK, NULL, 0, VMA_STACK_RW | VMA_RESOLVE);
     task->kstack_len = KSTACK;
 
@@ -82,6 +83,10 @@ task_t *task_search(pid_t pid)
 {
     splock_lock(&tsk_lock);
     task_t *task = task_search_unkocked(pid);
+    if (task != NULL) {
+        atomic_inc(&task->rcu);
+        // kprintf(-1, "TASK OPEN %s\n", task->name);
+    }
     splock_unlock(&tsk_lock);
     return task;
 }
@@ -133,8 +138,13 @@ task_t *task_fork(unsigned flags, void *entry, void *param)
 }
 
 
-void task_destroy(task_t *task)
+void task_close(task_t *task)
 {
+    // kprintf(-1, "TASK CLOSE %s\n", task->name);
+    if (atomic_xadd(&task->rcu, -1) != 1)
+        return;
+
+    // kprintf(-1, "TASK DESTROY %s\n", task->name);
     assert(task->status == TS_ZOMBIE);
     splock_lock(&task->lock);
 
@@ -230,11 +240,13 @@ int task_stop(task_t *task, int code)
     if (parent)
         task_kill(parent, SIGCHLD);
     // event_trigger(EV_TASK_DIE, task);
-    // rcu_free(task);
+
     if (task == kCPU.running) {
+        task_close(task);
         kCPU.running = NULL;
         scheduler_switch(TS_ZOMBIE, 0);
     }
+    task_close(task);
     return 0;
 }
 

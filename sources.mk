@@ -158,6 +158,20 @@ cknet_LIBS += -lpthread
 $(eval $(call test,net))
 
 # -------------------------
+cktask_src-y += $(wildcard $(srcdir)/task/*.c)
+cktask_src-y += $(wildcard $(srcdir)/mem/*.c)
+cktask_src-y += $(srcdir)/core/debug.c
+cktask_src-y += $(srcdir)/core/irq.c
+cktask_src-y += $(srcdir)/tests/_$(CC)/threads.c
+cktask_src-y += $(srcdir)/tests/_$(CC)/scheduler.c
+cktask_omit-y += $(srcdir)/task/scheduler.c
+cktask_omit-y += $(srcdir)/tests/_stub/stub_mem.c
+cktask_omit-y += $(srcdir)/tests/_stub/stub_task.c
+cktask_omit-y += $(srcdir)/tests/_stub/stub_time.c
+cktask_LIBS += -lpthread
+$(eval $(call test,task))
+
+# -------------------------
 ckutils_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
 ckutils_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
 ckutils_omit-y += $(srcdir)/tests/_stub/stub_irq.c

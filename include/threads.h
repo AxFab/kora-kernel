@@ -34,7 +34,8 @@ typedef void(*tss_dtor_t)(void *);
 typedef struct _US_THREAD *thrd_t;
 typedef struct _US_MUTEX *mtx_t;
 typedef struct _US_MUTEX *cnd_t;
-typedef tss_dtor_t *tss_t;
+#define __tss_t void*
+typedef __tss_t tss_t;
 
 
 typedef atomic_t once_flag;
