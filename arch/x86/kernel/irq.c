@@ -111,6 +111,10 @@ void irq_unmask(int no)
 
 void x86_fault(int no, regs_t *regs)
 {
+    kprintf(-1, "REGS\n");
+    kprintf(-1, "  eax:%08x, ecx:%08x, edx:%08x, ebx:%08x, \n", regs->eax, regs->ecx, regs->edx, regs->ebx);
+    kprintf(-1, "  ebp:%08x, esp:%08x, esi:%08x, edi:%08x, \n", regs->ebp, regs->esp, regs->esi, regs->edi);
+    kprintf(-1, "  cs:%02x, ds:%02x, eip:%08x, eflags:%08x \n", regs->cs, regs->ds, regs->eip, regs->eflags);
     irq_fault(&x86_exceptions[MIN(0x20, (unsigned)no)]);
 }
 
