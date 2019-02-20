@@ -118,9 +118,13 @@ void elf_relocation(dynrel_t *reloc, uint32_t *rel, llhead_t *symbols)
     int sym_idx = rel[1] >> 8;
     reloc->address = rel[0];
     reloc->type = rel[1] & 0xF;
-    if (sym_idx != 0)
+    if (sym_idx != 0) {
         reloc->symbol = ll_index(symbols, sym_idx - 1, dynsym_t, node);
-    // kprintf(-1, "R: %06x  %x  %s \n", reloc->address, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
+        if (reloc->symbol == NULL) {
+            kprintf(-1, "Missing RelSym: %06x  %x  (%d) \n", reloc->address, reloc->type, sym_idx);
+        }
+    }
+    // kprintf(-1, "R efl: %06x  %x  %s \n", reloc->address, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
 }
 
 
@@ -158,6 +162,7 @@ int elf_parse(dynlib_t *dlib)
     }
 
     /* Relocate executable to address zero */
+    dynamic.hash -= dlib->base;
     dynamic.init -= dlib->base;
     dynamic.fini -= dlib->base;
     dynamic.str_tab -= dlib->base;
@@ -165,7 +170,10 @@ int elf_parse(dynlib_t *dlib)
     dynamic.rel -= dlib->base;
     dlib->length -= dlib->base;
     dlib->entry -= dlib->base;
-
+    uint32_t *hash = ADDR_OFF(head, dynamic.hash);
+    // if (dynamic.hash > 0 && dynamic.hash < 4080) {
+        // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
+    // }
     dynsec_t *sec;
     for ll_each(&dlib->sections, sec, dynsec_t, node)
         sec->offset -= dlib->base;
@@ -181,6 +189,10 @@ int elf_parse(dynlib_t *dlib)
         bio_clean(dlib->io, 0);
         return -1;
     }
+    if (dynamic.hash > 4080) {
+        bio_clean(dlib->io, 0);
+        return -1;
+    }
 
     /* Find string table */
     const char *strtab = ADDR_OFF(bio_access(dlib->io, dynamic.str_tab / PAGE_SIZE), dynamic.str_tab % PAGE_SIZE);
@@ -189,12 +201,9 @@ int elf_parse(dynlib_t *dlib)
     /* Build symbol table */
     llhead_t symbols = INIT_LLHEAD;
     elf_sym32_t *sym_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.sym_tab / PAGE_SIZE), dynamic.sym_tab % PAGE_SIZE);
-    for (i = 1; ; ++i) {
-        // TODO -- How to detect the end of table!
-        if (sym_tbl[i].value >= dlib->length)
-            break;
-        if (sym_tbl[i].shndx > head->sh_off)
-            break;
+    // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
+    unsigned sym_count = hash[1];
+    for (i = 1; i < sym_count; ++i) {
         dynsym_t *sym = kalloc(sizeof(dynsym_t));
         ll_append(&symbols, &sym->node);
         elf_symbol(sym, &sym_tbl[i], dlib, &dynamic, strtab);

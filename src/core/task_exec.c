@@ -23,6 +23,7 @@
 #include <kernel/dlib.h>
 #include <kernel/task.h>
 #include <kernel/syscalls.h>
+#include <string.h>
 
 extern const font_bmp_t font_8x15;
 
@@ -99,9 +100,14 @@ void fake_shell_task()
 }
 
 
+    const char* exec_args[3] = {
+        "bin/basename", "-n", "/usr/include/string.h"
+    };
+
 
 void exec_task()
 {
+    int i, lg;
     tty_t *tty = tty_create(128);
     inode_t *win = wmgr_create_window(NULL, 180, 120);
     tty_window(tty, win, &font_8x15);
@@ -111,7 +117,7 @@ void exec_task()
     kCPU.running->usmem = mspace;
     proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace);
     kCPU.running->proc = proc;
-    int ret = dlib_openexec(proc, "bin/basename");
+    int ret = dlib_openexec(proc, exec_args[0]);
     if (ret == 0)
         tty_puts(tty, "Proc opened!!\n");
     else
@@ -126,12 +132,24 @@ void exec_task()
     void* start = dlib_exec_entry(proc);
     void* stack = mspace_map(mspace, 0, _Mib_, NULL, 0, VMA_STACK_RW);
     stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
-    kprintf(-1, "basename: start:%p, stack:%p\n", start, stack);
+    kprintf(-1, "%s: start:%p, stack:%p\n", exec_args[0], start, stack);
     mspace_display(mspace);
 
-    cpu_usermode(start, stack);
+    int argc = 3;
+    char **argv = (char**)(stack -= (argc * sizeof(char*)));
+    for (i = 0; i < argc; ++i) {
+        lg = strlen(exec_args[i]) + 1;
+        argv[i] = (char*)(stack -= ALIGN_UP(lg, 4));
+        strcpy(argv[i], exec_args[i]);
+        kprintf(-1, "Set arg.%d: '%s'\n", i, argv[i]);
+    }
 
-    for (;;)
-        sys_sleep(SEC_TO_KTIME(10));
+    size_t *args = (size_t*)(stack -= (4 * sizeof(char*)));
+    args[1] = argc;
+    args[2] = (size_t)argv;
+    args[3] = 0;
+
+    kprintf(-1, "%s: start:%p, stack:%p\n", exec_args[0], start, stack);
+    cpu_usermode(start, stack);
 }
 

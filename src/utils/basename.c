@@ -35,7 +35,7 @@ char *usages[] = {
     NULL,
 };
 
-int main(int argc, char **argv)
+int _main(int argc, char **argv, char **env)
 {
     int multiple = 0;
     char *name = NULL;

@@ -52,7 +52,7 @@ char notations_lg[] = {
     0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-int main(int argc, char **argv)
+int _main(int argc, char **argv, char **env)
 {
     int i;
     int oflg = 0 ; // O_RDONLY;
