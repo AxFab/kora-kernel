@@ -46,7 +46,28 @@ clock64_t kclock()
     LARGE_INTEGER li;
     li.LowPart = ft.dwLowDateTime;
     li.HighPart = ft.dwHighDateTime;
-    // Convert ticks since EPOCH into nano-seconds
+    // Convert ticks since EPOCH into micro-seconds
     return (li.QuadPart - UNIX_START) / 10;
 }
+
+
+void nanosleep(struct timespec *tm, struct timespec *rs)
+{
+    clock64_t start = kclock();
+    Sleep((DWORD)(tm->tv_sec * 1000 + tm->tv_nsec / 1000000));
+    clock64_t elasped = start - kclock();
+    elasped = tm->tv_sec * _PwNano_ + tm->tv_nsec - elasped;
+    if (elasped < 0) {
+        if (rs != NULL) {  
+            rs->tv_sec = 0;
+            rs->tv_nsec = 0;
+        } 
+    } else {
+        if (rs != NULL) {  
+            rs->tv_sec = elasped / _PwNano_;
+            rs->tv_nsec = elasped % _PwNano_;
+        } 
+    }
+}
+
 #endif

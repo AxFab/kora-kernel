@@ -67,7 +67,7 @@ static int vfs_write_block(inode_t *ino, const char *buf, size_t len, off_t off)
             if (map != NULL)
                 kunmap(map, PAGE_SIZE);
             poff = po;
-            map = kmap(PAGE_SIZE, ino, poff, VMA_FILE_RO | VMA_RESOLVE);
+            map = kmap(PAGE_SIZE, ino, poff, VMA_FILE_RW | VMA_RESOLVE);
             if (map == NULL)
                 return -1;
         }
@@ -97,21 +97,17 @@ int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
     case FL_BLK:
         return vfs_read_block(ino, buf, size, off);
     case FL_PIPE:
-        return pipe_read((pipe_t *)ino->info, buf, size, flags);
     case FL_CHR:
     case FL_LNK:
     case FL_INFO:
+    case FL_WIN:
         if (ino->ops->read == NULL) {
             errno = ENOSYS;
             return -1;
         }
         return ino->ops->read(ino, buf, size, flags);
-
-    case FL_WIN:
-        return pipe_read(((window_t *)ino->info)->pipe, buf, size, flags);
-        break;
     case FL_SOCK:
-    default: // DIR, VOL, NET, VDO, WIN
+    default: // DIR, VOL, NET, VDO
         errno = ENOSYS;
         return -1;
     }
@@ -125,7 +121,6 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
     case FL_BLK:
         return vfs_write_block(ino, buf, size, off);
     case FL_PIPE:
-        return pipe_write((pipe_t *)ino->info, buf, size, flags);
     case FL_CHR:
     case FL_LNK:
     case FL_INFO:

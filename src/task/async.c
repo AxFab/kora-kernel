@@ -77,11 +77,13 @@ static void async_terminate(advent_t *advent, int err)
 /* Wait for an event to be emited */
 int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us)
 {
+	// task_t *task = kCPU.running;
     assert(kCPU.running != NULL);
     assert(kCPU.irq_semaphore == (lock == NULL ? 0 : 1));
     assert((lock == NULL) == (emitter == NULL));
     assert(emitter != NULL || timeout_us > 0);
 
+    // splock_unlock(&task->lock);
     advent_t *advent = async_advent(emitter, timeout_us);
     if (lock != NULL)
         splock_unlock(lock);
@@ -91,6 +93,7 @@ int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us)
     /* We have been rescheduled */
     errno = advent->err;
     kfree(advent);
+    // splock_unlock(&task->lock);
     if (lock != NULL)
         splock_lock(lock);
     return lock == NULL || errno == 0 ? 0 : -1;

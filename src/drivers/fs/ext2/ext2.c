@@ -236,7 +236,11 @@ inode_t *ext2_mount(inode_t *dev)
     ext2_sb_t *sb = (ext2_sb_t *)&ptr[1024];
     vol->sb = sb;
 
-    kprintf(-1, "SB %d\n", sizeof(*sb));
+    if (sb->magic != 0xEF53 || sb->blocks_per_group == 0) {
+        kunmap(ptr, PAGE_SIZE);
+        errno = EBADF;
+        return NULL;
+    }
 
     kprintf(-1, "File system label = %s\n", sb->volume_name);
     kprintf(-1, "Block size = %d\n", (1024 << sb->log_block_size));
@@ -250,12 +254,6 @@ inode_t *ext2_mount(inode_t *dev)
     kprintf(-1, "%d frags per group\n", sb->frags_per_group);
     kprintf(-1, "%d inodes per group\n", sb->inodes_per_group);
     kprintf(-1, "Superblock backup on blocks: %d\n", 0);
-
-    if (sb->magic != 0xEF53) {
-        kunmap(ptr, PAGE_SIZE);
-        errno = EBADF;
-        return NULL;
-    }
 
     vol->grp = (ext2_grp_t *)&ptr[MAX(2048, 1024 << sb->log_block_size)];
     vol->io = bio_create(dev, VMA_FILE_RW, 1024 << sb->log_block_size, 0);
@@ -282,3 +280,17 @@ inode_t *ext2_mount(inode_t *dev)
     errno = 0;
     return ino;
 }
+
+
+void ext2_setup() 
+{
+	register_fs("ext2", (fs_mount) ext2_mount);
+}
+
+
+void ext2_teardown() 
+{
+	unregister_fs("ext2");
+} 
+
+MODULE(ext2, ext2_setup, ext2_teardown);

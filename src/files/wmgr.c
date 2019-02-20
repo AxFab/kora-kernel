@@ -44,6 +44,7 @@ int abs(int v);
 #define DESK_GRAB_BOTTOM 0x80
 
 
+#define WMGR_GRID_NORMAL 0
 #define WMGR_GRID_FULL 3
 #define WMGR_GRID_LEFT 7
 #define WMGR_GRID_TOP 11
@@ -100,17 +101,21 @@ struct desktop {
 
 void wmgr_window_flip(inode_t *ino)
 {
-    window_t *win = (window_t*)ino->info;
+    window_t *win = (window_t *)ino->info;
     win->queries |= WMGR_RENDER;
 }
 
+int wmgr_window_read(inode_t *ino, const char *buf, int len, int flags)
+{
+    return pipe_read(((window_t *) ino->info) ->pipe, buf, len, flags) ;
+}
 
 ino_ops_t win_ops = {
     // .fcntl = win_fcntl,
     // .close = win_close,
     // .fetch = win_fetch,
     // .release = win_release,
-    // .read = win_read,
+    .read = wmgr_window_read,
     // .reset = win_reset,
     .flip = wmgr_window_flip,
     // .resize = win_resize,
@@ -265,24 +270,32 @@ void wmgr_render(screen_t *screen)
 }
 
 int _left_shift_grid[] = {
-    WMGR_GRID_LEFT,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
+    WMGR_GRID_LEFT, 0, 0, WMGR_GRID_LEFT, 0, 0,
+    WMGR_GRID_LEFT, WMGR_GRID_TOP_LEFT, 0,
+    WMGR_GRID_BOTTOM_LEFT, 0, WMGR_GRID_TOP_LEFT,
+    WMGR_GRID_BOTTOM_LEFT, WMGR_GRID_TOP_LEFT,
+    WMGR_GRID_TOP_LEFT, WMGR_GRID_TOP_LEFT,
 };
 int _right_shift_grid[] = {
-    WMGR_GRID_RIGHT,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
+    WMGR_GRID_RIGHT, 0, 0, WMGR_GRID_RIGHT, 0, 0,
+    WMGR_GRID_RIGHT, WMGR_GRID_TOP_RIGHT, 0,
+    WMGR_GRID_BOTTOM_RIGHT, 0, WMGR_GRID_TOP_RIGHT,
+    WMGR_GRID_BOTTOM_RIGHT, WMGR_GRID_TOP_RIGHT,
+    WMGR_GRID_TOP_RIGHT, WMGR_GRID_TOP_RIGHT,
 };
 int _top_shift_grid[] = {
-    WMGR_GRID_TOP,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
+    WMGR_GRID_TOP, 0, 0, WMGR_GRID_TOP, 0, 0,
+    WMGR_GRID_TOP_RIGHT, WMGR_GRID_TOP_LEFT, 0,
+    WMGR_GRID_TOP, 0, WMGR_GRID_FULL,
+    WMGR_GRID_TOP_RIGHT, WMGR_GRID_TOP_LEFT,
+    WMGR_GRID_TOP_RIGHT, WMGR_GRID_TOP_LEFT,
 };
 int _bottom_shift_grid[] = {
-    WMGR_GRID_BOTTOM,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
+    WMGR_GRID_BOTTOM, 0, 0, WMGR_GRID_BOTTOM, 0, 0,
+    WMGR_GRID_BOTTOM_RIGHT, WMGR_GRID_BOTTOM_LEFT, 0,
+    WMGR_GRID_NORMAL, 0, WMGR_GRID_BOTTOM,
+    WMGR_GRID_BOTTOM_RIGHT, WMGR_GRID_BOTTOM_LEFT,
+    WMGR_GRID_BOTTOM_RIGHT, WMGR_GRID_BOTTOM_LEFT,
 };
 
 
@@ -294,8 +307,7 @@ void wmgr_keyboard(desktop_t *desk, uint32_t fkey, int state)
     if (state) {
         if ((desk->kbd_status & 0770) == 010) {
             // kprintf(-1, "SHIFT + %x\n", key); // SHIFT
-        }
-        else if ((desk->kbd_status & 0770) == 040) {
+        } else if ((desk->kbd_status & 0770) == 040) {
             // kprintf(-1, "ALT + %x\n", key); // ALT
             if (key == 0xF) {// TAB
                 // TODO -- Open small window that leave on ALT-up
@@ -305,46 +317,38 @@ void wmgr_keyboard(desktop_t *desk, uint32_t fkey, int state)
                     win = NULL;
                 }
             }
-        }
-        else if ((desk->kbd_status & 0770) == 0100) {
+        } else if ((desk->kbd_status & 0770) == 0100) {
             // kprintf(-1, "CTRL + %x\n", key); // CTRL
-        }
-        else if ((desk->kbd_status & 0770) == 0110) {
+        } else if ((desk->kbd_status & 0770) == 0110) {
             // kprintf(-1, "CTRL + SHIFT + %x\n", key); // CTRL + SHIFT
-        }
-        else if ((desk->kbd_status & 0770) == 0140) {
+        } else if ((desk->kbd_status & 0770) == 0140) {
             // kprintf(-1, "CTRL + ALT + %x\n", key); // CTRL + ALT
-        }
-        else if ((desk->kbd_status & 0770) == 0050) {
+        } else if ((desk->kbd_status & 0770) == 0050) {
             // kprintf(-1, "ALT + SHIFT + %x\n", key); // CTRL + ALT
-        }
-        else if ((desk->kbd_status & 0770) == 0200) {
+        } else if ((desk->kbd_status & 0770) == 0200) {
             // kprintf(-1, "HOME + %x\n", key); // HOME
             if (win != NULL) {
-                if (key == 0x4B) {
+                if (key == 0x4B)
                     win->rq_grid = WMGR_GRID_LEFT;
-                } else if (key == 0x48) {
+                else if (key == 0x48)
                     win->rq_grid = win->rq_grid == WMGR_GRID_TOP ? WMGR_GRID_FULL : WMGR_GRID_TOP;
-                } else if (key == 0x4d) {
+                else if (key == 0x4d)
                     win->rq_grid = WMGR_GRID_RIGHT;
-                } else if (key == 0x50) {
+                else if (key == 0x50)
                     win->rq_grid = win->rq_grid == WMGR_GRID_BOTTOM ? 0 : WMGR_GRID_BOTTOM;
-                }
                 win = NULL;
             }
-        }
-        else if ((desk->kbd_status & 0770) == 0210) {
+        } else if ((desk->kbd_status & 0770) == 0210) {
             // kprintf(-1, "HOME + SHIFT + %x\n", key); // HOME + SHIFT
             if (win != NULL) {
-                if (key == 0x4B) {
+                if (key == 0x4B)
                     win->rq_grid = _left_shift_grid[win->rq_grid];
-                } else if (key == 0x48) {
+                else if (key == 0x48)
                     win->rq_grid = _top_shift_grid[win->rq_grid];
-                } else if (key == 0x4d) {
+                else if (key == 0x4d)
                     win->rq_grid = _right_shift_grid[win->rq_grid];
-                } else if (key == 0x50) {
+                else if (key == 0x50)
                     win->rq_grid = _bottom_shift_grid[win->rq_grid];
-                }
                 win = NULL;
             }
         }
@@ -355,7 +359,7 @@ void wmgr_keyboard(desktop_t *desk, uint32_t fkey, int state)
         event.type = state ? 3 : 4;
         event.param1 = key;
         event.param2 = fkey;
-        pipe_write(win->pipe, (char*)&event, sizeof(event), 0);
+        pipe_write(win->pipe, (char *)&event, sizeof(event), 0);
     }
 }
 
@@ -427,30 +431,26 @@ void wmgr_pointer(desktop_t *desk, int relx, int rely)
                 desk->grab_win->rq.y += rely;
                 desk->grab_win->rq.h -= rely;
             }
-            if (desk->grab_type & DESK_GRAB_RIGHT) {
+            if (desk->grab_type & DESK_GRAB_RIGHT)
                 desk->grab_win->rq.w += relx;
-            }
-            if (desk->grab_type & DESK_GRAB_BOTTOM) {
+            if (desk->grab_type & DESK_GRAB_BOTTOM)
                 desk->grab_win->rq.h += rely;
-            }
         }
     }
     window_t *win = ll_last(&desk->windows, window_t, node);
     window_t *over = wmgr_over(desk, NULL);
     if (desk->over_win && over != desk->over_win) {
-         kprintf(-1, "MOUSE MOVE %d:  %d, %d\n", desk->over_win->no, relx, rely);
-         kprintf(-1, "MOUSE EXIT %d\n", desk->over_win->no);
+        kprintf(-1, "MOUSE MOVE %d:  %d, %d\n", desk->over_win->no, relx, rely);
+        kprintf(-1, "MOUSE EXIT %d\n", desk->over_win->no);
     }
     if (over && over != desk->over_win) {
-         kprintf(-1, "MOUSE ENTER %d\n", over->no);
-         kprintf(-1, "MOUSE MOVE %d:  %d, %d\n", over->no, relx, rely);
+        kprintf(-1, "MOUSE ENTER %d\n", over->no);
+        kprintf(-1, "MOUSE MOVE %d:  %d, %d\n", over->no, relx, rely);
     }
-    if (win && ((win != over && win != desk->over_win) || (win == over && win == desk->over_win))) {
-         kprintf(-1, "MOUSE MOVE %d:  %d, %d\n", win->no, relx, rely);
-    }
-    if (desk->over_win && win != desk->over_win && over == desk->over_win) {
-         kprintf(-1, "MOUSE MOVE %d:  %d, %d\n", over->no, relx, rely);
-    }
+    if (win && ((win != over && win != desk->over_win) || (win == over && win == desk->over_win)))
+        kprintf(-1, "MOUSE MOVE %d:  %d, %d\n", win->no, relx, rely);
+    if (desk->over_win && win != desk->over_win && over == desk->over_win)
+        kprintf(-1, "MOUSE MOVE %d:  %d, %d\n", over->no, relx, rely);
     desk->over_win = over;
 }
 
@@ -466,8 +466,8 @@ void wmgr_button(desktop_t *desk, int btn, int state)
     int wh = 0;
     window_t *over;
     if (state) {
-       over = wmgr_over(desk, &wh);
-       if (over != win) {
+        over = wmgr_over(desk, &wh);
+        if (over != win) {
             if (over != NULL) {
                 ll_remove(&desk->windows, &over->node);
                 ll_push_back(&desk->windows, &over->node);
@@ -483,14 +483,13 @@ void wmgr_button(desktop_t *desk, int btn, int state)
             win = NULL;
         }
     } else {
-       over = wmgr_over(desk, NULL);
-       if (over != win) {
-       }
-       desk->grab_type = 0; // TODO
+        over = wmgr_over(desk, NULL);
+        if (over != win) {
+        }
+        desk->grab_type = 0; // TODO
     }
-   if (win != NULL) {
-         kprintf(-1, "MOUSE %s %d: 0%o\n", state ? "DOWN" : "UP", win->no, btn);
-   }
+    if (win != NULL)
+        kprintf(-1, "MOUSE %s %d: 0%o\n", state ? "DOWN" : "UP", win->no, btn);
 }
 
 
@@ -506,7 +505,7 @@ void wmgr_input(inode_t *ino, int type, int param, pipe_t *pipe)
     //     kDESK->last_key = param;
     //     kDESK->last_kbd = now;
     // }
-    switch(type) {
+    switch (type) {
     case EV_KEY_PRESS:
         wmgr_keyboard(kDESK, param, 1);
         return;
@@ -549,7 +548,7 @@ void wmgr_main()
     desk->screen->frame = fb;
     desk->screen->ino = dev;
     desk->screen->desk = desk;
-    desk->pointer_sprites = kalloc(sizeof(framebuffer_t*));
+    desk->pointer_sprites = kalloc(sizeof(framebuffer_t *));
     desk->pointer_sprites[0] = gfx_create(64, 64, 4, NULL);
     // gfx_shadow(desk->pointer_sprites[0], 32, 32, 16, 0xFFa60000);
 

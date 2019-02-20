@@ -17,44 +17,17 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include "fatfs.h"
+#ifndef _BITS_CDEFS_H
+#define _BITS_CDEFS_H 1
 
+#define _Noreturn __declspec(noreturn)
+#define PACK(decl) __pragma(pack(push,1)) decl __pragma(pack(pop))
+#define __thread __declspec(thread)
+#define unlikely(c) c
+#define likely(c) c
 
+#define PAGE_SIZE 4096
+#define __ARCH "x86_64"
+#define __LLP64
 
-int fatfs_read (inode_t *ino, void *buffer, size_t length, off_t offset) 
-{
-	FAT_volume_t *info = (FAT_volume_t *)ino->und.vol->info;
-	int cluster = offset / (info->BytsPerSec * info->SecPerClus);
-	int lba = ino->lba;
-	while (length > 0) {
-		if (lba == 0) {
-			return -1; // EOF
-		} 
-		assert(false) ;
-		// vfs_read();
-	}
-	return 0;
-} 
-
-int fatfs_write (inode_t *ino, const void *buffer, size_t length, off_t offset) 
-{
-	assert(false) ;
-	return 0;
-} 
-
-page_t fatfs_fetch(inode_t *ino, off_t off) 
-{
-	return map_fetch(ino->info, off);
-} 
-
-void fatfs_sync(inode_t *ino, off_t off, page_t pg) 
-{
-	return map_sync(ino->info, off, pg);
-} 
-
-void fatfs_release(inode_t *ino, off_t off, page_t pg) 
-{
-	return map_release(ino->info, off, pg);
-} 
-
-
+#endif /* _BITS_CDEFS_H */

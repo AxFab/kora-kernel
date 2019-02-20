@@ -49,6 +49,7 @@ inode_t *vfs_search_device(CSTR name)
 {
     splock_lock(&devices_lock);
     inode_t *ino = (inode_t *)hmp_get(&devices_map, name, strlen(name));
+    errno = ino == NULL ? ENOENT : 0;
     splock_unlock(&devices_lock);
     return vfs_open(ino);
 }

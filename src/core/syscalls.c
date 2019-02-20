@@ -217,7 +217,7 @@ int sys_pipe(int *fds)
     if (scall_check_buf(fds, 2 * sizeof(int)))
         return -1;
     resx_t *resx = kCPU.running->resx;
-    inode_t *ino = vfs_inode(1, FL_PIPE, NULL);
+    inode_t *ino = pipe_inode();
     if (ino == NULL)
         return -1;
     stream_t *sout = resx_set(resx, ino);

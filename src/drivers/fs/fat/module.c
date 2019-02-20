@@ -38,6 +38,9 @@ fs_ops_t fatfs_ops = {
 ino_ops_t fatfs_reg_ops = {
     .close = fatfs_close,
     .truncate = fatfs_truncate,
+    .fetch = fatfs_truncate,
+    .sync = fatfs_sync,
+    .release = fatfs_release,
 };
 
 ino_ops_t fatfs_dir_ops = {
@@ -80,7 +83,7 @@ inode_t *fatfs_mount(inode_t *dev)
     ino->und.vol->ops = &fatfs_ops;
     ino->und.vol->volfs = (char *)fsName;
     ino->und.vol->volname = strdup(info->name);
-    ino->info = info;
+    ino->info = NULL;
     ino->ops = &fatfs_dir_ops;
 
     int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;

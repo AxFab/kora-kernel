@@ -34,7 +34,7 @@ FAT_diterator_t *fatfs_diterator_open(inode_t *dir, bool write)
     assert(VFS_ISDIR(dir));
     assert(dir->lba != 0);
 
-    FAT_volume_t *info = (FAT_volume_t *)dir->info;
+    FAT_volume_t *info = (FAT_volume_t *)dir->und.vol->info;
     FAT_diterator_t *it = (FAT_diterator_t *)kalloc(sizeof(FAT_diterator_t));
     it->cluster_size = info->SecPerClus * info->BytsPerSec;
     it->lba = dir->lba;
@@ -89,7 +89,7 @@ inode_t *fatfs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
 {
     inode_t *ino;
     FAT_diterator_t *it = fatfs_diterator_open(dir, !!(flags | VFS_CREAT));
-    FAT_volume_t *info = (FAT_volume_t *)dir->info;
+    FAT_volume_t *info = (FAT_volume_t *)dir->und.vol->info;
     const int entries_per_cluster = info->BytsPerSec / sizeof(struct FAT_ShortEntry);
     struct FAT_ShortEntry *entry;
     while ((entry = fatfs_diterator_next(it)) != NULL) {
@@ -152,7 +152,7 @@ inode_t *fatfs_readdir(inode_t *dir, char *name, FAT_diterator_t *it)
     fatfs_read_shortname(entry, shortname);
     strncpy(name, shortname, FILENAME_MAX);
 
-    FAT_volume_t *info = (FAT_volume_t *)dir->info;
+    FAT_volume_t *info = (FAT_volume_t *)dir->und.vol->info;
     const int entries_per_cluster = info-> BytsPerSec / sizeof(struct FAT_ShortEntry);
     return fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->und.vol, info);
 }
@@ -168,7 +168,7 @@ int fatfs_closedir(inode_t *dir, FAT_diterator_t *it)
 int fatfs_unlink(inode_t *dir, CSTR name)
 {
     FAT_diterator_t *it = fatfs_diterator_open(dir, true);
-    FAT_volume_t *info = (FAT_volume_t *)dir->info;
+    FAT_volume_t *info = (FAT_volume_t *)dir->und.vol->info;
     const int entries_per_cluster = info->BytsPerSec / sizeof(struct FAT_ShortEntry);
     struct FAT_ShortEntry *entry;
     while ((entry = fatfs_diterator_next(it)) != NULL) {

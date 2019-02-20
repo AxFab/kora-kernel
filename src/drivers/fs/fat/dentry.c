@@ -97,7 +97,8 @@ inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume, FAT
     inode_t *ino = vfs_inode(no, type, volume);
     ino->length = entry->DIR_FileSize;
     ino->lba = cluster;
-    ino->info = info;
+    if (type == FL_REG) 
+        ino->info = map_create(ino, fatfs_read, fatfs_write);
     ino->atime = fatfs_gettime(&entry->DIR_LstAccDate, NULL);
     ino->ctime = fatfs_gettime(&entry->DIR_CrtDate, &entry->DIR_CrtTime);
     ino->mtime = fatfs_gettime(&entry->DIR_WrtDate, &entry->DIR_WrtTime);
