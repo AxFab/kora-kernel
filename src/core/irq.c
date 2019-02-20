@@ -199,7 +199,7 @@ struct scall_entry {
 
 #define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)n, r }
 
-scall_entry_t syscall_entries[] = {
+scall_entry_t syscall_entries[64] = {
     // SYS_POWER
     // SYS_SCALL
     // SCALL_ENTRY(SYS_SYSLOG, sys_syslog, "%p", false),
@@ -232,11 +232,13 @@ scall_entry_t syscall_entries[] = {
 
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
+    if (no < 0 || no > 64 || &syscall_entries[no] == NULL) {
+        kprintf(-1, "\033[96msyscall(%d) = -1\033[0m\n", no);
+        return -1;
+    }
+
     long ret;
     scall_entry_t *entry = &syscall_entries[no];
-    if (entry == NULL)
-        return -1;
-
     char arg_buf[50];
     snprintf(arg_buf, 50, entry->args, a1, a2, a3, a4, a5);
 

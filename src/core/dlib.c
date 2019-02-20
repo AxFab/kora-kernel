@@ -314,6 +314,7 @@ int dlib_map(dynlib_t *dlib, mspace_t *mspace)
             kprintf(-1, "REL:%d\n", reloc->type);
             break;
         }
+        // kprintf(-1, " `- %08x  %x  \n", place, *place);
 
         // kprintf(-1, " -> %s at %p\n", reloc->symbol->name, reloc->symbol->address );
         // hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);

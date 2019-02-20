@@ -57,7 +57,7 @@ $(eval $(call ccpl,krn))
 $(eval $(call ccpl,std))
 
 
-LFLAGS_app += -nostdlib -L $(libdir) -lc
+LFLAGS_app += -nostdlib -L $(libdir) -lc -fPIC
 LFLAGS_ck += --coverage -fprofile-arcs -ftest-coverage
 
 kname := bin/kora-$(target_arch).krn
