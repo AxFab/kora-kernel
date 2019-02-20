@@ -17,53 +17,35 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/files.h>
+#include <kora/mcrs.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <time.h>
+#include "../check.h"
 
+void fixture_starts(Suite *s);
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-KMODULE(imgdk);
-KMODULE(isofs);
-KMODULE(fatfs);
-KMODULE(lnet);
-KMODULE(win32);
-
-void platform_setup()
+Suite *suite_tasks(void)
 {
-    // Load fake disks drivers
-    kmod_register(kmod_info_imgdk);
-    // Load fake network driver
-    kmod_register(kmod_info_lnet);
-    // Load fake screen
-    kmod_register(kmod_info_win32);
-    // Load file systems
-    kmod_register(kmod_info_isofs);
-    kmod_register(kmod_info_fatfs);
+    Suite *s;
+    s = suite_create("Tasks");
+    fixture_starts(s);
+    return s;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-#include <setjmp.h>
-#include <windows.h>
-
 jmp_buf __tcase_jump;
 
-tty_t *slog;
-
-int main()
+int main(int argc, char **argv)
 {
-	if (setjmp(__tcase_jump))
-	    return -1;
-    kernel_start();
-    assert(kCPU.irq_semaphore == 0);
-    kCPU.flags |= CPU_NO_TASK;
-    if (setjmp(__tcase_jump) != 0)
-        return -1;
-    for (;;) {
-        clock_ticks();
-        async_timesup();
-        Sleep(10);
-    }
-    return 0;
-}
+    // Create suites
+    int errors;
+    SRunner *sr = srunner_create(NULL);
+    srunner_add_suite(sr, suite_tasks());
 
+    // Run test-suites
+    srunner_run_all(sr, CK_NORMAL);
+    errors = srunner_ntests_failed(sr);
+    srunner_free(sr);
+    return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+}

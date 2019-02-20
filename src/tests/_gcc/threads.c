@@ -22,6 +22,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <kora/hmap.h>
+#include <kora/std.h>
 
 struct _US_THREAD {
     pthread_t handler;
@@ -82,7 +83,8 @@ thrd_t thrd_current(void)
 /* Suspends execution of the calling thread for the given period of time */
 int thrd_sleep(const struct timespec *duration, struct timespec *remaining)
 {
-    nanosleep(duration, remaining);
+    struct timespec ts = *duration;
+    nanosleep(&ts, remaining);
     return 0;
 }
 
@@ -95,10 +97,9 @@ void thrd_yield(void)
 /* Terminates the calling thread */
 _Noreturn void thrd_exit(int res)
 {
-    thrd_t thread = thrd_current();
+    // thrd_t thread = thrd_current();
     tss_delete(tss_key_thread);
-    // TODO
-    abort();
+    pthread_exit(&res);
 }
 
 /* Detaches a thread */
@@ -116,49 +117,29 @@ int thrd_join(thrd_t thr, int *res)
 
 
 
-__thread HMP_map __tss_map;
-__thread bool __tss_init = false;
 
 
 /* Creates thread-specific storage pointer with a given destructor */
 int tss_create(tss_t *tss_key, tss_dtor_t destructor)
 {
-    if (!__tss_init) {
-        hmp_init(&__tss_map, 16);
-        __tss_init = true;
-    }
-    *tss_key = malloc(sizeof(void *));
-    **tss_key = destructor;
-    return 0;
+    return pthread_key_create(tss_key, destructor);
 }
 
 /* Reads from thread-specific storage */
 void *tss_get(tss_t tss_key)
 {
-    if (!__tss_init) {
-        hmp_init(&__tss_map, 16);
-        __tss_init = true;
-    }
-    return hmp_get(&__tss_map, (const char *)tss_key, sizeof(char *));
+    return pthread_getspecific((pthread_key_t)tss_key);
 }
 
 /* Write to thread-specific storage */
-int tss_set(tss_t tss_id, void *val)
+int tss_set(tss_t tss_key, void *val)
 {
-    if (!__tss_init) {
-        hmp_init(&__tss_map, 16);
-        __tss_init = true;
-    }
-    hmp_put(&__tss_map, (const char *)tss_id, sizeof(char *), val);
-    return 0;
+    return pthread_setspecific((pthread_key_t)tss_key, val);
 }
 
 /* Releases the resources held by a given thread-specific pointer */
-void tss_delete(tss_t tss_id)
+void tss_delete(tss_t tss_key)
 {
-    void *data = tss_get(tss_id);
-    if (*tss_id != NULL)
-        (*tss_id)(data);
-    hmp_remove(&__tss_map, (const char *)tss_id, sizeof(char *));
+    pthread_key_delete((pthread_key_t)tss_key);
 }
 

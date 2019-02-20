@@ -16,13 +16,12 @@
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
-$(outdir)/std/%.o: $(srcdir)/%.asm
+$(outdir)/std/%.o: $(topdir)/%.asm
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    ASM "$@
 	$(V) nasm -f elf64 -o $@ $^
 
-$(outdir)/krn/%.o: $(srcdir)/%.asm
+$(outdir)/krn/%.o: $(topdir)/%.asm
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    ASM "$@
 	$(V) nasm -f elf64 -o $@ $^
-
