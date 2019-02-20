@@ -99,6 +99,7 @@ struct task {
     // regs_t *regs/*[8]*/;
     // regs_t *sig_regs;
     splock_t lock;
+    atomic_t rcu;
 
     sig_handler_t shandler[32];
 
@@ -146,7 +147,7 @@ struct task {
 int task_stop(task_t *task, int code);
 int task_kill(task_t *task, unsigned signum);
 int task_resume(task_t *task);
-void task_destroy(task_t *task);
+void task_close(task_t *task);
 
 _Noreturn int task_pause(int state);
 void task_signals();
@@ -184,6 +185,8 @@ int cpu_save(cpu_state_t state);
 void cpu_restore(cpu_state_t state);
 
 
+void clock_ticks();
+void clock_init();
 
 
 

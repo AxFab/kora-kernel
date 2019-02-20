@@ -105,7 +105,7 @@ void wmgr_window_flip(inode_t *ino)
     win->queries |= WMGR_RENDER;
 }
 
-int wmgr_window_read(inode_t *ino, const char *buf, int len, int flags)
+int wmgr_window_read(inode_t *ino, const char *buf, size_t len, int flags)
 {
     return pipe_read(((window_t *) ino->info) ->pipe, buf, len, flags) ;
 }

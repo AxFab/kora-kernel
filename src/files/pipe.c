@@ -31,16 +31,16 @@ struct pipe {
     char *rpen;
     char *wpen;
     char *end;
-    int size;
-    int max_size;
-    int avail;
+    size_t size;
+    size_t max_size;
+    size_t avail;
 
     splock_t lock;
     emitter_t rlist;
     emitter_t wlist;
 };
 
-static int pipe_resize_unlock_(pipe_t *pipe, int size)
+static int pipe_resize_unlock_(pipe_t *pipe, size_t size)
 {
     if (size < pipe->avail || size > pipe->max_size)
         return -1;
@@ -77,11 +77,11 @@ static int pipe_resize_unlock_(pipe_t *pipe, int size)
     return 0;
 }
 
-static int pipe_erase_unlock_(pipe_t *pipe, int len)
+static int pipe_erase_unlock_(pipe_t *pipe, size_t len)
 {
     int bytes = 0;
     while (len > 0) {
-        int cap = MIN3(len, pipe->end - pipe->rpen, pipe->avail);
+        size_t cap = MIN3(len, pipe->end - pipe->rpen, pipe->avail);
         if (cap == 0)
             break;
         pipe->rpen += cap;
@@ -116,7 +116,7 @@ void pipe_destroy(pipe_t *pipe)
 }
 
 
-int pipe_resize(pipe_t *pipe, int size)
+int pipe_resize(pipe_t *pipe, size_t size)
 {
     splock_lock(&pipe->lock);
     int ret = pipe_resize_unlock_(pipe, size);
@@ -124,7 +124,7 @@ int pipe_resize(pipe_t *pipe, int size)
     return ret;
 }
 
-int pipe_erase(pipe_t *pipe, int len)
+int pipe_erase(pipe_t *pipe, size_t len)
 {
     splock_lock(&pipe->lock);
     int ret = pipe_erase_unlock_(pipe, len);
@@ -138,7 +138,7 @@ int pipe_reset(pipe_t *pipe)
 }
 
 
-int pipe_write(pipe_t *pipe, const char *buf, int len, int flags)
+int pipe_write(pipe_t *pipe, const char *buf, size_t len, int flags)
 {
     int bytes = 0;
     splock_lock(&pipe->lock);
@@ -189,7 +189,7 @@ int pipe_write(pipe_t *pipe, const char *buf, int len, int flags)
     return bytes;
 }
 
-int pipe_read(pipe_t *pipe, char *buf, int len, int flags)
+int pipe_read(pipe_t *pipe, char *buf, size_t len, int flags)
 {
     int bytes = 0;
     splock_lock(&pipe->lock);

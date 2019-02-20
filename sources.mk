@@ -57,7 +57,7 @@ $(eval $(call ccpl,krn))
 $(eval $(call ccpl,std))
 
 
-LFLAGS_app += -nostdlib -L $(libdir) -lc
+LFLAGS_app += -nostdlib -L $(libdir) -lc -fPIC
 LFLAGS_ck += --coverage -fprofile-arcs -ftest-coverage
 
 kname := bin/kora-$(target_arch).krn
@@ -156,6 +156,20 @@ cknet_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
 cknet_omit-y += $(srcdir)/tests/_stub/stub_cpu.c
 cknet_LIBS += -lpthread
 $(eval $(call test,net))
+
+# -------------------------
+cktask_src-y += $(wildcard $(srcdir)/task/*.c)
+cktask_src-y += $(wildcard $(srcdir)/mem/*.c)
+cktask_src-y += $(srcdir)/core/debug.c
+cktask_src-y += $(srcdir)/core/irq.c
+cktask_src-y += $(srcdir)/tests/_$(CC)/threads.c
+cktask_src-y += $(srcdir)/tests/_$(CC)/scheduler.c
+cktask_omit-y += $(srcdir)/task/scheduler.c
+cktask_omit-y += $(srcdir)/tests/_stub/stub_mem.c
+cktask_omit-y += $(srcdir)/tests/_stub/stub_task.c
+cktask_omit-y += $(srcdir)/tests/_stub/stub_time.c
+cktask_LIBS += -lpthread
+$(eval $(call test,task))
 
 # -------------------------
 ckutils_omit-y += $(srcdir)/tests/_stub/stub_mmu.c
