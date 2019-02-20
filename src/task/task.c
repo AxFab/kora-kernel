@@ -167,10 +167,11 @@ void task_close(task_t *task)
 void task_core(task_t *task)
 {
     kprintf(KLOG_DBG, "Dump core - Task #%d =========================\n", task->pid);
-    // mspace_display(kMMU.kspace);
     stackdump(10);
     if (task->usmem)
         mspace_display(task->usmem);
+    mspace_display(kMMU.kspace);
+    kprintf(KLOG_DBG, "Dump core - Task #%d =========================\n", task->pid);
 }
 
 
