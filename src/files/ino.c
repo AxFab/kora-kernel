@@ -17,44 +17,45 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include "fatfs.h"
+#include <kernel/vfs.h>
+#include <kernel/files.h>
 
-
-
-int fatfs_read (inode_t *ino, void *buffer, size_t length, off_t offset) 
+int pipe_fcntl(inode_t *ino, int cmd, void *flags)
 {
-	FAT_volume_t *info = (FAT_volume_t *)ino->und.vol->info;
-	int cluster = offset / (info->BytsPerSec * info->SecPerClus);
-	int lba = ino->lba;
-	while (length > 0) {
-		if (lba == 0) {
-			return -1; // EOF
-		} 
-		assert(false) ;
-		// vfs_read();
-	}
-	return 0;
-} 
+    return -1;
+}
 
-int fatfs_write (inode_t *ino, const void *buffer, size_t length, off_t offset) 
+
+int pipe_close(inode_t *ino)
 {
-	assert(false) ;
-	return 0;
-} 
+    pipe_destroy((pipe_t *) ino->info);
+    return 0;
+}
 
-page_t fatfs_fetch(inode_t *ino, off_t off) 
+int pipe_read_ino(inode_t *ino, char *buf, int len, int flags)
 {
-	return map_fetch(ino->info, off);
-} 
+    return pipe_read((pipe_t *) ino->info, buf, len, flags);
+}
 
-void fatfs_sync(inode_t *ino, off_t off, page_t pg) 
+int pipe_write_ino(inode_t *ino, const char *buf, int len, int flags)
 {
-	return map_sync(ino->info, off, pg);
-} 
+    return pipe_write((pipe_t *) ino->info, buf, len, flags);
+}
 
-void fatfs_release(inode_t *ino, off_t off, page_t pg) 
+
+ino_ops_t pipe_ops = {
+    .fcntl = pipe_fcntl,
+    .close = pipe_close,
+    .read = pipe_read_ino,
+    .write = pipe_write_ino,
+};
+
+inode_t *pipe_inode()
 {
-	return map_release(ino->info, off, pg);
-} 
-
-
+    inode_t *ino = vfs_inode();
+    ino->info = pipe_create();
+    ino->ops = &pipe_ops;
+    // TODO, vfs_config
+    return ino;
+}
+>

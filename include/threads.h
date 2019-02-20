@@ -22,11 +22,10 @@
 
 #include <bits/cdefs.h>
 #include <bits/atomic.h>
-#include <time.h>
 
 #undef __STDC_NO_THREADS__
 
-#define thread_local __tls
+#define thread_local __thread
 
 typedef int(*thrd_start_t)(void *);
 typedef void(*tss_dtor_t)(void *);

@@ -228,9 +228,8 @@ void tty_repaint_all(tty_t *tty)
     if (tty->fb == NULL)
         return;
     int i;
-    for (i = 0; i < tty->end; ++i) {
+    for (i = 0; i < tty->end; ++i)
         tty_paint_cell(tty, &tty->cells[i]);
-    }
     tty->win->ops->flip(tty->win);
 }
 
@@ -238,7 +237,7 @@ void tty_window(tty_t *tty, inode_t *win, const font_bmp_t *font)
 {
     tty->win = win;
     tty->font = font;
-    tty->fb = ((window_t*)win->info)->frame;
+    tty->fb = ((window_t *)win->info)->frame;
     gfx_clear(tty->fb, 0x181818);
     tty->rows = tty->fb->height / font->dispy;
     tty->cols = tty->fb->width / font->dispx;
@@ -259,9 +258,8 @@ tty_cell_t *tty_next(tty_t *tty)
     next->len = 0;
     next->fg = cell->fg;
     next->bg = cell->bg;
-    if (tty->fb) {
+    if (tty->fb)
         tty_paint_cell(tty, cell);
-    }
     tty->end = next_idx;
     return next;
 }
@@ -298,7 +296,7 @@ int tty_write(tty_t *tty, const char *buf, int len)
                 cell = tty_next(tty);
                 cell->row++;
                 cell->col = 0;
-            } else if (unicode == '\t' ) {
+            } else if (unicode == '\t') {
                 cell = tty_next(tty);
                 cell->col = ALIGN_UP(cell->col + 1, 8);
             } else if (unicode == '\033') {
@@ -330,14 +328,14 @@ void tty_input(tty_t *tty, int unicode)
 {
     if (unicode >= 0x20 && unicode < 0x7F) {
         tty->prompt.str[tty->prompt.len] = '\0';
-        strcat(tty->prompt.str, (char*)&unicode);
+        strcat(tty->prompt.str, (char *)&unicode);
         tty->prompt.len = strlen(tty->prompt.str);
         tty->prompt.sz = tty->prompt.len;
     } else if (unicode == 8 && tty->prompt.len > 0) {
-            tty->prompt.len--;
-            tty->prompt.sz = tty->prompt.len;
-            if (tty->fb)
-                tty_clear_row(tty->fb, tty->prompt.row, tty->font, tty->prompt.bg);
+        tty->prompt.len--;
+        tty->prompt.sz = tty->prompt.len;
+        if (tty->fb)
+            tty_clear_row(tty->fb, tty->prompt.row, tty->font, tty->prompt.bg);
     } else if (unicode == 10) {
         if (tty->fb) {
             tty_clear_row(tty->fb, tty->prompt.row, tty->font, tty->prompt.bg);
@@ -451,9 +449,8 @@ void tty_main()
             shift = 1 - status;
         int unicode = keyboard[event.param1 & 0x0FF][shift];
         // kprintf0(-1, "EV %x) %x %x  [%x] \n", event.type, event.param1, status, unicode);
-        if (event.type == 3 && unicode != 0) {
+        if (event.type == 3 && unicode != 0)
             tty_input(tty, unicode);
-        }
     }
 }
 

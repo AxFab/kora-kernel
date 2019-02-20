@@ -143,9 +143,9 @@ void gfx_copy_blend(framebuffer_t *dest, framebuffer_t *src, int x, int y)
             g = src->pixels[(j) * src->pitch + (i) * ds + 1];
             b = src->pixels[(j) * src->pitch + (i) * ds + 0];
             if (a != 255) {
-                r = r * 255 / a + dest->pixels[(j + y)*dest->pitch + (i + x)* dd + 2] * 255 / (255 - a);
-                g = g * 255 / a + dest->pixels[(j + y)*dest->pitch + (i + x)* dd + 1] * 255 / (255 - a);
-                b = b * 255 / a + dest->pixels[(j + y)*dest->pitch + (i + x)* dd + 0] * 255 / (255 - a);
+                r = r * 255 / a + dest->pixels[(j + y) * dest->pitch + (i + x) * dd + 2] * 255 / (255 - a);
+                g = g * 255 / a + dest->pixels[(j + y) * dest->pitch + (i + x) * dd + 1] * 255 / (255 - a);
+                b = b * 255 / a + dest->pixels[(j + y) * dest->pitch + (i + x) * dd + 0] * 255 / (255 - a);
             }
             dest->pixels[(j + y)*dest->pitch + (i + x)* dd + 0] = b;
             dest->pixels[(j + y)*dest->pitch + (i + x)* dd + 1] = g;

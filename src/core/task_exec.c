@@ -81,7 +81,8 @@ void fake_shell_task()
     sys_sleep(SEC_TO_KTIME(3));
 
     inode_t *root = resx_fs_pwd(kCPU.running->resx_fs);
-
+    if (root == NULL)
+        sys_exit(-1);
     tty_puts(tty, "shell> ls\n");
     krn_ls(tty, root);
     tty_puts(tty, "shell> cat ");
@@ -104,14 +105,6 @@ void exec_task()
     tty_t *tty = tty_create(128);
     inode_t *win = wmgr_create_window(NULL, 180, 120);
     tty_window(tty, win, &font_8x15);
-
-    // task_create(main_clock, NULL, "Clock");
-
-    inode_t *root = resx_fs_root(kCPU.running->resx_fs);
-    inode_t *ino = vfs_search(root, root, "bin/basename", NULL);
-
-    if (ino != NULL)
-        tty_puts(tty, "Found basename!!\n");
 
     mspace_t *mspace = mspace_create();
     mmu_context(mspace);

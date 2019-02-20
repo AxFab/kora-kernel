@@ -77,7 +77,6 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
         break;
     case FL_PIPE:  /* Pipe */
         assert(volume == NULL);
-        inode->info = pipe_create();
         break;
     case FL_WIN:  /* Window (Virtual) */
         assert(volume == NULL);
@@ -154,7 +153,6 @@ void vfs_close(inode_t *ino)
             kfree(dev);
             break;
         case FL_PIPE:  /* Pipe */
-            pipe_destroy(ino->info);
             break;
         default:
             assert(ino->type == 0);

@@ -118,7 +118,7 @@ struct vma {
 void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
 {
     if (!IS_ALIGNED(length, PAGE_SIZE) || !IS_ALIGNED(length, PAGE_SIZE))
-        assert("unautorized operation");
+        assert("unauthorised operation");
     if (!krn_mmap_init) {
         hmp_init(&krn_mmap, 16);
         krn_mmap_init = true;
@@ -136,6 +136,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
         off_t off = offset;
         void *buf = ptr;
         while (length > 0) {
+            assert(ino->ops->fetch);
             page_t pg = ino->ops->fetch(ino, off);
             if (pg == 0)
                 kprintf (-1, "Error mapping à file \n");
@@ -148,6 +149,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
         break;
     case VMA_STACK:
     case VMA_PIPE:
+    case VMA_ANON:
         break;
     case VMA_PHYS:
         assert(offset == 0);
@@ -220,30 +222,6 @@ void heap_unmap(void *adddress, size_t length)
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-#if defined(_WIN32)
-#include <Windows.h>
-
-void nanosleep(struct timespec *tm, struct timespec *rs)
-{
-    clock64_t start = kclock();
-    Sleep((DWORD)(tm->tv_sec * 1000 + tm->tv_nsec / 1000000));
-    clock64_t elasped = start - kclock();
-    elasped = tm->tv_sec * _PwNano_ + tm->tv_nsec - elasped;
-    if (elasped < 0) {
-        if (rs != NULL) {  
-            rs->tv_sec = 0;
-            rs->tv_nsec = 0;
-        } 
-    } else {
-        if (rs != NULL) {  
-            rs->tv_sec = elasped / _PwNano_;
-            rs->tv_nsec = elasped % _PwNano_;
-        } 
-    }
-}
-#endif
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
 int rand_r(unsigned int *seed);
@@ -279,9 +257,10 @@ uint8_t rand8()
     return r & 0xFF;
 }
 
-
+#ifndef UM_KRN
 const char *ksymbol(void *eip, char *buf, int lg)
 {
     return "???";
 }
+#endif
 

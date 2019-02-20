@@ -21,6 +21,7 @@
 #include <kora/splock.h>
 #include <kora/std.h>
 #include <kora/futex.h>
+#include <time.h>
 #include <errno.h>
 #include <limits.h>
 

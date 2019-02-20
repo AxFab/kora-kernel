@@ -18,64 +18,28 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
+#include <kernel/files.h>
 
-#if 0
-void mmu_enable() {}
-void mmu_leave() {}
-page_t mmu_read(size_t addr)
-{
-    return 0;
-}
-page_t mmu_drop(size_t addr)
-{
-    return 0;
-}
-page_t mmu_protect(size_t addr, int flags)
-{
-    return 0;
-}
-int mmu_resolve(size_t addr, page_t phys, int flags)
-{
-    return 0;
-}
-void mmu_context(mspace_t *mspace) {}
-void mmu_create_uspace(mspace_t *mspace) {}
-void mmu_destroy_uspace(mspace_t *mspace) {}
-#endif
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void cpu_halt() {}
-clock64_t cpu_clock()
-{
-    return 0;
-}
-time_t cpu_time()
-{
-    return 0;
-}
-void cpu_setup()
-{
-    kSYS.cpus = kalloc(sizeof(struct kCpu) * 32);
-    kSYS.cpus[0].irq_semaphore = 1;
-}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 KMODULE(imgdk);
 KMODULE(isofs);
 KMODULE(fatfs);
 KMODULE(lnet);
+KMODULE(win32);
 
 void platform_setup()
 {
     // Load fake disks drivers
-    // task_create(kernel_module, &kmod_info_imgdk, kmod_info_imgdk.name);
+    kmod_register(kmod_info_imgdk);
     // Load fake network driver
-    // task_create(kernel_module, &kmod_info_lnet, kmod_info_lnet.name);
+    kmod_register(kmod_info_lnet);
     // Load fake screen
-
+    kmod_register(kmod_info_win32);
     // Load file systems
-    // task_create(kernel_module, &kmod_info_isofs, kmod_info_isofs.name);
-    // task_create(kernel_module, &kmod_info_fatfs, kmod_info_fatfs.name);
+    kmod_register(kmod_info_isofs);
+    kmod_register(kmod_info_fatfs);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -85,8 +49,12 @@ void platform_setup()
 
 jmp_buf __tcase_jump;
 
+tty_t *slog;
+
 int main()
 {
+	if (setjmp(__tcase_jump))
+	    return -1;
     kernel_start();
     assert(kCPU.irq_semaphore == 0);
     kCPU.flags |= CPU_NO_TASK;

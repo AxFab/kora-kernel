@@ -128,13 +128,13 @@ void test_fs_rdwr(inode_t *root)
     int ret;
     char *buf = malloc(100);
     // Create and open file
-    inode_t *ino1 = vfs_create(root, "TEXT.TXT", FL_REG | 0644, NULL, 0);
+    inode_t *ino1 = vfs_create(root, "TEXT.TXT", FL_REG, NULL, 0);
     ck_ok(ino1 != NULL && errno == 0, "");
 
     ret = vfs_read(ino1, buf, 100, 0, 0);
-    ck_ok(ret == -1 && errno == 0, "");
+    ck_ok(ret == 0 && errno == 0, "");
 
-    ret = vfs_truncate(ino1, 32);
+    ret = vfs_truncate(ino1, 12);
     ck_ok(ret == 0 && errno == 0, "");
 
     ret = vfs_write(ino1, "Hello world!", 12, 0, 0);
@@ -200,6 +200,37 @@ END_TEST
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+#if 0
+extern kmod_t kmod_info_ext2;
+int ext2_format(inode_t *blk);
+
+START_TEST(test_ext2_mknod)
+{
+    inode_t *ino = test_fs_setup("sdA", &kmod_info_ext2, ext2_format);
+    test_fs_mknod(ino);
+    test_fs_teardown(ino, &kmod_info_ext2);
+}
+END_TEST
+
+START_TEST(test_ext2_rdwr)
+{
+    inode_t *ino = test_fs_setup("sdA", &kmod_info_ext2, ext2_format);
+    test_fs_rdwr(ino);
+    test_fs_teardown(ino, &kmod_info_ext2);
+}
+END_TEST
+
+START_TEST(test_ext2_truncate)
+{
+    inode_t *ino = test_fs_setup("sdA", &kmod_info_ext2, ext2_format);
+    test_fs_truncate(ino);
+    test_fs_teardown(ino, &kmod_info_ext2);
+}
+END_TEST
+#endif
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 
 void fixture_rwfs(Suite *s)
 {
@@ -209,5 +240,10 @@ void fixture_rwfs(Suite *s)
     tcase_add_test(tc, test_fat16_mknod);
     // tcase_add_test(tc, test_fat16_rdwr);
     // tcase_add_test(tc, test_fat16_truncate);
+
+    // tc = tcase_create("Ext2");
+    // tcase_add_test(tc, test_ext2_mknod);
+    // tcase_add_test(tc, test_ext2_rdwr);
+    // tcase_add_test(tc, test_ext2_truncate);
     suite_add_tcase(s, tc);
 }
