@@ -169,10 +169,10 @@ const char *strerror_p(int err)
 
 
 /* Copy error string on the buffer */
-int strerror_r(int errno, char *buf, size_t lg)
+int strerror_r(int err, char *buf, size_t lg)
 {
     size_t i;
-    const char *str = strerror_p(errno);
+    const char *str = strerror_p(err);
     if (!buf || lg-- == 0)
         return -1;
     for (i = 0; i < lg && *str; ++i, ++str, ++buf)

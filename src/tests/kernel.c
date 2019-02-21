@@ -31,14 +31,14 @@ KMODULE(win32);
 void platform_setup()
 {
     // Load fake disks drivers
-    kmod_register(kmod_info_imgdk);
+    kmod_register(&kmod_info_imgdk);
     // Load fake network driver
-    kmod_register(kmod_info_lnet);
+    kmod_register(&kmod_info_lnet);
     // Load fake screen
-    kmod_register(kmod_info_win32);
+    kmod_register(&kmod_info_win32);
     // Load file systems
-    kmod_register(kmod_info_isofs);
-    kmod_register(kmod_info_fatfs);
+    kmod_register(&kmod_info_isofs);
+    kmod_register(&kmod_info_fatfs);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

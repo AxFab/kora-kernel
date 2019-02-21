@@ -17,6 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+ #include <kernel/files.h>
 #include "fatfs.h"
 
 void fatfs_settime(unsigned short *date, unsigned short *time, clock64_t value)

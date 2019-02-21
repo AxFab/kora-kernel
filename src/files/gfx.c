@@ -69,7 +69,7 @@ void gfx_shadow(framebuffer_t *fb, int x, int y, int r, uint32_t color)
             fb->pixels[(j)*fb->pitch + (i)* dp + 0] = (color >> 0) & 0xFF;
             fb->pixels[(j)*fb->pitch + (i)* dp + 1] = (color >> 8) & 0xFF;
             fb->pixels[(j)*fb->pitch + (i)* dp + 2] = (color >> 16) & 0xFF;
-            fb->pixels[(j)*fb->pitch + (i)* dp + 3] = 255 * a;
+            fb->pixels[(j)*fb->pitch + (i)* dp + 3] = (uint8_t)(255 * a);
         }
     }
 }

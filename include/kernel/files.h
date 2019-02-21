@@ -63,6 +63,44 @@ struct window {
     uint32_t color;
 };
 
+struct pointer {
+    int x, y;
+    int size, idx;
+};
+
+struct screen {
+    int no;
+    desktop_t *desk;
+    rect_t sz;
+    framebuffer_t *frame;
+    int queries;
+    rwlock_t lock;
+
+    inode_t *ino;
+    pointer_t pointer;
+    window_t *fullscreen;
+};
+
+
+struct desktop {
+    int no, ox, oy;
+    pointer_t pointer;
+    llhead_t windows;
+    splock_t lock;
+    screen_t *screen;
+    framebuffer_t **pointer_sprites;
+
+    int kbd_status;
+    int btn_status;
+    int last_key;
+    clock64_t last_kbd;
+
+    window_t *over_win;
+    window_t *grab_win;
+    int grab_type;
+    int grab_x;
+    int grab_y;
+};
 
 struct font_bmp {
     const uint8_t *glyphs;
@@ -128,6 +166,10 @@ void tty_window(tty_t *tty, inode_t *ino, const font_bmp_t *font);
 int tty_write(tty_t *tty, const char *buf, int len);
 int tty_puts(tty_t *tty, const char *buf);
 
+#define RGB(r,g,b) ((((r) &0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff))
+
+#define DESK_PADDING 10
+#define DESK_BORDER 2
 
 int elf_parse(dynlib_t *dlib);
 

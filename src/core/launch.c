@@ -57,31 +57,6 @@ void kernel_top(long sec)
     }
 }
 
-int pp[] = { -1, -1 };
-
-
-void tty_start()
-{
-    inode_t *dev;
-    for (;;) {
-        dev = vfs_search_device("kdb");
-        if (dev != NULL)
-            break;
-        sys_sleep(10000);
-    }
-    // kprintf(-1, "Tty found keyboard\n");
-
-    while (pp[1] == -1)
-        sys_sleep(10000);
-
-    event_t event;
-    for (;;) {
-        vfs_read(dev, (char *)&event, sizeof(event), 0, 0);
-        int key = event.param2 & 0xFFF;
-        int mod = event.param2 >> 16;
-        kprintf(-1, "KDB %d (%x - %x)\n", event.type, key, mod);
-    }
-}
 
 
 extern tty_t *slog;
@@ -90,9 +65,8 @@ void wmgr_main();
 
 void kernel_master()
 {
-    // task_create(tty_start, NULL, "Syslog Tty");
-    // task_create(kernel_top, (void *)5, "Dbg top 5s");
-    sys_sleep(5000);
+    // Read kernel command, load modules and mount correct device
+#if defined KORA_KRN
     for (;;) {
         inode_t *dev = vfs_search_device("sdC");
         if (dev != NULL)
@@ -113,6 +87,7 @@ void kernel_master()
     resx_fs_chroot(kCPU.running->resx_fs, root);
     resx_fs_chpwd(kCPU.running->resx_fs, root);
     vfs_close(root);
+#endif
 
     task_create(wmgr_main, NULL, "Local display");
 
@@ -124,24 +99,9 @@ void kernel_master()
     // sys_sleep(1000000);
     // mspace_display(kMMU.kspace);
 
-    sys_pipe(pp);
-
-    char buf[32];
-    int idx = 0;
     for (;;) {
-        kprintf(-1, "Master >\n");
-        idx = sys_read(pp[0], &buf[idx], 10 - idx);
-        buf[idx] = '\0';
-        char *nx = strchr(buf, '\n');
-        if (nx != NULL) {
-            nx[0] = '\0';
-            kprintf(-1, buf, nx - buf, 0, 0);
-            strcpy(buf, &nx[1]);
-            idx -= nx - buf;
-        } else
-            idx = 0;
+         sys_sleep(1000000);
     }
-    sys_close(pp[0]);
 }
 
 void kmod_loader();

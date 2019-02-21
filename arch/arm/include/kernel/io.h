@@ -17,24 +17,32 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/memory.h>
-#include <kernel/mmu.h>
-#include "../check.h"
-#include <errno.h>
+#ifndef _KERNEL_IO_H
+#define _KERNEL_IO_H 1
 
-page_t mmu_read(size_t addr)
-{
-	void *ptr = _valloc(PAGE_SIZE);
-	memcpy(ptr, (void*) addr,PAGE_SIZE); 
-    return (page_t)ptr;
-}
+#if defined __RASPI 
+#  define PBASE  0x20000000
+#elif defined __RASPI2 || defined __RASPI3
+#  define PBASE  0x3F000000
+#else
+#  error Unable to determine the target platform 
+#endif
 
-void page_release(page_t addr)
-{
-	_vfree((void*) addr) ;
-}
+// Auxiliaires: UART1, SPI1 & SPI2
+#define AUX_BASE  (PBASE + 0x215000)
 
-int page_fault(mspace_t *mspace, size_t address, int reason)
-{
-    return -1;
-}
+#define AUX_IRQ  (AUX_BASE + 0x00) 
+#define AUX_ENABLES  (AUX_BASE + 0x04) 
+#define AUX_MU_IO_REG  (AUX_BASE + 0x40) 
+#define AUX_MU_IER_REG  (AUX_BASE + 0x44) 
+
+// UART0
+#define UART_BASE  (PBASE + 0x201000)
+
+#define UART_DR  (UART_BASE + 0x00) 
+#define UART_RSRECR  (UART_BASE + 0x04) 
+
+// USB
+#define USB_BASE  (PBASE + 0x980000)
+
+#endif  /* _KERNEL_IO_H */
