@@ -55,6 +55,7 @@ int rand_read(inode_t *ino, char *buf, size_t len, int flags)
 }
 
 dev_ops_t dev_ops = {
+   .ioctl = NULL, 
 };
 
 ino_ops_t null_ino_ops = {

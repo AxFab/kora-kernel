@@ -29,10 +29,7 @@
 #include <kora/mcrs.h>
 
 int abs(int v);
-#define RGB(r,g,b) ((((r) &0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff))
 
-#define DESK_PADDING 10
-#define DESK_BORDER 2
 
 #define WMGR_RENDER  1
 
@@ -58,44 +55,6 @@ int abs(int v);
 
 desktop_t *kDESK;
 
-struct pointer {
-    int x, y;
-    int size, idx;
-};
-
-struct screen {
-    int no;
-    desktop_t *desk;
-    rect_t sz;
-    framebuffer_t *frame;
-    int queries;
-    rwlock_t lock;
-
-    inode_t *ino;
-    pointer_t pointer;
-    window_t *fullscreen;
-};
-
-
-struct desktop {
-    int no, ox, oy;
-    pointer_t pointer;
-    llhead_t windows;
-    splock_t lock;
-    screen_t *screen;
-    framebuffer_t **pointer_sprites;
-
-    int kbd_status;
-    int btn_status;
-    int last_key;
-    clock64_t last_kbd;
-
-    window_t *over_win;
-    window_t *grab_win;
-    int grab_type;
-    int grab_x;
-    int grab_y;
-};
 
 
 
@@ -105,7 +64,7 @@ void wmgr_window_flip(inode_t *ino)
     win->queries |= WMGR_RENDER;
 }
 
-int wmgr_window_read(inode_t *ino, const char *buf, size_t len, int flags)
+int wmgr_window_read(inode_t *ino, char *buf, size_t len, int flags)
 {
     return pipe_read(((window_t *) ino->info) ->pipe, buf, len, flags) ;
 }
@@ -516,53 +475,3 @@ void wmgr_input(inode_t *ino, int type, int param, pipe_t *pipe)
     }
 }
 
-
-void tty_main();
-void exec_task();
-void fake_shell_task();
-void main_clock();
-
-void wmgr_main()
-{
-    inode_t *dev;
-    for (;;) {
-        dev = vfs_search_device("fb0");
-        if (dev != NULL)
-            break;
-        sys_sleep(MSEC_TO_KTIME(50));
-    }
-
-    // We found the screen
-    framebuffer_t *fb = (framebuffer_t *)dev->info;
-    gfx_clear(fb, RGB(112, 146, 190));
-    dev->ops->flip(dev);
-
-    kprintf(-1, "Desktop %dx%d -- #%x\n", fb->width, fb->height, RGB(112, 146, 190));
-
-    desktop_t *desk = kalloc(sizeof(desktop_t));
-    desk->ox = desk->oy = DESK_PADDING;
-    splock_init(&desk->lock);
-    desk->screen = kalloc(sizeof(screen_t));
-    desk->screen->sz.w = fb->width;
-    desk->screen->sz.h = fb->height;
-    desk->screen->frame = fb;
-    desk->screen->ino = dev;
-    desk->screen->desk = desk;
-    desk->pointer_sprites = kalloc(sizeof(framebuffer_t *));
-    desk->pointer_sprites[0] = gfx_create(64, 64, 4, NULL);
-    // gfx_shadow(desk->pointer_sprites[0], 32, 32, 16, 0xFFa60000);
-
-    // Start applications
-    kDESK = desk;
-    task_create(tty_main, NULL, "Tty.0");
-    task_create(exec_task, NULL, "App exec");
-    task_create(fake_shell_task, NULL, "Fake shell");
-    task_create(main_clock, NULL, "Clock");
-
-
-    // Start render loop
-    for (;;) {
-        wmgr_render(kDESK->screen);
-        sys_sleep(MSEC_TO_KTIME(50));
-    }
-}

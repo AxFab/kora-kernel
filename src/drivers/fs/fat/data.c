@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <kernel/files.h>
 #include "fatfs.h"
-
 
 
 int fatfs_read (inode_t *ino, void *buffer, size_t length, off_t offset) 
@@ -44,17 +44,17 @@ int fatfs_write (inode_t *ino, const void *buffer, size_t length, off_t offset)
 
 page_t fatfs_fetch(inode_t *ino, off_t off) 
 {
-	return map_fetch(ino->info, off);
+    return map_fetch(ino->info, off);
 } 
 
 void fatfs_sync(inode_t *ino, off_t off, page_t pg) 
 {
-	return map_sync(ino->info, off, pg);
+    map_sync(ino->info, off, pg);
 } 
 
 void fatfs_release(inode_t *ino, off_t off, page_t pg) 
 {
-	return map_release(ino->info, off, pg);
+    map_release(ino->info, off, pg);
 } 
 
 

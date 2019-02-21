@@ -23,7 +23,7 @@
 #include <bits/atomic.h>
 #include <stdbool.h>
 
-#ifdef KORA_KRN
+#if defined KORA_KRN || defined UM_KRN
 extern void irq_reset(bool enable);
 extern bool irq_enable();
 extern void irq_disable();
