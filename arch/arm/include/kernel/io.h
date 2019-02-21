@@ -17,21 +17,32 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _KORA_FUTEX_H
-#define _KORA_FUTEX_H 1
+#ifndef _KERNEL_IO_H
+#define _KERNEL_IO_H 1
 
-#include <threads.h>
-#include <time.h>
+#if defined __RASPI 
+#  define PBASE  0x20000000
+#elif defined __RASPI2 || defined __RASPI3
+#  define PBASE  0x3F000000
+#else
+#  error Unable to determine the target platform 
+#endif
 
-struct _US_MUTEX {
-    atomic_t counter;
-    int flags;
-    thrd_t thread;
-    splock_t splock;
-    // emitter_t emitter;
-};
+// Auxiliaires: UART1, SPI1 & SPI2
+#define AUX_BASE  (PBASE + 0x215000)
 
-int futex_wait(struct _US_MUTEX *mutex, const struct timespec *ts);
-void futex_raise(struct _US_MUTEX *mutex);
+#define AUX_IRQ  (AUX_BASE + 0x00) 
+#define AUX_ENABLES  (AUX_BASE + 0x04) 
+#define AUX_MU_IO_REG  (AUX_BASE + 0x40) 
+#define AUX_MU_IER_REG  (AUX_BASE + 0x44) 
 
-#endif /* _KORA_FUTEX_H */
+// UART0
+#define UART_BASE  (PBASE + 0x201000)
+
+#define UART_DR  (UART_BASE + 0x00) 
+#define UART_RSRECR  (UART_BASE + 0x04) 
+
+// USB
+#define USB_BASE  (PBASE + 0x980000)
+
+#endif  /* _KERNEL_IO_H */

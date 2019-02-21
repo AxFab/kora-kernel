@@ -18,38 +18,38 @@ Africa/Dakar GMT +0000
 Africa/Dar_es_Salaam EAT +0300
 Africa/Djibouti EAT +0300
 Africa/Douala WAT +0100
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
-Africa/
+Africa/El_Aaiun WET +0000
+Africa/Freetown GMT +0000
+Africa/Gaborone CAT +0200
+Africa/Harare CAT +0200
+Africa/Johannesburg SAST +0200
+Africa/Kampala EAT +0300
+Africa/Khartoum EAT +0300
+Africa/Kigali CAT +0200
+Africa/Kinshasa WAT +0100
+Africa/Lagos WAT +0100
+Africa/Libreville WAT +0100 
+Africa/Lome GMT +0000
+Africa/Luanda WAT +0100
+Africa/Lubumbashi CAT +0200
+Africa/Lusaka CAT +0200
+Africa/Malabo WAT +0100
+Africa/Maputo CAT +0200
+Africa/Maseru SAST +0200
+Africa/Mbabane SAST +0200
+Africa/Mogadishu EAT +0300 
+Africa/Monrovia GMT +0000
+Africa/Nairobi EAT +0300
+Africa/Ndjamena WAT +0100
+Africa/Niamey WAT +0100
+Africa/Nouakchott GMT +0000 
+Africa/Ouagadougou GMT +0000
+Africa/Porto WAT +0100
+Africa/Sao_Tome GMT +0000
+Africa/Timbuktu GMT +0000
+Africa/Tripoli EET +0200
+Africa/Tunis CET +0100
+Africa/Windhoek WAT +0100 WAST +0200 1;0;9;0200 1;0;4;0200
 America/
 America/
 America/
@@ -269,70 +269,70 @@ Australia/Adelaide CST +0930 CST +1030 -1;0;10;0200 -1;0;3;0300
 Australia/Brisbane EST +1000
 Australia/Broken_Hill CST +0930 CST +1030 -1;0;10;0200 -1;0;3;0300
 Australia/Darwin CST +0930
-Australia/Hobart EST +1000 EST +1100 1;0;10;0200 -1;0;10;0300
+Australia/Hobart EST +1000 EST +1100 1;0;10;0200 -1;0;3;0300
 Australia/Lindeman EST +1000
-Australia/Lord_Howe LHST +1030 LHDT +1100 1;0;10;0200 -1;0;3;0200
+Australia/Lord_Howe LHST +1030 LHDT +1100 -1;0;10;0200 -1;0;3;0200
 Australia/Melbourne EST +1000 EST +1100 -1;0;10;0200 -1;0;3;0300
 Australia/Perth WST +0800
 Australia/Sydney EST +1000 EST +1100 -1;0;10;0200 -1;0;3;0300
 Europe/Amsterdam CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Andorra CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
-Europe/
+Europe/Athens EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
+Europe/Belfast GMT +0000 BST +0100 -1;0;3;0100 -1;0;10;0200
 Europe/Belgrade CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Berlin CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Bratislava CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Brussels CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Bucharest EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
 Europe/Budapest CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Chisinau EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
 Europe/Copenhague CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Dublin GMT +0000 IST +0100 -1;0;3;0100 -1;0;10;0200
 Europe/Gibraltar CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
-Europe/
-Europe/
-Europe/
-Europe/
+Europe/Helsinki EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
+Europe/Istanbul EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
+Europe/Kaliningrad EET +0200 EEST +0300 -1;0;3;0200 -1;0;10;0300
+Europe/Kiev EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
+Europe/Lisbon WET +0000 WEST +0100 -1;0;3;0100 -1;0;10;0200
 Europe/Ljubljana CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/London GMT +0000 BST +0100 -1;0;3;0100 -1;0;10;0200
 Europe/Luxembourg CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Madrid CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Malta CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Minsk EET +0200 EEST +0300 -1;0;3;0200 -1;0;10;0300
 Europe/Monaco CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
-Europe/
+Europe/Moscow MSK +0300 MSD +0400 -1;0;3;0200 -1;0;10;0300
+Europe/Nicosia EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
 Europe/Oslo CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Paris CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Prague CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Riga EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
 Europe/Rome CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Samara SAMT +0400 SAMST +0500 -1;0;3;0200 -1;0;10;0300
 Europe/San_Marino CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Sarajevo CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Simferopol EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
 Europe/Skopje CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Sofia EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
 Europe/Stockholm CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Tallinn EET +0200
 Europe/Tirane CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Uzhgorod EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
 Europe/Vaduz CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Vatican CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Vienna CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Vilnius EET +0200
 Europe/Warsaw CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Zagreb CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Europe/
+Europe/Zaporozhye EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
 Europe/Zurich CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
-Indian/
-Indian/
-Indian/
-Indian/
-Indian/
-Indian/
-Indian/
+Indian/Antananarivo EAT +0300
+Indian/Chagos IOT +0600
+Indian/Christmas CXT +0700
+Indian/Cocos CCT +0630
+Indian/Comoro EAT +0300
+Indian/Kerguelen TFT +0500
+Indian/Mahe SCT +0400
 Indian/Maldives MVT +0500
 Indian/Mauritius MUT +0400
 Indian/Mayotte EAT +0300
@@ -345,31 +345,31 @@ Pacific/Efate VUT +1100
 Pacific/Enderbury PHOT +1300
 Pacific/Fakaofo TKT -1000
 Pacific/Fiji FJT +1200
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
+Pacific/Funafuti TVT +1200
+Pacific/Galapagos GALT -0600
+Pacific/Gambier GAMT -0900
+Pacific/Guadalcanal SBT +1100
+Pacific/Guam ChST +1000
+Pacific/Honolulu HST -1000
+Pacific/Johnston HST -1000
 Pacific/Kiritimati LINT +1400
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
-Pacific/
+Pacific/Kosrae KOST +1100
+Pacific/Kwajalein MHT +1200
+Pacific/Majuro MHT +1200
+Pacific/Marquesas MART -0930
+Pacific/Midway SST -1100
+Pacific/Nauru NRT +1200
+Pacific/Niue NUT -1100
+Pacific/Norfolk NFT +1130
+Pacific/Noumea NCT +1100
+Pacific/Pago_Pago SST -1100
+Pacific/Palau PWT +0900
+Pacific/Pitcairn PST -0800
+Pacific/Ponape PONT +1100
+Pacific/Port_Moresby PGT +1000
+Pacific/Rarotonga CKT -1000
 Pacific/Saipan ChST +1000
-Pacific/Thaiti TAHT -1000
+Pacific/Tahiti TAHT -1000
 Pacific/Tarawa GILT +1200
 Pacific/Tongatapu TOT +1300
 Pacific/Truk TRUT +1000

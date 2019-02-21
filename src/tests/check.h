@@ -150,5 +150,6 @@ static inline void ck_fails(const char *expr, const char *file, int line)
     longjmp(__tcase_jump, 1);
 }
 
+void ck_reset();
 
 #endif  /* _SRC_CHECK_H */

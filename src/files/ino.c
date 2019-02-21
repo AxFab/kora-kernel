@@ -19,6 +19,7 @@
  */
 #include <kernel/vfs.h>
 #include <kernel/files.h>
+#include <kernel/device.h>
 
 int pipe_fcntl(inode_t *ino, int cmd, void *flags)
 {
@@ -32,12 +33,12 @@ int pipe_close(inode_t *ino)
     return 0;
 }
 
-int pipe_read_ino(inode_t *ino, char *buf, int len, int flags)
+int pipe_read_ino(inode_t *ino, char *buf, size_t len, int flags)
 {
     return pipe_read((pipe_t *) ino->info, buf, len, flags);
 }
 
-int pipe_write_ino(inode_t *ino, const char *buf, int len, int flags)
+int pipe_write_ino(inode_t *ino, const char *buf, size_t len, int flags)
 {
     return pipe_write((pipe_t *) ino->info, buf, len, flags);
 }
@@ -52,10 +53,10 @@ ino_ops_t pipe_ops = {
 
 inode_t *pipe_inode()
 {
-    inode_t *ino = vfs_inode();
+    inode_t *ino = vfs_inode(1, FL_PIPE, NULL);
     ino->info = pipe_create();
     ino->ops = &pipe_ops;
     // TODO, vfs_config
     return ino;
 }
->
+

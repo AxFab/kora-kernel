@@ -26,7 +26,7 @@ page_t mmu_read(size_t addr)
 {
 	void *ptr = _valloc(PAGE_SIZE);
 	memcpy(ptr, (void*) addr,PAGE_SIZE); 
-    return ptr;
+    return (page_t)ptr;
 }
 
 void page_release(page_t addr)

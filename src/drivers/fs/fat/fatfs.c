@@ -70,6 +70,7 @@ int fatfs_truncate(inode_t *ino, off_t length)
     // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, kclock()); -- on unix but not windows
     bio_clean(info->io_data_rw, lba);
     bio_sync(info->io_data_rw);
+    ino->length = length;
     return 0;
 }
 
