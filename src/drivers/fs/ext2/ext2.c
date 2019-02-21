@@ -222,6 +222,7 @@ ino_ops_t ext2_dir_ops = {
 };
 
 ino_ops_t ext2_reg_ops = {
+    .close = NULL, 
 };
 
 fs_ops_t ext2_fs_ops = {

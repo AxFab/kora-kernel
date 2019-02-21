@@ -23,6 +23,7 @@
 #include <kernel/dlib.h>
 #include <kernel/task.h>
 #include <kernel/syscalls.h>
+#include <string.h>
 
 extern const font_bmp_t font_8x15;
 
@@ -115,6 +116,10 @@ void exec_task()
     mmu_context(mspace);
     kCPU.running->usmem = mspace;
     proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace);
+    if (proc->root == NULL) {
+        tty_puts(tty, "No root! ");
+        sys_exit(-1);
+    } 
     kCPU.running->proc = proc;
     int ret = dlib_openexec(proc, exec_args[0]);
     if (ret == 0)

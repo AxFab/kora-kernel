@@ -22,8 +22,7 @@
 
 #include <bits/cdefs.h>
 #include <bits/atomic.h>
-
-#undef __STDC_NO_THREADS__
+#include <time.h>
 
 #define thread_local __thread
 

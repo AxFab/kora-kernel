@@ -189,7 +189,7 @@ int elf_parse(dynlib_t *dlib)
         bio_clean(dlib->io, 0);
         return -1;
     }
-    if (dynamic.hash < 0 || dynamic.hash > 4080) {
+    if (dynamic.hash > 4080) {
         bio_clean(dlib->io, 0);
         return -1;
     }
@@ -202,7 +202,7 @@ int elf_parse(dynlib_t *dlib)
     llhead_t symbols = INIT_LLHEAD;
     elf_sym32_t *sym_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.sym_tab / PAGE_SIZE), dynamic.sym_tab % PAGE_SIZE);
     // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
-    int sym_count = hash[1];
+    unsigned sym_count = hash[1];
     for (i = 1; i < sym_count; ++i) {
         dynsym_t *sym = kalloc(sizeof(dynsym_t));
         ll_append(&symbols, &sym->node);

@@ -35,6 +35,7 @@ void scheduler_add(task_t *task)
 
 void scheduler_rm(task_t *task, int status)
 {
+	assert(status != TS_READY);
     splock_lock(&task_lock);
     ll_remove(&task_list, &task->node);
     task->status = status;
