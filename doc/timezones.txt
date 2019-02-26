@@ -28,7 +28,7 @@ Africa/Khartoum EAT +0300
 Africa/Kigali CAT +0200
 Africa/Kinshasa WAT +0100
 Africa/Lagos WAT +0100
-Africa/Libreville WAT +0100 
+Africa/Libreville WAT +0100
 Africa/Lome GMT +0000
 Africa/Luanda WAT +0100
 Africa/Lubumbashi CAT +0200
@@ -37,12 +37,12 @@ Africa/Malabo WAT +0100
 Africa/Maputo CAT +0200
 Africa/Maseru SAST +0200
 Africa/Mbabane SAST +0200
-Africa/Mogadishu EAT +0300 
+Africa/Mogadishu EAT +0300
 Africa/Monrovia GMT +0000
 Africa/Nairobi EAT +0300
 Africa/Ndjamena WAT +0100
 Africa/Niamey WAT +0100
-Africa/Nouakchott GMT +0000 
+Africa/Nouakchott GMT +0000
 Africa/Ouagadougou GMT +0000
 Africa/Porto WAT +0100
 Africa/Sao_Tome GMT +0000
@@ -52,32 +52,47 @@ Africa/Tunis CET +0100
 Africa/Windhoek WAT +0100 WAST +0200 1;0;9;0200 1;0;4;0200
 America/
 America/
+America/Anguilla AST -0400
+America/Antigua AST -0400
 America/
+America/Aruba AST -0400
 America/
+America/Barbados AST -0400
 America/
+America/Belize CST -0600
 America/
 America/
 America/
+America/Buenos_Aires ART -0300
 America/
 America/
 America/
+America/Catamarca ART -0300
 America/
 America/
 America/
 America/
+America/Cordoba ART -0300
+America/Costa_Rica CST -0600
 America/
+America/Curacao AST -0400
 America/
 America/
 America/
 America/
 America/
+America/Dominica AST -0400
 America/
 America/
+America/El_Salvador CST -0600
 America/
 America/
 America/
 America/
 America/
+America/Grenada AST -0400
+America/Guadeloupe AST -0400
+America/Guatemala CST -0600
 America/
 America/
 America/
@@ -88,6 +103,7 @@ America/
 America/
 America/
 America/
+America/Jujuy ART -0300
 America/
 America/
 America/
@@ -95,8 +111,11 @@ America/
 America/
 America/
 America/
+America/Managua CST -0600
 America/
+America/Martinique AST -0400
 America/
+America/Mendoza ART -0300
 America/
 America/
 America/
@@ -104,6 +123,7 @@ America/
 America/
 America/
 America/
+America/Montserrat AST -0400
 America/
 America/
 America/
@@ -115,51 +135,31 @@ America/
 America/
 America/
 America/
+America/Port_of_Spain AST -0400
 America/
+America/Puerto_Rico AST -0400
 America/
 America/
 America/
+America/Regina CST -0600
 America/
+America/Rosario ART -0300
 America/
+America/Santo_Domingo AST -0400
 America/
 America/
 America/
 America/
+America/St_Kitts AST -0400
+America/St_Lucia AST -0400
+America/St_Thomas AST -0400
+America/St_Vincent AST -0400
+America/Swift_Current CST -0600
+America/Tegucigalpa CST -0600
+America/Thule AST -0400
 America/
 America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
+America/Tortola AST -0400
 America/
 America/
 America/
@@ -169,12 +169,14 @@ Antarctica/Casey WST +0800
 Antarctica/Davis DAVT +0700
 Antarctica/DumontDUrville DDUT +1000
 Antarctica/Mawson MAWT +0600
-Antarctica/McMurdo NZST +1200 NZDT +1300  1;0;10;0200 3;0;3;0300
-Antarctica/Palmer CLT -0400 CLST -0300  2;0;10;0000 2;0;3;0000
+Antarctica/McMurdo NZST +1200 NZDT +1300 1;0;10;0200 3;0;3;0300
+Antarctica/Palmer CLT -0400 CLST -0300 2;0;10;0000 2;0;3;0000
 Antarctica/South_Pole NZST +1200 NZDT +1300 1;0;10;0200 3;0;3;0300
 Antarctica/Syowa SYOT +0300
 Antarctica/Vostok VOST +0600
 Artic/Longyearbyen CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
+Asia/Aden AST +0300
+Asia/Almaty ALMT +0600 ALMST +0700 -1;0;3;0000 -1;0;10;0000
 Asia/
 Asia/
 Asia/
@@ -189,6 +191,7 @@ Asia/
 Asia/
 Asia/
 Asia/
+Asia/Chongqing CST +0800
 Asia/
 Asia/
 Asia/
@@ -196,6 +199,7 @@ Asia/
 Asia/
 Asia/
 Asia/
+Asia/Harbin CST +0800
 Asia/
 Asia/
 Asia/
@@ -207,11 +211,14 @@ Asia/
 Asia/
 Asia/
 Asia/
+Asia/Kashgar CST +0800
 Asia/
 Asia/
 Asia/
 Asia/
 Asia/
+Asia/Macao CST +0800
+Asia/Macau CST +0800
 Asia/
 Asia/
 Asia/
@@ -231,7 +238,9 @@ Asia/
 Asia/
 Asia/
 Asia/
+Asia/Shanghai CST +0800
 Asia/
+Asia/Taipei CST +0800
 Asia/
 Asia/
 Asia/
@@ -239,16 +248,7 @@ Asia/
 Asia/
 Asia/
 Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
+Asia/Urumqi CST +0800
 Asia/
 Asia/
 Asia/
@@ -257,7 +257,7 @@ Asia/
 Atlantic/Azores AZOT -0100 AZOST +0000 -1;0;3;0000 -1;0;10;0100
 Atlantic/Bermuda AST -0400 ADT -0300 1;0;4;0200 -1;0;10;0200
 Atlantic/Canary WET +0000 WEST +0100 -1;0;3;0100 -1;0;10;0200
-Atlantic/Cap_verde CVT -0100
+Atlantic/Cape_Verde CVT -0100
 Atlantic/Faeroe WET +0000 WEST +0100 -1;0;3;0100 -1;0;10;0200
 Atlantic/Jan_Mayen CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Atlantic/Madeira WET +0000 WEST +0100 -1;0;3;0100 -1;0;10;0200
@@ -286,7 +286,7 @@ Europe/Brussels CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Bucharest EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
 Europe/Budapest CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Chisinau EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
-Europe/Copenhague CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
+Europe/Copenhagen CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Dublin GMT +0000 IST +0100 -1;0;3;0100 -1;0;10;0200
 Europe/Gibraltar CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Helsinki EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
