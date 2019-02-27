@@ -50,43 +50,43 @@ Africa/Timbuktu GMT +0000
 Africa/Tripoli EET +0200
 Africa/Tunis CET +0100
 Africa/Windhoek WAT +0100 WAST +0200 1;0;9;0200 1;0;4;0200
-America/
-America/
+America/Adak HAST -1000 HADT -0900 2;0;3;0200 1;0;11;0200
+America/Anchorage AKST -0900 AKDT -0800 2;0;3;0200 1;0;11;0200
 America/Anguilla AST -0400
 America/Antigua AST -0400
 America/
 America/Aruba AST -0400
 America/
 America/Barbados AST -0400
-America/
+America/Belem BRT -0300
 America/Belize CST -0600
 America/
 America/
-America/
+America/Boise MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
 America/Buenos_Aires ART -0300
-America/
+America/Cambridge_Bay MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
 America/
 America/
 America/Catamarca ART -0300
 America/
 America/
-America/
+America/Chicago CST -0600 CDT -0500 2;0;3;0200 1;0;11;0200
 America/
 America/Cordoba ART -0300
 America/Costa_Rica CST -0600
 America/
 America/Curacao AST -0400
 America/
+America/Dawson PST -0800 PDT -0700 2;0;3;0200 1;0;11;0200
 America/
-America/
-America/
-America/
+America/Denver MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
+America/Detroit EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
 America/Dominica AST -0400
-America/
+America/Edmonton MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
 America/
 America/El_Salvador CST -0600
 America/
-America/
+America/Glace_Bay AST -0400 ADT -0300 2;0;3;0200 1;0;11;0200
 America/
 America/
 America/
@@ -95,12 +95,12 @@ America/Guadeloupe AST -0400
 America/Guatemala CST -0600
 America/
 America/
+America/Halifax AST -0400 ADT -0300 2;0;3;0200 1;0;11;0200
 America/
 America/
 America/
 America/
-America/
-America/
+America/Inuvik MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
 America/
 America/
 America/Jujuy ART -0300
@@ -148,7 +148,7 @@ America/
 America/Santo_Domingo AST -0400
 America/
 America/
-America/
+America/Shiprock MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
 America/
 America/St_Kitts AST -0400
 America/St_Lucia AST -0400
@@ -164,7 +164,7 @@ America/
 America/
 America/
 America/
-America/
+America/Yellowknife MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
 Antarctica/Casey WST +0800
 Antarctica/Davis DAVT +0700
 Antarctica/DumontDUrville DDUT +1000
@@ -177,83 +177,83 @@ Antarctica/Vostok VOST +0600
 Artic/Longyearbyen CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Asia/Aden AST +0300
 Asia/Almaty ALMT +0600 ALMST +0700 -1;0;3;0000 -1;0;10;0000
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
+Asia/Amman EET +0200 EEST +0300 -1;4;3;0000 -1;4;9;0100
+Asia/Anadyr ANAT +1200 ANAST +1300 -1;0;3;0200 -1;0;10;0300
+Asia/Aqtau AQTT +0400 AQTST +0500 -1;0;3;0000 -1;0;10;0000
+Asia/Aqtobe AQTT +0500 AQTST +0600 -1;0;3;0000 -1;0;10;0000
+Asia/Ashgabat TMT +0500
+Asia/Baghdad AST +0300 ADT +0400 1;0;4;0300 1;0;10;0400
+Asia/Bahrain AST +0300
+Asia/Baku AZT +0400 AZST +0500 -1;0;3;0100 -1;0;10;0100
+Asia/Bangkok ICT +0700
+Asia/Beirut EET +0200 EEST +0300 -1;0;3;0000 -1;0;10;0000
+Asia/Bishkek KGT +0500 KGST +0600 -1;0;3;0230 -1;0;10;0230
+Asia/Brunei BNT +0800
+Asia/Calcutta IST +0530
+Asia/Choibalsan CHOT +0900 
 Asia/Chongqing CST +0800
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
+Asia/Colombo LKT +0600
+Asia/Damascus EET +0200 EEST +0300 1;0;4;0000 1;0;10;0000
+Asia/Dhaka BDT +0600
+Asia/Dili TPT +0900
+Asia/Dubai GST +0400
+Asia/Dushanbe TJT +0500
+Asia/Gaza EET +0200 EEST +0300 3;5;4;0000 3;5;10;0000
 Asia/Harbin CST +0800
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
+Asia/Ho_Chi_Minh ICT +0700
+Asia/Hong_Kong HKT +0800
+Asia/Hovd HOVT +0700
+Asia/Irkutsk IRKT +0800 IRKST +0900 -1;0;3;0200 -1;0;10;0300
+Asia/Istanbul EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
+Asia/Jakarta WIT +0700
+Asia/Jayapura EIT +0900
+Asia/Jerusalem IST +0200 IDT +0300 1;0;4;0100 1;0;10;0100
+Asia/Kabul AFT +0430
+Asia/Kamachatka PETT +1200 PETST +1300 -1;0;3;0200 -1;0;10;0300
+Asia/Karachi PKT +0500
 Asia/Kashgar CST +0800
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
+Asia/Kathmandu NPT +0545
+Asia/Krasnoyarsk KRAT +0700 KRAST +0800 -1;0;3;0200 -1;0;10;0300
+Asia/Kuala_Lumpur MYT +0800
+Asia/Kuching MYT +0800
+Asia/Kowait AST +0300
 Asia/Macao CST +0800
 Asia/Macau CST +0800
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
+Asia/Magadan MAGT +1100 MAGST +1200 -1;0;3;0200 -1;0;10;0300
+Asia/Makassar CIT +0800
+Asia/Manila PHT +0800
+Asia/Muscat GST +0400
+Asia/Nicosia EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400
+Asia/Novosibirsk NOVT +0600 NOVST +0700 -1;0;3;0200 -1;0;10;0300
+Asia/Omsk OMST +0600 OMSST +0700 -1;0;3;0200 -1;0;10;0300
+Asia/Oral WST +0500
+Asia/Phnom_Penh ICT +0700
+Asia/Pontianak WIT +0700
+Asia/Pyongyang KST +0900
+Asia/Qyzylorda KST +0600
+Asia/Qatar AST +0300
+Asia/Rangoon MMT +0630
+Asia/Riyadh AST +0300
+Asia/Saigon ICT +0700
+Asia/Sakhalin SAKT +1000 SAKST +1100 -1;0;3;0200 -1;0;10;0300
+Asia/Samarkand UZT +0500
+Asia/Seoul KST +0900
 Asia/Shanghai CST +0800
-Asia/
+Asia/Singapore SGT +0800
 Asia/Taipei CST +0800
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
+Asia/Tashkent UZT +0500
+Asia/Tbilisi GET +0400 GEST +0500 -1;0;3;0000 -1;0;10;0000
+Asia/Tehran IRT +0330
+Asia/Thimphu BTT +0600
+Asia/Tokyo JST +0900
+Asia/Ujung_Pandang CIT +0800
+Asia/Ulaanbaatar ULAT +0800
 Asia/Urumqi CST +0800
-Asia/
-Asia/
-Asia/
-Asia/
-Asia/
+Asia/Vientiane ICT +0700
+Asia/Vladivostok VLAT +1000 VLAST +1100 -1;0;3;0200 -1;0;10;0300
+Asia/Yakutsk YAKT +0900 YAKST +1000 -1;0;3;0200 -1;0;10;0300
+Asia/Yekaterinburg YEKT +0500 YEKST +0600 -1;0;3;0200 -1;0;10;0300
+Asia/Yerevan AMT +0400 AMST +0500 -1;0;3;0200 -1;0;10;0300
 Atlantic/Azores AZOT -0100 AZOST +0000 -1;0;3;0000 -1;0;10;0100
 Atlantic/Bermuda AST -0400 ADT -0300 1;0;4;0200 -1;0;10;0200
 Atlantic/Canary WET +0000 WEST +0100 -1;0;3;0100 -1;0;10;0200
