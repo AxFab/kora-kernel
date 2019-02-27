@@ -34,13 +34,20 @@ int sprintf_s(char *buf, int lg, const char *msg, ...);
 #define DAYS_PER_400Y (365*400 + 97)
 #define DAYS_PER_100Y (365*100 + 24)
 #define DAYS_PER_4Y   (365*4   + 1)
+#define DAYS_PER_Y    (365)
 
+#define SECS_PER_DAYS (86400)
 
 #undef INT_MAX
 #define INT_MAX ((int)2147483647)
 
 #undef INT_MIN
 #define INT_MIN ((int)-INT_MAX - 1)
+
+
+static const int CYCLES_DAYS[] = { DAYS_PER_400Y, DAYS_PER_100Y, DAYS_PER_4Y, DAYS_PER_Y };
+static const int CYCLES_YEARS[] = { 400, 100, 4, 1 };
+static const int CYCLES_MODS[] = { 0, 4, 25, 4 };
 
 
 // static const char *const weekDayStrings[] = {
@@ -125,7 +132,6 @@ static long long __yeartosecs(long year, int *is_leap)
     return (year - 100) * 31536000LL + leaps * 86400LL + 946684800 + 86400;
 }
 
-
 static int __monthtosecs(int month, int is_leap)
 {
     static const int secs_through_month[] = {
@@ -140,7 +146,6 @@ static int __monthtosecs(int month, int is_leap)
 
     return t;
 }
-
 
 static long long __tmtosecs(const struct tm *tm)
 {
@@ -169,92 +174,66 @@ static long long __tmtosecs(const struct tm *tm)
     return t;
 }
 
-static int __secstotm(long long t, struct tm *tm)
+static int __secstotm(long long timestamp, struct tm *tm)
 {
-    long long days, secs;
-    int remdays, remsecs, remyears;
-    int qc_cycles, c_cycles, q_cycles;
-    int years, months;
-    int wday, yday, leap;
-    static const char days_in_month[] = {31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 31, 29};
-
+    static const char days_in_month[] = { 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 31, 29 };
+    long long total_secs = timestamp - LEAPOCH;
+    long long ts_date = total_secs / SECS_PER_DAYS;
+    long ts_time = total_secs % SECS_PER_DAYS;
+    
     /* Reject time_t values whose year would overflow int */
     if (t < INT_MIN * 31622400LL || t > INT_MAX * 31622400LL)
         return -1;
 
-    secs = t - LEAPOCH;
-    days = secs / 86400;
-    remsecs = secs % 86400;
-
-    if (remsecs < 0) {
-        remsecs += 86400;
-        days--;
+    /* Compute time of day */
+    if (ts_time < 0) {
+        ts_time += SECS_PER_DAYS;
+        ts_date--;
+    } 
+   
+    tm->tm_hour = ts_time / 3600;
+    tm->tm_min = ts_time / 60 % 60;
+    tm->tm_sec = ts_time % 60;
+   
+    /* Compute years */
+    long years = 0;
+    long days = ts_date;
+    int i, cycles[4];
+    for (i = 0; i < 4; ++i) {
+        cycles[i] = days / CYCLES_DAYS[i];
+        if (i != 0 && cycles[i] == CYCLES_MODS[i]) 
+            cycles[i]--;
+        days -= cycles[i] * CYCLES_DAYS[i];
+        if (days < 0) {
+            cycles[i]--;
+            days += CYCLES_DAYS[i];
+        } 
+        years += cycles[i] * CYCLES_YEARS[i];
     }
-
-    wday = (3 + days) % 7;
-
-    if (wday < 0)
-        wday += 7;
-
-    qc_cycles = (int)(days / DAYS_PER_400Y);
-    remdays = days % DAYS_PER_400Y;
-
-    if (remdays < 0) {
-        remdays += DAYS_PER_400Y;
-        qc_cycles--;
-    }
-
-    c_cycles = remdays / DAYS_PER_100Y;
-
-    if (c_cycles == 4)
-        c_cycles--;
-
-    remdays -= c_cycles * DAYS_PER_100Y;
-
-    q_cycles = remdays / DAYS_PER_4Y;
-
-    if (q_cycles == 25)
-        q_cycles--;
-
-    remdays -= q_cycles * DAYS_PER_4Y;
-
-    remyears = remdays / 365;
-
-    if (remyears == 4)
-        remyears--;
-
-    remdays -= remyears * 365;
-
-    leap = !remyears && (q_cycles || !c_cycles);
-    yday = remdays + 31 + 28 + leap;
-
+    tm->tm_year = years + 100;
+    
+    /* Compute the day of the year */
+    int leap = !cycles[3] && (cycles[2] || !cycles[1]) ? 1 : 0;
+    long yday = days + 31 + 28 + leap;
     if (yday >= 365 + leap)
         yday -= 365 + leap;
-
-    years = remyears + 4 * q_cycles + 100 * c_cycles + 400 * qc_cycles;
-
-    for (months = 0; days_in_month[months] <= remdays; months++)
-        remdays -= days_in_month[months];
-
-    if (years + 100 > INT_MAX || years + 100 < INT_MIN)
-        return -1;
-
-    tm->tm_year = years + 100;
-    tm->tm_mon = months + 2;
-
+    tm->tm_yday = yday;
+    
+    /* Compute the day of the month */
+    int month;
+    for (month = 0; days_in_month[month] <= days; month++) 
+        days -= days_in_month[month];
+    tm->tm_mon = month + 2;
     if (tm->tm_mon >= 12) {
         tm->tm_mon -= 12;
         tm->tm_year++;
     }
-
-    tm->tm_mday = remdays + 1;
-    tm->tm_wday = wday;
-    tm->tm_yday = yday;
-
-    tm->tm_hour = remsecs / 3600;
-    tm->tm_min = remsecs / 60 % 60;
-    tm->tm_sec = remsecs % 60;
-
+    tm->tm_mday = days + 1;
+   
+    /* Compute the day of the week */
+    tm->tm_wday = (3 + ts_date) % 7;
+    if (tm->tm_wday < 0)
+        tm->tm_wday += 7;
     return 0;
 }
 
