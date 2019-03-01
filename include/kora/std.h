@@ -20,6 +20,7 @@
 #ifndef __KORA_STD_H
 #define __KORA_STD_H 1
 
+#include <bits/cdefs.h>
 #include <stddef.h>
 
 void __libc_init();

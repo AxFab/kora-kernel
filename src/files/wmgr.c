@@ -75,7 +75,7 @@ int wmgr_window_resize(inode_t *ino, int width, int height)
 	return gfx_resize (win->frame, width, height, NULL);
 } 
 
-int wmgr_event(inode_t *ino, int event, int param1, int param2) 
+int wmgr_event(window_t *win, int event, int param1, int param2)
 {
 	event_t ev;
 	ev.param1 = param1;
@@ -303,6 +303,14 @@ void wmgr_keyboard(desktop_t *desk, uint32_t fkey, int state)
             // kprintf(-1, "ALT + SHIFT + %x\n", key); // CTRL + ALT
         } else if ((desk->kbd_status & 0770) == 0200) {
             // kprintf(-1, "HOME + %x\n", key); // HOME
+            if (key == 0xF) {// TAB
+                             // TODO -- Open small window that leave on ALT-up
+                if (win != NULL) {
+                    ll_remove(&desk->windows, &win->node);
+                    ll_push_front(&desk->windows, &win->node);
+                    win = NULL;
+                }
+            }
             if (win != NULL) {
                 if (key == 0x4B)
                     win->rq_grid = WMGR_GRID_LEFT;

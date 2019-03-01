@@ -22,6 +22,12 @@
 #include <time.h>
 #include "../check.h"
 
+#undef INT_MAX
+#define INT_MAX ((int)2147483647)
+
+#undef INT_MIN
+#define INT_MIN ((int)-INT_MAX - 1)
+
 static void test_time_convert(time_t time, const char *value)
 {
     const char *fmt;

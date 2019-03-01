@@ -71,8 +71,10 @@ void kprintf(int lvl, CSTR msg, ...)
     va_start(ap, msg);
     splock_lock(&klog_lock);
     vsnprintf(kbuf, 500, msg, ap);
+#ifdef UM_KRN
     if (slog != NULL) 
         tty_puts(slog, kbuf);
+#endif
     fputs(kbuf, stdout);
     splock_unlock(&klog_lock);
     va_end(ap);
