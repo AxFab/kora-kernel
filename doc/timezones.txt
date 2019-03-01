@@ -54,38 +54,38 @@ America/Adak HAST -1000 HADT -0900 2;0;3;0200 1;0;11;0200
 America/Anchorage AKST -0900 AKDT -0800 2;0;3;0200 1;0;11;0200
 America/Anguilla AST -0400
 America/Antigua AST -0400
-America/
+America/Araguaina BRT -0300 BRST -0200 2;0;10;0000 3;0;2;0000
 America/Aruba AST -0400
-America/
+America/Asuncion PYT -0400 PYST -0300 1;0;10;0000 1;0;3;0000
 America/Barbados AST -0400
 America/Belem BRT -0300
 America/Belize CST -0600
-America/
-America/
+America/Boa_Vista AMT -0400
+America/Bogota COT -0500
 America/Boise MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
 America/Buenos_Aires ART -0300
 America/Cambridge_Bay MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
-America/
-America/
+America/Cancun CST -0600 CDT -0500 1;0;4;0200 -1;0;10;0200
+America/Caracas VET -0400
 America/Catamarca ART -0300
-America/
-America/
+America/Cayenne GFT -0300
+America/Cayman EST -0500
 America/Chicago CST -0600 CDT -0500 2;0;3;0200 1;0;11;0200
-America/
+America/Chihuahua MST -0700 MDT -0600 1;0;4;0200 -1;0;10;0200
 America/Cordoba ART -0300
 America/Costa_Rica CST -0600
-America/
+America/Cuiaba AMT -0400 AMST -0300 2;0;10;0000 3;0;2;0000
 America/Curacao AST -0400
-America/
+America/Danmarkshavn GMT +0000
 America/Dawson PST -0800 PDT -0700 2;0;3;0200 1;0;11;0200
-America/
+America/Dawson_Creek MST -0700
 America/Denver MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
 America/Detroit EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
 America/Dominica AST -0400
 America/Edmonton MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
-America/
+America/Eirunepe ACT -0500
 America/El_Salvador CST -0600
-America/
+America/Fortaleza BRT -0300 BRST -0200 2;0;10;0000 3;0;2;0000
 America/Glace_Bay AST -0400 ADT -0300 2;0;3;0200 1;0;11;0200
 America/
 America/

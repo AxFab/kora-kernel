@@ -69,6 +69,21 @@ int wmgr_window_read(inode_t *ino, char *buf, size_t len, int flags)
     return pipe_read(((window_t *) ino->info) ->pipe, buf, len, flags) ;
 }
 
+int wmgr_window_resize(inode_t *ino, int width, int height) 
+{
+	window_t *win = (window_t*) ino->info;
+	return gfx_resize (win->frame, width, height, NULL);
+} 
+
+int wmgr_event(inode_t *ino, int event, int param1, int param2) 
+{
+	event_t ev;
+	ev.param1 = param1;
+	ev.param2 = param2;
+	ev.type = event;
+	return pipe_write(win->pipe, &ev, sizeof(ev), 0);
+}
+
 ino_ops_t win_ops = {
     // .fcntl = win_fcntl,
     // .close = win_close,
@@ -77,7 +92,7 @@ ino_ops_t win_ops = {
     .read = wmgr_window_read,
     // .reset = win_reset,
     .flip = wmgr_window_flip,
-    // .resize = win_resize,
+    .resize = wmgr_window_resize,
     // .copy = win_copy,
 };
 
@@ -152,6 +167,7 @@ int wmgr_check_invalid_window(screen_t *screen, window_t *win)
             wmgr_invalid_rect(screen, win->sz.x, win->sz.y, win->sz.w, win->sz.h);
             wmgr_invalid_rect(screen, win->rq.x, win->rq.y, win->rq.w, win->rq.h);
             win->sz = win->rq;
+            wmgr_event(win, EV_WIN_RESIZE, win->sz.w, win->sz.h);
         } else {
             // wmgr_noinvalid_rect(screen, win->sz.x, win->sz.y, win->sz.w, win->sz.h);
         }
@@ -161,6 +177,7 @@ int wmgr_check_invalid_window(screen_t *screen, window_t *win)
         win->grid = win->rq_grid;
         sz = wmgr_window_size(win);
         wmgr_invalid_rect(screen, sz.x, sz.y, sz.w, sz.h);
+        wmgr_event(win, EV_WIN_RESIZE, sz.w, sz.h);
     }
     return 0; // TODO return 1 if there is no other place to check !
 }
@@ -454,6 +471,8 @@ void wmgr_button(desktop_t *desk, int btn, int state)
 
 void wmgr_input(inode_t *ino, int type, int param, pipe_t *pipe)
 {
+	if (kDESK == NULL) 
+	    return;
     // clock64_t now = kclock();
     // if (type == EV_KEY_PRESS) {
     //     if (param == kDESK->last_key) {

@@ -76,6 +76,7 @@ uint32_t consoleLightColor[] = {
 };
 
 tty_cell_t *tty_next(tty_t *tty);
+void tty_repaint_all(tty_t *tty);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -282,6 +283,8 @@ tty_cell_t *tty_putchar(tty_t *tty, tty_cell_t *cell, int unicode)
 
 int tty_write(tty_t *tty, const char *buf, int len)
 {
+	if (len == 0)
+	    return 0;
     tty_cell_t *cell = &tty->cells[tty->end];
     while (len > 0) {
         int unicode = *buf;
@@ -319,6 +322,20 @@ int tty_write(tty_t *tty, const char *buf, int len)
     }
     return 0;
 }
+
+
+void tty_resize(tty_t *tty, int width, int height) 
+{
+	if (tty->win == NULL) 
+	    return;
+	tty->win->ops->resize(tty->win, width, height);
+	gfx_clear(tty->fb, 0x181818);
+	tty->rows = tty->fb->height / tty->font->dispy;
+	tty->cols = tty->fb->width / tty->font->dispx;
+	kprintf(-1, "Tty window resize %dx%d \n", tty->cols, tty->rows);
+	tty_repaint_all(tty);
+} 
+
 
 int tty_puts(tty_t *tty, const char *buf)
 {

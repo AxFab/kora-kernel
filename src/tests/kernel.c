@@ -48,7 +48,7 @@ void platform_setup()
 
 jmp_buf __tcase_jump;
 
-tty_t *slog;
+tty_t *slog = NULL;
 
 int main()
 {
