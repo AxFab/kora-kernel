@@ -70,7 +70,8 @@ typedef struct desktop desktop_t;
 typedef struct framebuffer framebuffer_t;
 typedef struct pointer pointer_t;
 typedef struct rect rect_t;
-
+typedef struct tty tty_t;
+typedef struct pipe pipe_t;
 
 // Network
 typedef struct netdev netdev_t;

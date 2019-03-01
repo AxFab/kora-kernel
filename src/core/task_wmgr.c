@@ -30,7 +30,7 @@ extern desktop_t *kDESK;
 #define _KL(n) {(n)|0x20,n,(n)|0x20,n}
 
 
-int keyboard[256][4] = {
+int keyboard[128][4] = {
 
     _K4(0), _K4(0), _K2('1', '!'), _K2('2', '@'),
     _K2('3', '#'), _K2('4', '$'), _K2('5', '%'), _K2('6', '^'),
@@ -42,11 +42,13 @@ int keyboard[256][4] = {
     _KL('O'), _KL('P'), _K2('[', '{'), _K2(']', '}'),
     _K4(10), _K4(0), _KL('A'), _KL('S'),
 
+    // 0x20
     _KL('D'), _KL('F'), _KL('G'), _KL('H'),
     _KL('J'), _KL('K'), _KL('L'),  _K2(';', ':'),
     _K2('\'', '"'), _K2('`', '~'), _K4(0), _K2('\\', '|'),
     _KL('Z'), _KL('X'), _KL('C'), _KL('V'),
 
+    // 0x30
     _KL('B'), _KL('N'), _KL('M'), _K2(',', '<'),
     _K2('.', '>'), _K2('/', '?'), _K4(0), _K4('*'),
     _K4(0), _K4(' '), _K4(0), _K4(0),
@@ -58,66 +60,56 @@ int keyboard[256][4] = {
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
 
+     // 0x60
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
 
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
 
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
-    _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
 };
 
 
-extern tty_t *slog;
-void tty_main()
+void tty_start(tty_t *tty) 
 {
-    inode_t *win0 = wmgr_create_window(NULL, 640, 800);
-    tty_window(slog, win0, &font_7x13);
-
-    inode_t *win1 = wmgr_create_window(NULL, 7 * 80, 13 * 25);
-    // framebuffer_t *fb = ((window_t*)win1->info)->frame;
-    tty_t *tty = tty_create(256);
-
-    tty_puts(tty, "Hello, secret message\n");
-
-    tty_window(tty, win1, &font_7x13);
+	inode_t *win = wmgr_create_window(NULL, 640, 420);
+    tty_window(tty, win, &font_7x13);
 
     event_t event;
-
-    tty_puts(tty, "Hello, welcome on Kora Tty\n");
-
     for (;;) {
-        vfs_read(win1, (char *)&event, sizeof(event), 0, 0);
-        int status = event.param2 >> 16;
+        vfs_read(win, (char *)&event, sizeof(event), 0, 0);
+        switch (event.type) {
+        case EV_KEY_PRESS:
+            {
+                int status = event.param2 >> 16;
         int shift = (status & 8 ? 1 : 0);
         if (status & 4)
             shift = 1 - status;
         int unicode = keyboard[event.param1 & 0x0FF][shift];
         // kprintf0(-1, "EV %x) %x %x  [%x] \n", event.type, event.param1, status, unicode);
-        if (event.type == 3 && unicode != 0)
+        if (unicode != 0)
             tty_input(tty, unicode);
+
+            } 
+            break;
+        case EV_WIN_RESIZE:
+            tty_resize(tty, event.param1, event.param2);
+            break;
+        } 
+    }
+}
+
+extern tty_t *slog;
+void tty_main(tty_t *tty)
+{
+    event_t event;
+    tty_puts(tty, "Hello, secret message\n");
+    tty_puts(tty, "Hello, welcome on Kora Tty\n");
+
+    char buf[50];
+    for (;;) {
+        // vfs_read(tty, buf, 1, 0, 0);
+        sys_sleep(50000);
     }
 }
 
@@ -158,7 +150,10 @@ void wmgr_main()
 
     // Start applications
     kDESK = desk;
-    task_create(tty_main, NULL, "Tty.0");
+    task_create(tty_start, slog, "Tty.0");
+    tty_t *tty = tty_create(256);
+    task_create(tty_start, tty, "Tty.1");
+    task_create(tty_main, tty, "Tty.1.prg");
     task_create(exec_task, NULL, "App exec");
     task_create(fake_shell_task, NULL, "Fake shell");
     task_create(main_clock, NULL, "Clock");

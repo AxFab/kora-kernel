@@ -31,11 +31,9 @@ typedef struct map_cache map_cache_t;
 
 typedef struct surface surface_t;
 typedef struct line line_t;
-typedef struct tty tty_t;
 typedef struct font_bmp font_bmp_t;
-typedef struct desktop desktop_t;
 typedef struct display display_t;
-typedef struct pipe pipe_t;
+
 
 struct framebuffer {
     int width, height;

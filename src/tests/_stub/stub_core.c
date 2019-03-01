@@ -62,12 +62,18 @@ void kfree(void *ptr)
 
 /* ------------------------------------------------------------------------ */
 
+extern tty_t *slog;
+char kbuf[500];
+
 void kprintf(int lvl, CSTR msg, ...)
 {
     va_list ap;
     va_start(ap, msg);
     splock_lock(&klog_lock);
-    vprintf(msg, ap);
+    vsnprintf(kbuf, 500, msg, ap);
+    if (slog != NULL) 
+        tty_puts(slog, kbuf);
+    fputs(kbuf, stdout);
     splock_unlock(&klog_lock);
     va_end(ap);
 }
@@ -188,6 +194,7 @@ void kunmap(void *addr, size_t length)
     case VMA_STACK:
     case VMA_PIPE:
     case VMA_PHYS:
+    case VMA_ANON:
         break;
     default:
         assert(false);

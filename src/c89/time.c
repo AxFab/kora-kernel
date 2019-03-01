@@ -182,7 +182,7 @@ static int __secstotm(long long timestamp, struct tm *tm)
     long ts_time = total_secs % SECS_PER_DAYS;
     
     /* Reject time_t values whose year would overflow int */
-    if (t < INT_MIN * 31622400LL || t > INT_MAX * 31622400LL)
+    if (timestamp < INT_MIN * 31622400LL || timestamp > INT_MAX * 31622400LL)
         return -1;
 
     /* Compute time of day */
