@@ -49,13 +49,13 @@ void win_flip(inode_t *ino)
 
 void win_paint(inode_t *ino) 
 {
-	HDC = BeginPaint (hwnd, &ps);
+	HDC hdc = BeginPaint (hwnd, &ps);
 	BITMAP bm;
 	HBITMAP bmp = CreateBitmap(width, height, 1, 32, pixels) ;
 	HDC hdcMem = CreateCompatibleDC(hdc);
 	HBITMAP hbmOld = SelectObject(hdcMem, bmp);
 	GetObject(bmp, sizeof(bm), &bm);
-	BitBlt(hdc, 0, 0, width, height, 0, 0, SRCCOPY);
+	BitBlt(hdc, 0, 0, width, height, hdcMem, 0, 0, SRCCOPY);
 	SelectObject(hdc, hbmOld);
 	DeleteDC(hdcMem);
 	EndPaint(hwnd, &ps);
@@ -72,7 +72,7 @@ ino_ops_t win_ino_ops = {
 };
 
 dev_ops_t win_dev_ops = {
-	.flip = win_flip, 
+	.ioctl = win_ioctl, 
 };
 
 
@@ -99,21 +99,21 @@ void win_events()
 		if (! GetMessage(&msg, hwnd, 0, 0))
 		    continue;
 		switch (msg.message) {
-		case WN_KEYDOWN:
+		case WM_KEYDOWN:
 		    if (msg.wParam == 17)
                 kdb_status |= KDB_HOST;
             else if (msg.wParam == 16)
                 kdb_status |= KDB_SHIFT;
             wmgr_input(NULL, EV_KEY_PRESS, (kdb_status << 16) | key_translate(msg.wParam), NULL);
 		    break;
-		case WN_KEYUP:
+		case WM_KEYUP:
 		    if (msg.wParam == 17)
                 kdb_status &= ~KDB_HOST;
             else if (msg.wParam == 16)
                 kdb_status &= ~KDB_SHIFT;
             wmgr_input(NULL, EV_KEY_RELEASE, (kdb_status << 16) | key_translate(msg.wParam), NULL);
 		    break;
-		case WN_PAINT:
+		case WM_PAINT:
 		    win_paint(NULL);
 		    break;
 		default:

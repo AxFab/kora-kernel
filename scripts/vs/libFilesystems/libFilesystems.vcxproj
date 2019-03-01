@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{461027F7-634B-4DBB-A251-E23DBCFD0F98}</ProjectGuid>
-    <RootNamespace>fsystem</RootNamespace>
+    <ProjectGuid>{0358B546-9AB6-4AFE-9BEC-43862B181649}</ProjectGuid>
+    <RootNamespace>libFilesystems</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -68,13 +68,17 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>C:\Users\Fabien\develop\kora-kernel\src\tests\include;C:\Users\Fabien\develop\kora-kernel\os\win32;C:\Users\Fabien\develop\kora-kernel\src\tests\_mcvs\include-x86;C:\Users\Fabien\develop\kora-kernel\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>C:\Users\Fabien\develop\kora-kernel\src\tests\include;C:\Users\Fabien\develop\kora-kernel\os\win32;C:\Users\Fabien\develop\kora-kernel\src\tests\_mcvs\include-x86;C:\Users\Fabien\develop\kora-kernel\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -82,7 +86,6 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Fabien\develop\kora-kernel\src\tests\include;C:\Users\Fabien\develop\kora-kernel\src\tests\_mcvs\include-x86_64;C:\Users\Fabien\develop\kora-kernel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -92,7 +95,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -106,7 +108,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Fabien\develop\kora-kernel\src\tests\include;C:\Users\Fabien\develop\kora-kernel\src\tests\_mcvs\include-x86_64;C:\Users\Fabien\develop\kora-kernel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -114,6 +115,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\drivers\fs\ext2\ext2.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\fat\data.c" />
     <ClCompile Include="..\..\..\src\drivers\fs\fat\dentry.c" />
     <ClCompile Include="..\..\..\src\drivers\fs\fat\diterator.c" />
     <ClCompile Include="..\..\..\src\drivers\fs\fat\fatfs.c" />
@@ -121,24 +124,11 @@
     <ClCompile Include="..\..\..\src\drivers\fs\fat\module.c" />
     <ClCompile Include="..\..\..\src\drivers\fs\fat\table.c" />
     <ClCompile Include="..\..\..\src\drivers\fs\isofs\isofs.c" />
-    <ClCompile Include="..\..\..\src\libc\time.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\include\kernel\core.h" />
-    <ClInclude Include="..\..\..\include\kernel\device.h" />
-    <ClInclude Include="..\..\..\include\kernel\types.h" />
-    <ClInclude Include="..\..\..\include\kernel\vfs.h" />
-    <ClInclude Include="..\..\..\include\kernel\vma.h" />
-    <ClInclude Include="..\..\..\include\kora\bbtree.h" />
-    <ClInclude Include="..\..\..\include\kora\hmap.h" />
-    <ClInclude Include="..\..\..\include\kora\llist.h" />
-    <ClInclude Include="..\..\..\include\kora\mcrs.h" />
-    <ClInclude Include="..\..\..\include\kora\splock.h" />
-    <ClInclude Include="..\..\..\include\kora\stddef.h" />
+    <ClInclude Include="..\..\..\src\drivers\fs\ext2\ext2.h" />
     <ClInclude Include="..\..\..\src\drivers\fs\fat\fatfs.h" />
     <ClInclude Include="..\..\..\src\drivers\fs\isofs\isofs.h" />
-    <ClInclude Include="..\..\..\src\tests\_mcvs\include-x86\bits\atomic.h" />
-    <ClInclude Include="..\..\..\src\tests\_mcvs\include-x86\bits\cdefs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

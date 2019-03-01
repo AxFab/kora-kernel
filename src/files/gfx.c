@@ -42,7 +42,7 @@ void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels)
 		fb->width = w;
 		fb->height = h;
 		fb->pitch = ALIGN_UP(w * fb->depth, 4);
-		fb->pixels = kmap(ALIGN_UP(height * fb->pitch, PAGE_SIZE), NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
+		fb->pixels = kmap(ALIGN_UP(fb->height * fb->pitch, PAGE_SIZE), NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
 	} else {
 		fb->pixels = pixels;
 	} 
