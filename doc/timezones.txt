@@ -87,69 +87,69 @@ America/Eirunepe ACT -0500
 America/El_Salvador CST -0600
 America/Fortaleza BRT -0300 BRST -0200 2;0;10;0000 3;0;2;0000
 America/Glace_Bay AST -0400 ADT -0300 2;0;3;0200 1;0;11;0200
-America/
-America/
-America/
+America/Godthab WGT -0300 WGST -0200 -1;6;3;2200 -1;6;10;2300
+America/Goose_Bay AST -0400 ADT -0300 1;0;4;0200 -1;0;10;0200
+America/Grand_Turk EST -0500 EDT -0400 1;0;4;0000 -1;0;10;0000
 America/Grenada AST -0400
 America/Guadeloupe AST -0400
 America/Guatemala CST -0600
-America/
-America/
+America/Guayaquil ECT -0500
+America/Guyana GYT -0400
 America/Halifax AST -0400 ADT -0300 2;0;3;0200 1;0;11;0200
-America/
-America/
-America/
-America/
+America/Havana CST -0500 CDT -0400 1;0;4;0000 -1;0;10;0100
+America/Hermosillo MST -0700
+America/Indiana EST -0500
+America/Indianapolis EST -0500
 America/Inuvik MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
-America/
-America/
+America/Iqaluit EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
+America/Jamaica EST -0500
 America/Jujuy ART -0300
-America/
-America/
-America/
-America/
-America/
-America/
-America/
+America/Juneau AKST -0900 AKDT -0800 2;0;3;0200 1;0;11;0200
+America/Kentucky EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
+America/La_Paz BOT -0400
+America/Lima PET -0500
+America/Los_Angeles PST -0800 PDT -0700 2;0;3;0200 1;0;11;0200
+America/Louisville EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
+America/Maceio BRT -0300 BRST -0200 2;0;10;0000 3;0;2;0000
 America/Managua CST -0600
-America/
+America/Manaus AMT -0400
 America/Martinique AST -0400
-America/
+America/Mazatlan MST -0700 MDT -0600 1;0;4;0200 -1;0;10;0200
 America/Mendoza ART -0300
-America/
-America/
-America/
-America/
-America/
-America/
-America/
+America/Menominee CST -0600 CDT -0500 2;0;3;0200 1;0;11;0200
+America/Merida CST -0600 CDT -0500 1;0;4;0200 -1;0;10;0200
+America/Mexico_City CST -0600 CDT -0500 1;0;4;0200 -1;0;10;0200
+America/Miquelon PMST -0300 PMDT -0200 2;0;3;0200 1;0;11;0200
+America/Monterrey CST -0600 CDT -0500 1;0;4;0200 -1;0;10;0200
+America/Montevideo UYT -0300
+America/Montreal EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
 America/Montserrat AST -0400
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
-America/
+America/Nassau EST -0500 EDT -0400 1;0;4;0200 -1;0;10;0200
+America/New_York EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
+America/Nipigon EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
+America/Nome AKST -0900 AKDT -0800 2;0;3;0200 1;0;11;0200
+America/Noronha FNT -0200
+America/North_Dakota CST -0600 CDT -0500 2;0;3;0200 1;0;11;0200
+America/Panama EST -0500
+America/Pangnirtung EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
+America/Paramaribo SRT -0300
+America/Phoenix MST -0700
+America/Port_Prince EST-0500
 America/Port_of_Spain AST -0400
-America/
+America/Porto_Velho AMT -0400
 America/Puerto_Rico AST -0400
-America/
-America/
-America/
+America/Rainy_River CST -0600 CDT -0500 2;0;3;0200 1;0;11;0200
+America/Rankin_Inlet CST -0600 CDT -0500 2;0;3;0200 1;0;11;0200
+America/Recife BRT -0300 BRST -0200 2;0;10;0000 3;0;2;0000
 America/Regina CST -0600
-America/
+America/Rio_Branco ACT -0500
 America/Rosario ART -0300
-America/
+America/Santiago CLT -0400 CLST -0300 2;0;10;0000 2;0;3;0000
 America/Santo_Domingo AST -0400
-America/
-America/
+America/Sao_Paulo BRT -0300 BRST -0200 2;0;10;0000 3;0;2;0000
+America/Scoresbysund EGT -0100 EGST +0000 -1;0;3;0000 -1;0;10;0100
 America/Shiprock MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
-America/
+America/St_Johns NST -0300 NDT -0200 2;0;3;0200 1;0;11;0200
 America/St_Kitts AST -0400
 America/St_Lucia AST -0400
 America/St_Thomas AST -0400
@@ -157,13 +157,13 @@ America/St_Vincent AST -0400
 America/Swift_Current CST -0600
 America/Tegucigalpa CST -0600
 America/Thule AST -0400
-America/
-America/
+America/Thunder_Bay EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
+America/Tijuana PST -0800 PDT -0700 1;0;4;0200 -1;0;10;0200
 America/Tortola AST -0400
-America/
-America/
-America/
-America/
+America/Vancouver PST -0800 PDT -0700 2;0;3;0200 1;0;11;0200
+America/Whitehorse PST -0800 PDT -0700 2;0;3;0200 1;0;11;0200
+America/Winnipeg CST -0600 CDT -0500 2;0;3;0200 1;0;11;0300
+America/Yakutat AKST -0900 AKDT -0800 2;0;3;0200 1;0;11;0200
 America/Yellowknife MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
 Antarctica/Casey WST +0800
 Antarctica/Davis DAVT +0700
@@ -174,7 +174,7 @@ Antarctica/Palmer CLT -0400 CLST -0300 2;0;10;0000 2;0;3;0000
 Antarctica/South_Pole NZST +1200 NZDT +1300 1;0;10;0200 3;0;3;0300
 Antarctica/Syowa SYOT +0300
 Antarctica/Vostok VOST +0600
-Artic/Longyearbyen CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
+Arctic/Longyearbyen CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Asia/Aden AST +0300
 Asia/Almaty ALMT +0600 ALMST +0700 -1;0;3;0000 -1;0;10;0000
 Asia/Amman EET +0200 EEST +0300 -1;4;3;0000 -1;4;9;0100
@@ -190,7 +190,7 @@ Asia/Beirut EET +0200 EEST +0300 -1;0;3;0000 -1;0;10;0000
 Asia/Bishkek KGT +0500 KGST +0600 -1;0;3;0230 -1;0;10;0230
 Asia/Brunei BNT +0800
 Asia/Calcutta IST +0530
-Asia/Choibalsan CHOT +0900 
+Asia/Choibalsan CHOT +0900
 Asia/Chongqing CST +0800
 Asia/Colombo LKT +0600
 Asia/Damascus EET +0200 EEST +0300 1;0;4;0000 1;0;10;0000
@@ -209,14 +209,14 @@ Asia/Jakarta WIT +0700
 Asia/Jayapura EIT +0900
 Asia/Jerusalem IST +0200 IDT +0300 1;0;4;0100 1;0;10;0100
 Asia/Kabul AFT +0430
-Asia/Kamachatka PETT +1200 PETST +1300 -1;0;3;0200 -1;0;10;0300
+Asia/Kamchatka PETT +1200 PETST +1300 -1;0;3;0200 -1;0;10;0300
 Asia/Karachi PKT +0500
 Asia/Kashgar CST +0800
-Asia/Kathmandu NPT +0545
+Asia/Katmandu NPT +0545
 Asia/Krasnoyarsk KRAT +0700 KRAST +0800 -1;0;3;0200 -1;0;10;0300
 Asia/Kuala_Lumpur MYT +0800
 Asia/Kuching MYT +0800
-Asia/Kowait AST +0300
+Asia/Kuwait AST +0300
 Asia/Macao CST +0800
 Asia/Macau CST +0800
 Asia/Magadan MAGT +1100 MAGST +1200 -1;0;3;0200 -1;0;10;0300
@@ -274,7 +274,7 @@ Australia/Lindeman EST +1000
 Australia/Lord_Howe LHST +1030 LHDT +1100 -1;0;10;0200 -1;0;3;0200
 Australia/Melbourne EST +1000 EST +1100 -1;0;10;0200 -1;0;3;0300
 Australia/Perth WST +0800
-Australia/Sydney EST +1000 EST +1100 -1;0;10;0200 -1;0;3;0300
+Australia/Sydney AEST +1000 AEDT +1100 -1;0;10;0200 -1;0;3;0300
 Europe/Amsterdam CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Andorra CET +0100 CEST +0200 -1;0;3;0200 -1;0;10;0300
 Europe/Athens EET +0200 EEST +0300 -1;0;3;0300 -1;0;10;0400

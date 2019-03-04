@@ -36,7 +36,7 @@ int sprintf_s(char *buf, int lg, const char *msg, ...);
 #define DAYS_PER_4Y   (365*4   + 1)
 #define DAYS_PER_Y    (365)
 
-#define SECS_PER_DAYS (86400)
+#define SECS_PER_DAY (86400)
 
 #undef INT_MAX
 #define INT_MAX ((int)2147483647)
@@ -178,8 +178,8 @@ static int __secstotm(long long timestamp, struct tm *tm)
 {
     static const char days_in_month[] = { 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 31, 29 };
     long long total_secs = timestamp - LEAPOCH;
-    long long ts_date = total_secs / SECS_PER_DAYS;
-    long ts_time = total_secs % SECS_PER_DAYS;
+    long long ts_date = total_secs / SECS_PER_DAY;
+    long ts_time = total_secs % SECS_PER_DAY;
     
     /* Reject time_t values whose year would overflow int */
     if (timestamp < INT_MIN * 31622400LL || timestamp > INT_MAX * 31622400LL)
@@ -187,7 +187,7 @@ static int __secstotm(long long timestamp, struct tm *tm)
 
     /* Compute time of day */
     if (ts_time < 0) {
-        ts_time += SECS_PER_DAYS;
+        ts_time += SECS_PER_DAY;
         ts_date--;
     } 
    
