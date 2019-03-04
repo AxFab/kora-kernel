@@ -205,8 +205,15 @@ void tty_paint_cell(tty_t *tty, tty_cell_t *cell)
 {
     if (tty->fb == NULL)
         return;
-    if ((cell->row - tty->scroll) < 0 || (cell->row - tty->scroll) >= tty->rows)
+    if ((cell->row - tty->scroll) < 0 || (cell->row - tty->scroll) > tty->rows)
         return;
+    if ((cell->row - tty->scroll) == tty->rows) {
+        tty->scroll++;
+        gfx_slide(tty->fb, -tty->font->dispy, 0x181818);
+        // gfx_clear(tty->fb, 0x181818);
+        // tty_repaint_all(tty);
+        // return;
+    } 
     const font_bmp_t *font = tty->font;
     int c = cell->col;
     int x = cell->col * font->dispx;
