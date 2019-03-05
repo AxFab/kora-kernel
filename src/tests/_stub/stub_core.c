@@ -72,7 +72,7 @@ void kprintf(int lvl, CSTR msg, ...)
     splock_lock(&klog_lock);
     vsnprintf(kbuf, 500, msg, ap);
 #ifdef UM_KRN
-    if (slog != NULL) 
+    if (slog != NULL)
         tty_puts(slog, kbuf);
 #endif
     fputs(kbuf, stdout);
@@ -273,3 +273,25 @@ const char *ksymbol(void *eip, char *buf, int lg)
 }
 #endif
 
+#ifdef _WIN32
+#include <Windows.h>
+
+void nanosleep(struct timespec *tm, struct timespec *rs)
+{
+    clock64_t start = kclock();
+    Sleep((DWORD)(tm->tv_sec * 1000 + tm->tv_nsec / 1000000));
+    clock64_t elasped = start - kclock();
+    elasped = tm->tv_sec * _PwNano_ + tm->tv_nsec - elasped;
+    if (elasped < 0) {
+        if (rs != NULL) {
+            rs->tv_sec = 0;
+            rs->tv_nsec = 0;
+        }
+    } else {
+        if (rs != NULL) {
+            rs->tv_sec = elasped / _PwNano_;
+            rs->tv_nsec = elasped % _PwNano_;
+        }
+    }
+}
+#endif

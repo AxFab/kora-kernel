@@ -140,15 +140,15 @@ void exec_task()
     mspace_display(mspace);
 
     int argc = 3;
-    char **argv = (char**)(stack -= (argc * sizeof(char*)));
+    char **argv = ADDR_PUSH(stack, argc * sizeof(char*));
     for (i = 0; i < argc; ++i) {
         lg = strlen(exec_args[i]) + 1;
-        argv[i] = (char*)(stack -= ALIGN_UP(lg, 4));
+        argv[i] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
         strcpy(argv[i], exec_args[i]);
         kprintf(-1, "Set arg.%d: '%s'\n", i, argv[i]);
     }
 
-    size_t *args = (size_t*)(stack -= (4 * sizeof(char*)));
+    size_t *args = ADDR_PUSH(stack, 4 * sizeof(char*));
     args[1] = argc;
     args[2] = (size_t)argv;
     args[3] = 0;

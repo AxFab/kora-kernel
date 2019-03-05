@@ -134,7 +134,7 @@ America/Panama EST -0500
 America/Pangnirtung EST -0500 EDT -0400 2;0;3;0200 1;0;11;0200
 America/Paramaribo SRT -0300
 America/Phoenix MST -0700
-America/Port_Prince EST-0500
+America/Port_Prince EST -0500
 America/Port_of_Spain AST -0400
 America/Porto_Velho AMT -0400
 America/Puerto_Rico AST -0400
@@ -149,7 +149,7 @@ America/Santo_Domingo AST -0400
 America/Sao_Paulo BRT -0300 BRST -0200 2;0;10;0000 3;0;2;0000
 America/Scoresbysund EGT -0100 EGST +0000 -1;0;3;0000 -1;0;10;0100
 America/Shiprock MST -0700 MDT -0600 2;0;3;0200 1;0;11;0200
-America/St_Johns NST -0300 NDT -0200 2;0;3;0200 1;0;11;0200
+America/St_John AST -0400 ADT -0300 2;0;3;0200 1;0;11;0200
 America/St_Kitts AST -0400
 America/St_Lucia AST -0400
 America/St_Thomas AST -0400

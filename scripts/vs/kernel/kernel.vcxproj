@@ -69,12 +69,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Users\Fabien\develop\kora-kernel\src\tests\include;C:\Users\Fabien\develop\kora-kernel\os\win32;C:\Users\Fabien\develop\kora-kernel\src\tests\_mcvs\include-x86;C:\Users\Fabien\develop\kora-kernel\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Fabien\develop\kora-kernel\scripts\vs\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\Users\Fabien\develop\kora-kernel\src\tests\include;C:\Users\Fabien\develop\kora-kernel\os\win32;C:\Users\Fabien\develop\kora-kernel\src\tests\_mcvs\include-x86;C:\Users\Fabien\develop\kora-kernel\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Fabien\develop\kora-kernel\scripts\vs\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
