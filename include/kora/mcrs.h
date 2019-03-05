@@ -37,6 +37,7 @@
 #define IS_ALIGNED(v,a)      (((v)&((a)-1))==0)
 
 #define ADDR_OFF(a,o)  ((void*)(((char*)a)+(o)))
+#define ADDR_PUSH(a,s)  ((void*)((a)=(void*)(((char*)(a))-(s))))
 
 #define MIN(a,b)    ((a)<=(b)?(a):(b))
 #define MAX(a,b)    ((a)>=(b)?(a):(b))

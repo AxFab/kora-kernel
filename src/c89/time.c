@@ -180,7 +180,7 @@ static int __secstotm(long long timestamp, struct tm *tm)
     long long total_secs = timestamp - LEAPOCH;
     long long ts_date = total_secs / SECS_PER_DAY;
     long ts_time = total_secs % SECS_PER_DAY;
-    
+
     /* Reject time_t values whose year would overflow int */
     if (timestamp < INT_MIN * 31622400LL || timestamp > INT_MAX * 31622400LL)
         return -1;
@@ -189,39 +189,39 @@ static int __secstotm(long long timestamp, struct tm *tm)
     if (ts_time < 0) {
         ts_time += SECS_PER_DAY;
         ts_date--;
-    } 
-   
+    }
+
     tm->tm_hour = ts_time / 3600;
     tm->tm_min = ts_time / 60 % 60;
     tm->tm_sec = ts_time % 60;
-   
+
     /* Compute years */
     long years = 0;
     long days = ts_date;
     int i, cycles[4];
     for (i = 0; i < 4; ++i) {
         cycles[i] = days / CYCLES_DAYS[i];
-        if (i != 0 && cycles[i] == CYCLES_MODS[i]) 
+        if (i != 0 && cycles[i] == CYCLES_MODS[i])
             cycles[i]--;
         days -= cycles[i] * CYCLES_DAYS[i];
         if (days < 0) {
             cycles[i]--;
             days += CYCLES_DAYS[i];
-        } 
+        }
         years += cycles[i] * CYCLES_YEARS[i];
     }
     tm->tm_year = years + 100;
-    
+
     /* Compute the day of the year */
     int leap = !cycles[3] && (cycles[2] || !cycles[1]) ? 1 : 0;
     long yday = days + 31 + 28 + leap;
     if (yday >= 365 + leap)
         yday -= 365 + leap;
     tm->tm_yday = yday;
-    
+
     /* Compute the day of the month */
     int month;
-    for (month = 0; days_in_month[month] <= days; month++) 
+    for (month = 0; days_in_month[month] <= days; month++)
         days -= days_in_month[month];
     tm->tm_mon = month + 2;
     if (tm->tm_mon >= 12) {
@@ -229,7 +229,7 @@ static int __secstotm(long long timestamp, struct tm *tm)
         tm->tm_year++;
     }
     tm->tm_mday = days + 1;
-   
+
     /* Compute the day of the week */
     tm->tm_wday = (3 + ts_date) % 7;
     if (tm->tm_wday < 0)
@@ -297,3 +297,27 @@ struct tm *gmtime(const time_t *time)
     return gmtime_r(time, &tm);
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+long __timezone = 0;
+
+void tzset()
+{
+    // char *ptr;
+    // char *tz = getenv("TZ");
+    // char *s_tm = strtok_r(tz, " ", &ptr);
+    // char *s_off = strtok(NULL, " ", &ptr);
+    // char *d_tm = strtok(NULL, " ", &ptr);
+    // char *d_off = strtok(NULL, " ", &ptr);
+    // char *d_start = strtok(NULL, " ", &ptr);
+    // char *d_end = strtok(NULL, " ", &ptr);
+
+}
+
+// char *timezone(const char *zone, int dst);
+
+struct tm *localtime(const time_t *timep)
+{
+    tzset();
+    return gmtime(*timep + __timezone);
+}
