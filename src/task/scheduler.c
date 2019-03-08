@@ -35,7 +35,7 @@ void scheduler_add(task_t *task)
 
 void scheduler_rm(task_t *task, int status)
 {
-	assert(status != TS_READY);
+    assert(status != TS_READY);
     splock_lock(&task_lock);
     ll_remove(&task_list, &task->node);
     task->status = status;
@@ -90,11 +90,14 @@ void scheduler_switch(int status, int retcode)
 
     task = scheduler_next();
     kCPU.running = task;
-    if (task == NULL)
+    if (task == NULL) {
+        clock_elapsed(CPU_IDLE);
         cpu_halt();
+    }
     // TODO Start task chrono!
     if (task->usmem)
         mmu_context(task->usmem);
-    // kprintf(-1, "Start Task %d\n", task->pid);
+    clock_elapsed(CPU_USER);
+    kprintf(-1, "-> Task %d\n", task->pid);
     cpu_restore(task->state);
 }

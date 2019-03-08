@@ -24,14 +24,14 @@
 
 page_t mmu_read(size_t addr)
 {
-	void *ptr = _valloc(PAGE_SIZE);
-	memcpy(ptr, (void*) addr,PAGE_SIZE); 
+    void *ptr = _valloc(PAGE_SIZE);
+    memcpy(ptr, (void *) addr, PAGE_SIZE);
     return (page_t)ptr;
 }
 
 void page_release(page_t addr)
 {
-	_vfree((void*) addr) ;
+    _vfree((void *) addr) ;
 }
 
 int page_fault(mspace_t *mspace, size_t address, int reason)

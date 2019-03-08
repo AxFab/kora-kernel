@@ -20,27 +20,27 @@
 #ifndef _KERNEL_IO_H
 #define _KERNEL_IO_H 1
 
-#if defined __RASPI 
+#if defined __RASPI
 #  define PBASE  0x20000000
 #elif defined __RASPI2 || defined __RASPI3
 #  define PBASE  0x3F000000
 #else
-#  error Unable to determine the target platform 
+#  error Unable to determine the target platform
 #endif
 
 // Auxiliaires: UART1, SPI1 & SPI2
 #define AUX_BASE  (PBASE + 0x215000)
 
-#define AUX_IRQ  (AUX_BASE + 0x00) 
-#define AUX_ENABLES  (AUX_BASE + 0x04) 
-#define AUX_MU_IO_REG  (AUX_BASE + 0x40) 
-#define AUX_MU_IER_REG  (AUX_BASE + 0x44) 
+#define AUX_IRQ  (AUX_BASE + 0x00)
+#define AUX_ENABLES  (AUX_BASE + 0x04)
+#define AUX_MU_IO_REG  (AUX_BASE + 0x40)
+#define AUX_MU_IER_REG  (AUX_BASE + 0x44)
 
 // UART0
 #define UART_BASE  (PBASE + 0x201000)
 
-#define UART_DR  (UART_BASE + 0x00) 
-#define UART_RSRECR  (UART_BASE + 0x04) 
+#define UART_DR  (UART_BASE + 0x00)
+#define UART_RSRECR  (UART_BASE + 0x04)
 
 // USB
 #define USB_BASE  (PBASE + 0x980000)

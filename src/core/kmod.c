@@ -134,7 +134,7 @@ void kmod_loader()
         mod = ll_dequeue(&kmod_standby, kmod_t, node);
         splock_unlock(&kmod_lock);
         if (mod == NULL) {
-            async_wait(NULL, NULL, 50000);
+            async_wait(NULL, NULL, MSEC_TO_KTIME(500));
             splock_lock(&kmod_lock);
             continue;
         }

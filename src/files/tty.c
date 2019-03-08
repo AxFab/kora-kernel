@@ -209,11 +209,11 @@ void tty_paint_cell(tty_t *tty, tty_cell_t *cell)
         return;
     if ((cell->row - tty->scroll) == tty->rows) {
         tty->scroll++;
-        gfx_slide(tty->fb, -tty->font->dispy, 0x181818);
+        // gfx_slide(tty->fb, -tty->font->dispy, 0x181818);
         // gfx_clear(tty->fb, 0x181818);
         // tty_repaint_all(tty);
-        // return;
-    } 
+        return;
+    }
     const font_bmp_t *font = tty->font;
     int c = cell->col;
     int x = cell->col * font->dispx;
@@ -290,8 +290,8 @@ tty_cell_t *tty_putchar(tty_t *tty, tty_cell_t *cell, int unicode)
 
 int tty_write(tty_t *tty, const char *buf, int len)
 {
-	if (len == 0)
-	    return 0;
+    if (len == 0)
+        return 0;
     tty_cell_t *cell = &tty->cells[tty->end];
     while (len > 0) {
         int unicode = *buf;
@@ -331,17 +331,17 @@ int tty_write(tty_t *tty, const char *buf, int len)
 }
 
 
-void tty_resize(tty_t *tty, int width, int height) 
+void tty_resize(tty_t *tty, int width, int height)
 {
-	if (tty->win == NULL) 
-	    return;
-	tty->win->ops->resize(tty->win, width, height);
-	gfx_clear(tty->fb, 0x181818);
-	tty->rows = tty->fb->height / tty->font->dispy;
-	tty->cols = tty->fb->width / tty->font->dispx;
-	kprintf(-1, "Tty window resize %dx%d \n", tty->cols, tty->rows);
-	tty_repaint_all(tty);
-} 
+    if (tty->win == NULL)
+        return;
+    tty->win->ops->resize(tty->win, width, height);
+    gfx_clear(tty->fb, 0x181818);
+    tty->rows = tty->fb->height / tty->font->dispy;
+    tty->cols = tty->fb->width / tty->font->dispx;
+    kprintf(-1, "Tty window resize %dx%d \n", tty->cols, tty->rows);
+    tty_repaint_all(tty);
+}
 
 
 int tty_puts(tty_t *tty, const char *buf)

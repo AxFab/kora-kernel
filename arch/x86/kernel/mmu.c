@@ -168,7 +168,7 @@ void mmu_create_uspace(mspace_t *mspace)
     dir[0] = (page_t)MMU_KRN_TBL_PG | MMU_K_RW;
     // TODO - COPY KERNEL HEAP TABLE PAGES
     for (i = MMU_KSPACE_LOWER >> 22; i < MMU_KSPACE_UPPER >> 22; ++i)
-        dir[i] = ((page_t*)0xFFBFF000)[i];
+        dir[i] = ((page_t *)0xFFBFF000)[i];
     kunmap(dir, PAGE_SIZE);
 
     mspace->p_size++; // TODO g_size
@@ -200,7 +200,7 @@ void mmu_context(mspace_t *mspace)
     page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
     unsigned table = ((unsigned)&mspace) >> 22;
     /* Check the current stack page is present  */
-    dir[table] = ((page_t*)0xFFBFF000)[table];
+    dir[table] = ((page_t *)0xFFBFF000)[table];
     kunmap(dir, PAGE_SIZE);
     x86_set_cr3(dir_pg);
 }

@@ -31,6 +31,12 @@
 int __errno;
 splock_t klog_lock = INIT_SPLOCK;
 
+uint64_t cpu_clock()
+{
+    // static uint64_t ticks = 0;
+    // return ++ticks;
+    return clock();
+}
 
 int *__errno_location()
 {
@@ -147,7 +153,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
             assert(ino->ops->fetch);
             page_t pg = ino->ops->fetch(ino, off);
             if (pg == 0)
-                kprintf (-1, "Error mapping à file \n");
+                kprintf(-1, "Error mapping à file \n");
             memcpy(buf, (void *)pg, PAGE_SIZE);
             ino->ops->release(ino, off, pg);
             length -= PAGE_SIZE;

@@ -99,9 +99,8 @@ void kernel_master()
     // sys_sleep(1000000);
     // mspace_display(kMMU.kspace);
 
-    for (;;) {
-         sys_sleep(1000000);
-    }
+    for (;;)
+        sys_sleep(SEC_TO_KTIME(60));
 }
 
 void kmod_loader();

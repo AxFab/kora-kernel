@@ -40,11 +40,6 @@ void cpu_reboot()
 {
 }
 
-uint64_t cpu_clock()
-{
-    static uint64_t ticks = 0;
-    return ++ticks;
-}
 
 int cpu_save(cpu_state_t *state)
 {

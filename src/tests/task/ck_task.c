@@ -52,9 +52,6 @@ void cpu_loop(int loop)
         irq_disable();
         assert(kCPU.irq_semaphore == 1);
         clock_ticks(0);
-        kCPU.io_elapsed += clock_elapsed(&kCPU.last);
-        if (kCPU.running)
-            kCPU.running->other_elapsed += clock_elapsed(&kCPU.running->last);
         assert(kCPU.irq_semaphore == 1);
     }
 }
@@ -92,7 +89,7 @@ START_TEST(test_01)
 
     // TODO --- Join all other threads
     int retry = 3;
-    while(retry--) {
+    while (retry--) {
         struct timespec ts;
         ts.tv_sec = 1;
         ts.tv_nsec = 0;

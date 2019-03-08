@@ -141,7 +141,7 @@ void x86_pgflt(size_t vaddr, int code, regs_t *regs)
 void x86_syscall(regs_t *regs)
 {
     int ret = irq_syscall(regs->eax, regs->ecx, regs->edx,
-        regs->ebx, regs->esi, regs->edi);
+                          regs->ebx, regs->esi, regs->edi);
 
     regs->eax = ret;
     regs->edx = errno;

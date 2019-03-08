@@ -29,8 +29,8 @@ clock64_t kclock()
 #if _PwMicro_ > CLOCKS_PER_SEC
     ticks *= _PwMicro_ / CLOCKS_PER_SEC;
 #elif _PwMicro_ < CLOCKS_PER_SEC
-        ticks /= CLOCKS_PER_SEC / _PwMicro_;
-#endif 
+    ticks /= CLOCKS_PER_SEC / _PwMicro_;
+#endif
     return ticks;
 }
 #else
@@ -58,15 +58,15 @@ void nanosleep(struct timespec *tm, struct timespec *rs)
     clock64_t elasped = start - kclock();
     elasped = tm->tv_sec * _PwNano_ + tm->tv_nsec - elasped;
     if (elasped < 0) {
-        if (rs != NULL) {  
+        if (rs != NULL) {
             rs->tv_sec = 0;
             rs->tv_nsec = 0;
-        } 
+        }
     } else {
-        if (rs != NULL) {  
+        if (rs != NULL) {
             rs->tv_sec = elasped / _PwNano_;
             rs->tv_nsec = elasped % _PwNano_;
-        } 
+        }
     }
 }
 
