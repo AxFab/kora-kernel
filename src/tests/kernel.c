@@ -52,8 +52,8 @@ tty_t *slog = NULL;
 
 int main()
 {
-	if (setjmp(__tcase_jump))
-	    return -1;
+    if (setjmp(__tcase_jump))
+        return -1;
     kernel_start();
     assert(kCPU.irq_semaphore == 0);
     kCPU.flags |= CPU_NO_TASK;

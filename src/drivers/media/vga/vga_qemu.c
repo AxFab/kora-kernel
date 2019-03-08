@@ -104,7 +104,7 @@ static void vga_change_offset(uint16_t offset)
 
 void vga_flip(inode_t *ino)
 {
-    framebuffer_t *fb = ( framebuffer_t *)ino->info;
+    framebuffer_t *fb = (framebuffer_t *)ino->info;
     vga_change_offset(fb->pixels > fb->backup ? fb->height : 0);
     uint8_t *tmp = fb->pixels;
     fb->pixels = fb->backup;
@@ -150,7 +150,7 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
         --i;
     vga_change_resol(size[i * 2], size[i * 2 + 1]);
 
-    framebuffer_t *fb = gfx_create(size[i * 2], size[i * 2 + 1], 4, (void*)-1);
+    framebuffer_t *fb = gfx_create(size[i * 2], size[i * 2 + 1], 4, (void *) - 1);
     uint32_t pixels1 = pixels0 + fb->pitch * fb->height;
     fb->pixels = (uint8_t *)pixels1;
     fb->pixels = (uint8_t *)pixels0;

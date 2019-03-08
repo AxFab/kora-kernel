@@ -60,7 +60,7 @@ int keyboard[128][4] = {
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
 
-     // 0x60
+    // 0x60
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
     _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0), _K4(0),
 
@@ -70,32 +70,31 @@ int keyboard[128][4] = {
 };
 
 
-void tty_start(tty_t *tty) 
+void tty_start(tty_t *tty)
 {
-	inode_t *win = wmgr_create_window(NULL, 640, 420);
+    inode_t *win = wmgr_create_window(NULL, 640, 420);
     tty_window(tty, win, &font_7x13);
 
     event_t event;
     for (;;) {
         vfs_read(win, (char *)&event, sizeof(event), 0, 0);
         switch (event.type) {
-        case EV_KEY_PRESS:
-            {
-                int status = event.param2 >> 16;
-        int shift = (status & 8 ? 1 : 0);
-        if (status & 4)
-            shift = 1 - status;
-        int unicode = keyboard[event.param1 & 0x0FF][shift];
-        // kprintf0(-1, "EV %x) %x %x  [%x] \n", event.type, event.param1, status, unicode);
-        if (unicode != 0)
-            tty_input(tty, unicode);
+        case EV_KEY_PRESS: {
+            int status = event.param2 >> 16;
+            int shift = (status & 8 ? 1 : 0);
+            if (status & 4)
+                shift = 1 - status;
+            int unicode = keyboard[event.param1 & 0x0FF][shift];
+            // kprintf0(-1, "EV %x) %x %x  [%x] \n", event.type, event.param1, status, unicode);
+            if (unicode != 0)
+                tty_input(tty, unicode);
 
-            } 
-            break;
+        }
+        break;
         case EV_WIN_RESIZE:
             tty_resize(tty, event.param1, event.param2);
             break;
-        } 
+        }
     }
 }
 
@@ -109,7 +108,7 @@ void tty_main(tty_t *tty)
     char buf[50];
     for (;;) {
         // vfs_read(tty, buf, 1, 0, 0);
-        sys_sleep(50000);
+        sys_sleep(SEC_TO_KTIME(5));
     }
 }
 
@@ -117,6 +116,7 @@ void tty_main(tty_t *tty)
 void exec_task();
 void fake_shell_task();
 void main_clock();
+
 
 void wmgr_main()
 {
@@ -160,6 +160,7 @@ void wmgr_main()
 
 
     // Start render loop
+    long tk;
     for (;;) {
         wmgr_render(kDESK->screen);
         sys_sleep(MSEC_TO_KTIME(50));

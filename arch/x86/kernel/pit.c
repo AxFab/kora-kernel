@@ -33,7 +33,7 @@ void pit_interval(unsigned freq_hz)
     divisor = MIN(65536, MAX(1, divisor));
 
     unsigned pit_frequency = 1193180 / divisor;
-    outb(PIT_CMD, 0x36);             /* Set our command byte 0x36 */
+    outb(PIT_CMD, 0x34);             /* Set our command byte 0x36 */
     outb(PIT_CH0, divisor & 0xff);   /* Set low byte of divisor */
     outb(PIT_CH0, (divisor >> 8) & 0xff);     /* Set high byte of divisor */
 

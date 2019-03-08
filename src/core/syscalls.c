@@ -269,7 +269,7 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off)
     mspace_t *mspace = kCPU.running->usmem;
     if (mspace == NULL) {
         errno = EACCES;
-        return (void*)-1;
+        return (void *) - 1;
     }
     // TODO - inode and flags
     int vma = (flags & 7) | ((flags & 7) << 4) | VMA_HEAP;

@@ -32,21 +32,20 @@ framebuffer_t *gfx_create(int width, int height, int depth, void *pixels)
     return fb;
 }
 
-void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels) 
+void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels)
 {
-	// TODO -- rwlock pixels, inval, copy 
-	if (fb->width >= w && fb->height >= h) 
-	    return;
-	if (pixels == NULL) {
-		kunmap(fb->pixels, ALIGN_UP(fb->height * fb->pitch, PAGE_SIZE));
-		fb->width = w;
-		fb->height = h;
-		fb->pitch = ALIGN_UP(w * fb->depth, 4);
-		fb->pixels = kmap(ALIGN_UP(fb->height * fb->pitch, PAGE_SIZE), NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
-	} else {
-		fb->pixels = pixels;
-	} 
-} 
+    // TODO -- rwlock pixels, inval, copy
+    if (fb->width >= w && fb->height >= h)
+        return;
+    if (pixels == NULL) {
+        kunmap(fb->pixels, ALIGN_UP(fb->height * fb->pitch, PAGE_SIZE));
+        fb->width = w;
+        fb->height = h;
+        fb->pitch = ALIGN_UP(w * fb->depth, 4);
+        fb->pixels = kmap(ALIGN_UP(fb->height * fb->pitch, PAGE_SIZE), NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
+    } else
+        fb->pixels = pixels;
+}
 
 void gfx_rect(framebuffer_t *fb, int x, int y, int w, int h, uint32_t color)
 {

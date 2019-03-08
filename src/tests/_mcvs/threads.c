@@ -162,7 +162,7 @@ void tss_delete(tss_t tss_id)
 {
     void *data = tss_get(tss_id);
     //if (tss_id != NULL)
-      //  (tss_id)(data);
+    //  (tss_id)(data);
     hmp_remove(&__tss_map, (const char *)tss_id, sizeof(char *));
 }
 

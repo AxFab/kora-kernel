@@ -67,9 +67,8 @@ int export_image_bmp24(image_t *img, const char *name)
     fseek(fp, header.file_offset, SEEK_SET);
     for (i = 0; i < img->height; ++i) {
         int k = (img->height - i) * img->width;
-        for (j = 0; j < img->width; ++j) {
+        for (j = 0; j < img->width; ++j)
             fwrite(&img->pixels[k + j], 3, 1, fp);
-        }
     }
 
     fclose(fp);
@@ -80,14 +79,13 @@ int export_image_bmp24(image_t *img, const char *name)
 
 void draw_circle(image_t *img, int x0, int y0, int radius, uint32_t clr)
 {
-    int x = radius-1;
+    int x = radius - 1;
     int y = 0;
     int dx = 1;
     int dy = 1;
     int err = dx - (radius << 1);
 
-    while (x >= y)
-    {
+    while (x >= y) {
         PX(img, x0 + x, y0 + y) = clr;
         PX(img, x0 + y, y0 + x) = clr;
         PX(img, x0 - y, y0 + x) = clr;
@@ -97,15 +95,13 @@ void draw_circle(image_t *img, int x0, int y0, int radius, uint32_t clr)
         PX(img, x0 + y, y0 - x) = clr;
         PX(img, x0 + x, y0 - y) = clr;
 
-        if (err <= 0)
-        {
+        if (err <= 0) {
             y++;
             err += dy;
             dy += 2;
         }
 
-        if (err > 0)
-        {
+        if (err > 0) {
             x--;
             dx += 2;
             err += dx - (radius << 1);
@@ -123,16 +119,16 @@ void draw_line_low(image_t *img, int x0, int y0, int x1, int y1, uint32_t clr)
         yi = -1;
         dy = -dy;
     }
-    int D = 2*dy - dx;
+    int D = 2 * dy - dx;
     int y = y0;
 
     for (x = x0; x < x1; ++x) {
-        PX(img, x,y) = clr;
+        PX(img, x, y) = clr;
         if (D > 0) {
-           y = y + yi;
-           D = D - 2*dx;
+            y = y + yi;
+            D = D - 2 * dx;
         }
-        D = D + 2*dy;
+        D = D + 2 * dy;
     }
 }
 
@@ -147,16 +143,16 @@ void draw_line_high(image_t *img, int x0, int y0, int x1, int y1, uint32_t clr)
         dx = -dx;
     }
 
-    int D = 2*dx - dy;
+    int D = 2 * dx - dy;
     int x = x0;
 
     for (y = y0; y < y1; ++y) {
-        PX(img, x,y) = clr;
+        PX(img, x, y) = clr;
         if (D > 0) {
             x = x + xi;
-            D = D - 2*dy;
+            D = D - 2 * dy;
         }
-        D = D + 2*dx;
+        D = D + 2 * dx;
     }
 }
 
@@ -205,11 +201,11 @@ int main(int argc, char **argv)
             draw_circle(&img, sz, sz, k, 0x181818);
         // printf("Hour: %02d:%02d:%02d\n", hour, min, sec);
         float a = min * PI / 30.0f;
-        draw_line(&img, sz, sz, sz + sin(a) * sz*0.75, sz - cos(a) * sz*0.75, 0x181818);
+        draw_line(&img, sz, sz, sz + sin(a) * sz * 0.75, sz - cos(a) * sz * 0.75, 0x181818);
         float h = hour * PI / 6.0f;
-        draw_line(&img, sz, sz, sz + sin(h) * sz*0.45, sz - cos(h) * sz*0.45, 0x181818);
+        draw_line(&img, sz, sz, sz + sin(h) * sz * 0.45, sz - cos(h) * sz * 0.45, 0x181818);
         float s = sec * PI / 30.0f;
-        draw_line(&img, sz + sin(s) * sz*-0.15, sz - cos(s) * sz*-0.15, sz + sin(s) * sz*0.85, sz - cos(s) * sz*0.85, 0xa61818);
+        draw_line(&img, sz + sin(s) * sz * -0.15, sz - cos(s) * sz * -0.15, sz + sin(s) * sz * 0.85, sz - cos(s) * sz * 0.85, 0xa61818);
         for (k = 0; k < 5; ++k)
             draw_circle(&img, sz, sz, k, 0x181818);
 

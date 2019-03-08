@@ -222,7 +222,7 @@ ino_ops_t ext2_dir_ops = {
 };
 
 ino_ops_t ext2_reg_ops = {
-    .close = NULL, 
+    .close = NULL,
 };
 
 fs_ops_t ext2_fs_ops = {
@@ -283,15 +283,15 @@ inode_t *ext2_mount(inode_t *dev)
 }
 
 
-void ext2_setup() 
+void ext2_setup()
 {
-	register_fs("ext2", (fs_mount) ext2_mount);
+    register_fs("ext2", (fs_mount) ext2_mount);
 }
 
 
-void ext2_teardown() 
+void ext2_teardown()
 {
-	unregister_fs("ext2");
-} 
+    unregister_fs("ext2");
+}
 
 MODULE(ext2, ext2_setup, ext2_teardown);

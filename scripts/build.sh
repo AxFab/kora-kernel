@@ -44,6 +44,10 @@ run_x86 () {
     qemu-system-i386 --cdrom KoraOs.iso --serial stdio --smp 2 -m 32
 }
 
+run_x86_64 () {
+    qemu-system-x86_64 --cdrom KoraOs.iso --serial stdio --smp 2 -m 512
+}
+
 run_raspi2 () {
     qemu-system-arm -m 256 -M raspi2 -serial stdio -kernel ./bin/kImage
 }
@@ -104,6 +108,48 @@ build_x86 () {
     ls -lh "$iso_name"
 }
 
+build_x86_64 () {
+    export target=x86_64-pc-kora
+    case "`uname -m`"
+    in
+        x86_64) unset CROSS ;;
+        *) export CROSS=x86_64-elf- ;;
+    esac
+
+    make -f $SRC_KRN/Makefile
+
+    rm -rf iso
+    mkdir -p iso/{etc,bin,boot,lib}
+    mkdir -p iso/usr/{bin,include,lib,man}
+    # mkdir -p iso/{dev,mnt,proc,sys,tmp}
+
+
+    $SCRIPT_HOME/scripts/drivers.sh
+
+    # Import files
+    cp -v $SRC_KRN/bin/kora-x86.krn iso/boot/kora-x86_64.krn
+    cp -v $SRC_KRN/bin/* iso/bin/
+    cp -v $SRC_KRN/lib/* iso/lib/
+
+    mkdir -p iso/boot/grub
+
+    if [ -z $isomode ]
+    then
+        # Create ISO (Option 1)
+        echo "    ISO $iso_name (option 1)"
+        cp $SRC_KRN/scripts/cfg/grub.cfg iso/boot/grub/
+        grub-mkrescue -o "$iso_name" iso
+    else
+        # Create ISO (Option 2)
+        echo "    ISO $iso_name (option 2)"
+        cp $SRC_KRN/scripts/cfg/stage2_eltorito iso/boot/grub/
+        cp $SRC_KRN/scripts/cfg/menu.lst iso/boot/grub/
+        genisoimage -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o "$iso_name" iso
+    fi
+
+    ls -lh "$iso_name"
+}
+
 clean () {
     make -f $SRC_KRN/Makefile distclean
 }
@@ -117,8 +163,13 @@ look_arch() {
     arch_="$1"
     case "$arch_"
     in
+        aarch64) arch='_blank';;
+        arm) arch='arm';;
         i386|i486|i686) arch_='x86' ;;
+        x86_64) arch_='x86_64' ;;
+
         raspi2) arch_='raspi2' ;;
+        *) arch='_blank';;
     esac
     echo "$arch_"
 }

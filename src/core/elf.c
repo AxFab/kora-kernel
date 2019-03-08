@@ -120,9 +120,8 @@ void elf_relocation(dynrel_t *reloc, uint32_t *rel, llhead_t *symbols)
     reloc->type = rel[1] & 0xF;
     if (sym_idx != 0) {
         reloc->symbol = ll_index(symbols, sym_idx - 1, dynsym_t, node);
-        if (reloc->symbol == NULL) {
+        if (reloc->symbol == NULL)
             kprintf(-1, "Missing RelSym: %06x  %x  (%d) \n", reloc->address, reloc->type, sym_idx);
-        }
     }
     // kprintf(-1, "R efl: %06x  %x  %s \n", reloc->address, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
 }
@@ -172,7 +171,7 @@ int elf_parse(dynlib_t *dlib)
     dlib->entry -= dlib->base;
     uint32_t *hash = ADDR_OFF(head, dynamic.hash);
     // if (dynamic.hash > 0 && dynamic.hash < 4080) {
-        // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
+    // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
     // }
     dynsec_t *sec;
     for ll_each(&dlib->sections, sec, dynsec_t, node)

@@ -45,7 +45,7 @@ enum {
     EV_KEY_PRESS,
     EV_KEY_RELEASE,
     EV_KEY_REPEAT,
-    
+
     EV_WIN_RESIZE,
 };
 

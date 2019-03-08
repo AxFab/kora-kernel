@@ -105,6 +105,23 @@ void irq_disable()
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+void clock_elapsed(int status)
+{
+    uint64_t ticks = cpu_clock();
+    uint64_t elapsed = ticks - kCPU.last_elapsed;
+    if (kCPU.status == CPU_SYS)
+        kCPU.sys_elapsed += elapsed;
+    else if (kCPU.status == CPU_USER)
+        kCPU.user_elapsed += elapsed;
+    if (kCPU.status == CPU_IRQ)
+        kCPU.irq_elapsed += elapsed;
+    if (kCPU.status == CPU_IDLE)
+        kCPU.idle_elapsed += elapsed;
+    kCPU.last_elapsed = ticks;
+    kCPU.status = status;
+    return elapsed;
+}
+
 void irq_ack(int no);
 
 
@@ -112,10 +129,9 @@ void irq_enter(int no)
 {
     irq_disable();
     assert(kCPU.irq_semaphore == 1);
-    // task_t *task = kCPU.running;
-    // if (task)
-    //     task->elapsed_user = clock_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_user = clock_elapsed(&kCPU->elapsed_last);
+
+    int status = kCPU.status;
+    clock_elapsed(CPU_IRQ);
 
     assert(no >= 0 && no < IRQ_MAX);
     irq_record_t *record;
@@ -125,9 +141,8 @@ void irq_enter(int no)
         record->func(record->data);
     irq_ack(no);
 
-    // if (task)
-    //     task->elapsed_others = clock_elapsed(&task->elapsed_last);
-    // kCPU.elapsed_io = clock_elapsed(&kCPU->elapsed_last);
+
+    clock_elapsed(status);
 
     assert(kCPU.irq_semaphore == 1);
     irq_reset(false);
@@ -193,7 +208,7 @@ typedef struct scall_entry scall_entry_t;
 struct scall_entry {
     char *name;
     char *args;
-    long (*routine)(long,long,long,long,long);
+    long (*routine)(long, long, long, long, long);
     bool ret;
 };
 
