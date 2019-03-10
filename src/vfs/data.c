@@ -92,6 +92,13 @@ static int vfs_write_block(inode_t *ino, const char *buf, size_t len, off_t off)
 int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
 {
     assert(kCPU.irq_semaphore == 0);
+    assert(ino != NULL);
+    assert(buf != NULL);
+    if (size == 0) {
+        errno = 0;
+        return 0;
+    }
+
     switch (ino->type) {
     case FL_REG:
     case FL_BLK:
@@ -116,6 +123,13 @@ int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
 int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
 {
     assert(kCPU.irq_semaphore == 0);
+    assert(ino != NULL);
+    assert(buf != NULL);
+    if (size == 0) {
+        errno = 0;
+        return 0;
+    }
+
     switch (ino->type) {
     case FL_REG:
     case FL_BLK:

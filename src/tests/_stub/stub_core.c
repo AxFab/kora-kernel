@@ -279,8 +279,34 @@ const char *ksymbol(void *eip, char *buf, int lg)
 }
 #endif
 
-#ifdef _WIN32
-#include <Windows.h>
+#if !defined(_WIN32)
+clock64_t kclock()
+{
+    clock_t ticks = clock();
+#if _PwMicro_ > CLOCKS_PER_SEC
+    ticks *= _PwMicro_ / CLOCKS_PER_SEC;
+#elif _PwMicro_ < CLOCKS_PER_SEC
+    ticks /= CLOCKS_PER_SEC / _PwMicro_;
+#endif
+    return ticks;
+}
+#else
+#include <windows.h>
+clock64_t kclock()
+{
+    // January 1, 1970 (start of Unix epoch) in ticks
+    const INT64 UNIX_START = 0x019DB1DED53E8000;
+
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+
+    LARGE_INTEGER li;
+    li.LowPart = ft.dwLowDateTime;
+    li.HighPart = ft.dwHighDateTime;
+    // Convert ticks since EPOCH into micro-seconds
+    return (li.QuadPart - UNIX_START) / 10;
+}
+
 
 void nanosleep(struct timespec *tm, struct timespec *rs)
 {
@@ -300,4 +326,5 @@ void nanosleep(struct timespec *tm, struct timespec *rs)
         }
     }
 }
+
 #endif

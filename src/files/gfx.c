@@ -21,6 +21,54 @@
 #include <kernel/files.h>
 #include <string.h>
 
+
+static void *memcpy32(void *dest, void *src, size_t lg)
+{
+    assert(IS_ALIGNED(lg, 4));
+    assert(IS_ALIGNED((size_t)dest, 4));
+    assert(IS_ALIGNED((size_t)src, 4));
+    register uint32_t *a = (uint32_t *)src;
+    register uint32_t *b = (uint32_t *)dest;
+    while (lg > 16) {
+        b[0] = a[0];
+        b[1] = a[1];
+        b[2] = a[2];
+        b[3] = a[3];
+        lg -= 16;
+        a += 4;
+        b += 4;
+    }
+    while (lg > 0) {
+        b[0] = a[0];
+        lg -= 4;
+        a++;
+        b++;
+    }
+    return dest;
+}
+
+static void *memset32(void *dest, uint32_t val, size_t lg)
+{
+    assert(IS_ALIGNED(lg, 4));
+    assert(IS_ALIGNED((size_t)dest, 4));
+    register uint32_t *a = (uint32_t *)dest;
+    while (lg > 16) {
+        a[0] = val;
+        a[1] = val;
+        a[2] = val;
+        a[3] = val;
+        lg -= 16;
+        a += 4;
+    }
+    while (lg > 0) {
+        a[0] = val;
+        lg -= 4;
+        a++;
+    }
+    return dest;
+}
+
+
 framebuffer_t *gfx_create(int width, int height, int depth, void *pixels)
 {
     framebuffer_t *fb = (framebuffer_t *)kalloc(sizeof(framebuffer_t));
@@ -54,7 +102,14 @@ void gfx_rect(framebuffer_t *fb, int x, int y, int w, int h, uint32_t color)
     int maxx = MIN(fb->width, x + w);
     int miny = MAX(0, y);
     int maxy = MIN(fb->height, y + h);
-    for (j = miny; j < maxy; ++j) {
+
+     if (fb->pixels == 4) {
+         for (j = miny; j < maxy; ++j)
+             memset32(&fb->pixels[j * fb->pitch + minx * 4], color, (maxx - minx) * 4);
+         return;
+     }
+
+     for (j = miny; j < maxy; ++j) {
         for (i = minx; i < maxx; ++i) {
             fb->pixels[(j)*fb->pitch + (i)* dp + 0] = (color >> 0) & 0xFF;
             fb->pixels[(j)*fb->pitch + (i)* dp + 1] = (color >> 8) & 0xFF;
@@ -90,6 +145,11 @@ void gfx_shadow(framebuffer_t *fb, int x, int y, int r, uint32_t color)
 
 void gfx_clear(framebuffer_t *fb, uint32_t color)
 {
+	if (fb->depth == 4) {
+		memset32(fb->pixels, color, fb->pitch * fb->height);
+		return;
+	}
+
     uint32_t *pixels = (uint32_t *)fb->pixels;
     uint32_t size = fb->pitch * fb->height / 16;
     while (size-- > 0) {
@@ -107,7 +167,7 @@ void gfx_slide(framebuffer_t *sfc, int height, uint32_t color)
     int px, py;
     if (height < 0) {
         height = -height;
-        memcpy(sfc->pixels, ADDR_OFF(sfc->pixels, sfc->pitch * height), sfc->pitch * (sfc->height - height));
+        memcpy32(sfc->pixels, ADDR_OFF(sfc->pixels, sfc->pitch * height), sfc->pitch * (sfc->height - height));
         for (py = sfc->height - height; py < sfc->height; ++py) {
             int pxrow = sfc->pitch * py;
             for (px = 0; px < sfc->width; ++px) {
@@ -121,7 +181,22 @@ void gfx_slide(framebuffer_t *sfc, int height, uint32_t color)
 
 void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int h)
 {
-    int j, i, dd = dest->depth, ds = src->depth;
+    int j, i;
+    int minx = MAX(0, -x);
+    int maxx = MIN(w, dest->width - x - w);
+    int miny = MAX(0, -y);
+    int maxy = MIN(h, dest->height - y - h);
+
+    if (dest->depth == src->depth && src->depth == 4) {
+        for (i = 0; i < MIN(h, src->height); ++i) {
+            int ka = i * src->pitch;
+            int kb = (i + y) * dest->pitch;
+            memcpy32(&dest->pixels[kb + (minx + x) * 4], &src->pixels[ka + minx * 4], (maxx - minx) * 4);
+        }
+        return;
+    }
+
+    int dd = dest->depth, ds = src->depth;
     for (j = 0; j < MIN(h, src->height); ++j) {
         if (j + y < 0 || j + y >= dest->height)
             continue;

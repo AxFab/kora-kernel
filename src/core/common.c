@@ -58,6 +58,11 @@ int *__errno_location()
     return &kCPU.err_no;
 }
 
+clock64_t kclock()
+{
+    return kSYS.clock_us + kSYS.clock_adj;
+}
+
 int isspace(char a)
 {
     return a > 0 && a <= 0x20;
