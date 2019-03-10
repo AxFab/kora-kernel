@@ -71,14 +71,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
+  <LibraryPath>..\Debug;$(LibraryPath)</LibraryPath>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

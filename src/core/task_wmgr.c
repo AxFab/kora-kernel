@@ -160,7 +160,6 @@ void wmgr_main()
 
 
     // Start render loop
-    long tk;
     for (;;) {
         wmgr_render(kDESK->screen);
         sys_sleep(MSEC_TO_KTIME(50));

@@ -24,11 +24,6 @@
 uint64_t ticks_last = 0;
 uint64_t ticks_elapsed = 0;
 
-clock64_t kclock()
-{
-    return kSYS.clock_us + kSYS.clock_adj;
-}
-
 
 #define  SEC_PER_DAY (24*60*60)
 #define  SEC_PER_HOUR (60*60)
