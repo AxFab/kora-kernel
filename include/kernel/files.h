@@ -40,6 +40,7 @@ struct framebuffer {
     int pitch, depth;
     uint8_t *pixels;
     uint8_t *backup;
+    rwlock_t lock;
 };
 
 struct rect {

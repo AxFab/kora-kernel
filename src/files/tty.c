@@ -382,3 +382,26 @@ void tty_input(tty_t *tty, int unicode)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+int tty_ino_read(inode_t *ino, char *buf, size_t len, int flags) 
+{
+	return pipe_read(((tty_t*) ino->info) ->pipe, buf, len, flags);
+} 
+
+int tty_ino_write(inode_t *ino, const char *buf, size_t len, int flags) 
+{
+	return tty_write((tty_t*)ino->info, buf, len);
+} 
+
+ino_ops_t tty_ino_ops = {
+	.read = tty_ino_read,
+	.write = tty_ino_write, 
+};
+
+inode_t *tty_inode()
+{
+	tty_t *tty = tty_create(256);
+	inode_t *ino = vfs_inode(1, FL_TTY, NULL);
+	ino->ops = &tty_ino_ops;
+	ino->info = tty;
+	return ino;
+}

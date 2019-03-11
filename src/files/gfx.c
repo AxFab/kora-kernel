@@ -77,14 +77,16 @@ framebuffer_t *gfx_create(int width, int height, int depth, void *pixels)
     fb->depth = depth;
     fb->pitch = ALIGN_UP(width * depth, 4);
     fb->pixels = pixels != NULL ? pixels : kmap(ALIGN_UP(height * fb->pitch, PAGE_SIZE), NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
+    rwlock_init(&fb->lock);
     return fb;
 }
 
 void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels)
 {
-    // TODO -- rwlock pixels, inval, copy
-    if (fb->width >= w && fb->height >= h)
+    // TODO -- in val & copy
+    if (fb->width >= w && fb->height >= h) 
         return;
+    rwlock_wrlock(&fb->lock);
     if (pixels == NULL) {
         kunmap(fb->pixels, ALIGN_UP(fb->height * fb->pitch, PAGE_SIZE));
         fb->width = w;
@@ -97,6 +99,7 @@ void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels)
 
 void gfx_rect(framebuffer_t *fb, int x, int y, int w, int h, uint32_t color)
 {
+	rwlock_rdlock(&fb->lock);
     int i, j, dp = fb->depth;
     int minx = MAX(0, x);
     int maxx = MIN(fb->width, x + w);
@@ -106,6 +109,7 @@ void gfx_rect(framebuffer_t *fb, int x, int y, int w, int h, uint32_t color)
      if (fb->pixels == 4) {
          for (j = miny; j < maxy; ++j)
              memset32(&fb->pixels[j * fb->pitch + minx * 4], color, (maxx - minx) * 4);
+         rwlock_rdunlock(&fb->lock);
          return;
      }
 
@@ -116,6 +120,7 @@ void gfx_rect(framebuffer_t *fb, int x, int y, int w, int h, uint32_t color)
             fb->pixels[(j)*fb->pitch + (i)* dp + 2] = (color >> 16) & 0xFF;
         }
     }
+    rwlock_rdunlock(&fb->lock);
 }
 
 float sqrtf(float f);
@@ -123,6 +128,7 @@ double sqrt(double f);
 
 void gfx_shadow(framebuffer_t *fb, int x, int y, int r, uint32_t color)
 {
+	rwlock_rdlock(&fb->lock);
     int i, j, dp = fb->depth;
     int minx = MAX(0, x - r);
     int maxx = MIN(fb->width, x + r);
@@ -141,12 +147,15 @@ void gfx_shadow(framebuffer_t *fb, int x, int y, int r, uint32_t color)
             fb->pixels[(j)*fb->pitch + (i)* dp + 3] = (uint8_t)(255 * a);
         }
     }
+    rwlock_rdunlock(&fb->lock);
 }
 
 void gfx_clear(framebuffer_t *fb, uint32_t color)
 {
+	rwlock_rdlock(&fb->lock);
 	if (fb->depth == 4) {
 		memset32(fb->pixels, color, fb->pitch * fb->height);
+		rwlock_rdunlock(&fb->lock);
 		return;
 	}
 
@@ -159,33 +168,38 @@ void gfx_clear(framebuffer_t *fb, uint32_t color)
         pixels[3] = color;
         pixels += 4;
     }
+    rwlock_rdunlock(&fb->lock);
 }
 
 
-void gfx_slide(framebuffer_t *sfc, int height, uint32_t color)
+void gfx_slide(framebuffer_t *fb, int height, uint32_t color)
 {
+	rwlock_rdlock(&fb->lock);
     int px, py;
     if (height < 0) {
         height = -height;
-        memcpy32(sfc->pixels, ADDR_OFF(sfc->pixels, sfc->pitch * height), sfc->pitch * (sfc->height - height));
-        for (py = sfc->height - height; py < sfc->height; ++py) {
-            int pxrow = sfc->pitch * py;
-            for (px = 0; px < sfc->width; ++px) {
-                uint32_t *pixel = ADDR_OFF(sfc->pixels, pxrow + px * 4);
+        memcpy32(fb->pixels, ADDR_OFF(fb->pixels, fb->pitch * height), fb->pitch * (fb->height - height));
+        for (py = fb->height - height; py < fb->height; ++py) {
+            int pxrow = fb->pitch * py;
+            for (px = 0; px < fb->width; ++px) {
+                uint32_t *pixel = ADDR_OFF(fb->pixels, pxrow + px * 4);
                 *pixel = color;
             }
         }
     }
+    rwlock_rdunlock(&fb->lock);
 }
 
 
 void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int h)
 {
+	rwlock_rdlock(&src->lock);
+	rwlock_rdlock(&dest->lock);
     int j, i;
     int minx = MAX(0, -x);
-    int maxx = MIN(w, dest->width - x - w);
+    int maxx = MIN(w, dest->width - x);
     int miny = MAX(0, -y);
-    int maxy = MIN(h, dest->height - y - h);
+    int maxy = MIN(h, dest->height - y);
 
     if (dest->depth == src->depth && src->depth == 4) {
         for (i = 0; i < MIN(h, src->height); ++i) {
@@ -193,6 +207,8 @@ void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int 
             int kb = (i + y) * dest->pitch;
             memcpy32(&dest->pixels[kb + (minx + x) * 4], &src->pixels[ka + minx * 4], (maxx - minx) * 4);
         }
+        rwlock_rdunlock(&dest->lock);
+        rwlock_rdunlock(&src->lock);
         return;
     }
 
@@ -212,11 +228,15 @@ void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int 
             dest->pixels[(j + y)*dest->pitch + (i + x)* dd + 2] = r;
         }
     }
+    rwlock_rdunlock(&dest->lock);
+    rwlock_rdunlock(&src->lock);
 }
 
 
 void gfx_copy_blend(framebuffer_t *dest, framebuffer_t *src, int x, int y)
 {
+	rwlock_rdlock(&src->lock);
+	rwlock_rdlock(&dest->lock);
     int j, i, dd = dest->depth, ds = src->depth;
     for (j = 0; j < src->height; ++j) {
         if (j + y < 0 || j + y >= dest->height)
@@ -241,10 +261,7 @@ void gfx_copy_blend(framebuffer_t *dest, framebuffer_t *src, int x, int y)
             dest->pixels[(j + y)*dest->pitch + (i + x)* dd + 2] = r;
         }
     }
+    rwlock_rdunlock(&dest->lock);
+    rwlock_rdunlock(&src->lock);
 }
 
-
-void gfx_flip(framebuffer_t *fb)
-{
-
-}
