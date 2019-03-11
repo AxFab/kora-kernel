@@ -70,8 +70,9 @@ int keyboard[128][4] = {
 };
 
 
-void tty_start(tty_t *tty)
+void tty_start(inode_t *ino)
 {
+	tty_t *tty = (tty_t *)ino->info;
     inode_t *win = wmgr_create_window(NULL, 640, 420);
     tty_window(tty, win, &font_7x13);
 
@@ -99,16 +100,26 @@ void tty_start(tty_t *tty)
 }
 
 extern tty_t *slog;
-void tty_main(tty_t *tty)
+void tty_main(inode_t *tty)
 {
     event_t event;
-    tty_puts(tty, "Hello, secret message\n");
-    tty_puts(tty, "Hello, welcome on Kora Tty\n");
+    vfs_puts(tty, "Hello, secret message\n");
+    vfs_puts(tty, "Hello, welcome on Kora Tty\n");
 
     char buf[50];
+    int idx = 0;
+    char ch;
     for (;;) {
-        // vfs_read(tty, buf, 1, 0, 0);
-        sys_sleep(SEC_TO_KTIME(5));
+        int ret = vfs_read(tty, &ch, 1, 0, 0);
+        if (ret < 1) {
+            kprintf(-1, "Error on TTY, waiting 5 sec \n");
+            sys_sleep(SEC_TO_KTIME(5));
+        } else if (ch == '\n') {
+            buf[idx++] = '\0';
+            kprintf(-1, "Exec %s \n", buf);
+        } else {
+            buf[idx++] = ch;
+        } 
     }
 }
 
@@ -150,8 +161,8 @@ void wmgr_main()
 
     // Start applications
     kDESK = desk;
-    task_create(tty_start, slog, "Tty.0");
-    tty_t *tty = tty_create(256);
+    // task_create(tty_start, slog, "Tty.0");
+    inode_t *tty = tty_inode();
     task_create(tty_start, tty, "Tty.1");
     task_create(tty_main, tty, "Tty.1.prg");
     task_create(exec_task, NULL, "App exec");

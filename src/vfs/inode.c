@@ -79,6 +79,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
         assert(volume == NULL);
         break;
     case FL_WIN:  /* Window (Virtual) */
+    case FL_TTY:  /* Terminal (Virtual) */
         assert(volume == NULL);
         // !?
         break;
@@ -86,7 +87,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
     case FL_SOCK:  /* Network socket */
     case FL_INFO:  /* Information file */
     case FL_SFC:  /* Application surface */
-    case FL_TTY:  /* Terminal (Virtual) */
+    
     default:
         assert(false);
         break;

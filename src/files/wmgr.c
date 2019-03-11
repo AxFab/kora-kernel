@@ -97,9 +97,7 @@ ino_ops_t win_ops = {
 };
 
 
-
-
-inode_t *wmgr_create_window(desktop_t *desk, int width, int height)
+window_t *wmgr_window(desktop_t *desk, int width, int height)
 {
     if (desk == NULL)
         desk = kDESK;
@@ -129,7 +127,12 @@ inode_t *wmgr_create_window(desktop_t *desk, int width, int height)
     splock_lock(&desk->lock);
     ll_append(&desk->windows, &win->node);
     splock_unlock(&desk->lock);
+    return win;
+} 
 
+inode_t *wmgr_create_window(desktop_t *desk, int width, int height)
+{
+	window_t *win = wmgr_window(desk, width, height);
     inode_t *ino = vfs_inode(win->no, FL_WIN, NULL);
     ino->info = win;
     ino->ops = &win_ops;
