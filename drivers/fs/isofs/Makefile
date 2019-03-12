@@ -15,7 +15,12 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 name = isofs
--include ../_scripts/make_vars.mk
-src-y = $(wildcard $(topdir)/*.c)
--include ../_scripts/make_rules.mk
--include ../_scripts/make_kmodule.mk
+topdir ?= $(shell readlink -f $(dir $(word 1,$(MAKEFILE_LIST)))/..)
+
+include $(topdir)/_scripts/make_vars.mk
+
+src-y = $(wildcard $(topdir)/isofs/*.c)
+
+$(name): $(libdir)/$(name).km
+include $(topdir)/_scripts/make_rules.mk
+include $(topdir)/_scripts/make_kmodule.mk
