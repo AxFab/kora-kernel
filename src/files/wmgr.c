@@ -66,13 +66,14 @@ void wmgr_window_flip(inode_t *ino)
 
 int wmgr_window_read(inode_t *ino, char *buf, size_t len, int flags)
 {
-    return pipe_read(((window_t *) ino->info) ->pipe, buf, len, flags) ;
+    return pipe_read(((window_t *) ino->info)->pipe, buf, len, flags) ;
 }
 
 int wmgr_window_resize(inode_t *ino, int width, int height)
 {
     window_t *win = (window_t *) ino->info;
-    return gfx_resize(win->frame, width, height, NULL);
+    gfx_resize(win->frame, width, height, NULL);
+    return 0;
 }
 
 int wmgr_event(window_t *win, int event, int param1, int param2)
@@ -81,7 +82,7 @@ int wmgr_event(window_t *win, int event, int param1, int param2)
     ev.param1 = param1;
     ev.param2 = param2;
     ev.type = event;
-    return pipe_write(win->pipe, &ev, sizeof(ev), 0);
+    return pipe_write(win->pipe, (char *)&ev, sizeof(ev), 0);
 }
 
 ino_ops_t win_ops = {
@@ -92,7 +93,7 @@ ino_ops_t win_ops = {
     .read = wmgr_window_read,
     // .reset = win_reset,
     .flip = wmgr_window_flip,
-    .resize = wmgr_window_resize,
+    .resize = (void *)wmgr_window_resize,
     // .copy = win_copy,
 };
 
@@ -128,11 +129,11 @@ window_t *wmgr_window(desktop_t *desk, int width, int height)
     ll_append(&desk->windows, &win->node);
     splock_unlock(&desk->lock);
     return win;
-} 
+}
 
 inode_t *wmgr_create_window(desktop_t *desk, int width, int height)
 {
-	window_t *win = wmgr_window(desk, width, height);
+    window_t *win = wmgr_window(desk, width, height);
     inode_t *ino = vfs_inode(win->no, FL_WIN, NULL);
     ino->info = win;
     ino->ops = &win_ops;

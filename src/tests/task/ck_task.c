@@ -42,7 +42,7 @@ void cpu_loop(int loop)
 {
     struct timespec ts;
     ts.tv_sec = 0;
-    ts.tv_nsec = 1000000;
+    ts.tv_nsec = 100000;
 
     kCPU.flags |= CPU_NO_TASK;
 
@@ -70,7 +70,7 @@ START_TEST(test_01)
     task = task_create(task_count, (void *)1, "T2");
     task_close(task);
 
-    cpu_loop(500);
+    cpu_loop(5000);
     task_show_all();
 
     task = task_search(1);

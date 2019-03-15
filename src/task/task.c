@@ -74,8 +74,6 @@ static task_t *task_allocat()
     task->bnode.value_ = task->pid;
     bbtree_insert(&pid_tree, &task->bnode);
     splock_unlock(&tsk_lock);
-
-    clock_elapsed(&task->last);
     return task;
 }
 

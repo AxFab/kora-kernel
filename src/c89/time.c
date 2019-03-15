@@ -319,5 +319,6 @@ void tzset()
 struct tm *localtime(const time_t *timep)
 {
     tzset();
-    return gmtime(*timep + __timezone);
+    time_t local_time = *timep + __timezone;
+    return gmtime(&local_time);
 }

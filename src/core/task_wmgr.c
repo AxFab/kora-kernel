@@ -20,6 +20,8 @@
 #include <kernel/files.h>
 #include <kernel/task.h>
 #include <kernel/input.h>
+#include <kernel/syscalls.h>
+#include <kernel/device.h>
 
 extern font_bmp_t font_7x13;
 extern desktop_t *kDESK;
@@ -72,7 +74,7 @@ int keyboard[128][4] = {
 
 void tty_start(inode_t *ino)
 {
-	tty_t *tty = (tty_t *)ino->info;
+    tty_t *tty = (tty_t *)ino->info;
     inode_t *win = wmgr_create_window(NULL, 640, 420);
     tty_window(tty, win, &font_7x13);
 
@@ -102,7 +104,6 @@ void tty_start(inode_t *ino)
 extern tty_t *slog;
 void tty_main(inode_t *tty)
 {
-    event_t event;
     vfs_puts(tty, "Hello, secret message\n");
     vfs_puts(tty, "Hello, welcome on Kora Tty\n");
 
@@ -117,9 +118,8 @@ void tty_main(inode_t *tty)
         } else if (ch == '\n') {
             buf[idx++] = '\0';
             kprintf(-1, "Exec %s \n", buf);
-        } else {
+        } else
             buf[idx++] = ch;
-        } 
     }
 }
 
@@ -128,6 +128,7 @@ void exec_task();
 void fake_shell_task();
 void main_clock();
 
+void wmgr_render(screen_t *screen);
 
 void wmgr_main()
 {
@@ -161,8 +162,9 @@ void wmgr_main()
 
     // Start applications
     kDESK = desk;
-    // task_create(tty_start, slog, "Tty.0");
-    inode_t *tty = tty_inode();
+    inode_t *tty0 = tty_inode(slog);
+    task_create(tty_start, tty0, "Tty.0");
+    inode_t *tty = tty_inode(NULL);
     task_create(tty_start, tty, "Tty.1");
     task_create(tty_main, tty, "Tty.1.prg");
     task_create(exec_task, NULL, "App exec");

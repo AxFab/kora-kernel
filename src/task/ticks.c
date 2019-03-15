@@ -63,5 +63,5 @@ void clock_init()
     kSYS.clock_adj = SEC_TO_KTIME(cpu_time());
     kSYS.timer_cpu = cpu_no();
     splock_init(&kSYS.time_lock);
-    clock_elapsed(&ticks_last);
+    clock_elapsed(CPU_SYS);
 }

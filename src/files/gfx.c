@@ -84,7 +84,7 @@ framebuffer_t *gfx_create(int width, int height, int depth, void *pixels)
 void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels)
 {
     // TODO -- in val & copy
-    if (fb->width >= w && fb->height >= h) 
+    if (fb->width >= w && fb->height >= h)
         return;
     rwlock_wrlock(&fb->lock);
     if (pixels == NULL) {
@@ -95,25 +95,26 @@ void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels)
         fb->pixels = kmap(ALIGN_UP(fb->height * fb->pitch, PAGE_SIZE), NULL, 0, VMA_ANON_RW | VMA_RESOLVE);
     } else
         fb->pixels = pixels;
+    rwlock_wrunlock(&fb->lock);
 }
 
 void gfx_rect(framebuffer_t *fb, int x, int y, int w, int h, uint32_t color)
 {
-	rwlock_rdlock(&fb->lock);
+    rwlock_rdlock(&fb->lock);
     int i, j, dp = fb->depth;
     int minx = MAX(0, x);
     int maxx = MIN(fb->width, x + w);
     int miny = MAX(0, y);
     int maxy = MIN(fb->height, y + h);
 
-     if (fb->pixels == 4) {
-         for (j = miny; j < maxy; ++j)
-             memset32(&fb->pixels[j * fb->pitch + minx * 4], color, (maxx - minx) * 4);
-         rwlock_rdunlock(&fb->lock);
-         return;
-     }
+    if (fb->depth == 4) {
+        for (j = miny; j < maxy; ++j)
+            memset32(&fb->pixels[j * fb->pitch + minx * 4], color, (maxx - minx) * 4);
+        rwlock_rdunlock(&fb->lock);
+        return;
+    }
 
-     for (j = miny; j < maxy; ++j) {
+    for (j = miny; j < maxy; ++j) {
         for (i = minx; i < maxx; ++i) {
             fb->pixels[(j)*fb->pitch + (i)* dp + 0] = (color >> 0) & 0xFF;
             fb->pixels[(j)*fb->pitch + (i)* dp + 1] = (color >> 8) & 0xFF;
@@ -128,7 +129,7 @@ double sqrt(double f);
 
 void gfx_shadow(framebuffer_t *fb, int x, int y, int r, uint32_t color)
 {
-	rwlock_rdlock(&fb->lock);
+    rwlock_rdlock(&fb->lock);
     int i, j, dp = fb->depth;
     int minx = MAX(0, x - r);
     int maxx = MIN(fb->width, x + r);
@@ -152,12 +153,12 @@ void gfx_shadow(framebuffer_t *fb, int x, int y, int r, uint32_t color)
 
 void gfx_clear(framebuffer_t *fb, uint32_t color)
 {
-	rwlock_rdlock(&fb->lock);
-	if (fb->depth == 4) {
-		memset32(fb->pixels, color, fb->pitch * fb->height);
-		rwlock_rdunlock(&fb->lock);
-		return;
-	}
+    rwlock_rdlock(&fb->lock);
+    if (fb->depth == 4) {
+        memset32(fb->pixels, color, fb->pitch * fb->height);
+        rwlock_rdunlock(&fb->lock);
+        return;
+    }
 
     uint32_t *pixels = (uint32_t *)fb->pixels;
     uint32_t size = fb->pitch * fb->height / 16;
@@ -174,7 +175,7 @@ void gfx_clear(framebuffer_t *fb, uint32_t color)
 
 void gfx_slide(framebuffer_t *fb, int height, uint32_t color)
 {
-	rwlock_rdlock(&fb->lock);
+    rwlock_rdlock(&fb->lock);
     int px, py;
     if (height < 0) {
         height = -height;
@@ -193,16 +194,16 @@ void gfx_slide(framebuffer_t *fb, int height, uint32_t color)
 
 void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int h)
 {
-	rwlock_rdlock(&src->lock);
-	rwlock_rdlock(&dest->lock);
+    rwlock_rdlock(&src->lock);
+    rwlock_rdlock(&dest->lock);
     int j, i;
     int minx = MAX(0, -x);
-    int maxx = MIN(w, dest->width - x);
+    int maxx = MIN(MIN(w, src->width), dest->width - x);
     int miny = MAX(0, -y);
-    int maxy = MIN(h, dest->height - y);
+    int maxy = MIN(MIN(h, src->height), dest->height - y);
 
     if (dest->depth == src->depth && src->depth == 4) {
-        for (i = 0; i < MIN(h, src->height); ++i) {
+        for (i = miny; i < maxy; ++i) {
             int ka = i * src->pitch;
             int kb = (i + y) * dest->pitch;
             memcpy32(&dest->pixels[kb + (minx + x) * 4], &src->pixels[ka + minx * 4], (maxx - minx) * 4);
@@ -213,12 +214,8 @@ void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int 
     }
 
     int dd = dest->depth, ds = src->depth;
-    for (j = 0; j < MIN(h, src->height); ++j) {
-        if (j + y < 0 || j + y >= dest->height)
-            continue;
-        for (i = 0; i < MIN(w, src->width); ++i) {
-            if (i + x < 0 || i + x >= dest->width)
-                continue;
+    for (j = miny; j < maxy; ++j) {
+        for (i = minx; i < maxx; ++i) {
             int r, g, b;
             r = src->pixels[(j) * src->pitch + (i) * ds + 2];
             g = src->pixels[(j) * src->pitch + (i) * ds + 1];
@@ -235,15 +232,17 @@ void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int 
 
 void gfx_copy_blend(framebuffer_t *dest, framebuffer_t *src, int x, int y)
 {
-	rwlock_rdlock(&src->lock);
-	rwlock_rdlock(&dest->lock);
-    int j, i, dd = dest->depth, ds = src->depth;
-    for (j = 0; j < src->height; ++j) {
-        if (j + y < 0 || j + y >= dest->height)
-            continue;
-        for (i = 0; i < src->width; ++i) {
-            if (i + x < 0 || i + x >= dest->width)
-                continue;
+    rwlock_rdlock(&src->lock);
+    rwlock_rdlock(&dest->lock);
+    int j, i;
+    int minx = MAX(0, -x);
+    int maxx = MIN(src->width, dest->width - x);
+    int miny = MAX(0, -y);
+    int maxy = MIN(src->height, dest->height - y);
+
+    int dd = dest->depth, ds = src->depth;
+    for (j = miny; j < maxy; ++j) {
+        for (i = minx; i < maxx; ++i) {
             int r, g, b;
             int a = src->pixels[(j) * src->pitch + (i) * ds + 3];
             if (a == 0)
