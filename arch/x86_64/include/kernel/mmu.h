@@ -17,3 +17,75 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+
+#ifndef _KERNEL_ASM_MMU_H
+#define _KERNEL_ASM_MMU_H 1
+
+#include <kora/mcrs.h>
+#include <bits/cdefs.h>
+
+typedef unsigned long page_t;
+/* Larger page in order to support 36bits physical address.
+typedef unsigned long long page_t; */
+
+#define MMU_USPACE_LOWER  (4 * _Mib_)
+#define MMU_USPACE_UPPER  (512 * _Mib_)
+#define MMU_KSPACE_LOWER  (3072U * _Mib_)
+#define MMU_KSPACE_UPPER  (4088U * _Mib_)
+
+
+#define MMU_UTBL_LOW  (MMU_USPACE_LOWER / (4 * _Mib_))
+#define MMU_UTBL_HIGH  (MMU_USPACE_UPPER / (4 * _Mib_))
+#define MMU_KTBL_LOW  (MMU_KSPACE_LOWER / (4 * _Mib_))
+#define MMU_KTBL_HIGH  (MMU_KSPACE_UPPER / (4 * _Mib_))
+
+
+#define MMU_BMP  ((uint8_t*)0x120000)
+#define MMU_LG  (128 * _Kib_)   // 128 Kb => 4 Gb
+
+
+#define KRN_PG_DIR 0x2000
+#define KRN_PG_TBL 0x3000
+#define KRN_SP_LOWER 3072
+#define KRN_SP_UPPER 4088
+
+/* Page entry flags:
+ *  bit0: Is present
+ *  bit1: Allow write operations
+ *  bit2: Accesible into user mode
+ */
+#define MMU_WRITE   2
+#define MMU_USERMD  4
+
+#define MMU_K_RW 3
+#define MMU_K_RO 1
+#define MMU_U_RO 5
+#define MMU_U_RW 7
+
+
+#define MMU_PAGES(s)  (*((page_t*)((0xffc00000 | ((s) >> 10)) & ~3)))
+#define MMU_K_DIR  ((page_t*)0xffbff000)
+#define MMU_U_DIR  ((page_t*)0xfffff000)
+
+void mboot_memory();
+
+/* Kernel memory mapping :: 2 First MB
+
+  0x....0000      0 Kb      2 Kb     GDT
+  0x....0800      2 Kb      2 Kb     IDT
+  0x....1000      4 Kb      4 Kb     TSS (x32, ~128 bytes each CPU)
+  0x....2000      8 Kb      4 Kb     K pages dir
+  0x....3000     12 Kb      4 Kb     K pages tbl0
+  0x....4000     16 Kb    112 Kb     -
+  0x...20000    128 Kb    608 Kb     Kernel code
+  0x...B8000    736 Kb    288 Kb     Hardware
+  0x..100000   1024 Kb    128 Kb     Kernel initial Stack (x32 each CPU)
+  0x..120000   1152 Kb    128 Kb     Pages bitmap
+  0x..140000   1280 Kb    256 Kb     -
+  0x..180000   1536 Kb    512 Kb     Initial Heap Area
+ */
+
+typedef size_t cpu_state_t[6];
+
+
+#endif /* _KERNEL_ASM_MMU_H */
