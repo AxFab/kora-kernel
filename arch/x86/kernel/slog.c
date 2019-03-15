@@ -39,11 +39,6 @@ void kwrite(const char *buf, int len)
     //     csl_write(NULL, buf, len);
 }
 
-uint64_t cpu_clock()
-{
-    return 0;
-}
-
 time_t rtc_time();
 void pit_interval(int hz);
 

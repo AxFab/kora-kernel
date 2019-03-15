@@ -24,18 +24,6 @@
 uint64_t ticks_last = 0;
 uint64_t ticks_elapsed = 0;
 
-clock64_t kclock()
-{
-    return kSYS.clock_us + kSYS.clock_adj;
-}
-
-uint64_t clock_elapsed(uint64_t *last)
-{
-    uint64_t ticks = cpu_clock();
-    uint64_t elapsed = ticks - *last;
-    *last =  ticks;
-    return elapsed;
-}
 
 #define  SEC_PER_DAY (24*60*60)
 #define  SEC_PER_HOUR (60*60)
@@ -59,7 +47,6 @@ void clock_ticks()
     if (kSYS.timer_cpu == cpu_no()) {
         splock_lock(&kSYS.time_lock);
         kSYS.clock_us += KTICKS_PER_SEC;
-        ticks_elapsed += clock_elapsed(&ticks_last);
         kSYS.jiffies++;
         splock_unlock(&kSYS.time_lock);
     }
@@ -76,5 +63,5 @@ void clock_init()
     kSYS.clock_adj = SEC_TO_KTIME(cpu_time());
     kSYS.timer_cpu = cpu_no();
     splock_init(&kSYS.time_lock);
-    clock_elapsed(&ticks_last);
+    clock_elapsed(CPU_SYS);
 }

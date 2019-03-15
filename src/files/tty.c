@@ -19,6 +19,7 @@
  */
 #include <kernel/files.h>
 #include <kernel/input.h>
+#include <kernel/device.h>
 #include <string.h>
 
 #define TTY_BUF_SIZE (64 - 3 * 4)
@@ -76,6 +77,7 @@ uint32_t consoleLightColor[] = {
 };
 
 tty_cell_t *tty_next(tty_t *tty);
+void tty_repaint_all(tty_t *tty);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -204,8 +206,15 @@ void tty_paint_cell(tty_t *tty, tty_cell_t *cell)
 {
     if (tty->fb == NULL)
         return;
-    if ((cell->row - tty->scroll) < 0 || (cell->row - tty->scroll) >= tty->rows)
+    if ((cell->row - tty->scroll) < 0 || (cell->row - tty->scroll) > tty->rows)
         return;
+    if ((cell->row - tty->scroll) == tty->rows) {
+        tty->scroll++;
+        // gfx_slide(tty->fb, -tty->font->dispy, 0x181818);
+        // gfx_clear(tty->fb, 0x181818);
+        // tty_repaint_all(tty);
+        return;
+    }
     const font_bmp_t *font = tty->font;
     int c = cell->col;
     int x = cell->col * font->dispx;
@@ -282,6 +291,8 @@ tty_cell_t *tty_putchar(tty_t *tty, tty_cell_t *cell, int unicode)
 
 int tty_write(tty_t *tty, const char *buf, int len)
 {
+    if (len == 0)
+        return 0;
     tty_cell_t *cell = &tty->cells[tty->end];
     while (len > 0) {
         int unicode = *buf;
@@ -318,6 +329,18 @@ int tty_write(tty_t *tty, const char *buf, int len)
         tty->win->ops->flip(tty->win);
     }
     return 0;
+}
+
+void tty_resize(tty_t *tty, int width, int height)
+{
+    if (tty->win == NULL)
+        return;
+    tty->win->ops->resize(tty->win, width, height);
+    gfx_clear(tty->fb, 0x181818);
+    tty->rows = tty->fb->height / tty->font->dispy;
+    tty->cols = tty->fb->width / tty->font->dispx;
+    kprintf(-1, "Tty window resize %dx%d \n", tty->cols, tty->rows);
+    tty_repaint_all(tty);
 }
 
 int tty_puts(tty_t *tty, const char *buf)
@@ -358,3 +381,27 @@ void tty_input(tty_t *tty, int unicode)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+int tty_ino_read(inode_t *ino, char *buf, size_t len, int flags)
+{
+    return pipe_read(((tty_t *) ino->info) ->pipe, buf, len, flags);
+}
+
+int tty_ino_write(inode_t *ino, const char *buf, size_t len, int flags)
+{
+    return tty_write((tty_t *)ino->info, buf, len);
+}
+
+ino_ops_t tty_ino_ops = {
+    .read = tty_ino_read,
+    .write = tty_ino_write,
+};
+
+inode_t *tty_inode(tty_t *tty)
+{
+    if (tty == NULL)
+        tty = tty_create(256);
+    inode_t *ino = vfs_inode(1, FL_TTY, NULL);
+    ino->ops = &tty_ino_ops;
+    ino->info = tty;
+    return ino;
+}

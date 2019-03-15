@@ -226,14 +226,14 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
 
 void *dlib_exec_entry(proc_t *proc)
 {
-    return (void*)(proc->exec.base + proc->exec.entry);
+    return (void *)(proc->exec.base + proc->exec.entry);
 }
 
 void *dlib_symbol_address(proc_t *proc, CSTR name)
 {
     dynsym_t *symbol;
     symbol = hmp_get(&proc->symbols, name, strlen(name));
-    return symbol ? (void*)symbol->address : NULL;
+    return symbol ? (void *)symbol->address : NULL;
 }
 
 void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib)

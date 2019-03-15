@@ -1,2 +1,92 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" />
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="c89">
+      <UniqueIdentifier>{6b951727-85b0-4670-86a3-a0704026abd2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="basic">
+      <UniqueIdentifier>{2ae5c4ee-677f-47bd-988b-44024180fbc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests">
+      <UniqueIdentifier>{5886e9a2-15b2-44aa-afb6-7635c55f073b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\c89\arena.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\array.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\error.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\format_integer.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\format_print.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\format_scanf.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\format_vfprintf.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\format_vfscanf.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\heap.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\random.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\string.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\c89\time.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\basic\bbtree.c">
+      <Filter>basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\basic\hmap.c">
+      <Filter>basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\_check.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_allocator.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_bbtree.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_format.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_hmap.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_integer.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_llist.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_rwlock.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_splock.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_string.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\utils\ck_time.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c" />
+  </ItemGroup>
+</Project>

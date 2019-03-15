@@ -66,7 +66,23 @@ void wmgr_window_flip(inode_t *ino)
 
 int wmgr_window_read(inode_t *ino, char *buf, size_t len, int flags)
 {
-    return pipe_read(((window_t *) ino->info) ->pipe, buf, len, flags) ;
+    return pipe_read(((window_t *) ino->info)->pipe, buf, len, flags) ;
+}
+
+int wmgr_window_resize(inode_t *ino, int width, int height)
+{
+    window_t *win = (window_t *) ino->info;
+    gfx_resize(win->frame, width, height, NULL);
+    return 0;
+}
+
+int wmgr_event(window_t *win, int event, int param1, int param2)
+{
+    event_t ev;
+    ev.param1 = param1;
+    ev.param2 = param2;
+    ev.type = event;
+    return pipe_write(win->pipe, (char *)&ev, sizeof(ev), 0);
 }
 
 ino_ops_t win_ops = {
@@ -77,14 +93,12 @@ ino_ops_t win_ops = {
     .read = wmgr_window_read,
     // .reset = win_reset,
     .flip = wmgr_window_flip,
-    // .resize = win_resize,
+    .resize = (void *)wmgr_window_resize,
     // .copy = win_copy,
 };
 
 
-
-
-inode_t *wmgr_create_window(desktop_t *desk, int width, int height)
+window_t *wmgr_window(desktop_t *desk, int width, int height)
 {
     if (desk == NULL)
         desk = kDESK;
@@ -114,7 +128,12 @@ inode_t *wmgr_create_window(desktop_t *desk, int width, int height)
     splock_lock(&desk->lock);
     ll_append(&desk->windows, &win->node);
     splock_unlock(&desk->lock);
+    return win;
+}
 
+inode_t *wmgr_create_window(desktop_t *desk, int width, int height)
+{
+    window_t *win = wmgr_window(desk, width, height);
     inode_t *ino = vfs_inode(win->no, FL_WIN, NULL);
     ino->info = win;
     ino->ops = &win_ops;
@@ -152,6 +171,7 @@ int wmgr_check_invalid_window(screen_t *screen, window_t *win)
             wmgr_invalid_rect(screen, win->sz.x, win->sz.y, win->sz.w, win->sz.h);
             wmgr_invalid_rect(screen, win->rq.x, win->rq.y, win->rq.w, win->rq.h);
             win->sz = win->rq;
+            wmgr_event(win, EV_WIN_RESIZE, win->sz.w, win->sz.h);
         } else {
             // wmgr_noinvalid_rect(screen, win->sz.x, win->sz.y, win->sz.w, win->sz.h);
         }
@@ -161,6 +181,7 @@ int wmgr_check_invalid_window(screen_t *screen, window_t *win)
         win->grid = win->rq_grid;
         sz = wmgr_window_size(win);
         wmgr_invalid_rect(screen, sz.x, sz.y, sz.w, sz.h);
+        wmgr_event(win, EV_WIN_RESIZE, sz.w, sz.h);
     }
     return 0; // TODO return 1 if there is no other place to check !
 }
@@ -265,9 +286,9 @@ void wmgr_keyboard(desktop_t *desk, uint32_t fkey, int state)
     uint32_t key = fkey & 0xFFFF;
     if (state) {
         if ((desk->kbd_status & 0770) == 010) {
-            // kprintf(-1, "SHIFT + %x\n", key); // SHIFT
+            kprintf(-1, "SHIFT + %x\n", key); // SHIFT
         } else if ((desk->kbd_status & 0770) == 040) {
-            // kprintf(-1, "ALT + %x\n", key); // ALT
+            kprintf(-1, "ALT + %x\n", key); // ALT
             if (key == 0xF) {// TAB
                 // TODO -- Open small window that leave on ALT-up
                 if (win != NULL) {
@@ -277,15 +298,23 @@ void wmgr_keyboard(desktop_t *desk, uint32_t fkey, int state)
                 }
             }
         } else if ((desk->kbd_status & 0770) == 0100) {
-            // kprintf(-1, "CTRL + %x\n", key); // CTRL
+            kprintf(-1, "CTRL + %x\n", key); // CTRL
         } else if ((desk->kbd_status & 0770) == 0110) {
-            // kprintf(-1, "CTRL + SHIFT + %x\n", key); // CTRL + SHIFT
+            kprintf(-1, "CTRL + SHIFT + %x\n", key); // CTRL + SHIFT
         } else if ((desk->kbd_status & 0770) == 0140) {
-            // kprintf(-1, "CTRL + ALT + %x\n", key); // CTRL + ALT
+            kprintf(-1, "CTRL + ALT + %x\n", key); // CTRL + ALT
         } else if ((desk->kbd_status & 0770) == 0050) {
-            // kprintf(-1, "ALT + SHIFT + %x\n", key); // CTRL + ALT
+            kprintf(-1, "ALT + SHIFT + %x\n", key); // CTRL + ALT
         } else if ((desk->kbd_status & 0770) == 0200) {
-            // kprintf(-1, "HOME + %x\n", key); // HOME
+            kprintf(-1, "HOME + %x\n", key); // HOME
+            if (key == 0xF) {// TAB
+                // TODO -- Open small window that leave on ALT-up
+                if (win != NULL) {
+                    ll_remove(&desk->windows, &win->node);
+                    ll_push_front(&desk->windows, &win->node);
+                    win = NULL;
+                }
+            }
             if (win != NULL) {
                 if (key == 0x4B)
                     win->rq_grid = WMGR_GRID_LEFT;
@@ -298,7 +327,7 @@ void wmgr_keyboard(desktop_t *desk, uint32_t fkey, int state)
                 win = NULL;
             }
         } else if ((desk->kbd_status & 0770) == 0210) {
-            // kprintf(-1, "HOME + SHIFT + %x\n", key); // HOME + SHIFT
+            kprintf(-1, "HOME + SHIFT + %x\n", key); // HOME + SHIFT
             if (win != NULL) {
                 if (key == 0x4B)
                     win->rq_grid = _left_shift_grid[win->rq_grid];
@@ -314,6 +343,7 @@ void wmgr_keyboard(desktop_t *desk, uint32_t fkey, int state)
     }
 
     if (win != NULL) {
+        // TODO -- if win is TTY, send to TTY!
         event_t event;
         event.type = state ? 3 : 4;
         event.param1 = key;
@@ -454,6 +484,8 @@ void wmgr_button(desktop_t *desk, int btn, int state)
 
 void wmgr_input(inode_t *ino, int type, int param, pipe_t *pipe)
 {
+    if (kDESK == NULL)
+        return;
     // clock64_t now = kclock();
     // if (type == EV_KEY_PRESS) {
     //     if (param == kDESK->last_key) {

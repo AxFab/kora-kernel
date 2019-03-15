@@ -65,7 +65,7 @@ static void async_terminate(advent_t *advent, int err)
 {
     assert(splock_locked(&async_lock));
     advent->err = err;
-    // TODO - - Emitter might require a lock (to grab before async_lock) 
+    // TODO - - Emitter might require a lock (to grab before async_lock)
     if (advent->emitter != NULL)
         ll_remove(&advent->emitter->list, &advent->em_node);
     ll_remove(&async_queue, &advent->qu_node);
@@ -77,7 +77,7 @@ static void async_terminate(advent_t *advent, int err)
 /* Wait for an event to be emited */
 int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us)
 {
-	// task_t *task = kCPU.running;
+    // task_t *task = kCPU.running;
     assert(kCPU.running != NULL);
     assert(kCPU.irq_semaphore == (lock == NULL ? 0 : 1));
     assert((lock == NULL) == (emitter == NULL));

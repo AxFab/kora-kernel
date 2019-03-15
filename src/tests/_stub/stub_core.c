@@ -31,6 +31,12 @@
 int __errno;
 splock_t klog_lock = INIT_SPLOCK;
 
+uint64_t cpu_clock()
+{
+    // static uint64_t ticks = 0;
+    // return ++ticks;
+    return clock();
+}
 
 int *__errno_location()
 {
@@ -62,12 +68,20 @@ void kfree(void *ptr)
 
 /* ------------------------------------------------------------------------ */
 
+extern tty_t *slog;
+char kbuf[500];
+
 void kprintf(int lvl, CSTR msg, ...)
 {
     va_list ap;
     va_start(ap, msg);
     splock_lock(&klog_lock);
-    vprintf(msg, ap);
+    vsnprintf(kbuf, 500, msg, ap);
+#ifdef UM_KRN
+    if (slog != NULL)
+        tty_puts(slog, kbuf);
+#endif
+    fputs(kbuf, stdout);
     splock_unlock(&klog_lock);
     va_end(ap);
 }
@@ -139,7 +153,7 @@ void *kmap(size_t length, inode_t *ino, off_t offset, int flags)
             assert(ino->ops->fetch);
             page_t pg = ino->ops->fetch(ino, off);
             if (pg == 0)
-                kprintf (-1, "Error mapping à file \n");
+                kprintf(-1, "Error mapping à file \n");
             memcpy(buf, (void *)pg, PAGE_SIZE);
             ino->ops->release(ino, off, pg);
             length -= PAGE_SIZE;
@@ -188,6 +202,7 @@ void kunmap(void *addr, size_t length)
     case VMA_STACK:
     case VMA_PIPE:
     case VMA_PHYS:
+    case VMA_ANON:
         break;
     default:
         assert(false);
@@ -264,3 +279,52 @@ const char *ksymbol(void *eip, char *buf, int lg)
 }
 #endif
 
+#if !defined(_WIN32)
+clock64_t kclock()
+{
+    clock_t ticks = clock();
+#if _PwMicro_ > CLOCKS_PER_SEC
+    ticks *= _PwMicro_ / CLOCKS_PER_SEC;
+#elif _PwMicro_ < CLOCKS_PER_SEC
+    ticks /= CLOCKS_PER_SEC / _PwMicro_;
+#endif
+    return ticks;
+}
+#else
+#include <windows.h>
+clock64_t kclock()
+{
+    // January 1, 1970 (start of Unix epoch) in ticks
+    const INT64 UNIX_START = 0x019DB1DED53E8000;
+
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+
+    LARGE_INTEGER li;
+    li.LowPart = ft.dwLowDateTime;
+    li.HighPart = ft.dwHighDateTime;
+    // Convert ticks since EPOCH into micro-seconds
+    return (li.QuadPart - UNIX_START) / 10;
+}
+
+
+void nanosleep(struct timespec *tm, struct timespec *rs)
+{
+    clock64_t start = kclock();
+    Sleep((DWORD)(tm->tv_sec * 1000 + tm->tv_nsec / 1000000));
+    clock64_t elasped = start - kclock();
+    elasped = tm->tv_sec * _PwNano_ + tm->tv_nsec - elasped;
+    if (elasped < 0) {
+        if (rs != NULL) {
+            rs->tv_sec = 0;
+            rs->tv_nsec = 0;
+        }
+    } else {
+        if (rs != NULL) {
+            rs->tv_sec = elasped / _PwNano_;
+            rs->tv_nsec = elasped % _PwNano_;
+        }
+    }
+}
+
+#endif

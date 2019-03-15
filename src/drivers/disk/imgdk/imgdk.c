@@ -86,9 +86,9 @@ static void imgdk_open(int i)
             blk->und.dev->flags = VFS_RDONLY;
         blk->und.dev->block = sdSize[e];
         blk->und.dev->vendor = (char *)"HostSimul";
-        blk->und.dev->model = "HostSimul";
+        blk->und.dev->model = (char *)"HostSimul";
         blk->und.dev->devclass = (char *)clazz[e];
-        blk->und.dev->devname = sdNames[i];
+        blk->und.dev->devname = (char *)sdNames[i];
         blk->und.dev->ops = &imgdk_dev_ops;
         blk->ops = &imgdk_ino_ops;
         blk->info = map_create(blk, imgdk_read, imgdk_write);

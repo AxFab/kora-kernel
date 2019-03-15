@@ -37,15 +37,15 @@ fs_ops_t fatfs_ops = {
 
 ino_ops_t fatfs_reg_ops = {
     .close = fatfs_close,
-    .truncate = fatfs_truncate,
-    .fetch = fatfs_truncate,
+    .truncate = (void *)fatfs_truncate,
+    .fetch = fatfs_fetch,
     .sync = fatfs_sync,
     .release = fatfs_release,
 };
 
 ino_ops_t fatfs_dir_ops = {
     .close = fatfs_close,
-    .truncate = fatfs_truncate,
+    .truncate = (void *)fatfs_truncate,
     .opendir = (void *)fatfs_opendir,
     .readdir = (void *)fatfs_readdir,
     .closedir = (void *)fatfs_closedir,
@@ -53,7 +53,7 @@ ino_ops_t fatfs_dir_ops = {
 
 ino_ops_t fatfs_vol_ops = {
     // .close = fatfs_umount,
-    .truncate = fatfs_truncate,
+    .truncate = (void *)fatfs_truncate,
     .opendir = (void *)fatfs_opendir,
     .readdir = (void *)fatfs_readdir,
     .closedir = (void *)fatfs_closedir,

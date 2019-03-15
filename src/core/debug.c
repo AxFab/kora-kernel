@@ -45,9 +45,9 @@ void stackdump(size_t frame)
                 kprintf(KLOG_DBG, "  0x%x - %s ()     no standard call\n", eip,
                         ksymbol((void *)eip, buf, 30));
                 if (ebp[2] == 0x23 && ebp[5] == 0x33)
-                    ebp = (size_t*)ebp[4];
+                    ebp = (size_t *)ebp[4];
                 else if (ebp[3] == 0x23 && ebp[6] == 0x33)
-                    ebp = (size_t*)ebp[5];
+                    ebp = (size_t *)ebp[5];
                 else
                     break;
                 stack = (size_t)ebp & STACK_MASK;

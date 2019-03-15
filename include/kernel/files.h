@@ -31,17 +31,16 @@ typedef struct map_cache map_cache_t;
 
 typedef struct surface surface_t;
 typedef struct line line_t;
-typedef struct tty tty_t;
 typedef struct font_bmp font_bmp_t;
-typedef struct desktop desktop_t;
 typedef struct display display_t;
-typedef struct pipe pipe_t;
+
 
 struct framebuffer {
     int width, height;
     int pitch, depth;
     uint8_t *pixels;
     uint8_t *backup;
+    rwlock_t lock;
 };
 
 struct rect {
@@ -125,6 +124,7 @@ void gfx_slide(framebuffer_t *sfc, int height, uint32_t color);
 void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int h);
 void gfx_copy_blend(framebuffer_t *dest, framebuffer_t *src, int x, int y);
 void gfx_flip(framebuffer_t *fb);
+void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels);
 
 
 void wmgr_input(inode_t *ino, int type, int param, pipe_t *pipe);
@@ -138,6 +138,7 @@ int pipe_erase(pipe_t *pipe, size_t len);
 int pipe_write(pipe_t *pipe, const char *buf, size_t len, int flags);
 int pipe_read(pipe_t *pipe, char *buf, size_t len, int flags);
 int pipe_reset(pipe_t *pipe);
+inode_t *pipe_inode();
 
 
 
@@ -165,6 +166,10 @@ tty_t *tty_create(int count);
 void tty_window(tty_t *tty, inode_t *ino, const font_bmp_t *font);
 int tty_write(tty_t *tty, const char *buf, int len);
 int tty_puts(tty_t *tty, const char *buf);
+inode_t *tty_inode(tty_t *tty);
+void tty_input(tty_t *tty, int unicode);
+void tty_resize(tty_t *tty, int width, int height);
+
 
 #define RGB(r,g,b) ((((r) &0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff))
 
