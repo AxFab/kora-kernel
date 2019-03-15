@@ -162,7 +162,7 @@ void cpu_setup();
 /* - */
 uint64_t cpu_clock();
 /* - */
-uint64_t clock_elapsed(uint64_t *last);
+void clock_elapsed(int status);
 /* - */
 _Noreturn void cpu_halt();
 
@@ -215,7 +215,8 @@ struct kCpu {
     unsigned irq_semaphore;
 
     /* Time statistics */
-    uint64_t last;  /* Register to compute elapsed time. Unit is platform dependent. */
+    int status;
+    uint64_t last_elapsed;  /* Register to compute elapsed time. Unit is platform dependent. */
     uint64_t user_elapsed;  /* Time spend into user space code */
     uint64_t sys_elapsed;  /* Time spend into kernel space code */
     uint64_t irq_elapsed;  /* Time spend into IRQ handling */
@@ -227,6 +228,11 @@ struct kCpu {
     int flags;
     unsigned int seed;
 };
+
+#define CPU_SYS 0
+#define CPU_USER 1
+#define CPU_IRQ 2
+#define CPU_IDLE 3
 
 #define CPU_NO_TASK  0x800
 
@@ -247,6 +253,5 @@ struct kSys {
 extern struct kSys kSYS;
 
 #define kCPU (kSYS.cpus[cpu_no()])
-
 
 #endif  /* _KERNEL_CORE_H */

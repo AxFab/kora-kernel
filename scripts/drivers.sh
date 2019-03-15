@@ -24,20 +24,22 @@ TMP="`readlink -f .`/drivers"
 PFX="`readlink -f .`/iso/boot"
 
 function parse_yaml {
-   local prefix=$2
-   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-   sed -ne "s|^\($s\):|\1|" \
+    local prefix=$2
+    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+    sed -ne "s|^\($s\):|\1|" \
         -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
         -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-   awk -F$fs '{
-      indent = length($1)/2;
-      vname[indent] = $2;
-      for (i in vname) {if (i > indent) {delete vname[i]}}
-      if (length($3) > 0) {
-         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
-      }
-   }'
+    awk -F$fs '{
+        indent = length($1)/2;
+        vname[indent] = $2;
+        for (i in vname) {
+            if (i > indent) {delete vname[i]}}
+            if (length($3) > 0) {
+                vn="";
+                for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+            printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+            }
+        }'
 }
 
 
@@ -49,10 +51,13 @@ function make_driver {
 . <(parse_yaml $SCRIPT_HOME/config.yml)
 for d in `find $DIR/ -type d | sed "s%$DIR/%%"`
 do
-    v=drivers_`echo $d | sed s%/%_%g`
-    if [[ ${!v} == 'y' ]]
+    if [[ -z `echo $d | grep .git` ]]
     then
-        make_driver $d
+        v=drivers_`echo $d | sed s%/%_%g`
+        if [[ ${!v} == 'y' ]]
+        then
+            make_driver $d
+        fi
     fi
 done
 

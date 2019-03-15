@@ -66,7 +66,7 @@ task_t *scheduler_next()
     if (task != NULL) {
         task->status = TS_RUNNING;
         // kprintf(-1, "Scheduler next #%d\n", task->pid);
-    } 
+    }
     splock_unlock(&task_lock);
     return task;
 }

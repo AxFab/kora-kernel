@@ -92,6 +92,13 @@ static int vfs_write_block(inode_t *ino, const char *buf, size_t len, off_t off)
 int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
 {
     assert(kCPU.irq_semaphore == 0);
+    assert(ino != NULL);
+    assert(buf != NULL);
+    if (size == 0) {
+        errno = 0;
+        return 0;
+    }
+
     switch (ino->type) {
     case FL_REG:
     case FL_BLK:
@@ -101,6 +108,7 @@ int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
     case FL_LNK:
     case FL_INFO:
     case FL_WIN:
+    case FL_TTY:
         if (ino->ops->read == NULL) {
             errno = ENOSYS;
             return -1;
@@ -116,6 +124,13 @@ int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
 int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
 {
     assert(kCPU.irq_semaphore == 0);
+    assert(ino != NULL);
+    assert(buf != NULL);
+    if (size == 0) {
+        errno = 0;
+        return 0;
+    }
+
     switch (ino->type) {
     case FL_REG:
     case FL_BLK:
@@ -128,6 +143,12 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
             errno = EROFS;
             return -1;
         } else if (ino->ops->write == NULL) {
+            errno = ENOSYS;
+            return -1;
+        }
+        return ino->ops->write(ino, buf, size, flags);
+    case FL_TTY:
+        if (ino->ops->write == NULL) {
             errno = ENOSYS;
             return -1;
         }

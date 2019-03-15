@@ -22,6 +22,12 @@
 #include <time.h>
 #include "../check.h"
 
+#undef INT_MAX
+#define INT_MAX ((int)2147483647)
+
+#undef INT_MIN
+#define INT_MIN ((int)-INT_MAX - 1)
+
 static void test_time_convert(time_t time, const char *value)
 {
     const char *fmt;
@@ -38,8 +44,8 @@ START_TEST(test_time_001)
     test_time_convert(0xbeaf007, "Mon May  3 04:37:27 1976\n");
     test_time_convert(1, "Thu Jan  1 00:00:01 1970\n");
     test_time_convert(790526, "Sat Jan 10 03:35:26 1970\n");
-    // test_time_convert(0x80000000, "Fri Dec 13 20:45:52 1901\n");
-    test_time_convert(0x7fffffff, "Tue Jan 19 03:14:07 2038\n");
+    test_time_convert(INT_MIN, "Fri Dec 13 20:45:52 1901\n");
+    test_time_convert(INT_MAX, "Tue Jan 19 03:14:07 2038\n");
     test_time_convert(1221253494, "Fri Sep 12 21:04:54 2008\n");
     test_time_convert(951876312, "Wed Mar  1 02:05:12 2000\n");
     test_time_convert(951811944, "Tue Feb 29 08:12:24 2000\n");

@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="task">
+      <UniqueIdentifier>{317379ff-38d8-42e8-a125-4321871da5ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="basic">
+      <UniqueIdentifier>{fc007fa0-93cb-4dca-abf5-ef129c821105}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests">
+      <UniqueIdentifier>{b18d639b-354f-4368-b211-5a1666f9aa5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="c89">
+      <UniqueIdentifier>{502ef56f-57fa-489b-a9c6-7e01d7bb4de5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mem">
+      <UniqueIdentifier>{4f73e934-3177-4191-90e2-acd6198bc8e7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\basic\bbtree.c">
+      <Filter>basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\basic\hmap.c">
+      <Filter>basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\task\async.c">
+      <Filter>task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\task\resx.c">
+      <Filter>task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\task\task.c">
+      <Filter>task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\task\ticks.c">
+      <Filter>task</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\task\_check.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\task\ck_task.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\core\irq.c" />
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c" />
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_cpu.c" />
+    <ClCompile Include="..\..\..\src\tests\_mcvs\scheduler.c" />
+    <ClCompile Include="..\..\..\src\tests\_mcvs\threads.c" />
+    <ClCompile Include="..\..\..\src\c89\random.c">
+      <Filter>c89</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_vfs.c" />
+    <ClCompile Include="..\..\..\src\core\debug.c" />
+    <ClCompile Include="..\..\..\src\mem\memory.c">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\mem\mspace.c">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\mem\pages.c">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\mem\vma.c">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\_stub\stub_mmu.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\mem\mspace.h">
+      <Filter>mem</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

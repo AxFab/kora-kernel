@@ -47,7 +47,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
 
     inode->rcu = 1;
     inode->links = 0;
-    kprintf(KLOG_INO, "CRT %3x.%08x\n", no, volume);
+    // kprintf(KLOG_INO, "CRT %3x.%08x\n", no, volume);
 
     switch (type) {
     case FL_REG:  /* Regular file (FS) */
@@ -79,6 +79,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
         assert(volume == NULL);
         break;
     case FL_WIN:  /* Window (Virtual) */
+    case FL_TTY:  /* Terminal (Virtual) */
         assert(volume == NULL);
         // !?
         break;
@@ -86,7 +87,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
     case FL_SOCK:  /* Network socket */
     case FL_INFO:  /* Information file */
     case FL_SFC:  /* Application surface */
-    case FL_TTY:  /* Terminal (Virtual) */
+
     default:
         assert(false);
         break;
@@ -98,7 +99,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
 inode_t *vfs_open(inode_t *ino)
 {
     if (ino) {
-        kprintf(KLOG_INO, "OPN %3x.%08x (%d)\n", ino->no, ino->und.vol, ino->rcu + 1);
+        // kprintf(KLOG_INO, "OPN %3x.%08x (%d)\n", ino->no, ino->und.vol, ino->rcu + 1);
         atomic_inc(&ino->rcu);
     }
     return ino;
@@ -113,9 +114,9 @@ void vfs_close(inode_t *ino)
     if (ino == NULL)
         return;
     unsigned int cnt = atomic32_xadd(&ino->rcu, -1);
-    kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->und.vol, cnt - 1);
+    // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->und.vol, cnt - 1);
     if (cnt <= 1) {
-        kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->und.vol);
+        // kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->und.vol);
         volume_t *volume = ino->und.vol;
         device_t *dev = ino->und.dev;
         if (ino->ops->close)

@@ -131,8 +131,8 @@ int tss_create(tss_t *tss_key, tss_dtor_t destructor)
         hmp_init(&__tss_map, 16);
         __tss_init = true;
     }
-    *tss_key = malloc(sizeof(void *));
-    **tss_key = destructor;
+    //*tss_key = malloc(sizeof(void *));
+    *tss_key = destructor;
     return 0;
 }
 
@@ -161,8 +161,8 @@ int tss_set(tss_t tss_id, void *val)
 void tss_delete(tss_t tss_id)
 {
     void *data = tss_get(tss_id);
-    if (*tss_id != NULL)
-        (*tss_id)(data);
+    //if (tss_id != NULL)
+    //  (tss_id)(data);
     hmp_remove(&__tss_map, (const char *)tss_id, sizeof(char *));
 }
 

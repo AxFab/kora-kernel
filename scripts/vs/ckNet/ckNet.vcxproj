@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{B1C4EB67-FA4B-4DDB-A95C-E4D1C668DEE8}</ProjectGuid>
+    <ProjectGuid>{752E5560-EAB9-4D0B-8B0B-72AEE90EA343}</ProjectGuid>
     <RootNamespace>ckNet</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -68,13 +68,23 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>..\..\..\src\tests\include;..\..\..\os\win32;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -82,7 +92,6 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -92,7 +101,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -106,7 +114,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\src\tests\include;..\..\..\src\tests\_mcvs\include-x86_64;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -114,29 +121,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\core\debug.c" />
-    <ClCompile Include="..\..\..\src\core\irq.c" />
-    <ClCompile Include="..\..\..\src\libc\bbtree.c" />
-    <ClCompile Include="..\..\..\src\libc\hmap.c" />
-    <ClCompile Include="..\..\..\src\libc\random.c" />
-    <ClCompile Include="..\..\..\src\net\arp.c" />
-    <ClCompile Include="..\..\..\src\net\dhcp.c" />
-    <ClCompile Include="..\..\..\src\net\dns.c" />
-    <ClCompile Include="..\..\..\src\net\eth.c" />
-    <ClCompile Include="..\..\..\src\net\host.c" />
-    <ClCompile Include="..\..\..\src\net\icmp.c" />
-    <ClCompile Include="..\..\..\src\net\ip4.c" />
-    <ClCompile Include="..\..\..\src\net\net.c" />
-    <ClCompile Include="..\..\..\src\net\ntp.c" />
-    <ClCompile Include="..\..\..\src\net\tcp.c" />
-    <ClCompile Include="..\..\..\src\net\udp.c" />
-    <ClCompile Include="..\..\..\src\tests\net\run_net.c" />
-    <ClCompile Include="..\..\..\src\tests\_mcvs\threads.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_mem.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_task.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_time.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_vfs.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

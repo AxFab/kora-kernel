@@ -23,6 +23,7 @@
 #include <kernel/core.h>
 #include <kora/llist.h>
 #include <kora/bbtree.h>
+#include <string.h>
 #include <time.h>
 
 #define VFS_MAXPATH 4096
@@ -186,5 +187,10 @@ int vfs_closedir(inode_t *dir, void *ctx);
 void vfs_init();
 void vfs_fini();
 int vfs_fdisk(CSTR dname, long parts, long *sz);
+
+static inline int vfs_puts(inode_t *ino, const char *buf) 
+{
+	return vfs_write(ino, buf, strlen(buf), 0, 0);
+} 
 
 #endif /* _KERNEL_VFS_H */

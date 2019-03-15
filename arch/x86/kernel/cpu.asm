@@ -132,3 +132,12 @@ cpu_usermode:
 
     iret
 
+
+; uint64_t cpu_clock()
+global cpu_clock
+
+cpu_clock:
+    rdtsc
+    ret
+
+

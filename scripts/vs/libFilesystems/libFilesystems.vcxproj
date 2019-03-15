@@ -19,19 +19,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{499A51E9-57A4-43F8-A001-92AD60755844}</ProjectGuid>
-    <RootNamespace>ckFiles</RootNamespace>
+    <ProjectGuid>{0358B546-9AB6-4AFE-9BEC-43862B181649}</ProjectGuid>
+    <RootNamespace>libFilesystems</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -121,30 +121,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\basic\bbtree.c" />
-    <ClCompile Include="..\..\..\src\basic\hmap.c" />
-    <ClCompile Include="..\..\..\src\basic\mbchar.c" />
-    <ClCompile Include="..\..\..\src\basic\mbstr.c" />
-    <ClCompile Include="..\..\..\src\c89\arena.c" />
-    <ClCompile Include="..\..\..\src\c89\array.c" />
-    <ClCompile Include="..\..\..\src\c89\error.c" />
-    <ClCompile Include="..\..\..\src\c89\format_integer.c" />
-    <ClCompile Include="..\..\..\src\c89\format_print.c" />
-    <ClCompile Include="..\..\..\src\c89\format_scanf.c" />
-    <ClCompile Include="..\..\..\src\c89\format_vfprintf.c" />
-    <ClCompile Include="..\..\..\src\c89\format_vfscanf.c" />
-    <ClCompile Include="..\..\..\src\c89\heap.c" />
-    <ClCompile Include="..\..\..\src\c89\random.c" />
-    <ClCompile Include="..\..\..\src\c89\string.c" />
-    <ClCompile Include="..\..\..\src\c89\time.c" />
-    <ClCompile Include="..\..\..\src\core\irq.c" />
-    <ClCompile Include="..\..\..\src\files\pipe.c" />
-    <ClCompile Include="..\..\..\src\task\async.c" />
-    <ClCompile Include="..\..\..\src\tests\files\ck_pipe.c" />
-    <ClCompile Include="..\..\..\src\tests\files\_check.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_core.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_task.c" />
-    <ClCompile Include="..\..\..\src\tests\_stub\stub_time.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\ext2\ext2.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\fat\data.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\fat\dentry.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\fat\diterator.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\fat\fatfs.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\fat\format.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\fat\module.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\fat\table.c" />
+    <ClCompile Include="..\..\..\src\drivers\fs\isofs\isofs.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\drivers\fs\ext2\ext2.h" />
+    <ClInclude Include="..\..\..\src\drivers\fs\fat\fatfs.h" />
+    <ClInclude Include="..\..\..\src\drivers\fs\isofs\isofs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
