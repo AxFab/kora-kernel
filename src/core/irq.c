@@ -119,7 +119,6 @@ void clock_elapsed(int status)
         kCPU.idle_elapsed += elapsed;
     kCPU.last_elapsed = ticks;
     kCPU.status = status;
-    return elapsed;
 }
 
 void irq_ack(int no);

@@ -87,7 +87,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
     case FL_SOCK:  /* Network socket */
     case FL_INFO:  /* Information file */
     case FL_SFC:  /* Application surface */
-    
+
     default:
         assert(false);
         break;

@@ -71,14 +71,23 @@ void kernel_master()
         inode_t *dev = vfs_search_device("sdC");
         if (dev != NULL)
             break;
-        sys_sleep(10000);
+        kprintf(-1, "Looking for 'sdC' !\n");
+        sys_sleep(MSEC_TO_KTIME(1000));
     }
 
     // vfs_mount(root, "dev", NULL, "devfs");
     // vfs_mount(root, "tmp", NULL, "tmpfs");
 
     // Look for home file system
-    inode_t *root = vfs_mount("sdC", "isofs");
+    inode_t *root;
+    for (;;) {
+        root = vfs_mount("sdC", "isofs");
+        if (root != NULL)
+            break;
+        kprintf(-1, "Waiting for 'sdC' volume !\n");
+        sys_sleep(MSEC_TO_KTIME(1000));
+    }
+
     if (root == NULL) {
         kprintf(-1, "Expected mount point over 'sdC' !\n");
         sys_exit(0);

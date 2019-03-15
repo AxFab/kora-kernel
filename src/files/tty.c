@@ -19,6 +19,7 @@
  */
 #include <kernel/files.h>
 #include <kernel/input.h>
+#include <kernel/device.h>
 #include <string.h>
 
 #define TTY_BUF_SIZE (64 - 3 * 4)
@@ -330,7 +331,6 @@ int tty_write(tty_t *tty, const char *buf, int len)
     return 0;
 }
 
-
 void tty_resize(tty_t *tty, int width, int height)
 {
     if (tty->win == NULL)
@@ -342,7 +342,6 @@ void tty_resize(tty_t *tty, int width, int height)
     kprintf(-1, "Tty window resize %dx%d \n", tty->cols, tty->rows);
     tty_repaint_all(tty);
 }
-
 
 int tty_puts(tty_t *tty, const char *buf)
 {
@@ -382,26 +381,27 @@ void tty_input(tty_t *tty, int unicode)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int tty_ino_read(inode_t *ino, char *buf, size_t len, int flags) 
+int tty_ino_read(inode_t *ino, char *buf, size_t len, int flags)
 {
-	return pipe_read(((tty_t*) ino->info) ->pipe, buf, len, flags);
-} 
+    return pipe_read(((tty_t *) ino->info) ->pipe, buf, len, flags);
+}
 
-int tty_ino_write(inode_t *ino, const char *buf, size_t len, int flags) 
+int tty_ino_write(inode_t *ino, const char *buf, size_t len, int flags)
 {
-	return tty_write((tty_t*)ino->info, buf, len);
-} 
+    return tty_write((tty_t *)ino->info, buf, len);
+}
 
 ino_ops_t tty_ino_ops = {
-	.read = tty_ino_read,
-	.write = tty_ino_write, 
+    .read = tty_ino_read,
+    .write = tty_ino_write,
 };
 
-inode_t *tty_inode()
+inode_t *tty_inode(tty_t *tty)
 {
-	tty_t *tty = tty_create(256);
-	inode_t *ino = vfs_inode(1, FL_TTY, NULL);
-	ino->ops = &tty_ino_ops;
-	ino->info = tty;
-	return ino;
+    if (tty == NULL)
+        tty = tty_create(256);
+    inode_t *ino = vfs_inode(1, FL_TTY, NULL);
+    ino->ops = &tty_ino_ops;
+    ino->info = tty;
+    return ino;
 }
