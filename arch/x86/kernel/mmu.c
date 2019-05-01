@@ -20,7 +20,7 @@
 #include <kernel/core.h>
 #include <kernel/cpu.h>
 #include <kernel/memory.h>
-#include <kora/allocator.h>
+// #include <kora/allocator.h>
 #include <string.h>
 
 #define MMU_KRN(vaddr)  (page_t*)(0xFFBFF000 | (((vaddr) >> 20) & ~3))

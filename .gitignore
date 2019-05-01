@@ -21,12 +21,12 @@
 # Building files
 !Makefile
 !*.mk
+!configure
 
 # Source files
 !include/**/*.h
 !src/**/*.c
 !src/**/*.h
-!scripts/**/*.sh
 !arch/**/*.ld
 !arch/**/*.asm
 !arch/**/*.s
@@ -35,11 +35,11 @@
 !os/**/*.h
 
 # Exceptions
+!make/**/*.sh
 !doc/snippet/**/*
-!scripts/cfg/**/*
 !src/tests/*
 
 # Visual studio
-!scripts/vs/*.sln
-!scripts/vs/**/*.vcxproj
-!scripts/vs/**/*.vcxproj.*
+!vs/*.sln
+!vs/**/*.vcxproj
+!vs/**/*.vcxproj.*

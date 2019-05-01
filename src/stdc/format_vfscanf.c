@@ -17,17 +17,14 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _BITS_CDEFS_H
-#define _BITS_CDEFS_H 1
+#include <ctype.h>
+#include <string.h>
+#include <stdarg.h>
+#include <bits/libio.h>
+#include <kora/mcrs.h>
 
-#define _Noreturn __attribute__((noreturn))
-#define PACK(decl) decl __attribute__((__packed__))
-#define unlikely(c) c
-#define likely(c) c
 
-#define PAGE_SIZE 4096
-#define __ARCH "arm"
-#define __ILP32
-#define __ILPx
-
-#endif /* _BITS_CDEFS_H */
+int vfscanf(FILE *f, const char *format, va_list ap)
+{
+    return -1;
+}

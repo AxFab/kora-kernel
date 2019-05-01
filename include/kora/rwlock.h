@@ -20,7 +20,6 @@
 #ifndef _KORA_RWLOCK_H
 #define _KORA_RWLOCK_H 1
 
-#include <bits/atomic.h>
 #include <kora/splock.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -30,7 +29,7 @@
 typedef union rwlock rwlock_t;
 
 union rwlock {
-    atomic32_t val;
+    atomic_int val;
     struct {
         atomic16_t ticket;
         atomic16_t users;
@@ -45,14 +44,14 @@ typedef struct rwlock rwlock_t;
 
 struct rwlock {
     splock_t lock;
-    atomic32_t readers;
+    atomic_int readers;
 };
 
 /* Initialize or reset a read/write lock structure */
 static inline void rwlock_init(rwlock_t *lock)
 {
     splock_init(&lock->lock);
-    lock->readers = 0;
+    atomic_init(&lock->readers, 0);
 }
 
 /* Block until the lock allow reading */
@@ -65,7 +64,7 @@ static inline void rwlock_rdlock(rwlock_t *lock)
 
         atomic_dec(&lock->readers);
         while (splock_locked(&lock->lock))
-            cpu_relax();
+            RELAX;
     }
 }
 
@@ -74,7 +73,7 @@ static inline void rwlock_wrlock(rwlock_t *lock)
 {
     splock_lock(&lock->lock);
     while (lock->readers)
-        cpu_relax();
+        RELAX;
 }
 
 /* Release a lock previously taken for reading */
@@ -125,7 +124,7 @@ static inline bool rwlock_upgrade(rwlock_t *lock)
 
     atomic_dec(&lock->readers);
     while (lock->readers)
-        cpu_relax();
+        RELAX;
 
     return true;
 }

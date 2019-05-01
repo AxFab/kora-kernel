@@ -78,7 +78,7 @@ struct volume {
     char *volfs;
     fs_ops_t *ops;
     inode_t *dev;
-    atomic_t rcu;
+    atomic_int rcu;
     llhead_t lru;
     HMP_map hmap;
     bbtree_t btree;

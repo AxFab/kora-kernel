@@ -21,7 +21,7 @@
 #include <kernel/memory.h>
 #include <kernel/task.h>
 #include <kora/mcrs.h>
-#include <kora/iofile.h>
+// #include <kora/iofile.h>
 #include <kora/splock.h>
 // #include <stdlib.h>
 #include <stdarg.h>
@@ -95,7 +95,6 @@ splock_t klog_lock;
 
 int no_dbg = 1;
 void kwrite(const char *buf, int len);
-int vfprintf(FILE *fp, const char *str, va_list ap);
 
 char buf[1024];
 splock_t bf_lock;

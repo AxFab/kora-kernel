@@ -23,7 +23,7 @@
 #include <kernel/types.h>
 #include <kora/bbtree.h>
 #include <kora/splock.h>
-#include <bits/atomic.h>
+#include <stdatomic.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* VMA access right  */
@@ -84,7 +84,7 @@
 
 
 struct mspace {
-    atomic32_t users;  /* Usage counter */
+    atomic_int users;  /* Usage counter */
     bbtree_t tree;  /* Binary tree of VMAs sorted by addresses */
     page_t directory;  /* Page global directory */
     size_t lower_bound;  /* Lower bound of the address space */

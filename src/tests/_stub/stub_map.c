@@ -27,7 +27,7 @@ typedef struct map_cache map_cache_t;
 
 struct map_page {
     bbnode_t bnode;
-    atomic32_t usage;
+    atomic_int usage;
     page_t phys;
     bool dirty;
 };

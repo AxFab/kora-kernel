@@ -21,7 +21,7 @@
 #define _THREADS_H 1
 
 #include <bits/cdefs.h>
-#include <bits/atomic.h>
+#include <stdatomic.h>
 #include <time.h>
 
 #define thread_local __thread
@@ -36,7 +36,7 @@ typedef struct _US_MUTEX *cnd_t;
 typedef __tss_t tss_t;
 
 
-typedef atomic_t once_flag;
+typedef atomic_int once_flag;
 #define ONCE_FLAG_INIT  0
 
 /* Indicates a thread error status */

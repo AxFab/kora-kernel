@@ -28,5 +28,6 @@
 #define PAGE_SIZE 4096
 #define __ARCH "x86_64"
 #define __LP64
+#define __LPx
 
 #endif /* _BITS_CDEFS_H */

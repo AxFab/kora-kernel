@@ -115,10 +115,10 @@ struct inode {
     clock64_t ctime;
     clock64_t mtime;
     clock64_t atime;
-    atomic_t rcu;
+    atomic_int rcu;
     splock_t lock;
 
-    atomic_t links;
+    atomic_int links;
     llhead_t dlist; // List of dirent_t;
     bbnode_t bnode;
 
@@ -188,9 +188,9 @@ void vfs_init();
 void vfs_fini();
 int vfs_fdisk(CSTR dname, long parts, long *sz);
 
-static inline int vfs_puts(inode_t *ino, const char *buf) 
+static inline int vfs_puts(inode_t *ino, const char *buf)
 {
 	return vfs_write(ino, buf, strlen(buf), 0, 0);
-} 
+}
 
 #endif /* _KERNEL_VFS_H */

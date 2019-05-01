@@ -21,7 +21,7 @@
 #include <kernel/task.h>
 #include <kernel/vfs.h>
 #include <kernel/memory.h>
-#include <bits/atomic.h>
+#include <stdatomic.h>
 #include <sys/signum.h>
 #include <string.h>
 #include <assert.h>
@@ -139,7 +139,7 @@ task_t *task_fork(unsigned flags, void *entry, void *param)
 void task_close(task_t *task)
 {
     // kprintf(-1, "TASK CLOSE %s\n", task->name);
-    if (atomic_xadd(&task->rcu, -1) != 1)
+    if (atomic_fetch_sub(&task->rcu, 1) != 1)
         return;
 
     // kprintf(-1, "TASK DESTROY %s\n", task->name);

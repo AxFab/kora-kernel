@@ -28,5 +28,6 @@
 #define PAGE_SIZE 4096
 #define __ARCH "x86"
 #define __ILP32
+#define __ILPx
 
 #endif /* _BITS_CDEFS_H */

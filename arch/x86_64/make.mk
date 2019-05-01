@@ -15,13 +15,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-
-$(outdir)/std/%.o: $(topdir)/%.asm
-	$(S) mkdir -p $(dir $@)
-	$(Q) echo "    ASM "$@
-	$(V) nasm -f elf64 -o $@ $^
-
-$(outdir)/krn/%.o: $(topdir)/%.asm
+$(outdir)/%.o: $(topdir)/%.asm
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    ASM "$@
 	$(V) nasm -f elf64 -o $@ $^
