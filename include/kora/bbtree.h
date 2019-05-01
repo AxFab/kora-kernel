@@ -20,10 +20,20 @@
 #ifndef _KORA_BBTREE_H
 #define _KORA_BBTREE_H 1
 
-#include <kora/stddef.h>
+#include <stddef.h>
 
 typedef struct bbtree bbtree_t;
 typedef struct bbnode bbnode_t;
+
+#ifndef itemof
+#  undef offsetof
+#  define offsetof(t,m)   ((size_t)&(((t*)0)->m))
+#  define itemof(p,t,m)   ((t*)itemof_((p), offsetof(t,m)))
+static inline void *itemof_(void *ptr, int off)
+{
+    return ptr ? (char *)ptr - off : 0;
+}
+#endif
 
 extern bbnode_t _NIL;
 #define __NIL (&_NIL)

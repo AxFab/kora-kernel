@@ -113,7 +113,7 @@ void vfs_close(inode_t *ino)
 {
     if (ino == NULL)
         return;
-    unsigned int cnt = atomic32_xadd(&ino->rcu, -1);
+    unsigned int cnt = atomic_fetch_sub(&ino->rcu, 1);
     // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->und.vol, cnt - 1);
     if (cnt <= 1) {
         // kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->und.vol);
@@ -134,7 +134,7 @@ void vfs_close(inode_t *ino)
             // ll_remove(&volume->lru, &ino->links);
             // splock_unlock(&volume->lock);
 
-            cnt = atomic32_xadd(&volume->rcu, -1);
+            cnt = atomic_fetch_sub(&volume->rcu, 1);
             kprintf(KLOG_INO, "VOL %08x (%d)\n", volume, cnt - 1);
             if (cnt <= 1) {
                 kprintf(KLOG_INO, "DISCARD %08x \n", volume);

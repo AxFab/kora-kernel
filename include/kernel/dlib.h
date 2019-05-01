@@ -21,7 +21,7 @@
 #define _KERNEL_DLIB_H 1
 
 #include <kernel/core.h>
-#include <kora/stddef.h>
+#include <stddef.h>
 #include <kora/mcrs.h>
 #include <kora/hmap.h>
 #include <kernel/task.h>

@@ -34,7 +34,7 @@ typedef struct blkcache blkcache_t;
 
 struct blkpage {
     bbnode_t bnode;
-    atomic32_t usage;
+    atomic_int usage;
     page_t phys;
     inode_t *ino;
     bool dirty;
@@ -74,7 +74,7 @@ static int ioblk_fetch_(blkpage_t *page)
 static void ioblk_close(blkcache_t *cache, blkpage_t *page, bool write_lock)
 {
     /* Decrement RCU */
-    if (atomic32_xadd(&page->usage, -1) != 1)
+    if (atomic_fetch_sub(&page->usage, 1) != 1)
         return;
 
     if (!write_lock) {

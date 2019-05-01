@@ -40,7 +40,7 @@ uint8_t mac2[ETH_ALEN] = { 0x08, 0x07, 0x02, 0x91, 0xa3, 0x6d };
 uint8_t ip2[IP4_ALEN] = { 192, 168, 0, 1 };
 
 
-atomic32_t cnt = 300;
+atomic_int cnt = 300;
 splock_t net_lock;
 
 int pack = 0;

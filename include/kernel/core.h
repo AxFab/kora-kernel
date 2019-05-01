@@ -21,7 +21,7 @@
 #define _KERNEL_CORE_H 1
 
 #include <stdarg.h>
-#include <kora/stddef.h>
+#include <stddef.h>
 #include <kora/llist.h>
 #include <kora/mcrs.h>
 #include <kora/rwlock.h>
@@ -253,5 +253,9 @@ struct kSys {
 extern struct kSys kSYS;
 
 #define kCPU (kSYS.cpus[cpu_no()])
+
+#ifndef INT64_MAX
+#  define INT64_MAX  0x7FFFFFFFFFFFFFFF
+#endif
 
 #endif  /* _KERNEL_CORE_H */

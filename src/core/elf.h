@@ -21,7 +21,7 @@
 #define _SRC_ELF_H 1
 
 #include <kernel/core.h>
-#include <kora/stddef.h>
+#include <stddef.h>
 #include <kora/mcrs.h>
 
 typedef struct elf_header elf_header_t;

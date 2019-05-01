@@ -49,12 +49,6 @@
 #define TOSTRING(x) STRINGIFY(x)
 #define __AT__  __FILE__ ":" TOSTRING(__LINE__)
 
-
-#define __FAIL(e,m) __perror_fail(e,__FILE__,__LINE__,m)
-void __perror_fail(int, const char *, int, const char *);
-
-#define POISON_PTR ((void*)0xAAAAAAAA)
-
 static inline int POW2_UP(int val)
 {
     if (val == 0 || POW2(val))
@@ -72,5 +66,7 @@ static inline int POW2_UP(int val)
 #define VERS32_MJ(v) (((v) >> 20) & 0x3FF)
 #define VERS32_MN(v) (((v) >> 8) & 0x3FF)
 #define VERS32_PT(v) ((v) & 0xFF)
+
+#define _PRT(p)  p
 
 #endif  /* _KORA_MCRS_H */

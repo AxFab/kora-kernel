@@ -17,52 +17,22 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <threads.h>
-#include <kernel/task.h>
-#include <kora/splock.h>
-#include <errno.h>
-#include <limits.h>
+#ifndef _KORA_FUTEX_H
+#define _KORA_FUTEX_H 1
 
+#include <threads.h>
+#include <time.h>
+#include <kora/splock.h>
 
 struct _US_MUTEX {
     atomic_int counter;
     int flags;
     thrd_t thread;
     splock_t splock;
-    emitter_t emitter;
+    // emitter_t emitter;
 };
 
-thrd_t thrd_current(void)
-{
-    return NULL;
-}
+int futex_wait(struct _US_MUTEX *mutex, const struct timespec *ts);
+void futex_raise(struct _US_MUTEX *mutex);
 
-int thrd_equal(thrd_t l, thrd_t r)
-{
-    return l == r;
-}
-
-int futex_wait(struct _US_MUTEX *mutex, const struct timespec *ts)
-{
-    clock64_t until = 0;
-    for (;;) {
-        splock_lock(&mutex->splock);
-        if (atomic_exchange(&mutex->counter, 1) == 0) {
-            // Don't wait, you got it!
-            splock_unlock(&mutex->splock);
-            return 0;
-        }
-        int res = async_wait(&mutex->splock, &mutex->emitter, (long)(until - kclock()));
-        if (res == EAGAIN) {
-            splock_unlock(&mutex->splock);
-            return -1;
-        }
-    }
-}
-
-void futex_raise(struct _US_MUTEX *mutex)
-{
-    splock_lock(&mutex->splock);
-    async_raise(&mutex->emitter, 0);
-    splock_unlock(&mutex->splock);
-}
+#endif /* _KORA_FUTEX_H */

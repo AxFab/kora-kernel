@@ -70,14 +70,14 @@ struct stream {
 struct resx {
     bbtree_t tree; // TODO -- Is BBTree the best data structure !?
     rwlock_t lock;
-    atomic32_t users;
+    atomic_int users;
 };
 
 struct resx_fs {
     inode_t *root;  /* Inode used as a root for this task */
     inode_t *pwd;
     int umask;
-    atomic32_t users;
+    atomic_int users;
 };
 
 struct sig_handler {
@@ -99,7 +99,7 @@ struct task {
     // regs_t *regs/*[8]*/;
     // regs_t *sig_regs;
     splock_t lock;
-    atomic_t rcu;
+    atomic_int rcu;
 
     sig_handler_t shandler[32];
 

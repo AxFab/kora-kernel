@@ -20,7 +20,7 @@
 #ifndef _KERNEL_TYPES
 #define _KERNEL_TYPES 1
 
-#include <kora/stddef.h>
+#include <stddef.h>
 #include <kora/llist.h>
 #include <kernel/mmu.h>
 #include <stddef.h>

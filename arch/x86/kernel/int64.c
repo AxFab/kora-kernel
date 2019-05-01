@@ -160,3 +160,17 @@ lldiv_t lldiv(long long numer, long long denom)
     return rc;
 }
 
+#include <stdatomic.h>
+
+int __atomic_fetch_add_4(atomic_int *ptr, int val, int mode)
+{
+    asm volatile("lock xaddl %%eax, %2;"
+             :"=a"(val) :"a"(val), "m"(*ptr) :"memory");
+    return val;
+}
+
+int __atomic_fetch_sub_4(atomic_int *ptr, int val, int mode)
+{
+    return __atomic_fetch_add_4(ptr, -val, mode);
+}
+

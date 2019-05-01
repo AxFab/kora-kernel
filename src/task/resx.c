@@ -43,7 +43,7 @@ resx_fs_t *resx_fs_open(resx_fs_t *resx)
 
 void resx_fs_close(resx_fs_t *resx)
 {
-    if (atomic32_xadd(&resx->users, -1) == 1) {
+    if (atomic_fetch_sub(&resx->users, 1) == 1) {
         vfs_close(resx->root);
         vfs_close(resx->pwd);
     }
@@ -92,7 +92,7 @@ resx_t *resx_open(resx_t *resx)
 
 void resx_close(resx_t *resx)
 {
-    if (atomic32_xadd(&resx->users, -1) == 1) {
+    if (atomic_fetch_sub(&resx->users, 1) == 1) {
         while (resx->tree.count_ > 0)
             resx_rm(resx, resx->tree.root_->value_);
         kfree(resx);

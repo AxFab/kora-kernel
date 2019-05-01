@@ -1,0 +1,71 @@
+#!/bin/bash
+set -e
+
+function HELP {
+    cat << EOF
+Usage: configure [OPTIONS]
+with options:
+    --target=TARGET     Triplet of the destination platform
+    --prefix=PREFIX     Destination of final delivery
+EOF
+}
+
+TOPDIR=$(readlink -f `dirname ${BASH_SOURCE[0]}`)
+GENDIR=`pwd`
+PREFIX=$GENDIR
+TARGET=`$TOPDIR/make/host.sh || true`
+if [ "$TOPDIR" == "$GENDIR" ]; then
+    echo "This script doesn't allow to persist build parameters on source folder" >&2
+    echo "Please build on another directory" >&2
+    echo "  or use proper make command (see make/README.md" >&2
+    exit 1
+fi
+
+while (( $# > 0 )); do
+    case $1 in
+        --target=*) TARGET=`$TOPDIR/make/host.sh ${1:9} || true` ;;
+        --prefix=*) PREFIX=`readlink -f ${1:9}` ;;
+        *) HELP; exit 1 ;;
+    esac
+	shift
+done
+
+if [ "$TARGET" != "`$TOPDIR/make/host.sh`" ]; then
+    CROSS="$TARGET-"
+    IFS='-' read -ra THST <<< "$TARGET"
+    T_ARCH=${THST[0]}
+    T_OS=${THST[@]:2:${#THST[@]}}
+    # echo "Arch: $T_ARCH - Os: $T_OS"
+    GCC=`which "$CROSS"gcc 2> /dev/null || true`
+    if [ -z $GCC ]; then
+        CROSS="$T_ARCH-$T_OS-"
+        GCC=`which "$CROSS"gcc 2> /dev/null || true`
+    fi
+    if [ -z $GCC ]; then
+        CROSS="$TOPDIR/usr/bin/$T_ARCH-$T_OS-"
+        GCC=`which "$CROSS"gcc 2> /dev/null || true`
+    fi
+    if [ -z $GCC ]; then
+        CROSS="$GENDIR/usr/bin/$T_ARCH-$T_OS-"
+        GCC=`which "$CROSS"gcc 2> /dev/null || true`
+    fi
+    if [ -z $GCC ]; then
+        CROSS="$GENDIR/bin/$T_ARCH-$T_OS-"
+        GCC=`which "$CROSS"gcc 2> /dev/null || true`
+    fi
+    if [ -z $GCC ]; then
+        echo "Unable to find the toolchain for target $TARGET" >&2
+        exit 1
+    fi
+fi
+
+cat > Makefile << EOF
+topdir:=$TOPDIR
+gendir:=$GENDIR
+prefix:=$PREFIX
+target:=$TARGET
+CROSS:=$CROSS
+CC=:gcc
+include $TOPDIR/Makefile
+EOF
+
