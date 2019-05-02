@@ -73,6 +73,11 @@ int isdigit(char a)
     return a >= '0' && a <= '9';
 }
 
+int abs(int val)
+{
+    return val >= 0 ? val : -val;
+}
+
 void *heap_map(size_t length)
 {
     return kmap(length, NULL, 0, VMA_HEAP_RW);

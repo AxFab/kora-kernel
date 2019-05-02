@@ -20,8 +20,9 @@
 #include <kernel/core.h>
 #include <kernel/cpu.h>
 #include <kernel/memory.h>
-// #include <kora/allocator.h>
 #include <string.h>
+
+void setup_allocator(void *, size_t);
 
 #define MMU_KRN(vaddr)  (page_t*)(0xFFBFF000 | (((vaddr) >> 20) & ~3))
 #define MMU_DIR(vaddr)  (page_t*)(0xFFFFF000 | (((vaddr) >> 20) & ~3))

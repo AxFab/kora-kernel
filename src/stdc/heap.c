@@ -17,19 +17,15 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <kernel/types.h>
 #include <string.h>
 #include <errno.h>
 #include "allocator.h"
 
-#if defined KORA_KRN
+void *kmap(size_t, inode_t *, int, int);
+void kunmap(void*, size_t);
 #define mmap(s) kmap(s, NULL, 0, 0x166);
 #define unmap(a,s) kunmap(a, s);
-#else
-void *mmap(void*,size_t, int, int, int, int);
-void munmap(void*,size_t);
-#define mmap(s) mmap(NULL, s, 6, 0, 0, 0);
-#define unmap(a,s) munmap((void*)a, s);
-#endif
 
 
 

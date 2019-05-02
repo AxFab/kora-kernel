@@ -33,7 +33,7 @@ install: $(bindir)/$(kname)
 check: kernel
 
 CFLAGS += -Wall -Wextra -Wno-unused-parameter
-CFLAGS += -ffreestanding -fno-builtin
+CFLAGS += -ffreestanding
 CFLAGS += -I$(topdir)/include
 CFLAGS += -I$(topdir)/arch/$(target_arch)/include
 CFLAGS += -ggdb
@@ -60,7 +60,7 @@ include $(topdir)/arch/$(target_arch)/make.mk
 $(bindir)/$(kname): $(call fn_objs,SRCS-y)
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    LD  "$@
-	$(V) $(LD) -T $(arcdir)/kernel.ld -o $@ $^
+	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
 
 
 

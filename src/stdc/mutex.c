@@ -19,7 +19,7 @@
  */
 #include <threads.h>
 #include <kora/splock.h>
-// #include <kora/std.h>
+#include <kernel/core.h>
 #include <kernel/futex.h>
 #include <time.h>
 #include <errno.h>
@@ -33,7 +33,7 @@
 int mtx_init(mtx_t *mutex, int flags)
 {
     // TODO - Use shm in case of mtx_shared
-    struct _US_MUTEX *ptr = malloc(sizeof(struct _US_MUTEX));
+    struct _US_MUTEX *ptr = kalloc(sizeof(struct _US_MUTEX));
     ptr->counter = 0;
     ptr->flags = flags;
     ptr->thread = 0;
@@ -98,7 +98,7 @@ int mtx_unlock(mtx_t *mutex)
 void mtx_destroy(mtx_t *mutex)
 {
     struct _US_MUTEX *ptr = *mutex;
-    free(ptr);
+    kfree(ptr);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
