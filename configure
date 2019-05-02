@@ -65,7 +65,7 @@ gendir:=$GENDIR
 prefix:=$PREFIX
 target:=$TARGET
 CROSS:=$CROSS
-CC=:gcc
+CC:=gcc
 include $TOPDIR/Makefile
 EOF
 

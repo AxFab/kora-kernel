@@ -130,6 +130,14 @@ void main_clock();
 
 void wmgr_render(screen_t *screen);
 
+const char *basename_args[3] = {
+    "bin/basename", "-n", "/usr/include/string.h"
+};
+
+const char *krish_args[3] = {
+    "usr/bin/krish", "-n", "/lib/kernel/ata.km"
+};
+
 void wmgr_main()
 {
     inode_t *dev;
@@ -167,7 +175,8 @@ void wmgr_main()
     inode_t *tty = tty_inode(NULL);
     task_create(tty_start, tty, "Tty.1");
     task_create(tty_main, tty, "Tty.1.prg");
-    task_create(exec_task, NULL, "App exec");
+    task_create(exec_task, basename_args, "App basename");
+    task_create(exec_task, krish_args, "App Krish");
     task_create(fake_shell_task, NULL, "Fake shell");
     task_create(main_clock, NULL, "Clock");
 
