@@ -62,7 +62,7 @@ void elf_section(elf_phead_t *ph, dynsec_t *section)
     section->end = (ph->file_addr + ph->file_size) - section->lower;
     section->offset = ph->virt_addr - ph->file_addr;
     section->rights = ph->flags & 7;
-    kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->lower, section->upper, section->start, section->end, section->offset, rights[section->rights]);
+    kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->lower, section->upper, section->start, section->end, section->offset, rights[(int)section->rights]);
 }
 
 void elf_dynamic(elf_phead_t *ph, elf_dynamic_t *dynamic, bio_t *io)
