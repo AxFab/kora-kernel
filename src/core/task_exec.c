@@ -100,12 +100,9 @@ void fake_shell_task()
 }
 
 
-const char *exec_args[3] = {
-    "bin/basename", "-n", "/usr/include/string.h"
-};
 
 
-void exec_task()
+void exec_task(const char **exec_args)
 {
     int i, lg;
     tty_t *tty = tty_create(128);
