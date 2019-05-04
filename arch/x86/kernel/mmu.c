@@ -95,6 +95,7 @@ int mmu_resolve(size_t vaddr, page_t phys, int flags)
             if (*krn == 0) {
                 pages++;
                 *krn = page_new() | MMU_K_RW;
+                *dir = *krn;
                 memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
             }
             *dir = *krn;
