@@ -129,6 +129,10 @@ long sys_write(int fd, const char *buf, int len)
 {
     if (scall_check_buf(buf, len))
         return -1;
+    if (fd == 1)
+        kprintf(-1, "USR #%d.1 - %s\n", kCPU.running->pid, buf);
+    else if (fd == 2)
+        kprintf(-1, "USR #%d.2 - %s\n", kCPU.running->pid, buf);
     resx_t *resx = kCPU.running->resx;
     stream_t *stream = resx_get(resx, fd);
     if (stream == NULL) {
@@ -231,7 +235,7 @@ int sys_pipe(int *fds)
 }
 
 
-int sys_window(int width, int height, unsigned features, unsigned evmask)
+int sys_window(int ctx, int width, int height, unsigned flags)
 {
     // TODO - Look for the desktop attached to the session
     resx_t *resx = kCPU.running->resx;

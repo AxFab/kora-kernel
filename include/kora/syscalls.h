@@ -92,8 +92,7 @@ struct image {
 // int sys_write(int fd, const struct iovec *iovec, unsigned long count);
 // int sys_seek(int fd, off_t off, unsigned long whence);
 // /* - */
-// int sys_window(void *img, int fd, void *info, unsigned long features,
-//                unsigned long events);
+// int sys_window(int ctx, int width, int height, unsigned flags);
 // int sys_pipe(int *fds);
 
 

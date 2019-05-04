@@ -239,28 +239,29 @@ scall_entry_t syscall_entries[64] = {
     SCALL_ENTRY(SYS_WRITE, sys_write, "%d, %p, %d", true),
     // SYS_SEEK
 
-    // SYS_WINDOW
+    SCALL_ENTRY(SYS_WINDOW, sys_window, "%d, %d, %d, 0%o", true),
     // SYS_PIPE
 };
 
 
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
-    if (no < 0 || no > 64 || &syscall_entries[no] == NULL) {
+    if (no < 0 || no > 64 || &syscall_entries[no] == NULL || syscall_entries[no].name == NULL) {
         kprintf(-1, "\033[96msyscall(%d) = -1\033[0m\n", no);
         return -1;
     }
 
     long ret;
+    int pid = kCPU.running->pid;
     scall_entry_t *entry = &syscall_entries[no];
     char arg_buf[50];
     snprintf(arg_buf, 50, entry->args, a1, a2, a3, a4, a5);
 
     if (!entry->ret)
-        kprintf(-1, "\033[96m%s(%s)\033[0m\n", entry->name, arg_buf);
+        kprintf(-1, "[task %3d] \033[96m%s(%s)\033[0m\n", pid, entry->name, arg_buf);
     ret = entry->routine(a1, a2, a3, a4, a5);
     if (entry->ret)
-        kprintf(-1, "\033[96m%s(%s) = %d\033[0m\n", entry->name, arg_buf, ret);
+        kprintf(-1, "[task %3d] \033[96m%s(%s) = %d\033[0m\n", pid, entry->name, arg_buf, ret);
 
     return ret;
 }
