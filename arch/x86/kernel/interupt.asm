@@ -125,8 +125,9 @@ int_exGP:
     SAVE_REGS
     push esp
     push dword [esp + 56] ; get error code
+    push 0xD
     call x86_error
-    add esp, 8
+    add esp, 12
     LOAD_REGS
     add esp, 4
     iret

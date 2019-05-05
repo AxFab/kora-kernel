@@ -124,8 +124,8 @@ stream_t *resx_set(resx_t *resx, inode_t *ino)
         stm->node.value_ = 0;
 
     else {
-        stm->node.value_ = (size_t)(bbtree_last(&resx->tree, stream_t,
-                                                node)->node.value_ + 1);
+        stream_t *last = bbtree_last(&resx->tree, stream_t, node);
+        stm->node.value_ = (size_t)(last->node.value_ + 1);
         if ((long)stm->node.value_ < 0) {
             rwlock_wrunlock(&resx->lock);
             kfree(stm);

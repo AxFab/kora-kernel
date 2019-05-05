@@ -130,6 +130,11 @@ void exec_task(const char **exec_args)
     else
         tty_puts(tty, "Proc mapping error!!\n");
 
+    inode_t * std_tty = tty_inode(tty);
+    stream_t *std_in = resx_set(kCPU.running->resx, std_tty);
+    stream_t *std_out = resx_set(kCPU.running->resx, std_tty);
+    stream_t *std_err = resx_set(kCPU.running->resx, std_tty);
+
     void *start = dlib_exec_entry(proc);
     void *stack = mspace_map(mspace, 0, _Mib_, NULL, 0, VMA_STACK_RW);
     stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));

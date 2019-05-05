@@ -275,9 +275,27 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off)
         errno = EACCES;
         return (void *) - 1;
     }
-    // TODO - inode and flags
-    int vma = (flags & 7) | ((flags & 7) << 4) | VMA_HEAP;
-    return mspace_map(mspace, (size_t)addr, length, NULL, off, vma);
+
+    inode_t *ino = NULL;
+    resx_t *resx = kCPU.running->resx;
+    int vma = (flags & 7) | ((flags & 7) << 4);
+    if (fd >= 0) {
+        stream_t *stream = resx_get(resx, fd);
+        if (stream == NULL) {
+            errno = EBADF;
+            return -1;
+            // } else if ((stream->flags & R_OK) == 0) {
+            //     errno = EACCES;
+            //     return -1;
+        }
+        ino = stream->ino;
+        vma |= VMA_FILE;
+    } else {
+        // TODO - flags
+        vma |= VMA_HEAP;
+    }
+
+    return mspace_map(mspace, (size_t)addr, length, ino, off, vma);
 }
 
 long sys_munmap(void *addr, size_t length)
