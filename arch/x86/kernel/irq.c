@@ -121,7 +121,7 @@ void x86_fault(int no, regs_t *regs)
 void x86_error(int no, int code, regs_t *regs)
 {
     char buf[64];
-    fault_t fault = x86_exceptions[MIN(0x20, (unsigned)no)];
+    fault_t fault = x86_exceptions[MIN(0x17, (unsigned)no)];
     snprintf(buf, 64, fault.name, code);
     fault.name = buf;
     irq_fault(&fault);

@@ -174,6 +174,7 @@ void irq_fault(const fault_t *fault)
     // task->elapsed_system = clock_elapsed(&task->elapsed_last);
     // kCPU.elapsed_system = clock_elapsed(&kCPU->elapsed_last);
     // assert(kCPU.irq_semaphore == 0);
+    sys_exit(5); // DEBUG
 }
 
 void irq_pagefault(size_t vaddr, int reason)
