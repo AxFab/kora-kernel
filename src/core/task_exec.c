@@ -156,6 +156,8 @@ void exec_task(const char **exec_args)
     args[3] = 0;
 
     kprintf(-1, "%s: start:%p, stack:%p\n", exec_args[0], start, stack);
+    irq_reset(false);
+    cpu_tss(kCPU.running);
     cpu_usermode(start, stack);
 }
 

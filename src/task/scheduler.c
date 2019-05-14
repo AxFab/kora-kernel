@@ -67,9 +67,11 @@ void scheduler_switch(int status, int retcode)
         // kprintf(-1, "Leaving Task %d\n", task->pid);
         splock_lock(&task->lock);
         task->retcode = retcode;
-        if (cpu_save(task->state) != 0)
+        if (cpu_save(task->state) != 0) {
+            cpu_tss(task);
             return;
-        // kprintf(-1, "Saved Task %d\n", task->pid);
+        }
+        kprintf(-1, "Saved Task %d\n", task->pid);
 
         // TODO Stop task chrono
         if (task->status == TS_ABORTED) {
@@ -98,6 +100,6 @@ void scheduler_switch(int status, int retcode)
     if (task->usmem)
         mmu_context(task->usmem);
     clock_elapsed(CPU_USER);
-    // kprintf(-1, "-> Task %d\n", task->pid);
+    kprintf(-1, "Restore Task %d\n", task->pid);
     cpu_restore(task->state);
 }
