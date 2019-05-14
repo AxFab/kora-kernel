@@ -17,36 +17,16 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _KERNEL_CPU_H
-#define _KERNEL_CPU_H 1
+#ifndef _BITS_CDEFS_H
+#define _BITS_CDEFS_H 1
 
-#include <kernel/types.h>
+#define _Noreturn __attribute__((noreturn))
+#define PACK(decl) decl __attribute__((__packed__))
+#define unlikely(c) c
+#define likely(c) c
 
-#define KSTACK  (1 * PAGE_SIZE)
+#define PAGE_SIZE 4096
+#define __ARCH "x86"
+#define __ILP32
 
-#define IRQ_ON   ((void)0)
-#define IRQ_OFF  ((void)0)
-
-
-struct regs {
-    uint32_t ss;
-};
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-static inline void outl(uint16_t port, uint32_t val)
-{
-}
-
-static inline uint32_t inl(uint16_t port)
-{
-    return 0;
-}
-
-
-
-#endif /* _KERNEL_CPU_H */
+#endif /* _BITS_CDEFS_H */

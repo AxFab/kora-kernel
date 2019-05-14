@@ -167,7 +167,7 @@ int wmgr_check_invalid_window(screen_t *screen, window_t *win)
         return 1;
     }
     if (win->grid == 0 && win->rq_grid == 0) {
-        if (win->sz.x != win->rq.x || win->sz.y != win->rq.y || win->sz.w != win->rq.w || win->sz.y != win->rq.y) {
+        if (win->sz.x != win->rq.x || win->sz.y != win->rq.y || win->sz.w != win->rq.w || win->sz.h != win->rq.h) {
             wmgr_invalid_rect(screen, win->sz.x, win->sz.y, win->sz.w, win->sz.h);
             wmgr_invalid_rect(screen, win->rq.x, win->rq.y, win->rq.w, win->rq.h);
             win->sz = win->rq;
@@ -368,14 +368,14 @@ window_t *wmgr_over(desktop_t *desk, int *where)
         if (desk->pointer.y > sz.y + sz.h + win->mt + win->mb)
             continue;
         if (where != NULL) {
-            if (desk->pointer.y < sz.y + DESK_BORDER) {
+            if (desk->pointer.y < sz.y - win->mt + DESK_BORDER) {
                 if (desk->pointer.x < sz.x + DESK_BORDER)
                     *where = DESK_GRAB_TOP | DESK_GRAB_LEFT;
                 else if (desk->pointer.x > sz.x + sz.w + win->ml - DESK_BORDER)
                     *where = DESK_GRAB_TOP | DESK_GRAB_RIGHT;
                 else
                     *where = DESK_GRAB_TOP;
-            } else if (desk->pointer.y > sz.y + win->mt - DESK_BORDER) {
+            } else if (desk->pointer.y > sz.y + sz->h - DESK_BORDER) {
                 if (desk->pointer.x < sz.x + DESK_BORDER)
                     *where = DESK_GRAB_BOTTOM | DESK_GRAB_LEFT;
                 else if (desk->pointer.x > sz.x + sz.w + win->ml - DESK_BORDER)
@@ -427,7 +427,10 @@ void wmgr_pointer(desktop_t *desk, int relx, int rely)
         }
     }
     window_t *win = ll_last(&desk->windows, window_t, node);
-    window_t *over = wmgr_over(desk, NULL);
+    int wh;
+    window_t *over = wmgr_over(desk, &wh);
+    if (wh != DESK_GRAB_WINDOW)
+        over = NULL;
     if (desk->over_win && over != desk->over_win) {
         kprintf(-1, "MOUSE MOVE %d:  %d, %d\n", desk->over_win->no, relx, rely);
         kprintf(-1, "MOUSE EXIT %d\n", desk->over_win->no);
