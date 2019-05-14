@@ -164,6 +164,7 @@ void irq_fault(const fault_t *fault)
     }
 
     kprintf(KLOG_IRQ, "Task.%d on CPU%d raise exception: %s\n", task->pid, cpu_no(), fault->name);
+    mspace_display(task->usmem);
     stackdump(8);
     if (fault->raise != 0)
         task_kill(kCPU.running, fault->raise);
@@ -247,8 +248,8 @@ scall_entry_t syscall_entries[64] = {
 
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
-    if (no < 0 || no > 64 || &syscall_entries[no] == NULL || syscall_entries[no].name == NULL) {
         kprintf(-1, "\033[96msyscall(%d) = -1\033[0m\n", no);
+    if (no < 0 || no > 64 || &syscall_entries[no] == NULL || syscall_entries[no].name == NULL) {
         return -1;
     }
 
