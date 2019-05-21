@@ -242,14 +242,15 @@ scall_entry_t syscall_entries[64] = {
     // SYS_SEEK
 
     SCALL_ENTRY(SYS_WINDOW, sys_window, "%d, %d, %d, 0%o", true),
+    SCALL_ENTRY(SYS_FCNTL, sys_fcntl, "%d, %d, %p", true),
     // SYS_PIPE
 };
 
 
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
-        kprintf(-1, "\033[96msyscall(%d) = -1\033[0m\n", no);
     if (no < 0 || no > 64 || &syscall_entries[no] == NULL || syscall_entries[no].name == NULL) {
+        kprintf(-1, "\033[96msyscall(%d) = -1\033[0m\n", no);
         return -1;
     }
 

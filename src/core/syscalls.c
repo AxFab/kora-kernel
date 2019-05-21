@@ -248,6 +248,30 @@ int sys_window(int ctx, int width, int height, unsigned flags)
     return stream->node.value_;
 }
 
+int sys_fcntl(int fd, int cmd, void* args)
+{
+    resx_t *resx = kCPU.running->resx;
+    stream_t *stream = resx_get(resx, fd);
+    if (stream == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    mtx_lock(&stream->lock) ;
+    if (stream->ino->ops->fcntl == NULL) {
+        errno = ENOSYS;
+        mtx_unlock(&stream->lock);
+        return -1;
+    }
+
+    int ret = stream->ino->ops->fcntl(stream->ino, cmd, args);
+    if (ret >= 0) {
+        errno = 0;
+    }
+    mtx_unlock(&stream->lock);
+    return ret;
+}
+
 int sys_socket(int protocol, const char *address, int port)
 {
     inode_t *ino = NULL;
@@ -294,6 +318,9 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off)
         // TODO - flags
         vma |= VMA_HEAP;
     }
+
+    if (flags & 0x10000)
+        vma |= VMA_RESOLVE;
 
     return mspace_map(mspace, (size_t)addr, length, ino, off, vma);
 }

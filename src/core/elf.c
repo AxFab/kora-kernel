@@ -213,12 +213,23 @@ int elf_parse(dynlib_t *dlib)
     uint32_t *rel_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.rel / PAGE_SIZE), dynamic.rel % PAGE_SIZE);
     int ent_sz = dynamic.rel_ent / sizeof(uint32_t);
     unsigned rel_sz = 0;
+    elf_shead_t sh_tmp;
     for (i = 0; i < head->sh_count; ++i) {
+        int s = 0;
         size_t sh_offset = head->sh_off + i * sizeof(elf_shead_t);
         elf_shead_t *sh_tbl = ADDR_OFF(bio_access(dlib->io, sh_offset / PAGE_SIZE), sh_offset % PAGE_SIZE);
+        if (ALIGN_DW((size_t)sh_tbl, PAGE_SIZE) != ALIGN_DW((size_t)sh_tbl + sizeof(*sh_tbl), PAGE_SIZE)) {
+            int lg = PAGE_SIZE - ((size_t)sh_tbl % PAGE_SIZE);
+            memcpy(&sh_tmp, sh_tbl, lg);
+            bio_clean(dlib->io, sh_offset / PAGE_SIZE);
+            sh_tbl = bio_access(dlib->io, sh_offset / PAGE_SIZE + 1);
+            memcpy(ADDR_OFF(&sh_tmp, lg), sh_tbl, sizeof(elf_shead_t) - lg);
+            sh_tbl = &sh_tmp;
+            s = 1;
+        }
         if (sh_tbl->type == 9)
             rel_sz += sh_tbl->size / dynamic.rel_ent;
-        bio_clean(dlib->io, sh_offset / PAGE_SIZE);
+        bio_clean(dlib->io, sh_offset / PAGE_SIZE + s);
     }
 
     for (i = 0; i < rel_sz; ++i) {

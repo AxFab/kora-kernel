@@ -80,6 +80,7 @@ long sys_close(int fd);
 // dup
 int sys_pipe(int *fds);
 int sys_window(int ctx, int width, int height, unsigned flags);
+int sys_fcntl(int fd, int cmd, void* args);
 
 /* --------
   Network
