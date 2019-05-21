@@ -27,6 +27,7 @@
 #include <kora/rwlock.h>
 #include <kora/llist.h>
 #include <kora/mcrs.h>
+#include <errno.h>
 
 int abs(int v);
 
@@ -56,13 +57,32 @@ int abs(int v);
 desktop_t *kDESK;
 
 
-
-
 void wmgr_window_flip(inode_t *ino)
 {
     window_t *win = (window_t *)ino->info;
     win->queries |= WMGR_RENDER;
 }
+
+int win_fcntl(inode_t *ino, int cmd, void *args)
+{
+    switch (cmd) {
+        case 17:
+            wmgr_window_flip(ino);
+            return 0;
+        default:
+            errno = ENOSYS;
+            return -1;
+    }
+}
+
+page_t win_fetch(inode_t *ino, off_t off)
+{
+    window_t *win = (window_t *)ino->info;
+    framebuffer_t *frame = win->frame;
+    page_t pg = mmu_read(&frame->pixels[off]);
+    return pg;
+}
+
 
 int wmgr_window_read(inode_t *ino, char *buf, size_t len, int flags)
 {
@@ -86,9 +106,9 @@ int wmgr_event(window_t *win, int event, int param1, int param2)
 }
 
 ino_ops_t win_ops = {
-    // .fcntl = win_fcntl,
+    .fcntl = win_fcntl,
     // .close = win_close,
-    // .fetch = win_fetch,
+    .fetch = win_fetch,
     // .release = win_release,
     .read = wmgr_window_read,
     // .reset = win_reset,
@@ -375,7 +395,7 @@ window_t *wmgr_over(desktop_t *desk, int *where)
                     *where = DESK_GRAB_TOP | DESK_GRAB_RIGHT;
                 else
                     *where = DESK_GRAB_TOP;
-            } else if (desk->pointer.y > sz.y + sz->h - DESK_BORDER) {
+            } else if (desk->pointer.y > sz.y + sz.h - DESK_BORDER) {
                 if (desk->pointer.x < sz.x + DESK_BORDER)
                     *where = DESK_GRAB_BOTTOM | DESK_GRAB_LEFT;
                 else if (desk->pointer.x > sz.x + sz.w + win->ml - DESK_BORDER)
