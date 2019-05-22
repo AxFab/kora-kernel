@@ -81,8 +81,8 @@ void tty_start(inode_t *ino)
     event_t event;
     for (;;) {
         vfs_read(win, (char *)&event, sizeof(event), 0, 0);
-        switch (event.type) {
-        case EV_KEY_PRESS: {
+        switch (event.message) {
+        case EV_KEYDOWN: {
             int status = event.param2 >> 16;
             int shift = (status & 8 ? 1 : 0);
             if (status & 4)
@@ -94,7 +94,7 @@ void tty_start(inode_t *ino)
 
         }
         break;
-        case EV_WIN_RESIZE:
+        case EV_RESIZE:
             tty_resize(tty, event.param1, event.param2);
             break;
         }

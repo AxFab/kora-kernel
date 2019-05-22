@@ -25,7 +25,8 @@
 #define SYS_POWER  12
 #define SYS_SCALL  13
 #define SYS_SYSLOG  14
-#define SYS_SYSINFO  20
+#define SYS_GINFO  25
+#define SYS_SINFO  26
 
 #define SYS_YIELD  0
 #define SYS_EXIT  1
@@ -50,6 +51,12 @@
 #define SYS_WINDOW  18
 #define SYS_PIPE  19
 #define SYS_FCNTL  20
+
+#define SYS_FUTEX_WAKE 22
+#define SYS_FUTEX_REQUEUE 23
+
+#define SYS_START 31
+#define SYS_STOP 32
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
