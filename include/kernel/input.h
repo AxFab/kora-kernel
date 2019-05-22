@@ -38,16 +38,16 @@
 /*
  * Event types
  */
-enum {
-    EV_UNDEF = 0,
-    EV_MOUSE_BTN,
-    EV_MOUSE_MOTION,
-    EV_KEY_PRESS,
-    EV_KEY_RELEASE,
-    EV_KEY_REPEAT,
-
-    EV_WIN_RESIZE,
-};
+#define EV_QUIT  0
+#define EV_MOUSEMOVE  2
+#define EV_BUTTONDOWN  3
+#define EV_BUTTONUP  4
+#define EV_MOUSEWHEEL  5
+#define EV_KEYDOWN  6
+#define EV_KEYUP  7
+#define EV_TIMER  8
+#define EV_DELAY  9
+#define EV_RESIZE 10
 
 
 struct kUsr {
@@ -57,12 +57,11 @@ struct kUsr {
 };
 
 struct event {
-    clock64_t timestamp;
+    int64_t timestamp;
     int32_t param1;
     int32_t param2;
-    uint8_t type;
-    uint8_t unsued;
-    uint16_t unsued0;
+    uint16_t message;
+    uint16_t unsued;
 };
 
 

@@ -99,9 +99,10 @@ int wmgr_window_resize(inode_t *ino, int width, int height)
 int wmgr_event(window_t *win, int event, int param1, int param2)
 {
     event_t ev;
+    memset(&ev, 0, sizeof(ev));
     ev.param1 = param1;
     ev.param2 = param2;
-    ev.type = event;
+    ev.message = event;
     return pipe_write(win->pipe, (char *)&ev, sizeof(ev), 0);
 }
 
@@ -191,7 +192,7 @@ int wmgr_check_invalid_window(screen_t *screen, window_t *win)
             wmgr_invalid_rect(screen, win->sz.x, win->sz.y, win->sz.w, win->sz.h);
             wmgr_invalid_rect(screen, win->rq.x, win->rq.y, win->rq.w, win->rq.h);
             win->sz = win->rq;
-            wmgr_event(win, EV_WIN_RESIZE, win->sz.w, win->sz.h);
+            wmgr_event(win, EV_RESIZE, win->sz.w, win->sz.h);
         } else {
             // wmgr_noinvalid_rect(screen, win->sz.x, win->sz.y, win->sz.w, win->sz.h);
         }
@@ -201,7 +202,7 @@ int wmgr_check_invalid_window(screen_t *screen, window_t *win)
         win->grid = win->rq_grid;
         sz = wmgr_window_size(win);
         wmgr_invalid_rect(screen, sz.x, sz.y, sz.w, sz.h);
-        wmgr_event(win, EV_WIN_RESIZE, sz.w, sz.h);
+        wmgr_event(win, EV_RESIZE, sz.w, sz.h);
     }
     return 0; // TODO return 1 if there is no other place to check !
 }
@@ -364,11 +365,7 @@ void wmgr_keyboard(desktop_t *desk, uint32_t fkey, int state)
 
     if (win != NULL) {
         // TODO -- if win is TTY, send to TTY!
-        event_t event;
-        event.type = state ? 3 : 4;
-        event.param1 = key;
-        event.param2 = fkey;
-        pipe_write(win->pipe, (char *)&event, sizeof(event), 0);
+        wmgr_event(win, state ? EV_KEYDOWN : EV_KEYUP, key, fkey);
     }
 }
 
@@ -505,12 +502,13 @@ void wmgr_button(desktop_t *desk, int btn, int state)
 }
 
 
+
 void wmgr_input(inode_t *ino, int type, int param, pipe_t *pipe)
 {
     if (kDESK == NULL)
         return;
     // clock64_t now = kclock();
-    // if (type == EV_KEY_PRESS) {
+    // if (type == EV_KEYDOWN) {
     //     if (param == kDESK->last_key) {
     //         clock64_t elapsed = now - kDESK->last_kbd;
     //         if (elapsed < MSEC_TO_KTIME(500))
@@ -520,10 +518,10 @@ void wmgr_input(inode_t *ino, int type, int param, pipe_t *pipe)
     //     kDESK->last_kbd = now;
     // }
     switch (type) {
-    case EV_KEY_PRESS:
+    case EV_KEYDOWN:
         wmgr_keyboard(kDESK, param, 1);
         return;
-    case EV_KEY_RELEASE:
+    case EV_KEYUP:
         wmgr_keyboard(kDESK, param, 0);
         return;
 
