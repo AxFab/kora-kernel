@@ -24,39 +24,71 @@
 #include <stdatomic.h>
 #include <time.h>
 
+#define ONCE_FLAG_INIT {0}
+#define TSS_DTOR_ITERATIONS 1
+
 #define thread_local __thread
-
-typedef int(*thrd_start_t)(void *);
-typedef void(*tss_dtor_t)(void *);
-
-typedef struct _US_THREAD *thrd_t;
-typedef struct _US_MUTEX *mtx_t;
-typedef struct _US_MUTEX *cnd_t;
-#define __tss_t void*
-typedef __tss_t tss_t;
 
 
 typedef atomic_int once_flag;
 #define ONCE_FLAG_INIT  0
+#define  TIME_UTC  1
 
 /* Indicates a thread error status */
 enum {
+    thrd_error = -1,
     thrd_success = 0,
     thrd_busy = 1,
     thrd_timedout,
     thrd_nomem,
-    thrd_error = -1,
 };
 
 /* Defines the type of a mutex */
 enum {
     mtx_plain = 0,
-    mtx_recursive = 1,
-    mtx_timed = 2,
-    mtx_cnd_single = 4,
+    mtx_timed = 1,
+    mtx_recursive = 2,
+
+    mtx_realtime = 4,
+    mtx_robust = 8,
+    mtx_priority = 16,
+    mtx_shared = 32,
+    mtx_checks = 64,
 };
 
-/* Threads -=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+typedef int(*thrd_start_t)(void*);
+typedef void(*tss_dtor_t)(void*);
+
+typedef struct mtx mtx_t;
+typedef struct cnd cnd_t;
+typedef unsigned tss_t;
+
+#if defined _MSC_VER
+#include <windows.h>
+typedef HANDLE thrd_t;
+#elif defined KORA_KRN
+typedef unsigned thrd_t;
+#else
+#include <pthread.h>
+typedef pthread_t thrd_t;
+#endif
+
+
+struct mtx {
+    atomic_int value;
+    thrd_t thread;
+    int flags;
+};
+
+struct cnd {
+    mtx_t *mtx;
+    atomic_int seq;
+    int flags;
+};
+
+
 /* Creates a thread */
 int thrd_create(thrd_t *thr, thrd_start_t func, void *arg);
 /* Checks if two identifiers refer to the same thread */
@@ -75,46 +107,6 @@ int thrd_detach(thrd_t thr);
 int thrd_join(thrd_t thr, int *res);
 
 
-/* Mutual exclusion -=-=-=-=-=-=-=-=-=-=-=-= */
-
-/* Creates a mutex */
-int mtx_init(mtx_t *mutex, int type);
-/* Blocks locks a mutex */
-int mtx_lock(mtx_t *mutex);
-/* Blocks until locks a mutex or times out */
-int mtx_timedlock(mtx_t *mutex, const struct timespec *time_point);
-/* Locks a mutex or returns without blocking if already locked */
-int mtx_trylock(mtx_t *mutex);
-/* Unlocks a mutex */
-int mtx_unlock(mtx_t *mutex);
-/* Destroys a mutex */
-void mtx_destroy(mtx_t *mutex);
-
-
-/* Calls a function exactly once */
-void call_once(once_flag *flag, void (*func)(void));
-
-
-/* Condition variables -=-=-=-=-=-=-=-=-=-=-=-= */
-
-/* Creates a condition variable */
-int cnd_init(cnd_t *cond);
-/* Unblocks one thread blocked on a condition variable */
-int cnd_signal(cnd_t *cond);
-/* Unblocks all threads blocked on a condition variable */
-int cnd_broadcast(cnd_t *cond);
-/* Blocks on a condition variable */
-int cnd_wait(cnd_t *cond, mtx_t *mutex);
-/* Blocks on a condition variable, with a timeout */
-int cnd_timedwait(cnd_t *cond, mtx_t *mutex, const struct timespec *time_point);
-/* Destroys a condition variable */
-void cnd_destroy(cnd_t *cond);
-
-/* Thread-local storage -=-=-=-=-=-=-=-=-=-=-=-= */
-
-/* Maximum number of times destructors are called */
-#define TSS_DTOR_ITERATIONS  5
-
 /* Creates thread-specific storage pointer with a given destructor */
 int tss_create(tss_t *tss_key, tss_dtor_t destructor);
 /* Reads from thread-specific storage */
@@ -123,5 +115,33 @@ void *tss_get(tss_t tss_key);
 int tss_set(tss_t tss_id, void *val);
 /* Releases the resources held by a given thread-specific pointer */
 void tss_delete(tss_t tss_id);
+
+
+/* create a mutex */
+int mtx_init(mtx_t *mutex, int type);
+/* blocks until locks a mutex */
+int mtx_lock(mtx_t *mutex);
+/* blocks until locks a mutex or times out */
+int mtx_timedlock(mtx_t *restrict mutex, const struct timespec *restrict time_point);
+/* locks a mutex or returns without blocking if already locked */
+int mtx_trylock(mtx_t *mutex);
+/* unlock a mutex */
+int mtx_unlock(mtx_t *mutex);
+/* destroys a mutex */
+void mtx_destroy(mtx_t *mutex);
+
+
+/* create a condition variable */
+int cnd_init(cnd_t *cond);
+/* unblocks one thread blocked on a condition variable */
+int cnd_signal(cnd_t *cond);
+/* unblocks all threads blocked on a condition variable */
+int cnd_broadcast(cnd_t *cond);
+/* blocks on a condition variable */
+int cnd_wait(cnd_t *cond, mtx_t *mutex);
+/* blocks on a condition variable, with a timeout */
+int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mutex, const struct timespec *restrict time_point);
+/* destroys a condition variable */
+void cnd_destroy(cnd_t *cond);
 
 #endif  /* _THREADS_H */

@@ -41,28 +41,3 @@ int thrd_equal(thrd_t l, thrd_t r)
 {
     return l == r;
 }
-
-int futex_wait(struct _US_MUTEX *mutex, const struct timespec *ts)
-{
-    clock64_t until = 0;
-    for (;;) {
-        splock_lock(&mutex->splock);
-        if (atomic_exchange(&mutex->counter, 1) == 0) {
-            // Don't wait, you got it!
-            splock_unlock(&mutex->splock);
-            return 0;
-        }
-        int res = async_wait(&mutex->splock, &mutex->emitter, (long)(until - kclock()));
-        if (res == EAGAIN) {
-            splock_unlock(&mutex->splock);
-            return -1;
-        }
-    }
-}
-
-void futex_raise(struct _US_MUTEX *mutex)
-{
-    splock_lock(&mutex->splock);
-    async_raise(&mutex->emitter, 0);
-    splock_unlock(&mutex->splock);
-}

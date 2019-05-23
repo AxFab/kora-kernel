@@ -196,4 +196,10 @@ static inline llnode_t *ll_index_(llhead_t *list, int idx)
     return node;
 }
 
+static inline void llist_init(llhead_t *list)
+{
+    list->first_ = list->last_ = NULL;
+    list->count_ = 0;
+}
+
 #endif  /* _KORA_LLIST_H */

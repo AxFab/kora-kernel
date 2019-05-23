@@ -20,24 +20,16 @@
 #ifndef _KORA_SPLOCK_H
 #define _KORA_SPLOCK_H 1
 
+#include <bits/cdefs.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 
 #define atomic_inc(v)  (++(*(v)))
 #define atomic_dec(v)  (--(*(v)))
 
-#if defined KORA_KRN || defined UM_KRN
 extern void irq_reset(bool enable);
 extern bool irq_enable();
 extern void irq_disable();
-#define RELAX ((void)0)
-#define THROW_ON irq_enable()
-#define THROW_OFF irq_disable()
-#else
-#define RELAX ((void)0)
-#define THROW_ON ((void)0)
-#define THROW_OFF ((void)0)
-#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
