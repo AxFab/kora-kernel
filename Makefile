@@ -30,7 +30,7 @@ kernel: $(bindir)/$(kname)
 
 install: $(bindir)/$(kname)
 
-check: kernel
+check: $(bindir)/ktest
 
 CFLAGS += -Wall -Wextra -Wno-unused-parameter
 CFLAGS += -ffreestanding
@@ -62,7 +62,17 @@ $(bindir)/$(kname): $(call fn_objs,SRCS-y)
 	$(Q) echo "    LD  "$@
 	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
 
+CKSRCS-y += $(wildcard $(srcdir)/stdc/*.c) 
+CKSRCS-y += $(wildcard $(srcdir)/basic/*.c) 
+CKSRCS-y += $(srcdir)/test.c 
+CKSRCS-y += $(srcdir)/thrd.c 
+CKSRCS-y += $(srcdir)/sched.c 
+CKSRCS-y += $(srcdir)/tst_sync.c 
+# CKSRCS-y += $(srcdir)/atomic_arm.c 
 
+CKLFLGS = -latomic
+
+$(eval $(call link_bin,ktest,CKSRCS,CKLFLGS))
 
 ifeq ($(NODEPS),)
 include $(call fn_deps,SRCS)
