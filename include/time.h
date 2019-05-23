@@ -41,10 +41,12 @@ typedef __clock_t clock_t;
 
 #define CLOCKS_PER_SEC  1000000L
 
-struct timespec {
-    time_t tv_sec;    /* Seconds.  */
-    long int tv_nsec;   /* Nanoseconds.  */
-};
+#include <bits/timespec.h>
+
+//struct timespec {
+//    time_t tv_sec;    /* Seconds.  */
+//    long int tv_nsec;   /* Nanoseconds.  */
+//};
 
 
 /* Used by other time functions.  */

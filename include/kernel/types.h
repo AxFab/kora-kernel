@@ -33,7 +33,8 @@ typedef long off_t;
 typedef int pid_t;
 
 #if !defined(_WIN32)
-# define __time_t long // Unix time seconds since EPOCH (max is +/-68 years -> 2038)
+typedef long __time_t;
+// # define __time_t long // Unix time seconds since EPOCH (max is +/-68 years -> 2038)
 #else
 # define __time_t long long
 #endif
