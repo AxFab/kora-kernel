@@ -130,7 +130,7 @@ void exec_task(const char **exec_args)
     else
         tty_puts(tty, "Proc mapping error!!\n");
 
-    inode_t * std_tty = tty_inode(tty);
+    inode_t *std_tty = tty_inode(tty);
     stream_t *std_in = resx_set(kCPU.running->resx, std_tty);
     stream_t *std_out = resx_set(kCPU.running->resx, std_tty);
     stream_t *std_err = resx_set(kCPU.running->resx, std_tty);

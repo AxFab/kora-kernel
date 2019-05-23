@@ -23,7 +23,7 @@
 #include "allocator.h"
 
 void *kmap(size_t, inode_t *, int, int);
-void kunmap(void*, size_t);
+void kunmap(void *, size_t);
 #define mmap(s) kmap(s, NULL, 0, 0x166);
 #define unmap(a,s) kunmap(a, s);
 
@@ -41,7 +41,7 @@ static heap_arena_t *new_arena(size_t length)
     ++__empty_arena;
     heap_arena_t *arena = (heap_arena_t *)_PRT(malloc)(sizeof(heap_arena_t));
     void *map = mmap(length);
-    assert (map != NULL && map != (void *) - 1);
+    assert(map != NULL && map != (void *) - 1);
     setup_arena(arena, (size_t)map, length, __arena_chunk_size_limit,
                 __arena_option);
     ll_append(&__arenas, &arena->node_);
@@ -67,7 +67,7 @@ void *_PRT(valloc)(size_t size)
     heap_arena_t *arena = (heap_arena_t *)_PRT(malloc)(sizeof(heap_arena_t));
     size = ALIGN_UP(size, PAGE_SIZE);
     void *map = mmap(size);
-    assert (map != NULL && map == (void *) - 1);
+    assert(map != NULL && map == (void *) - 1);
     arena->address_ = (size_t)map;
     arena->length_ = size;
     arena->flags_ = HEAP_MAPPED;
@@ -105,13 +105,13 @@ void *_PRT(malloc)(size_t size)
 
     if (ptr == NULL) {
         arena = new_arena(__arena_size);
-        assert (arena != NULL);
+        assert(arena != NULL);
         ptr = malloc_r(arena, size);
     }
 
     if (__empty_arena == 0) {
         arena = new_arena(__arena_size);
-        assert (arena != NULL);
+        assert(arena != NULL);
         __empty_arena++;
     }
 

@@ -1,9 +1,10 @@
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <assert.h>
 #include <limits.h>
 #include <errno.h>
 // #include <unistd.h>
-#include <sched.h>
+// #include <pthread.h>
+#include "crtc.h"
 #include <threads.h>
 
 #include <kernel/task.h>
@@ -77,7 +78,7 @@ void thrd_yield(void)
     sched_yield();
 }
 
-tick_t clock_read(clockid_t clk)
+tick_t clock_read(int clk)
 {
     struct timespec xt;
     clock_gettime(clk, &xt);

@@ -1,8 +1,9 @@
 
 int slog;
 
-void cpu_usermode(){}
+void cpu_usermode() {}
 
-int main() {
+int main()
+{
 }
 

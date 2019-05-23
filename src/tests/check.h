@@ -52,13 +52,15 @@ void kfree(void *ptr);
 # define _valloc(s)  valloc(s)
 # define _vfree(p)  free(p)
 #else
-static inline void * _valloc(size_t s) {
+static inline void *_valloc(size_t s)
+{
     void *ptr = _aligned_malloc(s, PAGE_SIZE);
     memset(ptr, 0, s);
     // printf("VALLOC %p (%x)\n",s, ptr);
     return ptr;
 }
-static inline void _vfree(void*p) {
+static inline void _vfree(void *p)
+{
     _aligned_free(p);
     // printf("VFREE %p\n",p);
 }

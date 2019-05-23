@@ -5,8 +5,8 @@
 #include <bits/types.h>
 
 struct timespec {
-  __time_t tv_sec;
-  long tv_nsec;
+    __time_t tv_sec;
+    long tv_nsec;
 };
 
 #endif

@@ -22,6 +22,7 @@
 
 #define _Noreturn __attribute__((noreturn))
 #define PACK(decl) decl __attribute__((__packed__))
+#define thread_local __thread
 #define unlikely(c) c
 #define likely(c) c
 
@@ -30,10 +31,7 @@
 #define __LP64
 #define __LPx
 
-#if defined KORA_KRN || defined UM_KRN
-extern void irq_reset(bool enable);
-extern bool irq_enable();
-extern void irq_disable();
+#if defined KORA_KRN
 #define RELAX ((void)0)
 #define BARRIER ((void)0)
 #define THROW_ON irq_enable()

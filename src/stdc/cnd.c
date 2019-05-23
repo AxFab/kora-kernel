@@ -17,7 +17,7 @@ int cnd_signal(cnd_t *cond)
 {
     /* we are waking someone up */
     cond->seq++;
-    futex_wake((int*)&cond->seq, 1);
+    futex_wake((int *)&cond->seq, 1);
     return 0;
 }
 
@@ -31,7 +31,7 @@ int cnd_broadcast(cnd_t *cond)
 
     /* we are waking everyone up */
     cond->seq++;
-    futex_requeue((int*)&cond->seq, 1, INT_MAX, (int*)&mutex->value, cond->flags);
+    futex_requeue((int *)&cond->seq, 1, INT_MAX, (int *)&mutex->value, cond->flags);
     return 0;
 }
 
@@ -63,9 +63,9 @@ int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mutex, const struct time
         start = clock_read(CLOCK_MONOTONIC);
 
     mtx_unlock(mutex);
-    futex_wait((int*)&cond->seq, seq, timeout, cond->flags);
+    futex_wait((int *)&cond->seq, seq, timeout, cond->flags);
     while (atomic_exchange(&mutex->value, 2)) {
-        futex_wait((int*)&mutex->value, 2, timeout, mutex->flags);
+        futex_wait((int *)&mutex->value, 2, timeout, mutex->flags);
 
         if (time_point->tv_sec >= 0) {
             tick_t now = clock_read(CLOCK_MONOTONIC);
