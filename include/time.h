@@ -23,6 +23,19 @@
 #include <stddef.h>
 #include <kernel/types.h>
 
+
+enum {
+    CLOCK_MONOTONIC = 0,
+    CLOCK_REALTIME,
+};
+
+#define MIN_TO_USEC(s)  ((s)*60000000LL)
+#define SEC_TO_USEC(s)  ((s)*1000000LL)
+#define MSEC_TO_USEC(s)  ((s)*1000LL)
+#define TMSPEC_TO_USEC(t)  ((t).tv_sec*1000000LL+(t).tv_nsec/1000L)
+
+
+
 typedef __time_t time_t;
 typedef __clock_t clock_t;
 
