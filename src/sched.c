@@ -5,7 +5,7 @@
 splock_t scheduler_lock;
 llhead_t scheduler_list;
 
-void scheduler_add(task_t *task) 
+void scheduler_add(task_t *task)
 {
     splock_lock(&scheduler_lock);
     task->status = TS_READY;
@@ -13,7 +13,7 @@ void scheduler_add(task_t *task)
     splock_unlock(&scheduler_lock);
 }
 
-void scheduler_rm(task_t *task, int status) 
+void scheduler_rm(task_t *task, int status)
 {
     splock_lock(&scheduler_lock);
     task->status = status;
@@ -30,21 +30,21 @@ void scheduler_switch(int state, int code)
     }
     for (;;) {
         splock_lock(&scheduler_lock);
-	task_t *task;
-	for ll_each(&scheduler_list, task, task_t, node) {
-	    if (task->pid == cpu_no()) {
+        task_t *task;
+        for ll_each(&scheduler_list, task, task_t, node) {
+            if (task->pid == cpu_no()) {
                 ll_remove(&scheduler_list, &task->node);
-	        splock_unlock(&scheduler_lock);
-	        return;
-	    }
-        } 
+                splock_unlock(&scheduler_lock);
+                return;
+            }
+        }
         splock_unlock(&scheduler_lock);
         usleep(MSEC_TO_USEC(50));
         futex_tick();
-    } 
+    }
 }
 
-void scheduler_init() 
+void scheduler_init()
 {
     splock_init(&scheduler_lock);
     llist_init(&scheduler_list);

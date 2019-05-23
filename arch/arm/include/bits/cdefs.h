@@ -31,7 +31,7 @@
 #define __ILP32
 #define __ILPx
 
-#if defined KORA_KRN || defined UM_KRN
+#if defined KORA_KRN
 #define RELAX ((void)0)
 #define BARRIER ((void)0)
 #define THROW_ON irq_enable()

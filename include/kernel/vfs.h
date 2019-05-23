@@ -190,7 +190,7 @@ int vfs_fdisk(CSTR dname, long parts, long *sz);
 
 static inline int vfs_puts(inode_t *ino, const char *buf)
 {
-	return vfs_write(ino, buf, strlen(buf), 0, 0);
+    return vfs_write(ino, buf, strlen(buf), 0, 0);
 }
 
 #endif /* _KERNEL_VFS_H */

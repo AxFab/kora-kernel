@@ -9,7 +9,7 @@ jobs:
   include:
     - stage: build
       env:
-      - target=x86-pc-kora
+      - target=i386-pc-kora
       - CROSS=./opt/bin/i386-elf-
       install:
       - sudo apt-get install -y nasm

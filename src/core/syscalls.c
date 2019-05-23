@@ -248,7 +248,7 @@ int sys_window(int ctx, int width, int height, unsigned flags)
     return stream->node.value_;
 }
 
-int sys_fcntl(int fd, int cmd, void* args)
+int sys_fcntl(int fd, int cmd, void *args)
 {
     resx_t *resx = kCPU.running->resx;
     stream_t *stream = resx_get(resx, fd);
@@ -265,9 +265,8 @@ int sys_fcntl(int fd, int cmd, void* args)
     }
 
     int ret = stream->ino->ops->fcntl(stream->ino, cmd, args);
-    if (ret >= 0) {
+    if (ret >= 0)
         errno = 0;
-    }
     mtx_unlock(&stream->lock);
     return ret;
 }

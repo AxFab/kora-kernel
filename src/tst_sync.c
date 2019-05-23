@@ -1,7 +1,7 @@
 #include <kernel/core.h>
 #include <threads.h>
-#include <stdlib.h>
 #include <assert.h>
+#include "crtc.h"
 
 #define ck_ok(n)  assert(n)
 typedef long long tick_t;
@@ -14,13 +14,21 @@ mtx_t test_mtx1;
 static void tst_sync_01_waiter()
 {
     test_ck1++;
+    printf("A %d\n", cpu_no());
     mtx_lock(&test_mtx1);
+    printf("B %d\n", cpu_no());
     usleep(MSEC_TO_USEC(100));
+    printf("C %d\n", cpu_no());
     mtx_unlock(&test_mtx1);
+    printf("D %d\n", cpu_no());
     usleep(MSEC_TO_USEC(100));
+    printf("E %d\n", cpu_no());
     mtx_lock(&test_mtx1);
+    printf("F %d\n", cpu_no());
     usleep(MSEC_TO_USEC(100));
+    printf("G %d\n", cpu_no());
     mtx_unlock(&test_mtx1);
+    printf("H %d\n", cpu_no());
 }
 
 void tst_sync_01()
@@ -33,7 +41,7 @@ void tst_sync_01()
     tick_t start = clock_read(CLOCK_MONOTONIC);
     for (i = 0; i < th_N; ++i)
         thrd_create(&threads[i], (thrd_start_t)tst_sync_01_waiter, NULL);
-    usleep(MSEC_TO_USEC(10));
+    usleep(MSEC_TO_USEC(10 * 8000));
     ck_ok(test_ck1 == th_N);
 
     for (i = 0; i < th_N; ++i)
@@ -68,7 +76,7 @@ void tst_sync_02()
 
     tick_t start = clock_read(CLOCK_MONOTONIC);
     usleep(MSEC_TO_USEC(100));
-    cnd_broadcast(&test_cnd1);	
+    cnd_broadcast(&test_cnd1);
     for (i = 0; i < th_N; ++i)
         thrd_join(threads[i], NULL);
 
@@ -94,7 +102,7 @@ void tst_sync_03()
 
     tick_t start = clock_read(CLOCK_MONOTONIC);
     thrd_create(&thread, (thrd_start_t)tst_sync_03_task, NULL);
-    thrd_join(thread, NULL);    
+    thrd_join(thread, NULL);
     tick_t elapsed = clock_read(CLOCK_MONOTONIC) - start;
     ck_ok(elapsed >= MSEC_TO_USEC(500));
 }

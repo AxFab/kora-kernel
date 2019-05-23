@@ -55,12 +55,12 @@
 #define AUX_SPI1_IO_REG  (AUX_BASE + 0xd0)
 #define AUX_SPI1_PEEK_REG  (AUX_BASE + 0xd4)
 
-// BSC 
+// BSC
 #define BSC0_BASE  (PBASE + 0x205000)
 #define BSC1_BASE  (PBASE + 0x804000)
 #define BSC2_BASE  (PBASE + 0x805000)
 
-// DMA controller 
+// DMA controller
 #define DMA0_BASE  (PBASE + 0x07000)
 #define DMA15_BASE  (PBASE + 0xe05000)
 #define EMMC_BASE  (PBASE + 0x300000)

@@ -66,12 +66,12 @@ void wmgr_window_flip(inode_t *ino)
 int win_fcntl(inode_t *ino, int cmd, void *args)
 {
     switch (cmd) {
-        case 17:
-            wmgr_window_flip(ino);
-            return 0;
-        default:
-            errno = ENOSYS;
-            return -1;
+    case 17:
+        wmgr_window_flip(ino);
+        return 0;
+    default:
+        errno = ENOSYS;
+        return -1;
     }
 }
 

@@ -9,20 +9,20 @@ typedef struct ftx ftx_t;
 typedef struct adv adv_t;
 
 struct ftx {
-	splock_t lock;
-	llhead_t queue;
-	bbnode_t bnode;
-	int *pointer;
-	int rcu;
-	int flags;
+    splock_t lock;
+    llhead_t queue;
+    bbnode_t bnode;
+    int *pointer;
+    int rcu;
+    int flags;
 };
 
 struct adv {
-	ftx_t *futex;
-	task_t *task;
-	llnode_t node;
-	llnode_t tnode;
-	clock_t until;
+    ftx_t *futex;
+    task_t *task;
+    llnode_t node;
+    llnode_t tnode;
+    clock_t until;
 };
 
 splock_t futex_lock;
@@ -31,45 +31,45 @@ llhead_t futex_list;
 
 static ftx_t *futex_open(int *addr, int flags)
 {
-	size_t phys = (size_t)addr; // TODO resolve physical address
-	splock_lock(&futex_lock);
-	ftx_t *futex = bbtree_search_eq(&futex_tree, phys, ftx_t, bnode);
-	if (futex == NULL && (flags & FUTEX_CREATE)) {
-		futex = (ftx_t*)kalloc(sizeof(ftx_t));
-		futex->flags = flags;
-		if (flags & FUTEX_SHARED) {
-			// futex->pointer = ADDR_OFF(kmap(PAGE_SIZE, NULL, ALIGN_DOWN(phys), VMA_PHYSIQ), phys & (PAGE_SIZE-1));
-		} else
-		    futex->pointer = addr;
-		futex->bnode.value_ = phys;
-		bbtree_insert(&futex_tree, & futex->bnode);
-		splock_init(&futex->lock);
-	    llist_init(&futex->queue);
-	}
-	if (futex != NULL)
-		futex->rcu++;
-	splock_unlock(&futex_lock);
-	return futex;
+    size_t phys = (size_t)addr; // TODO resolve physical address
+    splock_lock(&futex_lock);
+    ftx_t *futex = bbtree_search_eq(&futex_tree, phys, ftx_t, bnode);
+    if (futex == NULL && (flags & FUTEX_CREATE)) {
+        futex = (ftx_t *)kalloc(sizeof(ftx_t));
+        futex->flags = flags;
+        if (flags & FUTEX_SHARED) {
+            // futex->pointer = ADDR_OFF(kmap(PAGE_SIZE, NULL, ALIGN_DOWN(phys), VMA_PHYSIQ), phys & (PAGE_SIZE-1));
+        } else
+            futex->pointer = addr;
+        futex->bnode.value_ = phys;
+        bbtree_insert(&futex_tree, & futex->bnode);
+        splock_init(&futex->lock);
+        llist_init(&futex->queue);
+    }
+    if (futex != NULL)
+        futex->rcu++;
+    splock_unlock(&futex_lock);
+    return futex;
 }
 
 static void futex_close(ftx_t *futex)
 {
-	splock_lock(&futex_lock);
-	if (--futex->rcu != 0) {
-	    splock_unlock(&futex->lock);
-	    splock_unlock(&futex_lock);
-	    return;
-	}
-
-	assert(futex->queue.count_ == 0);
-	bbtree_remove(&futex_tree, futex->bnode.value_);
-	if (futex->flags & FUTEX_SHARED) {
-		// kunmap(PAGE_SIZE, ALIGN_DOWN(futex->pointer, PAGE_SIZE));
+    splock_lock(&futex_lock);
+    if (--futex->rcu != 0) {
+        splock_unlock(&futex->lock);
+        splock_unlock(&futex_lock);
+        return;
     }
 
-	splock_unlock(&futex->lock);
-	kfree(futex);
-	splock_unlock(&futex_lock);
+    assert(futex->queue.count_ == 0);
+    bbtree_remove(&futex_tree, futex->bnode.value_);
+    if (futex->flags & FUTEX_SHARED) {
+        // kunmap(PAGE_SIZE, ALIGN_DOWN(futex->pointer, PAGE_SIZE));
+    }
+
+    splock_unlock(&futex->lock);
+    kfree(futex);
+    splock_unlock(&futex_lock);
 }
 
 int futex_wait(int *addr, int val, long timeout, int flags)

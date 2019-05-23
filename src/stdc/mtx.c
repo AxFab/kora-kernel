@@ -21,32 +21,32 @@ int mtx_lock(mtx_t *mutex)
 /* blocks until locks a mutex or times out */
 int mtx_timedlock(mtx_t *restrict mutex, const struct timespec *restrict time_point)
 {
-	int i, c, s;
-	long timeout = time_point->tv_sec < 0 ? -1 : TMSPEC_TO_USEC(*time_point);
+    int i, c, s;
+    long timeout = time_point->tv_sec < 0 ? -1 : TMSPEC_TO_USEC(*time_point);
 
-	/* spin and try to take lock */
-	for (i = 0; i < 100; i++) {
-		s = 0;
-		c = atomic_compare_exchange_strong(&mutex->value, &s, 1);
-		if (c)
-		    return 0;
-		RELAX;
-	}
+    /* spin and try to take lock */
+    for (i = 0; i < 100; i++) {
+        s = 0;
+        c = atomic_compare_exchange_strong(&mutex->value, &s, 1);
+        if (c)
+            return 0;
+        RELAX;
+    }
 
-	/* the lock is now contended */
-	if (s == 1)
-	    s = atomic_exchange(&mutex->value, 2);
+    /* the lock is now contended */
+    if (s == 1)
+        s = atomic_exchange(&mutex->value, 2);
 
-	tick_t start;
-	if (time_point->tv_sec >= 0)
-	    start = clock_read(CLOCK_MONOTONIC);
+    tick_t start;
+    if (time_point->tv_sec >= 0)
+        start = clock_read(CLOCK_MONOTONIC);
 
-	while (s) {
-		/* wait in the kernel */
-		futex_wait((int*)&mutex->value, 2, timeout, mutex->flags);
-		s = atomic_exchange(&mutex->value, 2);
+    while (s) {
+        /* wait in the kernel */
+        futex_wait((int *)&mutex->value, 2, timeout, mutex->flags);
+        s = atomic_exchange(&mutex->value, 2);
 
-		if (time_point->tv_sec >= 0) {
+        if (time_point->tv_sec >= 0) {
             tick_t now = clock_read(CLOCK_MONOTONIC);
             tick_t elapsed = now - start;
             start = now;
@@ -54,49 +54,49 @@ int mtx_timedlock(mtx_t *restrict mutex, const struct timespec *restrict time_po
             if (timeout <= 0 || elapsed >= LONG_MAX)
                 return thrd_timedout;
         }
-	}
-	return 0;
+    }
+    return 0;
 }
 
 /* locks a mutex or returns without blocking if already locked */
 int mtx_trylock(mtx_t *mutex)
 {
-	int i, c, s;
-	/* spin and try to take lock */
-	for (i = 0; i < 100; i++) {
-		s = 0;
-		c = atomic_compare_exchange_strong(&mutex->value, &s, 1);
-		if (c)
-		    return 0;
-		RELAX;
-	}
-	return thrd_busy;
+    int i, c, s;
+    /* spin and try to take lock */
+    for (i = 0; i < 100; i++) {
+        s = 0;
+        c = atomic_compare_exchange_strong(&mutex->value, &s, 1);
+        if (c)
+            return 0;
+        RELAX;
+    }
+    return thrd_busy;
 }
 
 /* unlocks a mutex */
 int mtx_unlock(mtx_t *mutex)
 {
-	int i, c, s;
-	/* unlock, and exit if not contended */
-	if (mutex->value == 2)
-		mutex->value = 0;
-	else if (atomic_exchange(&mutex->value, 0) == 1)
-	    return 0;
+    int i, c, s;
+    /* unlock, and exit if not contended */
+    if (mutex->value == 2)
+        mutex->value = 0;
+    else if (atomic_exchange(&mutex->value, 0) == 1)
+        return 0;
 
-	/* spin and hope someone takes the lock */
-	for (i = 0; i < 200; i++) {
-		if (mutex->value) {
-			/* need to set to contended state in case there is waiters */
-		    s = 1;
-		    c = atomic_compare_exchange_strong(&mutex->value, &s, 2);
-		    if (c)
-		        return 0;
-		}
-		RELAX;
+    /* spin and hope someone takes the lock */
+    for (i = 0; i < 200; i++) {
+        if (mutex->value) {
+            /* need to set to contended state in case there is waiters */
+            s = 1;
+            c = atomic_compare_exchange_strong(&mutex->value, &s, 2);
+            if (c)
+                return 0;
+        }
+        RELAX;
     }
 
     /* we need to wake someone up */
-    futex_wake((int*)&mutex->value, 1);
+    futex_wake((int *)&mutex->value, 1);
     return 0;
 }
 
