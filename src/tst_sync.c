@@ -41,7 +41,7 @@ void tst_sync_01()
     tick_t start = clock_read(CLOCK_MONOTONIC);
     for (i = 0; i < th_N; ++i)
         thrd_create(&threads[i], (thrd_start_t)tst_sync_01_waiter, NULL);
-    usleep(MSEC_TO_USEC(10 * 8000));
+    usleep(MSEC_TO_USEC(100));
     ck_ok(test_ck1 == th_N);
 
     for (i = 0; i < th_N; ++i)

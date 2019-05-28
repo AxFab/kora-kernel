@@ -62,16 +62,19 @@ $(bindir)/$(kname): $(call fn_objs,SRCS-y)
 	$(Q) echo "    LD  "$@
 	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
 
-CKSRCS-y += $(wildcard $(srcdir)/stdc/*.c)
-CKSRCS-y += $(wildcard $(srcdir)/basic/*.c)
+CKSRCS-y += $(srcdir)/basic/futex.c
+CKSRCS-y += $(srcdir)/basic/bbtree.c
+CKSRCS-y += $(srcdir)/basic/hmap.c
+CKSRCS-y += $(srcdir)/stdc/cnd.c
+CKSRCS-y += $(srcdir)/stdc/mtx.c
 CKSRCS-y += $(srcdir)/test.c
 CKSRCS-y += $(srcdir)/thrd.c
 CKSRCS-y += $(srcdir)/sched.c
 CKSRCS-y += $(srcdir)/tst_sync.c
 # CKSRCS-y += $(srcdir)/atomic_arm.c
 
-CKLFLGS = -lpthread
-# CKLFLGS = -latomic
+# CKLFLGS = -lpthread
+CKLFLGS = -latomic
 
 $(eval $(call link_bin,ktest,CKSRCS,CKLFLGS))
 

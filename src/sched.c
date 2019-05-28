@@ -21,9 +21,9 @@ void scheduler_rm(task_t *task, int status)
     splock_unlock(&scheduler_lock);
 }
 
-void scheduler_switch(int state, int code)
+void scheduler_switch(int status, int code)
 {
-    if (state == TS_READY) {
+    if (status == TS_READY) {
         splock_lock(&scheduler_lock);
         ll_append(&scheduler_list, &kCPU.running->node);
         splock_unlock(&scheduler_lock);
