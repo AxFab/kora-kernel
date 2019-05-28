@@ -55,7 +55,8 @@ typedef struct task task_t;
 typedef struct event event_t;
 typedef struct advent advent_t;
 typedef struct emitter emitter_t;
-
+typedef struct ftx ftx_t;
+typedef struct adv adv_t;
 
 // Memory
 typedef struct mspace mspace_t;

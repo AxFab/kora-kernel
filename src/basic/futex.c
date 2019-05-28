@@ -5,9 +5,6 @@
 #include <string.h>
 #include <time.h>
 
-typedef struct ftx ftx_t;
-typedef struct adv adv_t;
-
 struct ftx {
     splock_t lock;
     llhead_t queue;
