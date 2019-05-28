@@ -35,7 +35,7 @@ void PS2_event(inode_t *ino, uint8_t type, int32_t param1, int32_t param2)
 
     event_t ev;
     // ev.time = time(NULL);
-    ev.type = type;
+    ev.message = type;
     ev.param1 = param1;
     ev.param2 = param2;
     //(void)ev;

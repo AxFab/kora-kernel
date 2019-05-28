@@ -78,7 +78,7 @@ void PS2_kdb_handler()
             kdb_status |= KDB_HOST;
 
 
-        wmgr_input(kdb_ino, EV_KEY_PRESS, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
+        wmgr_input(kdb_ino, EV_KEYDOWN, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
         // PS2_event(kdb_ino, EV_KEY_PRESS, 0, (kdb_status << 16) | c);
 
     } else {
@@ -98,7 +98,7 @@ void PS2_kdb_handler()
         else if (c == KEY_HOST)
             kdb_status &= ~KDB_HOST;
 
-        wmgr_input(kdb_ino, EV_KEY_RELEASE, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
+        wmgr_input(kdb_ino, EV_KEYUP, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
         // PS2_event(kdb_ino, EV_KEY_RELEASE, 0, (kdb_status << 16) | c);
     }
 }

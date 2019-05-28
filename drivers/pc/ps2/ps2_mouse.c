@@ -102,10 +102,10 @@ void PS2_mouse_handler()
             if (mouse_byte[0] & 0x40 || mouse_byte[0] & 0x80)
                 mouse_x = mouse_y = 0; // Overflow
             if (mouse_x != 0 || mouse_y != 0)
-                PS2_event(mouse_ino, EV_MOUSE_MOTION, mouse_x, -mouse_y);
+                PS2_event(mouse_ino, EV_MOUSEMOVE, mouse_x, -mouse_y);
 
             if (mouse_btn != (mouse_byte[0] & 7)) {
-                PS2_event(mouse_ino, EV_MOUSE_BTN, mouse_btn, 0);
+                // PS2_event(mouse_ino, EV_MOUSE_BTN, mouse_btn, 0);
                 mouse_btn = mouse_byte[0] & 7;
             }
 
