@@ -26,13 +26,12 @@
 
 #define ONCE_FLAG_INIT {0}
 #define TSS_DTOR_ITERATIONS 1
+#define  TIME_UTC  1
 
 #define thread_local __thread
 
 
 typedef atomic_int once_flag;
-#define ONCE_FLAG_INIT  0
-#define  TIME_UTC  1
 
 /* Indicates a thread error status */
 enum {
@@ -68,11 +67,12 @@ typedef unsigned tss_t;
 #if defined _MSC_VER
 #include <windows.h>
 typedef HANDLE thrd_t;
-#elif defined KORA_KRN
-typedef unsigned thrd_t;
 #else
+#define __CPU_MASK_TYPE int
 #include <pthread.h>
 typedef pthread_t thrd_t;
+// #elif defined KORA_KRN
+// typedef unsigned thrd_t;
 #endif
 
 

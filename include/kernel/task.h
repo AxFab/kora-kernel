@@ -138,7 +138,7 @@ struct task {
     /* Memory address space */
 
     emitter_t wlist;
-    advent_t *advent;
+    adv_t *advent;
 };
 
 #define TSK_USER_SPACE  0x001

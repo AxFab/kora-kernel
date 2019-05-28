@@ -17,6 +17,11 @@ void cpu_setup()
     kCPU.running->pid = __cpu_no;
 }
 
+void cpu_sweep()
+{
+    free(kCPU.running);
+}
+
 int cpu_no()
 {
     return __cpu_no;
@@ -33,14 +38,38 @@ _Noreturn void __assert_fail(const char *expr, const char *file, int line)
     abort();
 }
 
+
+bool irq_enable();
+bool irq_active = false;
+
+void irq_reset(bool enable)
+{
+    irq_active = true;
+    kCPU.irq_semaphore = 0;
+    if (enable)
+        IRQ_ON;
+    else
+        IRQ_OFF;
+}
+
 bool irq_enable()
 {
-
+    if (irq_active) {
+        assert(kCPU.irq_semaphore > 0);
+        if (--kCPU.irq_semaphore == 0) {
+            IRQ_ON;
+            return true;
+        }
+    }
+    return false;
 }
 
 void irq_disable()
 {
-
+    if (irq_active) {
+        IRQ_OFF;
+        ++kCPU.irq_semaphore;
+    }
 }
 
 void *kalloc(size_t len)

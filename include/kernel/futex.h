@@ -37,5 +37,6 @@ int futex_requeue(int *addr, int val, int val2, int *addr2, int flags);
 tick_t futex_tick();
 void futex_init();
 
+tick_t clock_read(int no);
 
 #endif /* _KORA_FUTEX_H */

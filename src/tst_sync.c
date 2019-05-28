@@ -11,6 +11,9 @@ atomic_int test_ck1;
 cnd_t test_cnd1;
 mtx_t test_mtx1;
 
+void futex_init();
+void scheduler_init();
+
 static void tst_sync_01_waiter()
 {
     test_ck1++;
@@ -116,6 +119,8 @@ int main()
     tst_sync_01();
     tst_sync_02();
     tst_sync_03();
+
+    free(kSYS.cpus);
     return 0;
 }
 

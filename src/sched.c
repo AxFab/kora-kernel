@@ -5,6 +5,9 @@
 splock_t scheduler_lock;
 llhead_t scheduler_list;
 
+void futex_tick();
+void usleep(long us);
+
 void scheduler_add(task_t *task)
 {
     splock_lock(&scheduler_lock);

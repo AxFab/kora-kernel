@@ -3,7 +3,6 @@
 #include <limits.h>
 #include <errno.h>
 // #include <unistd.h>
-// #include <pthread.h>
 #include "crtc.h"
 #include <threads.h>
 
@@ -20,7 +19,9 @@ void *impl_thrd_routine(void *p)
     struct impl_thrd_param pack = *((struct impl_thrd_param *)p);
     free(p);
     cpu_setup();
-    return (void *)(size_t)pack.func(pack.arg);
+    void *ret = (void *)(size_t)pack.func(pack.arg);
+    cpu_sweep();
+    return ret;
 }
 
 

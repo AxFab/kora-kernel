@@ -73,8 +73,8 @@ CKSRCS-y += $(srcdir)/sched.c
 CKSRCS-y += $(srcdir)/tst_sync.c
 # CKSRCS-y += $(srcdir)/atomic_arm.c
 
-# CKLFLGS = -lpthread
-CKLFLGS = -latomic
+CKLFLGS = -lpthread
+# CKLFLGS = -latomic
 
 $(eval $(call link_bin,ktest,CKSRCS,CKLFLGS))
 
