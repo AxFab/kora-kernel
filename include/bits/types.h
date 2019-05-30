@@ -64,7 +64,7 @@ typedef unsigned long int __dev_t;
 typedef unsigned int __uid_t;
 typedef unsigned int __gid_t;
 typedef unsigned long int __ino_t;
-//typedef unsigned int __mode_t;
+typedef unsigned int __mode_t;
 //typedef unsigned long int __nlink_t;
 typedef long int __off_t;
 typedef int __pid_t;

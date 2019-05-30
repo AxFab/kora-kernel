@@ -107,8 +107,8 @@ void irq_disable()
 
 void clock_elapsed(int status)
 {
-    uint64_t ticks = cpu_clock();
-    uint64_t elapsed = ticks - kCPU.last_elapsed;
+    int64_t ticks = cpu_clock(0);
+    int64_t elapsed = ticks - kCPU.last_elapsed;
     if (kCPU.status == CPU_SYS)
         kCPU.sys_elapsed += elapsed;
     else if (kCPU.status == CPU_USER)

@@ -31,7 +31,7 @@ void kunmap(void *, size_t);
 
 static int __empty_arena = 0;
 static int __arena_option = HEAP_CHECK;
-static size_t __arena_size = (16 * _Mib_);
+static size_t __arena_size = (2 * _Mib_);
 static size_t __arena_chunk_size_limit = (16 * _Kib_);
 static llhead_t __arenas;
 static heap_arena_t __firstArena;
@@ -95,7 +95,7 @@ void *_PRT(malloc)(size_t size)
         if (arena->length_ - arena->used_ < size)
             continue;
 
-        if (arena->used_ == 0)
+        if (arena->length_ - arena->used_ < 4096)
             --__empty_arena;
 
         ptr = malloc_r(arena, size);

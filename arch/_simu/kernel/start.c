@@ -1,39 +1,47 @@
-#include <stdatomic.h>
+#include <kernel/core.h>
+#include "opts.h"
 
-struct {
-    int cpu_count;
-    const char *cpu_vendor;
-} opts;
+struct opts opts;
 
-int __cpu_inc = 0;
-__thread __cpu_no = 0;
-
-int cpu_no()
-{
-    return __cpu_no;
-}
-
-void page_range(long long base, long long limit);
 
 int parse_args(int argc, char **argv)
 {
+    return 0;
 }
+
+int kwrite(const char *buf, int len)
+{
+    return write(1, buf, len);
+}
+
+void new_cpu()
+{
+    kprintf(-1, "CPU.%d MP\n", cpu_no());
+}
+
+int kmod_loaderrf() {}
 
 int main(int argc, char **argv)
 {
-    int i;
     // Initialize variables
     opts.cpu_count = 2;
     opts.cpu_vendor = "EloCorp.";
     // Parse args to customize the simulated platform
     parse_args(argc, argv);
-    // Setup pages
-    page_range(5 * PAGE_SIZE, 5 *);
-    page_range(25 * PAGE_SIZE, 20 * PAGE_SIZE);
-    // Initialize memory mapping
+    // Start of the kernel simulation
+    kprintf(-1, "\033[1;97mKoraOs\033[0m\n");
+    mmu_setup();
+    cpu_setup();
+    vfs_init();
+    futex_init();
+    // scheduler_init();
 
-
-
+    task_create(kmod_loaderrf, NULL, "Kernel loader #1");
+    // Save syslogs
+    // Load drivers
+    // Irq on !
+    // Start kernel tasks
+    clock_ticks();
     return 0;
 }
 

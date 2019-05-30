@@ -24,9 +24,11 @@ _Noreturn void abort();
 
 int sched_yield();
 
+#ifndef KORA_KRN
 #define __CPU_MASK_TYPE int
-
 #include <pthread.h>
+#endif
+
 /*
 typedef unsigned long int pthread_t;
 

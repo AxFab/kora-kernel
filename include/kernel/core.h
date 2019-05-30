@@ -160,7 +160,7 @@ void cpu_awake();
 /* - */
 void cpu_setup();
 /* - */
-uint64_t cpu_clock();
+int64_t cpu_clock(int no);
 /* - */
 void clock_elapsed(int status);
 /* - */
