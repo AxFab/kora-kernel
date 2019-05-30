@@ -46,7 +46,7 @@ kdk_api_t base_kapi[] = {
     KAPI(kmap),
     KAPI(kunmap),
     KAPI(kprintf),
-    KAPI(__errno_location),
+    // KAPI(__errno_location),
     KAPI(__assert_fail),
     KAPI(rand8),
     KAPI(rand16),
@@ -88,8 +88,8 @@ kdk_api_t base_kapi[] = {
     // KAPI(strupr),
     // KAPI(strnicmp),
     // KAPI(strrev),
-    KAPI(strset),
-    KAPI(strnset),
+    // KAPI(strset),
+    // KAPI(strnset),
     KAPI(strtok_r),
 
     /* STD time.h */

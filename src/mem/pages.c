@@ -44,6 +44,9 @@ void page_range(long long base, long long length)
     kMMU.free_pages += count;
     int i = start / 8;
     int j = start % 8;
+#if 0
+    kprintf(-1, "page at %d.%d count %d", i, j, count);
+#else
     while (count > 0 && j != 0) {
         MMU_BMP[i] = MMU_BMP[i] & ~(1 << j);
         j = (j + 1) % 8;
@@ -60,6 +63,7 @@ void page_range(long long base, long long length)
         j++;
         count--;
     }
+#endif
 }
 
 /* Allocate a single page for the system and return it's physical address */
