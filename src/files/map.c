@@ -97,7 +97,7 @@ page_t map_fetch(map_cache_t *cache, off_t off)
 {
     // kprintf(-1, "FETCH page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
     if (cache->ino->length != 0 && off > cache->ino->length)
-        kprintf(-1, "!?");
+        kprintf(-1, "Warning - fetching page %x outside of block inode!\n", off);
 
     assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
@@ -107,7 +107,7 @@ page_t map_fetch(map_cache_t *cache, off_t off)
         // TODO - ensure not in LRU
         page->rcu++;
         splock_unlock(&cache->lock);
-        cnd_wait(&page->cond, NULL);
+        // cnd_wait(&page->cond, NULL); SLEEP UNTIL PHYS == NULL
         return page->phys;
     }
 

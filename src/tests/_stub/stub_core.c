@@ -31,7 +31,7 @@
 int __errno;
 splock_t klog_lock = INIT_SPLOCK;
 
-uint64_t cpu_clock()
+int64_t cpu_clock(int no)
 {
     // static uint64_t ticks = 0;
     // return ++ticks;

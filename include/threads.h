@@ -67,12 +67,12 @@ typedef unsigned tss_t;
 #if defined _MSC_VER
 #include <windows.h>
 typedef HANDLE thrd_t;
+#elif defined KORA_KRN
+typedef unsigned thrd_t;
 #else
 #define __CPU_MASK_TYPE int
 #include <pthread.h>
 typedef pthread_t thrd_t;
-// #elif defined KORA_KRN
-// typedef unsigned thrd_t;
 #endif
 
 

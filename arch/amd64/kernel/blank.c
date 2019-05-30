@@ -14,7 +14,11 @@ void cpu_save() {}
 void cpu_restore() {}
 void cpu_stack() {}
 void cpu_halt() {}
-void cpu_clock() {}
+int64_t cpu_clock(int no)
+{
+    return 0;
+}
+
 void cpu_time() {}
 void cpu_usermode() {}
 

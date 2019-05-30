@@ -129,10 +129,11 @@ inode_t *tar_readdir(inode_t *dir, char *name, void *ctx)
 {
     int length = 0;
     tar_entry_t *entry;
+    int *idx = (int *)ctx;
     for (;;) {
-        int *idx = (int *)ctx;
         entry = (tar_entry_t *)ADDR_OFF(tinfo.start, *idx);
-
+        if (memcmp("ustar ", entry->magik, 6) != 0)
+            return NULL;
         length = tar_read_octal(entry->file_size);
         *idx += ALIGN_UP(length + TAR_BLOCK_SIZE, TAR_BLOCK_SIZE);
         if (*idx > tinfo.length)

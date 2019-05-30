@@ -52,9 +52,10 @@ SRCS-y += $(wildcard $(srcdir)/net/*.c)
 SRCS-y += $(wildcard $(arcdir)/kernel/*.$(ASM_EXT))
 SRCS-y += $(wildcard $(arcdir)/kernel/*.c)
 SRCS-y += $(wildcard $(srcdir)/basic/*.c)
-# SRCS-y += $(wildcard $(srcdir)/stdc/*.c)
-SRCS-y += $(srcdir)/stdc/mtx.c
-SRCS-y += $(srcdir)/stdc/cnd.c
+SRCS-y += $(wildcard $(srcdir)/stdc/*.c)
+# SRCS-y += $(srcdir)/stdc/mtx.c
+# SRCS-y += $(srcdir)/stdc/cnd.c
+# SRCS-y += $(srcdir)/thrd.c
 SRCS-y += # Drivers
 
 include $(topdir)/arch/$(target_arch)/make.mk
@@ -62,8 +63,8 @@ include $(topdir)/arch/$(target_arch)/make.mk
 $(bindir)/$(kname): $(call fn_objs,SRCS-y)
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    LD  "$@
-	$(V) $(CC) -o $@ $^ -latomic -lpthread
-# $(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc -latomic -pthread
+#	$(V) $(CC) -o $@ $^ -latomic -lpthread
+	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
 
 CKSRCS-y += $(srcdir)/basic/futex.c
 CKSRCS-y += $(srcdir)/basic/bbtree.c

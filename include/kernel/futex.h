@@ -30,6 +30,7 @@
 #define FUTEX_CREATE  8
 
 typedef long long tick_t;
+tick_t clock_read(int no);
 
 int futex_wait(int *addr, int val, long timeout, int flags);
 int futex_wake(int *addr, int val);
@@ -37,6 +38,6 @@ int futex_requeue(int *addr, int val, int val2, int *addr2, int flags);
 tick_t futex_tick();
 void futex_init();
 
-tick_t clock_read(int no);
+
 
 #endif /* _KORA_FUTEX_H */
