@@ -138,9 +138,9 @@ void com_setup()
     for (i = 0; i < 4; ++i) {
         snprintf(name, 8, "com%d", i + 1);
         inode_t *ino = vfs_inode(i + 1, FL_CHR, NULL);
-        ino->und.dev->devclass = "Serial port";
-        ino->und.dev->devname = (char *)devnames[i];
-        ino->und.dev->ops = &com_dops;
+        ino->dev->devclass = "Serial port";
+        ino->dev->devname = (char *)devnames[i];
+        ino->dev->ops = &com_dops;
         ino->ops = &com_fops;
         vfs_mkdev(ino, name);
     }

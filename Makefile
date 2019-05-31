@@ -52,7 +52,7 @@ SRCS-y += $(wildcard $(srcdir)/net/*.c)
 SRCS-y += $(wildcard $(arcdir)/kernel/*.$(ASM_EXT))
 SRCS-y += $(wildcard $(arcdir)/kernel/*.c)
 SRCS-y += $(wildcard $(srcdir)/basic/*.c)
-ifeq ($(simul),)
+ifneq ($(target_arch),_simu)
 SRCS-y += $(wildcard $(srcdir)/stdc/*.c)
 else
 SRCS-y += $(srcdir)/stdc/mtx.c
