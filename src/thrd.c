@@ -54,7 +54,9 @@ int thrd_equal(thrd_t thr0, thrd_t thr1)
 
 void thrd_exit(int res)
 {
-    pthread_exit((void *)(size_t)res);
+    for (;;)
+        pthread_exit((void *)(size_t)res);
+
 }
 
 int thrd_join(thrd_t thr, int *res)

@@ -49,6 +49,7 @@ clock64_t kclock();
 
 /* Kernel development kit */
 typedef struct kdk_api kdk_api_t;
+typedef struct scall_entry scall_entry_t;
 
 // Tasks
 typedef struct task task_t;
@@ -64,7 +65,6 @@ typedef struct mspace mspace_t;
 // Files
 typedef struct inode inode_t;
 typedef struct device device_t;
-typedef struct volume volume_t;
 
 typedef struct screen screen_t;
 typedef struct window window_t;

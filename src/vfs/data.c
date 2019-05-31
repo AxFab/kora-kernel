@@ -139,7 +139,7 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
     case FL_CHR:
     case FL_LNK:
     case FL_INFO:
-        if (ino->und.dev->flags & VFS_RDONLY) {
+        if (ino->dev->flags & VFS_RDONLY) {
             errno = EROFS;
             return -1;
         } else if (ino->ops->write == NULL) {
