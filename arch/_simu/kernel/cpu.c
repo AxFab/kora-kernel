@@ -51,11 +51,20 @@ int cpu_save(cpu_state_t state)
     for (;;);
 }
 
-void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off);
+#include <kora/syscalls.h>
+int hostfs_setup();
 
 _Noreturn void cpu_restore(cpu_state_t state)
 {
-    sys_mmap(NULL, 8192, 006, -1, 0);
+    int pid = kCPU.running->pid;
+    if (pid == 1) {
+	// First load some drivers
+	hostfs_setup();
+	// Look for 'boot-device' and mount it as root
+	irq_syscall(SYS_OPEN, -1, (size_t)"hdd1", 05, 0, 0);
+	// vfs_search(kSYS.dev_ino, "hdd1");
+        irq_syscall(SYS_MMAP, 0, 8192, 006, -1, 0);
+    }
     kprintf(-1, "cpu_restore() - Not implemented\n");
     for (;;);
 }
