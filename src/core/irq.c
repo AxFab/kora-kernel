@@ -213,7 +213,7 @@ struct scall_entry {
     bool ret;
 };
 
-#define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)n, r }
+#define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)sys_##n, r }
 
 scall_entry_t syscall_entries[64] = {
     // SYS_POWER
@@ -222,7 +222,7 @@ scall_entry_t syscall_entries[64] = {
     // SCALL_ENTRY(SYS_SYSINFO, sys_sysinfo, "%d, %p, %d", false),
 
     // SYS_YIELD
-    SCALL_ENTRY(SYS_EXIT, sys_exit, "%d", false),
+    SCALL_ENTRY(SYS_EXIT, exit, "%d", false),
     // SYS_WAIT
     // SYS_EXEC
     // SYS_CLONE
@@ -231,18 +231,18 @@ scall_entry_t syscall_entries[64] = {
     // SYS_SIGACTION
     // SYS_SIGRETURN
 
-    SCALL_ENTRY(SYS_MMAP, sys_mmap, "%p, %p, 0%o, %d, %d", true),
-    SCALL_ENTRY(SYS_MUNMAP, sys_munmap, "%p, %p", true),
+    SCALL_ENTRY(SYS_MMAP, mmap, "%p, %p, 0%o, %d, %d", true),
+    SCALL_ENTRY(SYS_MUNMAP, munmap, "%p, %p", true),
     // SYS_MPROTECT
 
-    SCALL_ENTRY(SYS_OPEN, sys_open, "%d, %s, 0%o, 0%o", true),
-    SCALL_ENTRY(SYS_CLOSE, sys_close, "%d", true),
-    SCALL_ENTRY(SYS_READ, sys_read, "%d, %p, %d", true),
-    SCALL_ENTRY(SYS_WRITE, sys_write, "%d, %p, %d", true),
+    SCALL_ENTRY(SYS_OPEN, open, "%d, %s, 0%o, 0%o", true),
+    SCALL_ENTRY(SYS_CLOSE, close, "%d", true),
+    SCALL_ENTRY(SYS_READ, read, "%d, %p, %d", true),
+    SCALL_ENTRY(SYS_WRITE, write, "%d, %p, %d", true),
     // SYS_SEEK
 
-    SCALL_ENTRY(SYS_WINDOW, sys_window, "%d, %d, %d, 0%o", true),
-    SCALL_ENTRY(SYS_FCNTL, sys_fcntl, "%d, %d, %p", true),
+    SCALL_ENTRY(SYS_WINDOW, window, "%d, %d, %d, 0%o", true),
+    SCALL_ENTRY(SYS_FCNTL, fcntl, "%d, %d, %p", true),
     // SYS_PIPE
 };
 

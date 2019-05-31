@@ -247,6 +247,8 @@ struct kSys {
     uint64_t jiffies; // Number of CPU ticks
     splock_t time_lock;
     int timer_cpu;
+    /* Virtual file system */
+    inode_t *dev_ino;
 
 };
 

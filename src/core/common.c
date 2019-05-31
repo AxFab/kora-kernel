@@ -50,7 +50,7 @@ _Noreturn void __assert_fail(const char *expr, const char *file, int line)
         task_core(task);
     kpanic("Assertion\n");
 }
-
+/*
 int *__errno_location()
 {
     if (kCPU.running)
@@ -62,7 +62,7 @@ clock64_t clock_read(int no)
 {
     return kSYS.clock_us + kSYS.clock_adj;
 }
-
+*/
 clock64_t kclock()
 {
     return kSYS.clock_us + kSYS.clock_adj;

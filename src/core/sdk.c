@@ -46,7 +46,7 @@ kdk_api_t base_kapi[] = {
     KAPI(kmap),
     KAPI(kunmap),
     KAPI(kprintf),
-    KAPI(__errno_location),
+    // KAPI(__errno_location),
     KAPI(__assert_fail),
     KAPI(rand8),
     KAPI(rand16),
