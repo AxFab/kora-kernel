@@ -249,8 +249,20 @@ struct kSys {
     int timer_cpu;
     /* Virtual file system */
     inode_t *dev_ino;
+    void *dev_table;
 
 };
+
+
+struct scall_entry {
+    char *name;
+    char *args;
+    long (*routine)(long, long, long, long, long);
+    long (*txt_call)(const char *);
+    bool ret;
+};
+
+extern scall_entry_t syscall_entries[64];
 
 extern struct kSys kSYS;
 

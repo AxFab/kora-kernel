@@ -46,7 +46,7 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
     ((int *)key)[0] = dir->no;
     strcpy(&key[4], name);
 
-    volume_t *fs = dir->und.vol;
+    device_t *fs = dir->dev;
 
     splock_lock(&fs->lock);
     dirent_t *ent = (dirent_t *)hmp_get(&fs->hmap, key, lg);
@@ -99,7 +99,7 @@ void vfs_rm_dirent_(dirent_t *ent)
 {
     assert(ent != NULL);
 
-    volume_t *fs = ent->parent->und.vol;
+    device_t *fs = ent->parent->dev;
     splock_lock(&fs->lock);
     hmp_remove(&fs->hmap, ent->key, ent->lg);
     rwlock_rdunlock(&ent->lock);
@@ -122,7 +122,7 @@ void vfs_dirent_rcu_(inode_t *ino)
 }
 
 
-void vfs_sweep(volume_t *fs, int max)
+void vfs_sweep(device_t *fs, int max)
 {
     /* Lock so that nobody can access new dirent_t */
     splock_lock(&fs->lock);
@@ -164,7 +164,7 @@ dirent_t *vfs_lookup_(inode_t *dir, CSTR name)
 {
     assert(dir != NULL && VFS_ISDIR(dir));
 
-    if (dir->und.vol->ops->open == NULL) {
+    if (dir->dev->fsops->open == NULL) {
         errno = ENOSYS;
         return NULL;
     }
@@ -175,7 +175,7 @@ dirent_t *vfs_lookup_(inode_t *dir, CSTR name)
         return NULL;
     } else if (ent->ino == NULL) {
         // TODO -- We can't - lock on entry (rdlock) !?
-        inode_t *ino = dir->und.vol->ops->open(dir, name, 0, NULL, VFS_OPEN);
+        inode_t *ino = dir->dev->fsops->open(dir, name, 0, NULL, VFS_OPEN);
         if (ino == NULL) {
             assert(errno != 0);
             vfs_rm_dirent_(ent);

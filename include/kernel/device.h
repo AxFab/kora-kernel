@@ -29,7 +29,7 @@
 
 typedef inode_t *(*fs_mount)(inode_t *dev);
 // typedef int (*fs_umount)(inode_t *ino);
-typedef void (*fs_umount)(volume_t *vol);
+typedef void (*fs_umount)(device_t *vol);
 // typedef void (*fs_release_dev)(device_t *dev);
 
 typedef int (*fs_read)(inode_t *ino, void *buf, size_t len, off_t off);
@@ -65,19 +65,12 @@ struct device {
     char *devname;
     char *devclass;
     dev_ops_t *ops;
+    fs_ops_t *fsops;
     char *vendor;
     char *model;
     int block;
-    void *info; // Place holder for driver info
-};
 
-struct volume {
-    uint8_t id[16];
-    unsigned flags;
-    char *volname;
-    char *volfs;
-    fs_ops_t *ops;
-    inode_t *dev;
+    inode_t *ino;
     atomic_int rcu;
     llhead_t lru;
     HMP_map hmap;
@@ -86,6 +79,14 @@ struct volume {
     splock_t lock;
     void *info; // Place holder for driver info
 };
+
+// struct volume {
+//     uint8_t id[16];
+//     unsigned flags;
+//     char *volname;
+//     char *volfs;
+//     void *info; // Place holder for driver info
+// };
 
 
 
@@ -105,13 +106,13 @@ struct fs_ops {
     int(*link)(inode_t *ino, inode_t *dir, const char *name);
     int(*unlink)(inode_t *dir, const char *name);
     int(*rename)(inode_t *ino, inode_t *dir, const char *name);
-    void (*umount)(volume_t *vol);
+    void (*umount)(device_t *vol);
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Allocate a new inode and set some mandatory fields */
-inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume);
+inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume);
 
 int vfs_mkdev(inode_t *ino, CSTR name);
 void vfs_rmdev(CSTR name);

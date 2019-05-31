@@ -48,7 +48,7 @@ void vfs_record_(inode_t *dir, inode_t *ino);
 dirent_t *vfs_lookup_(inode_t *dir, CSTR name);
 inode_t *vfs_search_(inode_t *top, CSTR path, acl_t *acl, int *links);
 
-void vfs_mountpt_rcu_(volume_t *fs);
+void vfs_mountpt_rcu_(device_t *fs);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

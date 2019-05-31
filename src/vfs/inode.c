@@ -27,9 +27,26 @@
 
 
 /* An inode must be created by the driver using a call to `vfs_inode()' */
-inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
+inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
 {
     inode_t *inode;
+#if 1
+    inode = (inode_t *)kalloc(sizeof(inode_t));
+    if (volume == NULL) {
+        // TODO -- Give UniqueID / Register on
+        volume = kalloc(sizeof(device_t));
+        volume->ino = inode;
+        bbtree_init(&volume->btree);
+        hmp_init(&volume->hmap, 16);
+    }
+    inode->no = no;
+    inode->type = type;
+
+    inode->rcu = 1;
+    inode->links = 0;
+    inode->dev = volume;
+    ++volume->rcu;
+#else
     if (volume != NULL) {
         rwlock_rdlock(&volume->brwlock);
         inode = bbtree_search_eq(&volume->btree, no, inode_t, bnode);
@@ -55,7 +72,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
     case FL_LNK:  /* Symbolic link (FS) */
         assert(volume != NULL);
         atomic_inc(&volume->rcu);
-        inode->und.vol = volume;
+        inode->dev = volume;
         inode->bnode.value_ = no;
         rwlock_wrlock(&volume->brwlock);
         bbtree_insert(&volume->btree, &inode->bnode);
@@ -64,16 +81,16 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
     case FL_VOL:  /* File system volume */
         assert(volume == NULL);
         inode->bnode.value_ = no;
-        inode->und.vol = kalloc(sizeof(volume_t));
-        bbtree_init(&inode->und.vol->btree);
-        bbtree_insert(&inode->und.vol->btree, &inode->bnode);
-        hmp_init(&inode->und.vol->hmap, 16);
+        inode->dev = kalloc(sizeof(device_t));
+        bbtree_init(&inode->dev->btree);
+        bbtree_insert(&inode->dev->btree, &inode->bnode);
+        hmp_init(&inode->dev->hmap, 16);
         break;
     case FL_BLK:  /* Block device */
     case FL_CHR:  /* Char device */
     case FL_VDO:  /* Video stream */
         assert(volume == NULL);
-        inode->und.dev = kalloc(sizeof(device_t));
+        inode->dev = kalloc(sizeof(device_t));
         break;
     case FL_PIPE:  /* Pipe */
         assert(volume == NULL);
@@ -92,6 +109,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
         assert(false);
         break;
     }
+#endif
     return inode;
 }
 
@@ -99,7 +117,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
 inode_t *vfs_open(inode_t *ino)
 {
     if (ino) {
-        // kprintf(KLOG_INO, "OPN %3x.%08x (%d)\n", ino->no, ino->und.vol, ino->rcu + 1);
+        // kprintf(KLOG_INO, "OPN %3x.%08x (%d)\n", ino->no, ino->dev, ino->rcu + 1);
         atomic_inc(&ino->rcu);
     }
     return ino;
@@ -114,11 +132,11 @@ void vfs_close(inode_t *ino)
     if (ino == NULL)
         return;
     unsigned int cnt = atomic_fetch_sub(&ino->rcu, 1);
-    // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->und.vol, cnt - 1);
+    // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->dev, cnt - 1);
     if (cnt <= 1) {
-        // kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->und.vol);
-        volume_t *volume = ino->und.vol;
-        device_t *dev = ino->und.dev;
+        // kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->dev);
+        device_t *volume = ino->dev;
+        device_t *dev = ino->dev;
         if (ino->ops->close)
             ino->ops->close(ino);
         switch (ino->type) {
@@ -139,13 +157,13 @@ void vfs_close(inode_t *ino)
             if (cnt <= 1) {
                 kprintf(KLOG_INO, "DISCARD %08x \n", volume);
 
-                if (volume->ops->umount)
-                    volume->ops->umount(volume);
+                if (volume->fsops->umount)
+                    volume->fsops->umount(volume);
                 // vfs_sweep(volume, volume->btree.count_);
                 bbtree_init(&volume->btree);
                 hmp_destroy(&volume->hmap, 0);
-                if (volume->dev)
-                    vfs_close(volume->dev);
+                if (volume->ino)
+                    vfs_close(volume->ino);
                 kfree(volume);
             }
             break;
@@ -213,13 +231,13 @@ inode_t *vfs_create(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
     } else if (type != FL_DIR && type != FL_REG) {
         errno = EINVAL;
         return NULL;
-    } else if (dir->und.vol->flags & VFS_RDONLY) {
+    } else if (dir->dev->flags & VFS_RDONLY) {
         errno = EROFS;
         return NULL;
     }
 
     /* Can we ask the file-system */
-    if (dir->und.vol->ops->open == NULL) {
+    if (dir->dev->fsops->open == NULL) {
         errno = ENOSYS;
         return NULL;
     }
@@ -256,7 +274,7 @@ inode_t *vfs_create(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
     }
 
     /* Request send to the file system */
-    ino = dir->und.vol->ops->open(dir, name, type, acl, flags | VFS_CREAT);
+    ino = dir->dev->fsops->open(dir, name, type, acl, flags | VFS_CREAT);
     if (ino == NULL) {
         assert(errno != 0);
         return NULL;
@@ -279,7 +297,7 @@ int vfs_unlink(inode_t *dir, CSTR name)
     if (dir == NULL || !VFS_ISDIR(dir)) {
         errno = ENOTDIR;
         return -1;
-    } else if (dir->und.vol->flags & VFS_RDONLY) {
+    } else if (dir->dev->flags & VFS_RDONLY) {
         errno = EROFS;
         return -1;
     }
@@ -292,13 +310,13 @@ int vfs_unlink(inode_t *dir, CSTR name)
     }
 
     /* Can we ask the file-system */
-    if (dir->und.vol->ops->unlink == NULL) {
+    if (dir->dev->fsops->unlink == NULL) {
         errno = ENOSYS;
         return -1;
     }
 
     /* Request send to the file system */
-    int ret = dir->und.vol->ops->unlink(dir, name);
+    int ret = dir->dev->fsops->unlink(dir, name);
     if (ret == 0 || ent->ino == NULL)
         vfs_rm_dirent_(ent);
     else
@@ -336,7 +354,7 @@ int vfs_truncate(inode_t *ino, off_t length)
     if (ino == NULL || ino->type != FL_REG) {
         errno = EINVAL;
         return -1;
-    } else if (ino->und.vol->flags & VFS_RDONLY) {
+    } else if (ino->dev->flags & VFS_RDONLY) {
         errno = EINVAL;
         return -1;
     }

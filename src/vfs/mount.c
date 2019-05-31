@@ -77,7 +77,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs)
     }
 
     assert(ino->type == FL_VOL);
-    kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", devname, ino->und.vol->volname, ino->und.vol->volfs);
+    kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", devname, ino->dev->devname, ino->dev->devclass);
     errno = 0;
     return ino;
 }
@@ -85,7 +85,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs)
 int vfs_umount(inode_t *ino)
 {
     assert(ino->type == FL_VOL);
-    volume_t *volume = ino->und.vol;
+    device_t *volume = ino->dev;
 
     errno = 0;
     if (ino->ops->close)

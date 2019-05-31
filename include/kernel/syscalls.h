@@ -133,3 +133,17 @@ long sys_sinfo(unsigned info, const void *buf, int len);
 long sys_log(CSTR msg);
 long sys_sysctl(int cmd, void *args);
 long sys_copy(int out, int in, size_t size, int count);
+
+
+long txt_open(const char *);
+long txt_close(const char *);
+long txt_read(const char *);
+long txt_write(const char *);
+long txt_mmap(const char *);
+long txt_munmap(const char *);
+long txt_exit(const char *);
+long txt_fcntl(const char *);
+long txt_window(const char *);
+// long txt_open(const char *);
+
+

@@ -100,4 +100,7 @@ time_t timegm(struct tm *tm);
 
 void nanosleep(struct timespec *req, struct timespec *rest);
 
+
+void clock_gettime(int no, struct timespec *sp);
+
 #endif  /* _TIME_H */

@@ -205,15 +205,7 @@ void irq_pagefault(size_t vaddr, int reason)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-typedef struct scall_entry scall_entry_t;
-struct scall_entry {
-    char *name;
-    char *args;
-    long (*routine)(long, long, long, long, long);
-    bool ret;
-};
-
-#define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)sys_##n, r }
+#define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)sys_##n, txt_##n, r }
 
 scall_entry_t syscall_entries[64] = {
     // SYS_POWER
@@ -235,7 +227,7 @@ scall_entry_t syscall_entries[64] = {
     SCALL_ENTRY(SYS_MUNMAP, munmap, "%p, %p", true),
     // SYS_MPROTECT
 
-    SCALL_ENTRY(SYS_OPEN, open, "%d, %s, 0%o, 0%o", true),
+    SCALL_ENTRY(SYS_OPEN, open, "%d, \"%s\", 0%o, 0%o", true),
     SCALL_ENTRY(SYS_CLOSE, close, "%d", true),
     SCALL_ENTRY(SYS_READ, read, "%d, %p, %d", true),
     SCALL_ENTRY(SYS_WRITE, write, "%d, %p, %d", true),

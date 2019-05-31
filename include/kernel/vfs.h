@@ -125,14 +125,15 @@ struct inode {
     void *info; // Place holder for driver info
     ino_ops_t *ops;
 
-    union { // Place holder for underlying device info
-        volume_t *vol; // FL_REG, FL_DIR, FL_LNK, FL_VOL
-        device_t *dev; // FL_BLK, FL_CHR, FL_VDO
-        // pipe_t *pipe; // FL_PIPE
-        // ifnet_t *ifnet; // FL_NET
-        socket_t *socket; // FL_SOCK
-        // desktop_t *desktop; // FL_WIN, FL_TTY
-    } und;
+    device_t *dev;
+     // FL_BLK, FL_CHR, FL_VDO
+    // union { // Place holder for underlying device info
+    //     device_t *vol; // FL_REG, FL_DIR, FL_LNK, FL_VOL
+    //     // pipe_t *pipe; // FL_PIPE
+    //     // ifnet_t *ifnet; // FL_NET
+    //     socket_t *socket; // FL_SOCK
+    //     // desktop_t *desktop; // FL_WIN, FL_TTY
+    // } und;
 
     llnode_t lnode;
 };

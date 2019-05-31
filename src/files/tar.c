@@ -72,7 +72,7 @@ struct tar_info {
 
 } tinfo;
 
-inode_t *tar_inode(volume_t *vol, tar_entry_t *entry, int length)
+inode_t *tar_inode(device_t *vol, tar_entry_t *entry, int length)
 {
     int lba = ((void *)entry - tinfo.start);
     inode_t *ino = vfs_inode(lba / TAR_BLOCK_SIZE + 2, FL_REG, vol);
@@ -142,7 +142,7 @@ inode_t *tar_readdir(inode_t *dir, char *name, void *ctx)
             break;
     }
     strncpy(name, entry->name, 255);
-    inode_t *ino = tar_inode(dir->und.vol, entry, length);
+    inode_t *ino = tar_inode(dir->dev, entry, length);
     return ino;
 }
 
@@ -192,10 +192,10 @@ inode_t *tar_mount(void *base, void *end, CSTR name)
     ino->length = 0;
     ino->lba = 0;
     ino->ops = &tar_dir_ops;
-    ino->und.vol->ops = &tar_fs_ops;
-    ino->und.vol->volname = strdup(name);
-    ino->und.vol->volfs = "tarfs";
-    ino->und.vol->info = &tinfo;
+    ino->dev->fsops = &tar_fs_ops;
+    ino->dev->devname = strdup(name);
+    ino->dev->devclass = "tarfs";
+    ino->dev->info = &tinfo;
 
     errno = 0;
     return ino;
