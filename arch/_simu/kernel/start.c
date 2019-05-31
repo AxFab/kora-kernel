@@ -24,7 +24,7 @@ int kmod_loaderrf() {}
 int main(int argc, char **argv)
 {
     // Initialize variables
-    opts.cpu_count = 2;
+    opts.cpu_count = 1;
     opts.cpu_vendor = "EloCorp.";
     // Parse args to customize the simulated platform
     parse_args(argc, argv);
@@ -32,6 +32,7 @@ int main(int argc, char **argv)
     kprintf(-1, "\033[1;97mKoraOs\033[0m\n");
     mmu_setup();
     cpu_setup();
+    devfs_mount();
     vfs_init();
     futex_init();
     // scheduler_init();

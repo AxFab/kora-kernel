@@ -15,6 +15,8 @@ int cpu_no()
     return __cpu_no;
 }
 
+void usleep(long us);
+
 void cpu_setup()
 {
     int i;
@@ -37,48 +39,71 @@ void cpu_sweep()
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+#include <fcntl.h>
+#include <kora/syscalls.h>
+int hostfs_setup();
+extern jmp_buf cpu_jbuf;
+
 void cpu_stack(task_t *task, size_t entry, size_t param)
 {
-    // HELLO !!!
-    task->state[0] = entry;
+    hostfs_setup();
+
+    task->state[0] = open("master.strace", O_RDONLY);
     task->state[1] = param;
     task->state[2] = 0;
 }
 
+
 int cpu_save(cpu_state_t state)
 {
-    kprintf(-1, "cpu_restore() - Not implemented\n");
-    for (;;);
+    kprintf(-1, "cpu_save()\n");
+    return 1;
 }
 
-#include <kora/syscalls.h>
-int hostfs_setup();
 
 _Noreturn void cpu_restore(cpu_state_t state)
 {
     int pid = kCPU.running->pid;
-    if (pid == 1) {
-	// First load some drivers
-	hostfs_setup();
-	// Look for 'boot-device' and mount it as root
-	irq_syscall(SYS_OPEN, -1, (size_t)"hdd1", 05, 0, 0);
-	// vfs_search(kSYS.dev_ino, "hdd1");
-        irq_syscall(SYS_MMAP, 0, 8192, 006, -1, 0);
+
+    char line[256];
+    int idx = -1;
+    int fd = state[0];
+    do {
+        if (read(fd, &line[++idx], 1) != 1) {
+            longjmp(cpu_jbuf, 1);
+        }
+    } while (line[idx] != '\n');
+    line[idx] = '\0';
+
+    char sysname[16];
+    sscanf(line, "%s (", sysname);
+
+    int i;
+    scall_entry_t *sy = NULL;
+    scall_entry_t *sc = syscall_entries;
+    for (i = 0; i < 64; ++i, ++sc) {
+        if (sc->name != NULL && strcmp(sysname, sc->name) == 0) {
+            sy = sc;
+            break;
+        }
     }
-    kprintf(-1, "cpu_restore() - Not implemented\n");
-    for (;;);
+
+    if (sy != NULL)
+        sy->txt_call(line);
+    longjmp(cpu_jbuf, 2);
 }
 
 _Noreturn void cpu_halt()
 {
-    kprintf(-1, "cpu_halt() - Not implemented\n");
-    for (;;);
+    usleep(MSEC_TO_USEC(50));
+    longjmp(cpu_jbuf, 1);
 }
 
 
 _Noreturn void cpu_usermode(size_t entry, size_t param)
 {
-
+    kprintf(-1, "cpu_usermode() - Not implemented\n");
+    for (;;);
 }
 
 void cpu_tss()
@@ -88,11 +113,16 @@ void cpu_tss()
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+#include <time.h>
 
 int64_t cpu_clock(int no)
 {
+    struct timespec sp;
+    clock_gettime(CLOCK_MONOTONIC, &sp);
+    return sp.tv_sec * 1000000LL + sp.tv_nsec / 1000;
 }
 
 time_t cpu_time()
 {
+    return time(NULL);
 }
