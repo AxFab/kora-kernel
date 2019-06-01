@@ -24,6 +24,7 @@
 #include <kernel/device.h>
 #include <kernel/net.h>
 #include <kernel/task.h>
+#include <threads.h>
 #include <string.h>
 #include <errno.h>
 
@@ -257,7 +258,7 @@ int sys_fcntl(int fd, int cmd, void *args)
         return -1;
     }
 
-    mtx_lock(&stream->lock) ;
+    // mtx_lock(&stream->lock) ;
     if (stream->ino->ops->fcntl == NULL) {
         errno = ENOSYS;
         mtx_unlock(&stream->lock);
@@ -267,7 +268,7 @@ int sys_fcntl(int fd, int cmd, void *args)
     int ret = stream->ino->ops->fcntl(stream->ino, cmd, args);
     if (ret >= 0)
         errno = 0;
-    mtx_unlock(&stream->lock);
+    // mtx_unlock(&stream->lock);
     return ret;
 }
 
@@ -306,7 +307,7 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off)
         stream_t *stream = resx_get(resx, fd);
         if (stream == NULL) {
             errno = EBADF;
-            return -1;
+            return (void*)-1;
             // } else if ((stream->flags & R_OK) == 0) {
             //     errno = EACCES;
             //     return -1;

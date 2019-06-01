@@ -130,6 +130,7 @@ void kernel_start()
     // Resolve page fault for allocation -- circular deps between mspace_map and kalloc
     kalloc(2);
     memory_info();
+    // mmu_setup();
     assert(kCPU.irq_semaphore == 1);
 
     cpu_setup();
@@ -140,7 +141,9 @@ void kernel_start()
     kprintf(KLOG_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
 
     assert(kCPU.irq_semaphore == 1);
+    devfs_mount();
     vfs_init();
+    futex_init();
     kmod_init();
     platform_setup();
     assert(kCPU.irq_semaphore == 1);

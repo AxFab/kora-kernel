@@ -56,7 +56,7 @@ map_cache_t *map_create(inode_t *ino, void *read, void *write)
     cache->read = read;
     cache->write = write;
     cache->ino = ino;
-    cache->block = ino->und.dev->block;
+    cache->block = ino->dev->block;
     splock_init(&cache->lock);
     bbtree_init(&cache->tree);
     return cache;

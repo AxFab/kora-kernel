@@ -1,9 +1,8 @@
 #include <kernel/core.h>
 #include <threads.h>
 #include <assert.h>
-#include "crtc.h"
+#include "check.h"
 
-#define ck_ok(n)  assert(n)
 typedef long long tick_t;
 
 const int th_N = 5;
@@ -34,7 +33,7 @@ static void tst_sync_01_waiter()
     printf("H %d\n", cpu_no());
 }
 
-void tst_sync_01()
+TEST_CASE(tst_sync_01)
 {
     int i;
     thrd_t threads[th_N];
@@ -64,7 +63,7 @@ static void tst_sync_02_waiter()
     usleep(MSEC_TO_USEC(100));
 }
 
-void tst_sync_02()
+TEST_CASE(tst_sync_02)
 {
     int i;
     thrd_t threads[th_N];
@@ -97,7 +96,7 @@ static void tst_sync_03_task()
     ck_ok(ret == thrd_timedout);
 }
 
-void tst_sync_03()
+TEST_CASE(tst_sync_03)
 {
     thrd_t thread;
     mtx_init(&test_mtx1, mtx_timed);
@@ -110,18 +109,25 @@ void tst_sync_03()
     ck_ok(elapsed >= MSEC_TO_USEC(500));
 }
 
+
+jmp_buf __tcase_jump;
+SRunner runner;
+
 int main()
 {
     kSYS.cpus = calloc(sizeof(struct kCpu), 0x500);
     futex_init();
     scheduler_init();
 
-    tst_sync_01();
-    tst_sync_02();
-    tst_sync_03();
+    suite_create("Synchronization primitives");
+    fixture_create("Mutex");
+    tcase_create(tst_sync_01);
+    tcase_create(tst_sync_03);
+    fixture_create("Condition variable");
+    tcase_create(tst_sync_02);
 
     free(kSYS.cpus);
-    return 0;
+    return summarize();
 }
 
 

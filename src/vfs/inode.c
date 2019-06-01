@@ -135,48 +135,13 @@ void vfs_close(inode_t *ino)
     // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->dev, cnt - 1);
     if (cnt <= 1) {
         // kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->dev);
-        device_t *volume = ino->dev;
-        device_t *dev = ino->dev;
-        if (ino->ops->close)
-            ino->ops->close(ino);
-        switch (ino->type) {
-        case FL_REG:
-        case FL_DIR:
-        case FL_VOL:
-            rwlock_wrlock(&volume->brwlock);
-            bbtree_remove(&volume->btree, ino->no);
-            kprintf(KLOG_INO, "Need rmlink of %3x\n", ino->no);
-            rwlock_wrunlock(&volume->brwlock);
+        // device_t *volume = ino->dev;
+        // device_t *dev = ino->dev;
+        // if (ino->ops->close)
+        //     ino->ops->close(ino);
 
-            // splock_lock(&volume->lock);
-            // ll_remove(&volume->lru, &ino->links);
-            // splock_unlock(&volume->lock);
-
-            cnt = atomic_fetch_sub(&volume->rcu, 1);
-            kprintf(KLOG_INO, "VOL %08x (%d)\n", volume, cnt - 1);
-            if (cnt <= 1) {
-                kprintf(KLOG_INO, "DISCARD %08x \n", volume);
-
-                if (volume->fsops->umount)
-                    volume->fsops->umount(volume);
-                // vfs_sweep(volume, volume->btree.count_);
-                bbtree_init(&volume->btree);
-                hmp_destroy(&volume->hmap, 0);
-                if (volume->ino)
-                    vfs_close(volume->ino);
-                kfree(volume);
-            }
-            break;
-        case FL_BLK:
-        case FL_CHR:
-            kfree(dev);
-            break;
-        case FL_PIPE:  /* Pipe */
-            break;
-        default:
-            assert(ino->type == 0);
-            break;
-        }
+        --ino->dev->rcu;
+        // TODO -- DEVICE
 
         // TODO -- Close IO file
         // if (ino->dev != NULL) {
@@ -184,7 +149,7 @@ void vfs_close(inode_t *ino)
         // } else if (ino->fs != NULL) {
         //     vfs_mountpt_rcu_(ino->fs);
         // }
-        kfree(ino);
+        // kfree(ino);
         return;
     }
 

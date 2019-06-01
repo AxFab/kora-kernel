@@ -24,7 +24,7 @@
 
 
 /* An inode must be created by the driver using a call to `vfs_inode()' */
-inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
+inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
 {
     inode_t *inode = (inode_t *)kalloc(sizeof(inode_t));
     inode->no = no;
@@ -38,18 +38,18 @@ inode_t *vfs_inode(unsigned no, ftype_t type, volume_t *volume)
     case FL_DIR:  /* Directory (FS) */
     case FL_LNK:  /* Symbolic link (FS) */
         assert(volume != NULL);
-        inode->und.vol = volume;
+        inode->dev = volume;
         break;
     case FL_VOL:  /* File system volume */
         assert(volume == NULL);
-        inode->und.vol = kalloc(sizeof(volume_t));
-        hmp_init(&inode->und.vol->hmap, 16);
+        inode->dev = kalloc(sizeof(device_t));
+        hmp_init(&inode->dev->hmap, 16);
         break;
     case FL_BLK:  /* Block device */
     case FL_CHR:  /* Char device */
     case FL_VDO:  /* Video stream */
         assert(volume == NULL);
-        inode->und.dev = kalloc(sizeof(device_t));
+        inode->dev = kalloc(sizeof(device_t));
         break;
     case FL_PIPE:  /* Pipe */
     case FL_NET:  /* Network interface */
@@ -96,13 +96,13 @@ void vfs_close(inode_t *ino)
             //
             break;
         case FL_VOL:  /* File system volume */
-            hmp_destroy(&ino->und.vol->hmap, 0);
-            kfree(ino->und.vol);
+            hmp_destroy(&ino->dev->hmap, 0);
+            kfree(ino->dev);
             break;
         case FL_BLK:  /* Block device */
         case FL_CHR:  /* Char device */
         case FL_VDO:  /* Video stream */
-            kfree(ino->und.dev);
+            kfree(ino->dev);
             break;
         case FL_PIPE:  /* Pipe */
         case FL_NET:  /* Network interface */

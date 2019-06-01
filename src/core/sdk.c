@@ -46,7 +46,9 @@ kdk_api_t base_kapi[] = {
     KAPI(kmap),
     KAPI(kunmap),
     KAPI(kprintf),
-    // KAPI(__errno_location),
+#ifdef KORA_KRN
+    KAPI(__errno_location),
+#endif
     KAPI(__assert_fail),
     KAPI(rand8),
     KAPI(rand16),

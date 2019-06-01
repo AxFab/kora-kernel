@@ -26,38 +26,50 @@ arcdir = $(topdir)/arch/$(target_arch)
 kname = kora-$(target_arch).krn
 
 all: kernel
+
 kernel: $(bindir)/$(kname)
 
 install: $(bindir)/$(kname)
 
-check: $(bindir)/ktest
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 CFLAGS += -Wall -Wextra -Wno-unused-parameter
 CFLAGS += -ffreestanding
 CFLAGS += -I$(topdir)/include
 CFLAGS += -I$(topdir)/arch/$(target_arch)/include
 CFLAGS += -ggdb
-CFLAGS += -DKORA_STDC -DKORA_KRN -D__NO_SYSCALL
 CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
+ifneq ($(target_arch),_simu)
+ifeq ($(target_os),kora)
+CFLAGS += -DKORA_KRN -D__NO_SYSCALL
+endif
+endif
+ifneq ($(target_os),kora)
+CFLAGS += --coverage -fprofile-arcs -ftest-coverage
+endif
+
 
 include $(topdir)/make/build.mk
 
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+SRCS-y += $(wildcard $(srcdir)/basic/*.c)
 SRCS-y += $(wildcard $(srcdir)/core/*.c)
 SRCS-y += $(wildcard $(srcdir)/files/*.c)
-SRCS-y += $(wildcard $(srcdir)/task/*.c)
 SRCS-y += $(wildcard $(srcdir)/mem/*.c)
-SRCS-y += $(wildcard $(srcdir)/vfs/*.c)
 SRCS-y += $(wildcard $(srcdir)/net/*.c)
+SRCS-y += $(wildcard $(srcdir)/task/*.c)
+SRCS-y += $(wildcard $(srcdir)/vfs/*.c)
 SRCS-y += $(wildcard $(arcdir)/kernel/*.$(ASM_EXT))
 SRCS-y += $(wildcard $(arcdir)/kernel/*.c)
-SRCS-y += $(wildcard $(srcdir)/basic/*.c)
 ifneq ($(target_arch),_simu)
 SRCS-y += $(wildcard $(srcdir)/stdc/*.c)
+SRCS-y += $(srcdir)/scheduler.c
 else
 SRCS-y += $(srcdir)/stdc/mtx.c
 SRCS-y += $(srcdir)/stdc/cnd.c
-SRCS-y += $(srcdir)/thrd.c
+SRCS-y += $(srcdir)/tests/thrd.c
 endif
 SRCS-y += # Drivers
 
@@ -66,25 +78,40 @@ include $(topdir)/arch/$(target_arch)/make.mk
 $(bindir)/$(kname): $(call fn_objs,SRCS-y)
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    LD  "$@
+ifneq ($(target_arch),_simu)
+	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
+else
 	$(V) $(CC) -o $@ $^ -latomic -lpthread
-#	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
+endif
 
-CKSRCS-y += $(srcdir)/basic/futex.c
-CKSRCS-y += $(srcdir)/basic/bbtree.c
-CKSRCS-y += $(srcdir)/basic/hmap.c
-CKSRCS-y += $(srcdir)/stdc/cnd.c
-CKSRCS-y += $(srcdir)/stdc/mtx.c
-CKSRCS-y += $(srcdir)/test.c
-CKSRCS-y += $(srcdir)/thrd.c
-CKSRCS-y += $(srcdir)/sched.c
-CKSRCS-y += $(srcdir)/tst_sync.c
-# CKSRCS-y += $(srcdir)/atomic_arm.c
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-CKLFLGS = -lpthread
+CHECKS += cksync ckutils
+
+include $(topdir)/make/check.mk
+
+CKLFLGS += --coverage -fprofile-arcs -ftest-coverage
+CKLFLGS += -lpthread
 # CKLFLGS = -latomic
 
-$(eval $(call link_bin,ktest,CKSRCS,CKLFLGS))
+cksync_src-y += $(srcdir)/basic/futex.c
+cksync_src-y += $(srcdir)/basic/bbtree.c
+cksync_src-y += $(srcdir)/basic/hmap.c
+cksync_src-y += $(srcdir)/stdc/cnd.c
+cksync_src-y += $(srcdir)/stdc/mtx.c
+cksync_src-y += $(srcdir)/tests/stub.c
+cksync_src-y += $(srcdir)/tests/thrd.c
+cksync_src-y += $(srcdir)/tests/sched.c
+cksync_src-y += $(srcdir)/tests/tst_sync.c
+$(eval $(call link_bin,cksync,cksync_src,CKLFLGS))
+
+ckutils_src-y += $(srcdir)/basic/bbtree.c
+ckutils_src-y += $(srcdir)/basic/hmap.c
+ckutils_src-y += $(srcdir)/tests/stub.c
+ckutils_src-y += $(srcdir)/tests/tst_utils.c
+$(eval $(call link_bin,ckutils,ckutils_src,CKLFLGS))
+
 
 ifeq ($(NODEPS),)
-include $(call fn_deps,SRCS)
+-include $(call fn_deps,SRCS-y)
 endif
