@@ -147,7 +147,6 @@ void irq_enter(int no)
     irq_reset(false);
 }
 
-#ifdef KORA_KRN
 
 void irq_fault(const fault_t *fault)
 {
@@ -205,7 +204,12 @@ void irq_pagefault(size_t vaddr, int reason)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-#define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)sys_##n, txt_##n, r }
+#ifndef KORA_KRN
+#  define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)sys_##n, txt_##n, r }
+#else
+#  define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)sys_##n, r }
+#endif
+
 
 scall_entry_t syscall_entries[64] = {
     // SYS_POWER
@@ -261,4 +265,3 @@ long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
     return ret;
 }
 
-#endif

@@ -258,7 +258,9 @@ struct scall_entry {
     char *name;
     char *args;
     long (*routine)(long, long, long, long, long);
+#ifndef KORA_KRN
     long (*txt_call)(const char *);
+#endif
     bool ret;
 };
 

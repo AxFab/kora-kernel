@@ -372,8 +372,6 @@ int task_kill(task_t *task, unsigned signum)
 //     }
 // }
 
-#ifdef KORA_KRN
-
 _Noreturn void task_fatal(CSTR error, unsigned signum)
 {
     if (kCPU.running != NULL) {
@@ -388,4 +386,3 @@ _Noreturn void task_fatal(CSTR error, unsigned signum)
     for (;;); // scheduler_switch(0, -1);
 }
 
-#endif

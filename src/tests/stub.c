@@ -3,7 +3,7 @@
 #include <kernel/types.h>
 #include <kernel/core.h>
 #include <kernel/task.h>
-#include "crtc.h"
+#include "check.h"
 
 struct kSys kSYS;
 
