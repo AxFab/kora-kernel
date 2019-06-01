@@ -174,6 +174,5 @@ void kmod_init()
     klib.length = 4 * _Mib_; // TODO arch specific!
     ll_append(&kproc.libraries, &klib.node);
     kmod_symbols(base_kapi);
-    kmod_register(&kmod_info_dev);
 }
 
