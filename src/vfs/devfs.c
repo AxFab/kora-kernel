@@ -113,6 +113,9 @@ static inode_t *devfs_dev(const char *name, int type, int show, ino_ops_t *ops)
     info->dev = ino;
     strncpy(info->name, name, 32);
     info->flags = 2;
+    kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+        ino->dev->model ? ino->dev->model : "", name);
+
     return ino;
 }
 
@@ -233,6 +236,8 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
             info->show |= DF_MOUNT1;
         if (ino->dev->devname[0] != '0')
             info->show |= DF_MOUNT2;
+        // kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", devname, ino->dev->devname, ino->dev->devclass);
+        kprintf(KLOG_MSG, "Mount drive as \033[35m%s\033[0m (%s)\n", ino->dev->devname, ino->dev->devclass);
         break;
     case FL_BLK:
         info->show = DF_DISK;
@@ -240,11 +245,20 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
             info->show = DF_DISK1;
         if (ino->dev->devname[0] != '0')
             info->show = DF_DISK2;
+        if (ino->length)
+            kprintf(KLOG_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+                    ino->dev->model ? ino->dev->model : "", sztoa(ino->length), name);
+        else
+        kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+                ino->dev->model ? ino->dev->model : "", name);
         break;
     default:
         info->show = DF_ROOT;
+        kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+                ino->dev->model ? ino->dev->model : "", name);
         break;
     }
+
     info->dev = vfs_open(ino);
     strncpy(info->name, name, 32);
     info->flags = 2;

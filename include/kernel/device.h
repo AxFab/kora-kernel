@@ -71,6 +71,7 @@ struct device {
     int block;
 
     inode_t *ino;
+    inode_t *underlying;
     atomic_int rcu;
     llhead_t lru;
     HMP_map hmap;
