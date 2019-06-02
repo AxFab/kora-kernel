@@ -162,7 +162,7 @@ typedef struct FAT_volume FAT_volume_t;
 typedef struct FAT_diterator  FAT_diterator_t;
 
 
-void fatfs_umount(volume_t *vol);
+void fatfs_umount(device_t *vol);
 
 int fatfs_truncate(inode_t *ino, off_t length);
 int fatfs_read (inode_t *ino, void *buffer, size_t length, off_t offset);
@@ -177,7 +177,7 @@ void fatfs_settime(unsigned short *date, unsigned short *time, clock64_t value);
 clock64_t fatfs_gettime(unsigned short *date, unsigned short *time);
 void fatfs_read_shortname(struct FAT_ShortEntry *entry, char *shortname);
 void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname);
-inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume, FAT_volume_t *info);
+inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, device_t *volume, FAT_volume_t *info);
 void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t type);
 int fatfs_mkdir(struct FAT_volume *info, inode_t *dir);
 

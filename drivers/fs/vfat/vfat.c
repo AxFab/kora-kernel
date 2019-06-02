@@ -21,7 +21,7 @@
 
 int fatfs_truncate(inode_t *ino, off_t length)
 {
-    FAT_volume_t *info = (FAT_volume_t *)ino->und.vol->info;
+    FAT_volume_t *info = (FAT_volume_t *)ino->dev->info;
     const int entry_per_cluster = info->BytsPerSec / sizeof(struct FAT_ShortEntry);
     int lba = ino->no / entry_per_cluster;
     struct FAT_ShortEntry *entry = bio_access(info->io_data_rw, lba);

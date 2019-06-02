@@ -67,7 +67,7 @@ static void isofs_filename(ISOFS_entry_t *entry, char *name)
 }
 
 /* */
-static inode_t *isofs_inode(volume_t *volume, ISOFS_entry_t *entry)
+static inode_t *isofs_inode(device_t *volume, ISOFS_entry_t *entry)
 {
     ftype_t type = entry->fileFlag & 2 ? FL_DIR : FL_REG;
     inode_t *ino = vfs_inode(entry->locExtendLE, type, volume);
@@ -98,8 +98,8 @@ int isofs_close(inode_t *ino)
     if (ino->type == FL_REG)
         map_destroy(ino->info);
     else if (ino->type == FL_VOL) {
-        kfree(ino->und.vol->volname);
-        kfree(ino->und.vol);
+        kfree(ino->dev->devname);
+        kfree(ino->dev);
     }
     return 0;
 }
@@ -115,7 +115,7 @@ ISO_dirctx_t *isofs_opendir(inode_t *dir)
 
 int isofs_closedir(inode_t *dir, ISO_dirctx_t *ctx)
 {
-    struct ISO_info *info = (struct ISO_info *)dir->und.vol->info;
+    struct ISO_info *info = (struct ISO_info *)dir->dev->info;
     if (ctx->base != NULL)
         bio_clean(info->io, ctx->lba);
     // kunmap(ctx->base, 8192);
@@ -135,9 +135,9 @@ inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
     }
 
     int lba = dir->lba;
-    struct ISO_info *info = (struct ISO_info *)dir->und.vol->info;
+    struct ISO_info *info = (struct ISO_info *)dir->dev->info;
     uint8_t *address = bio_access(info->io, lba);
-    // kmap(8192, dir->und.vol->dev, lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
+    // kmap(8192, dir->dev->underlying, lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
 
     /* Skip the first two entries */
     ISOFS_entry_t *entry = (ISOFS_entry_t *)address;
@@ -152,7 +152,7 @@ inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
 
         /* Compare filenames */
         if (strcmp(name, filename) == 0) {
-            inode_t *ino = isofs_inode(dir->und.vol, entry);
+            inode_t *ino = isofs_inode(dir->dev, entry);
             bio_clean(info->io, lba);
             // kunmap(address, 8192);
             kfree(filename);
@@ -172,7 +172,7 @@ inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
             lba += 2;
             // kunmap(address, 8192);
             address = bio_access(info->io, lba);
-            // address = kmap(8192, dir->und.vol->dev, lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
+            // address = kmap(8192, dir->dev->dev, lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
             entry = (ISOFS_entry_t *)((size_t)address + off);
         }
     }
@@ -192,12 +192,12 @@ inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
 
 inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx)
 {
-    struct ISO_info *info = (struct ISO_info *)dir->und.vol->info;
+    struct ISO_info *info = (struct ISO_info *)dir->dev->info;
     if (ctx->lba == 0)
         ctx->lba = dir->lba;
     if (ctx->base == NULL)
         ctx->base = bio_access(info->io, ctx->lba);
-    // ctx->base = kmap(8192, dir->und.vol->dev, ctx->lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO); // TODO - NOT ALIGNED !!
+    // ctx->base = kmap(8192, dir->dev->dev, ctx->lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO); // TODO - NOT ALIGNED !!
 
     /* Skip the first two entries */
     ISOFS_entry_t *entry = (ISOFS_entry_t *)(&ctx->base[ctx->off]);
@@ -207,7 +207,7 @@ inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx)
             entry = ISOFS_nextEntry(entry);
             continue;
         }
-        inode_t *ino = isofs_inode(dir->und.vol, entry);
+        inode_t *ino = isofs_inode(dir->dev, entry);
 
         /* Move pointer to next entry, eventualy continue directory mapping. */
         entry = ISOFS_nextEntry(entry);
@@ -236,7 +236,7 @@ inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx)
 
 int isofs_read(inode_t *ino, void *buffer, size_t length, off_t offset)
 {
-    int ret = vfs_read(ino->und.vol->dev, buffer, length, ino->lba * ISOFS_SECTOR_SIZE + offset, 0);
+    int ret = vfs_read(ino->dev->underlying, buffer, length, ino->lba * ISOFS_SECTOR_SIZE + offset, 0);
     return (size_t)ret == length ? 0 : -1;
 }
 
@@ -324,12 +324,12 @@ inode_t *isofs_mount(inode_t *dev)
     inode_t *ino = vfs_inode(info->lbaroot, FL_VOL, NULL);
     ino->length = info->lgthroot;
     ino->lba = info->lbaroot;
-    ino->und.vol->flags = VFS_RDONLY;
-    ino->und.vol->volfs = "isofs";
-    ino->und.vol->volname = strdup(info->name);
-    ino->und.vol->dev = vfs_open(dev);
-    ino->und.vol->info = info;
-    ino->und.vol->ops = &isofs_ops;
+    ino->dev->flags = VFS_RDONLY;
+    ino->dev->devclass = "isofs";
+    ino->dev->devname = strdup(info->name);
+    ino->dev->underlying = vfs_open(dev);
+    ino->dev->info = info;
+    ino->dev->fsops = &isofs_ops;
     ino->ops = &iso_dir_ops;
     return ino;
 }

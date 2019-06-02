@@ -29,7 +29,7 @@ extern ino_ops_t ext2_dir_ops;
 extern ino_ops_t ext2_reg_ops;
 extern fs_ops_t ext2_fs_ops;
 
-inode_t *ext2_inode(volume_t *volume, uint32_t no)
+inode_t *ext2_inode(device_t *volume, uint32_t no)
 {
     ext2_volume_t *vol = (ext2_volume_t *) volume->info;
     uint32_t group = (no - 1) / vol->sb->inodes_per_group;
@@ -82,8 +82,8 @@ ext2_dir_iter_t *ext2_opendir(inode_t *dir)
     assert(VFS_ISDIR(dir));
 
     ext2_dir_iter_t *it = (ext2_dir_iter_t *)kalloc(sizeof(ext2_dir_iter_t));
-    ext2_volume_t *vol = (ext2_volume_t *)dir->und.vol->info;
-    it->vol = (ext2_volume_t *)dir->und.vol->info;
+    ext2_volume_t *vol = (ext2_volume_t *)dir->dev->info;
+    it->vol = (ext2_volume_t *)dir->dev->info;
 
     uint32_t group = (dir->no - 1) / vol->sb->inodes_per_group;
     uint32_t index = (dir->no - 1) % vol->sb->inodes_per_group;
@@ -126,12 +126,12 @@ inode_t *ext2_readdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
     uint32_t ino_no = ext2_nextdir(dir, name, it);
     if (ino_no == 0)
         return NULL;
-    return ext2_inode(dir->und.vol, ino_no);
+    return ext2_inode(dir->dev, ino_no);
 }
 
 int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it)
 {
-    ext2_volume_t *vol = (ext2_volume_t *)dir->und.vol->info;
+    ext2_volume_t *vol = (ext2_volume_t *)dir->dev->info;
     bio_clean(vol->io, it->blk);
     kfree(it);
     return 0;
@@ -142,7 +142,7 @@ int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-inode_t *ext2_creat(volume_t *volume, ftype_t type, acl_t *acl)
+inode_t *ext2_creat(device_t *volume, ftype_t type, acl_t *acl)
 {
     uint32_t no = 0;
     // TODO
@@ -154,7 +154,7 @@ inode_t *ext2_creat(volume_t *volume, ftype_t type, acl_t *acl)
 
 inode_t *ext2_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
 {
-    ext2_volume_t *vol = (ext2_volume_t *)dir->und.vol->info;
+    ext2_volume_t *vol = (ext2_volume_t *)dir->dev->info;
     ext2_dir_iter_t *it = ext2_opendir(dir);
 
     char filename[256]; // TODO - Avoid large stack allocation !!!
@@ -169,7 +169,7 @@ inode_t *ext2_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
             return NULL;
         }
 
-        inode_t *ino = ext2_inode(dir->und.vol, ino_no);
+        inode_t *ino = ext2_inode(dir->dev, ino_no);
         ext2_closedir(dir, it);
         errno = 0;
         return ino;
@@ -194,7 +194,7 @@ inode_t *ext2_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
 
     ext2_dir_en_t *new_en;
     ext2_dir_en_t *entry = (ext2_dir_en_t *)&it->cur_block[off];
-    inode_t *ino = ext2_creat(dir->und.vol, type, acl);
+    inode_t *ino = ext2_creat(dir->dev, type, acl);
     if (entry->size > entry->length + 4 + strlen(name)) {
         int sz = entry->length + 2;
         new_en = (ext2_dir_en_t *)&it->cur_block[off + sz];
@@ -275,9 +275,9 @@ inode_t *ext2_mount(inode_t *dev)
         return NULL;
     }
 
-    ino->und.vol->volname = sb->volume_name;
-    ino->und.vol->volfs = "ext2";
-    ino->und.vol->ops = &ext2_fs_ops;
+    ino->dev->devname = sb->volume_name;
+    ino->dev->devclass = "ext2";
+    ino->dev->fsops = &ext2_fs_ops;
     errno = 0;
     return ino;
 }

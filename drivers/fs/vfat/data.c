@@ -23,7 +23,7 @@
 
 int fatfs_read(inode_t *ino, void *buffer, size_t length, off_t offset)
 {
-    FAT_volume_t *info = (FAT_volume_t *)ino->und.vol->info;
+    FAT_volume_t *info = (FAT_volume_t *)ino->dev->info;
     int cluster = offset / (info->BytsPerSec * info->SecPerClus);
     int lba = ino->lba;
     while (length > 0) {

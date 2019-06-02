@@ -86,7 +86,7 @@ void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname)
 extern ino_ops_t fatfs_reg_ops;
 extern ino_ops_t fatfs_dir_ops;
 
-inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, volume_t *volume, FAT_volume_t *info)
+inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, device_t *volume, FAT_volume_t *info)
 {
     unsigned cluster = (entry->DIR_FstClusHi << 16) | entry->DIR_FstClusLo;
     ftype_t type = FL_INVAL;

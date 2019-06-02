@@ -79,10 +79,10 @@ inode_t *fatfs_mount(inode_t *dev)
     inode_t *ino = vfs_inode(0, FL_VOL, NULL);
     ino->length = 0;
     ino->lba = 1;
-    ino->und.vol->info = info;
-    ino->und.vol->ops = &fatfs_ops;
-    ino->und.vol->volfs = (char *)fsName;
-    ino->und.vol->volname = strdup(info->name);
+    ino->dev->info = info;
+    ino->dev->fsops = &fatfs_ops;
+    ino->dev->devclass = (char *)fsName;
+    ino->dev->devname = strdup(info->name);
     ino->info = NULL;
     ino->ops = &fatfs_dir_ops;
 
@@ -93,11 +93,11 @@ inode_t *fatfs_mount(inode_t *dev)
     return ino;
 }
 
-void fatfs_umount(volume_t *vol)
+void fatfs_umount(device_t *vol)
 {
     FAT_volume_t *info = (FAT_volume_t *)vol->info;
 
-    kfree(vol->volname);
+    kfree(vol->devname);
     bio_destroy(info->io_data_ro);
     bio_destroy(info->io_data_rw);
     bio_destroy(info->io_head);
