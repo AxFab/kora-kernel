@@ -90,11 +90,11 @@ void PS2_setup()
     // PS2_mouse_setup();
 
     kdb_ino = vfs_inode(1, FL_CHR, NULL);
-    kdb_ino->und.dev->block = sizeof(event_t);
-    kdb_ino->und.dev->flags = VFS_RDONLY;
-    kdb_ino->und.dev->ops = &ps2_kdb_dev_ops;
+    kdb_ino->dev->block = sizeof(event_t);
+    kdb_ino->dev->flags = VFS_RDONLY;
+    kdb_ino->dev->ops = &ps2_kdb_dev_ops;
     kdb_ino->ops = &ps2_kdb_ino_ops;
-    kdb_ino->und.dev->devclass = (char *)"PS/2 Keyboard";
+    kdb_ino->dev->devclass = (char *)"PS/2 Keyboard";
     kdb_ino->info = pipe_create();
     vfs_mkdev(kdb_ino, "kdb");
     vfs_close(kdb_ino);

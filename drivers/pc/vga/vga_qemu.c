@@ -160,8 +160,8 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
     inode_t *ino = vfs_inode(1, FL_VDO, NULL);
     ino->info = fb;
     ino->ops = &vga_ino_ops;
-    ino->und.dev->ops = &vga_dev_ops;
-    ino->und.dev->model = (char *)info->name;
-    ino->und.dev->devclass = "VGA Screen";
+    ino->dev->ops = &vga_dev_ops;
+    ino->dev->model = (char *)info->name;
+    ino->dev->devclass = "VGA Screen";
     vfs_mkdev(ino, "fb0");
 }

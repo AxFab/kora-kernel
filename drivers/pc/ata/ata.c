@@ -462,8 +462,8 @@ static int ATAPI_Read(struct ATA_Drive *dr, uint32_t lba,  uint8_t sects,
 int ATA_read(inode_t *ino, void *data, size_t size, off_t offset)
 {
     struct ATA_Drive *dr = &sdx[ino->lba];
-    uint32_t lba = offset / ino->und.dev->block;
-    uint8_t sects = size / ino->und.dev->block;
+    uint32_t lba = offset / ino->dev->block;
+    uint8_t sects = size / ino->dev->block;
 
     if (dr->type_ == IDE_ATA)
         errno = ATA_Data(ATA_READ, dr, lba, sects, (uint8_t *)data);
@@ -479,8 +479,8 @@ int ATA_read(inode_t *ino, void *data, size_t size, off_t offset)
 int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
 {
     struct ATA_Drive *dr = &sdx[ino->lba];
-    uint32_t lba = offset / ino->und.dev->block;
-    uint8_t sects = size / ino->und.dev->block;
+    uint32_t lba = offset / ino->dev->block;
+    uint8_t sects = size / ino->dev->block;
 
     if (dr->type_ == IDE_ATA)
         errno = ATA_Data(ATA_WRITE, dr, lba, sects, (uint8_t *)data);
@@ -552,11 +552,11 @@ void ATA_setup()
             inode_t *blk = vfs_inode(i, FL_BLK, NULL);
             blk->length = sdx[i].size_;
             blk->lba = i;
-            blk->und.dev->block = sdx[i].type_ == IDE_ATA ? 512 : 2048;
-            blk->und.dev->flags = VFS_RDONLY;
-            blk->und.dev->model = strdup(sdx[i].model_);
-            blk->und.dev->devclass = strdup(IDE_ATA ? "IDE ATA" : "IDE ATAPI");
-            blk->und.dev->ops = &ata_dev_ops;
+            blk->dev->block = sdx[i].type_ == IDE_ATA ? 512 : 2048;
+            blk->dev->flags = VFS_RDONLY;
+            blk->dev->model = strdup(sdx[i].model_);
+            blk->dev->devclass = strdup(IDE_ATA ? "IDE ATA" : "IDE ATAPI");
+            blk->dev->ops = &ata_dev_ops;
             blk->ops = &ata_ino_ops;
             blk->info = map_create(blk, ATA_read, ATA_write);
             vfs_mkdev(blk, sdNames[i]);
