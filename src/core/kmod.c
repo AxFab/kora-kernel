@@ -87,11 +87,10 @@ void kmod_loader()
         while ((ino = vfs_readdir(mnt->root, filename, ctx)) != NULL) {
             dynlib_t *dlib = kalloc(sizeof(dynlib_t));
             dlib->ino = ino;
-            dlib->io = bio_create(ino, VMA_FILE_RO, PAGE_SIZE, 0);
+            dlib->name = strdup(filename);
             int ret = elf_parse(dlib);
             if (ret != 0) {
                 // TODO -- Clean
-                bio_destroy(dlib->io);
                 kfree(dlib);
                 // TODO -- Clean
                 continue;
@@ -101,7 +100,6 @@ void kmod_loader()
                 // kprintf(-1, "Module %s, missing symbols\n", filename);
                 // TODO -- Clean
                 dlib_unload(&kproc, kMMU.kspace, dlib);
-                bio_destroy(dlib->io);
                 kfree(dlib);
                 // TODO -- Clean
                 continue;

@@ -69,12 +69,12 @@ _Noreturn void cpu_restore(cpu_state_t state)
     int idx = -1;
     int fd = state[0];
     do {
-	idx = -1;
+        idx = -1;
         do {
             if (read(fd, &line[++idx], 1) != 1)
                 longjmp(cpu_jbuf, 1);
         } while (line[idx] != '\n');
-    } while (line[0] == '#');
+    } while (line[0] == '#' || idx == 0);
     line[idx] = '\0';
 
     char sysname[16];

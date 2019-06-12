@@ -118,10 +118,10 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
 {
     assert(dlib->ino != NULL);
     // Read Elf file
-    dlib->io = bio_create(dlib->ino, VMA_FILE_RO, PAGE_SIZE, 0);
+    // dlib->io = bio_create(dlib->ino, VMA_FILE_RO, PAGE_SIZE, 0);
     if (elf_parse(dlib) != 0) {
-        bio_destroy(dlib->io);
-        dlib->io = NULL;
+        // bio_destroy(dlib->io);
+        // dlib->io = NULL;
         assert(errno != 0);
         return -1;
     }
@@ -145,6 +145,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
 
         lib = kalloc(sizeof(dynlib_t));
         lib->ino = ino;
+        lib->name = strdup(dep->name);
         dep->lib = lib;
         ll_enqueue(&proc->queue, &lib->node);
     }
@@ -162,6 +163,7 @@ int dlib_openexec(proc_t *proc, const char *execname)
         return -1;
     }
     proc->exec.ino = ino;
+    proc->exec.name = strdup(execname);
 
     // Load exec with libraries
     ll_enqueue(&proc->queue, &proc->exec.node);
@@ -203,7 +205,6 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
 {
     dynsym_t *symbol;
     void *base = NULL;
-    kprintf(-1, "\033[94mRebase lib: %08x\033[0m\n", lib->base);
     // ASRL
     if (lib->base != 0)
         base = mspace_map(mspace, lib->base, lib->length, NULL, 0, VMA_ANON_RW | 0x11 | VMA_MAP_FIXED);
@@ -216,10 +217,11 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
     }
 
     // List symbols
+    kprintf(-1, "\033[94mRebase lib %s at %p\033[0m\n", lib->name, base);
     lib->base = (size_t)base;
     for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
         symbol->address += (size_t)base;
-        // kprintf(-1, " -> %s at %p\n", symbol->name, symbol->address);
+        // kprintf(-1, " -> %s in %s at %p\n", symbol->name, lib->name, symbol->address);
         hmp_put(&proc->symbols, symbol->name, strlen(symbol->name), symbol);
     }
 }
@@ -252,7 +254,7 @@ bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
         sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
         if (sym == NULL) {
             missing++;
-            kprintf(-1, "Missing symbol '%s'\n", symbol->name);
+            kprintf(-1, "Missing symbol '%s' needed for %s\n", symbol->name, lib->name);
             continue;
             // return false;
         }
@@ -277,12 +279,13 @@ int dlib_map(dynlib_t *dlib, mspace_t *mspace)
         memset(sbase, 0, slen);
         int i, n = (sec->upper - sec->lower) / PAGE_SIZE;
         for (i = 0; i < n; ++i) {
-            uint8_t *page = bio_access(dlib->io, i + sec->lower / PAGE_SIZE);
+            uint8_t *page = kmap(PAGE_SIZE, dlib->ino, i * PAGE_SIZE + sec->lower, VMA_FILE_RO);
             size_t start = i == 0 ? sec->start : 0;
             void *src = ADDR_OFF(page, start);
             void *dst = (void *)(dlib->base + sec->lower + sec->offset + start + i * PAGE_SIZE);
             int lg = (i + 1 == n ? (sec->end & (PAGE_SIZE - 1)) : PAGE_SIZE) - start;
             memcpy(dst, src, lg);
+            kunmap(page, PAGE_SIZE);
         }
 
         // kprintf(-1, "Section : %p - %x\n", sbase, slen);

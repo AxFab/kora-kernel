@@ -185,5 +185,5 @@ Even if writing his personal system allow to re-think and rewrite everything it 
 # To know more
 
  - Take a look at `doc/` folder
- - [Github wiki](https://github.com/axfab/kora-os/wiki) _Still not ready yet!_
+ - [Github wiki](https://github.com/axfab/koraos/wiki) _Still not ready yet!_
  - Reach me on [Slack](http://koraos.slack.com)
