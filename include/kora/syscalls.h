@@ -42,6 +42,7 @@
 #define SYS_MUNMAP  4
 #define SYS_MPROTECT  5
 
+#define SYS_ACCESS 33
 #define SYS_OPEN  6
 #define SYS_CLOSE  7
 #define SYS_READ  8
@@ -61,10 +62,10 @@
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-struct iovec {
-    char *buffer;
-    size_t length;
-};
+//struct iovec {
+//    char *buffer;
+//    size_t length;
+//};
 
 struct image {
     int width, height, pitch, format;

@@ -236,6 +236,7 @@ scall_entry_t syscall_entries[64] = {
     SCALL_ENTRY(SYS_READ, read, "%d, %p, %d", true),
     SCALL_ENTRY(SYS_WRITE, write, "%d, %p, %d", true),
     // SYS_SEEK
+    SCALL_ENTRY(SYS_ACCESS, access, "%d, \"%s\", 0%o", true),
 
     SCALL_ENTRY(SYS_WINDOW, window, "%d, %d, %d, 0%o", true),
     SCALL_ENTRY(SYS_FCNTL, fcntl, "%d, %d, %p", true),

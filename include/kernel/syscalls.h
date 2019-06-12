@@ -51,6 +51,7 @@ long sys_wait(int what, unsigned id, long timeout);
 
 long sys_read(int fd, char *buf, int len);
 long sys_write(int fd, const char *buf, int len);
+long sys_access(int fd, CSTR path, int flags);
 long sys_open(int fd, CSTR path, int flags);
 // long sys_open(int fd, CSTR path, int flags, ftype_t type, int mode);
 long sys_close(int fd);
@@ -135,6 +136,7 @@ long sys_sysctl(int cmd, void *args);
 long sys_copy(int out, int in, size_t size, int count);
 
 
+long txt_access(const char *);
 long txt_open(const char *);
 long txt_close(const char *);
 long txt_read(const char *);

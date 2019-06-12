@@ -154,6 +154,34 @@ long sys_write(int fd, const char *buf, int len)
 }
 
 
+long sys_access(int fd, CSTR path, int flags)
+{
+    if (scall_check_str(path))
+        return -1;
+    resx_t *resx = kCPU.running->resx;
+    inode_t *dir = resx_fs_pwd(kCPU.running->resx_fs);
+    if (fd != -1) {
+        stream_t *stream = resx_get(resx, fd);
+        if (stream == NULL) {
+            errno = EBADF;
+            return -1;
+        }
+        vfs_close(dir);
+        dir = vfs_open(stream->ino);
+    }
+    inode_t *root = resx_fs_root(kCPU.running->resx_fs);
+    inode_t *ino = vfs_search(root, dir, path, NULL);
+    vfs_close(root);
+    vfs_close(dir);
+    if (ino == NULL) {
+        assert(errno != 0);
+        return -1;
+    }
+    errno = 0;
+    vfs_close(ino);
+    return 0;
+}
+
 long sys_open(int fd, CSTR path, int flags)
 {
     if (scall_check_str(path))

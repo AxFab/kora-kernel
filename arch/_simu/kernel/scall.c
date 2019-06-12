@@ -3,6 +3,17 @@
 #include <kernel/core.h>
 #include <string.h>
 
+long txt_access(const char *line)
+{
+    int arg1, arg3, arg4, exret;
+    char arg2[256];
+    sscanf(line, "access (%d, %s %d) = %d", &arg1, arg2, &arg3, &exret);
+    strchr(&arg2[1], '\"')[0] = '\0';
+    int ret = irq_syscall(SYS_ACCESS, arg1, &arg2[1], arg3, 0, 0);
+    return ret;
+}
+
+
 long txt_open(const char *line)
 {
     int arg1, arg3, arg4, exret;
