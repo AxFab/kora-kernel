@@ -69,10 +69,12 @@ _Noreturn void cpu_restore(cpu_state_t state)
     int idx = -1;
     int fd = state[0];
     do {
-        if (read(fd, &line[++idx], 1) != 1) {
-            longjmp(cpu_jbuf, 1);
-        }
-    } while (line[idx] != '\n');
+	idx = -1;
+        do {
+            if (read(fd, &line[++idx], 1) != 1)
+                longjmp(cpu_jbuf, 1);
+        } while (line[idx] != '\n');
+    } while (line[0] == '#');
     line[idx] = '\0';
 
     char sysname[16];
@@ -90,6 +92,8 @@ _Noreturn void cpu_restore(cpu_state_t state)
 
     if (sy != NULL)
         sy->txt_call(line);
+    else
+        kprintf(-1, "\033[91mNo syscall named '%s'\033[0m\n", sysname);
     longjmp(cpu_jbuf, 2);
 }
 
