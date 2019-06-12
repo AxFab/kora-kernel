@@ -275,14 +275,17 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
 {
     int ret = 0;
     // assert(kCPU.irq_semaphore == 0); //But IRQ must still be disabld!
-    kprintf(KLOG_PF, "\033[91m#PF\033[31m %p\033[0m\n", address);
+    // kprintf(KLOG_PF, "\033[91m#PF\033[31m %p\033[0m\n", address);
     vma_t *vma = mspace_search_vma(mspace, address);
-    if (vma == NULL)
+    if (vma == NULL) {
+        kprintf(KLOG_PF, "\033[31mSIGSEGV at %p\033[0m\n", address);
         task_fatal("No mapping at this address", SIGSEGV);
+    }
 
     if (reason & PGFLT_WRITE && !(vma->flags & VMA_WRITE)
         && !(vma->flags & VMA_COPY_ON_WRITE)) {
         splock_unlock(&vma->mspace->lock);
+        kprintf(KLOG_PF, "\033[31mSIGSEGV at %p\033[0m\n", address);
         task_fatal("Can't write on read-only memory", SIGSEGV);
     }
 
@@ -293,6 +296,7 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
     }
     if (ret != 0) {
         splock_unlock(&vma->mspace->lock);
+        kprintf(KLOG_PF, "\033[31mSIGSEGV at %p\033[0m\n", address);
         task_fatal("Unable to resolve page", SIGSEGV);
     }
     if (reason & PGFLT_WRITE && (vma->flags & VMA_COPY_ON_WRITE))

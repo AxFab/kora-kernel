@@ -19,6 +19,7 @@
  */
 #include "elf.h"
 #include <kernel/dlib.h>
+#include <kernel/vfs.h>
 #include <errno.h>
 #include <string.h>
 
@@ -62,28 +63,27 @@ void elf_section(elf_phead_t *ph, dynsec_t *section)
     section->end = (ph->file_addr + ph->file_size) - section->lower;
     section->offset = ph->virt_addr - ph->file_addr;
     section->rights = ph->flags & 7;
-    kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->lower, section->upper, section->start, section->end, section->offset, rights[(int)section->rights]);
+    // kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->lower, section->upper, section->start, section->end, section->offset, rights[(int)section->rights]);
 }
 
-void elf_dynamic(elf_phead_t *ph, elf_dynamic_t *dynamic, bio_t *io)
+void elf_dynamic(dynlib_t *dlib, elf_phead_t *ph, elf_dynamic_t *dynamic)
 {
     unsigned i;
     size_t lg = ph->file_size / 8;
-    uint32_t *dyen = ADDR_OFF(bio_access(io, ph->file_addr / PAGE_SIZE), ph->file_addr % PAGE_SIZE);
+    uint32_t *dyen = ADDR_OFF(dlib->iomap, ph->file_addr);
     for (i = 0; i < lg; ++i) {
         int idx = dyen[i * 2];
         if (idx <= 1 || idx > 32)
             continue;
         ((uint32_t *)dynamic)[idx] = dyen[i * 2 + 1];
     }
-    bio_clean(io, ph->file_addr / PAGE_SIZE);
 }
 
-void elf_requires(dynlib_t *dlib, elf_phead_t *ph, const char *strtab, bio_t *io)
+void elf_requires(dynlib_t *dlib, elf_phead_t *ph, const char *strtab)
 {
     unsigned i;
     size_t lg = ph->file_size / 8;
-    uint32_t *dyen = ADDR_OFF(bio_access(io, ph->file_addr / PAGE_SIZE), ph->file_addr % PAGE_SIZE);
+    uint32_t *dyen = ADDR_OFF(dlib->iomap, ph->file_addr);
     for (i = 0; i < lg; ++i) {
         if (dyen[i * 2] != 1)
             continue;
@@ -93,7 +93,6 @@ void elf_requires(dynlib_t *dlib, elf_phead_t *ph, const char *strtab, bio_t *io
         // kprintf(-1, "Rq:  %s \n", dep->name);
         ll_append(&dlib->depends, &dep->node);
     }
-    bio_clean(io, ph->file_addr / PAGE_SIZE);
 }
 
 void elf_symbol(dynsym_t *symbol, elf_sym32_t *sym, dynlib_t *lib, elf_dynamic_t *dynamic, const char *strtab)
@@ -104,13 +103,12 @@ void elf_symbol(dynsym_t *symbol, elf_sym32_t *sym, dynlib_t *lib, elf_dynamic_t
         symbol->name = strdup(name);
     else {
         size_t off = dynamic->str_tab + sym->name;
-        name = ADDR_OFF(bio_access(lib->io, off / PAGE_SIZE), off % PAGE_SIZE);
+        name = ADDR_OFF(lib->iomap, off);
         symbol->name = strdup(name);
-        bio_clean(lib->io, off / PAGE_SIZE);
     }
     symbol->size = sym->size;
     symbol->flags = 0;
-    // kprintf(-1, "S: %06x  %s \n", symbol->address, symbol->name);
+    // kprintf(-1, "S: %06x  %s [%d]\n", symbol->address, symbol->name, sym->info);
 }
 
 void elf_relocation(dynrel_t *reloc, uint32_t *rel, llhead_t *symbols)
@@ -135,9 +133,14 @@ int elf_parse(dynlib_t *dlib)
     memset(&dynamic, 0, sizeof(dynamic));
 
     /* Open header */
-    elf_header_t *head = bio_access(dlib->io, 0);
+    size_t iolg = ALIGN_UP(dlib->ino->length, PAGE_SIZE);
+    void *iomap = kmap(iolg, dlib->ino, 0, VMA_FILE_RO);
+    dlib->iomap = iomap;
+    dlib->iolg = iolg;
+
+    elf_header_t *head = dlib->iomap;
     if (elf_check_header(head) != 0) {
-        bio_clean(dlib->io, 0);
+        kunmap(iomap, iolg);
         return -1;
     }
 
@@ -156,7 +159,7 @@ int elf_parse(dynlib_t *dlib)
                 dlib->length = section->upper + section->offset;
         } else if (ph_tbl[i].type == ELF_PH_DYNAMIC) {
             dyn_idx = i;
-            elf_dynamic(&ph_tbl[i], &dynamic, dlib->io);
+            elf_dynamic(dlib, &ph_tbl[i], &dynamic);
         }
     }
 
@@ -181,55 +184,42 @@ int elf_parse(dynlib_t *dlib)
     dlib->init = dynamic.init;
     dlib->fini = dynamic.fini;
     if (dynamic.rel == 0) {
-        bio_clean(dlib->io, 0);
+        kunmap(iomap, iolg);
         return 0;
     }
     if (dynamic.str_tab == 0/* TODO || dynamic.str_tab > length*/) {
-        bio_clean(dlib->io, 0);
+        kunmap(iomap, iolg);
         return -1;
     }
     if (dynamic.hash > 4080) {
-        bio_clean(dlib->io, 0);
+        kunmap(iomap, iolg);
         return -1;
     }
 
     /* Find string table */
-    const char *strtab = ADDR_OFF(bio_access(dlib->io, dynamic.str_tab / PAGE_SIZE), dynamic.str_tab % PAGE_SIZE);
-    elf_requires(dlib, &ph_tbl[dyn_idx], strtab, dlib->io);
+    const char *strtab = ADDR_OFF(dlib->iomap, dynamic.str_tab);
+    elf_requires(dlib, &ph_tbl[dyn_idx], strtab);
 
     /* Build symbol table */
     llhead_t symbols = INIT_LLHEAD;
-    elf_sym32_t *sym_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.sym_tab / PAGE_SIZE), dynamic.sym_tab % PAGE_SIZE);
-    // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
+    elf_sym32_t *sym_tbl = ADDR_OFF(dlib->iomap, dynamic.sym_tab);
     unsigned sym_count = hash[1];
+    // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
     for (i = 1; i < sym_count; ++i) {
         dynsym_t *sym = kalloc(sizeof(dynsym_t));
         ll_append(&symbols, &sym->node);
         elf_symbol(sym, &sym_tbl[i], dlib, &dynamic, strtab);
     }
-    bio_clean(dlib->io, dynamic.sym_tab / PAGE_SIZE);
 
     /* Read relocation table */
-    uint32_t *rel_tbl = ADDR_OFF(bio_access(dlib->io, dynamic.rel / PAGE_SIZE), dynamic.rel % PAGE_SIZE);
+    uint32_t *rel_tbl = ADDR_OFF(dlib->iomap, dynamic.rel);
     int ent_sz = dynamic.rel_ent / sizeof(uint32_t);
     unsigned rel_sz = 0;
-    elf_shead_t sh_tmp;
     for (i = 0; i < head->sh_count; ++i) {
-        int s = 0;
         size_t sh_offset = head->sh_off + i * sizeof(elf_shead_t);
-        elf_shead_t *sh_tbl = ADDR_OFF(bio_access(dlib->io, sh_offset / PAGE_SIZE), sh_offset % PAGE_SIZE);
-        if (ALIGN_DW((size_t)sh_tbl, PAGE_SIZE) != ALIGN_DW((size_t)sh_tbl + sizeof(*sh_tbl), PAGE_SIZE)) {
-            int lg = PAGE_SIZE - ((size_t)sh_tbl % PAGE_SIZE);
-            memcpy(&sh_tmp, sh_tbl, lg);
-            bio_clean(dlib->io, sh_offset / PAGE_SIZE);
-            sh_tbl = bio_access(dlib->io, sh_offset / PAGE_SIZE + 1);
-            memcpy(ADDR_OFF(&sh_tmp, lg), sh_tbl, sizeof(elf_shead_t) - lg);
-            sh_tbl = &sh_tmp;
-            s = 1;
-        }
+        elf_shead_t *sh_tbl = ADDR_OFF(dlib->iomap, sh_offset);
         if (sh_tbl->type == 9)
             rel_sz += sh_tbl->size / dynamic.rel_ent;
-        bio_clean(dlib->io, sh_offset / PAGE_SIZE + s);
     }
 
     for (i = 0; i < rel_sz; ++i) {
@@ -246,7 +236,6 @@ int elf_parse(dynlib_t *dlib)
         ll_append(&dlib->relocations, &rel->node);
         rel += dynamic.rel_ent / sizeof(uint32_t);
     }
-    bio_clean(dlib->io, dynamic.rel / PAGE_SIZE);
 
     /* Organize symbols */
     while (symbols.count_ > 0) {
@@ -257,8 +246,7 @@ int elf_parse(dynlib_t *dlib)
             ll_append(&dlib->extern_symbols, &sym->node);
     }
 
-    bio_clean(dlib->io, dynamic.str_tab / PAGE_SIZE);
-    bio_clean(dlib->io, 0);
+    kunmap(iomap, iolg);
     return 0;
 }
 

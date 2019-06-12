@@ -31,6 +31,16 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
 {
     inode_t *inode;
 #if 1
+    if (volume != NULL) {
+        rwlock_rdlock(&volume->brwlock);
+        inode = bbtree_search_eq(&volume->btree, no, inode_t, bnode);
+        rwlock_rdunlock(&volume->brwlock);
+        if (inode != NULL) {
+            assert(inode->no == no);
+            assert(inode->type == type);
+            return vfs_open(inode);
+        }
+    }
     inode = (inode_t *)kalloc(sizeof(inode_t));
     if (volume == NULL) {
         // TODO -- Give UniqueID / Register on
@@ -46,6 +56,12 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
     inode->links = 0;
     inode->dev = volume;
     ++volume->rcu;
+
+    inode->bnode.value_ = no;
+    rwlock_wrlock(&volume->brwlock);
+    bbtree_insert(&volume->btree, &inode->bnode);
+    rwlock_wrunlock(&volume->brwlock);
+
 #else
     if (volume != NULL) {
         rwlock_rdlock(&volume->brwlock);

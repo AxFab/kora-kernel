@@ -73,7 +73,8 @@ struct dynlib {
     size_t fini;
     size_t base;
     size_t length;
-    bio_t *io;
+    void *iomap;
+    size_t iolg;
     inode_t *ino;
     llnode_t node;
     llhead_t sections;

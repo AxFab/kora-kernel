@@ -176,6 +176,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
 {
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
+    assert(ino == NULL || (offset & (PAGE_SIZE - 1)) == 0);
 
     /* Check some parameters */
     int vflags = mspace_set_flags(flags, mspace == kMMU.kspace);
