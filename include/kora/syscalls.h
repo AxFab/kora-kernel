@@ -53,7 +53,7 @@
 #define SYS_PIPE  19
 #define SYS_FCNTL  20
 
-#define SYS_FUTEX_WAKE 22
+#define SYS_FUTEX_WAIT 22
 #define SYS_FUTEX_REQUEUE 23
 
 #define SYS_START 31

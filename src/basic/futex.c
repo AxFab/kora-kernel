@@ -99,6 +99,11 @@ int futex_wait(int *addr, int val, long timeout, int flags)
     return 0;
 }
 
+int sys_futex_wait(int *addr, int val, long timeout, int flags)
+{
+    return futex_wait(addr, val, timeout, flags);
+}
+
 int futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
 {
     ftx_t *origin = futex_open(addr, 0);
@@ -143,6 +148,11 @@ int futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
     futex_close(target);
     futex_close(origin);
     return 0;
+}
+
+int sys_futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
+{
+    return futex_requeue(addr, val, val2, addr2, flags);
 }
 
 int futex_wake(int *addr, int val)

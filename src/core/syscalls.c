@@ -434,8 +434,12 @@ long sys_ginfo(unsigned info, void *buf, int len)
         return ginfo(true, _VTAG_"-"__ARCH, buf, len);
     case SNFO_OSNAME:
         return ginfo(true, "KoraOS", buf, len);
-    // case SNFO_USER:
-    //     return ginfo(true, kCPU.running->user->login, buf, len);
+
+    case SNFO_USER:
+        return ginfo(true, "Visitor", buf, len);
+    case SNFO_PWD:
+        return ginfo(true, "/", buf, len);
+        // return ginfo(true, kCPU.running->user->login, buf, len);
     // case SNFO_USERNAME:
     //     return ginfo(true, kCPU.running->user->username, buf, len);
     // case SNFO_USERMAIL:

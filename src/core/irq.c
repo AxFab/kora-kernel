@@ -210,18 +210,22 @@ void irq_pagefault(size_t vaddr, int reason)
 #  define SCALL_ENTRY(i, n,a,r)  [i] = { #n, a, (void*)sys_##n, r }
 #endif
 
-
 scall_entry_t syscall_entries[64] = {
     // SYS_POWER
     // SYS_SCALL
     // SCALL_ENTRY(SYS_SYSLOG, sys_syslog, "%p", false),
     // SCALL_ENTRY(SYS_SYSINFO, sys_sysinfo, "%d, %p, %d", false),
+    SCALL_ENTRY(SYS_GINFO, ginfo, "%d, \"%s\", %d", true),
+    SCALL_ENTRY(SYS_SINFO, sinfo, "%d, \"%s\", %d", true),
 
     // SYS_YIELD
     SCALL_ENTRY(SYS_EXIT, exit, "%d", false),
     // SYS_WAIT
     // SYS_EXEC
     // SYS_CLONE
+
+    SCALL_ENTRY(SYS_FUTEX_WAIT, futex_wait, "%p, %d, %d, 0%o", false),
+    SCALL_ENTRY(SYS_FUTEX_REQUEUE, futex_requeue, "%p, %d, %d, %p, 0%o", true),
 
     // SYS_SIGRAISE
     // SYS_SIGACTION
@@ -255,13 +259,16 @@ long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
     int pid = kCPU.running->pid;
     scall_entry_t *entry = &syscall_entries[no];
     char arg_buf[50];
-    snprintf(arg_buf, 50, entry->args, a1, a2, a3, a4, a5);
 
-    if (!entry->ret)
+    if (!entry->ret) {
+        snprintf(arg_buf, 50, entry->args, a1, a2, a3, a4, a5);
         kprintf(-1, "[task %3d] \033[96m%s(%s)\033[0m\n", pid, entry->name, arg_buf);
+    }
     ret = entry->routine(a1, a2, a3, a4, a5);
-    if (entry->ret)
+    if (entry->ret) {
+        snprintf(arg_buf, 50, entry->args, a1, a2, a3, a4, a5);
         kprintf(-1, "[task %3d] \033[96m%s(%s) = %d\033[0m\n", pid, entry->name, arg_buf, ret);
+    }
 
     return ret;
 }
