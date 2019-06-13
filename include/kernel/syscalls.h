@@ -45,6 +45,9 @@ long sys_wait(int what, unsigned id, long timeout);
 
 // exec ve
 
+int sys_futex_wait(int *addr, int val, long timeout, int flags);
+int sys_futex_requeue(int *addr, int val, int val2, int *addr2, int flags);
+
 /* --------
   Input & Output
 --------- */
@@ -127,6 +130,7 @@ long sys_mprotect(void *address, size_t length, unsigned flags);
 #define SNFO_USER 9
 #define SNFO_USERNAME 10
 #define SNFO_USERMAIL 11
+#define SNFO_PWD 12
 // time, pid, uid, euid, pwd, chroot,
 
 long sys_ginfo(unsigned info, void *buf, int len);
@@ -147,5 +151,9 @@ long txt_exit(const char *);
 long txt_fcntl(const char *);
 long txt_window(const char *);
 // long txt_open(const char *);
+long txt_futex_wait(const char *);
+long txt_futex_requeue(const char *);
+long txt_ginfo(const char *);
+long txt_sinfo(const char *);
 
 
