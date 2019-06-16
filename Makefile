@@ -61,8 +61,8 @@ SRCS-y += $(wildcard $(srcdir)/mem/*.c)
 SRCS-y += $(wildcard $(srcdir)/net/*.c)
 SRCS-y += $(wildcard $(srcdir)/task/*.c)
 SRCS-y += $(wildcard $(srcdir)/vfs/*.c)
-SRCS-y += $(wildcard $(arcdir)/kernel/*.$(ASM_EXT))
-SRCS-y += $(wildcard $(arcdir)/kernel/*.c)
+SRCS-y += $(wildcard $(arcdir)/*.$(ASM_EXT))
+SRCS-y += $(wildcard $(arcdir)/*.c)
 ifneq ($(target_arch),_simu)
 SRCS-y += $(wildcard $(srcdir)/stdc/*.c)
 SRCS-y += $(wildcard $(srcdir)/misc/*.c)
@@ -151,7 +151,7 @@ ckvfs_src-y += $(srcdir)/tests/stub.c
 ckvfs_src-y += $(srcdir)/tests/thrd.c
 ckvfs_src-y += $(srcdir)/tests/sched.c
 ckvfs_src-y += $(srcdir)/tests/tst_vfs.c
-ckvfs_src-y += $(topdir)/arch/_simu/kernel/hostfs.c
+ckvfs_src-y += $(topdir)/arch/_simu/hostfs.c
 $(eval $(call link_bin,ckvfs,ckvfs_src,CKLFLGS))
 
 ckkrn_src-y += $(wildcard $(srcdir)/basic/*.c)
@@ -161,7 +161,7 @@ ckkrn_src-y += $(wildcard $(srcdir)/mem/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/net/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/task/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/vfs/*.c)
-ckkrn_src-y += $(wildcard $(topdir)/arch/_simu/kernel/*.c)
+ckkrn_src-y += $(wildcard $(topdir)/arch/_simu/*.c)
 ckkrn_src-y += $(srcdir)/stdc/mtx.c
 ckkrn_src-y += $(srcdir)/stdc/cnd.c
 ckkrn_src-y += $(srcdir)/tests/thrd.c
