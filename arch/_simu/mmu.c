@@ -26,8 +26,21 @@ void mmu_setup()
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void mmu_context(mspace_t *ms) {}
-void mmu_create_uspace(mspace_t *ms) {}
-void mmu_destroy_uspace(mspace_t *ms) {}
+
+void mmu_create_uspace(mspace_t *ms)
+{
+    void *ptr = mmap(NULL, 64 * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+    ((long*)ptr)[0] = 0;
+    ms->lower_bound = (size_t)ptr;
+    ms->upper_bound = ms->lower_bound + 64 * PAGE_SIZE;
+    // uint16_t *tbl = kalloc(64 * sizeof(uint16_t));
+    kprintf(-1, "Create heap at %p\n", ptr);
+}
+
+void mmu_destroy_uspace(mspace_t *ms)
+{
+    munmap((void*)ms->lower_bound, 64 * PAGE_SIZE);
+}
 
 void mmu_enable() {}
 void mmu_leave() {}

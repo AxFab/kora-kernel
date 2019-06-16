@@ -10,8 +10,6 @@
 
 void futex_init();
 
-const char *ksymbol(void *ip, char *buf, int lg) { return NULL; }
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 TEST_CASE(tst_vfs_01)
