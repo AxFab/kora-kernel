@@ -27,6 +27,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <bits/cdefs.h>
+#include <bits/types.h>
 #include <bits/timespec.h>
 
 void *calloc(size_t len, size_t cnt);
@@ -37,7 +38,7 @@ int printf(const char *msg, ...);
 int vprintf(const char *msg, va_list ap);
 
 long long clock_read(int clockid);
-void usleep(long usecs);
+int usleep(__useconds_t usecs);
 
 void clock_gettime(int clockid, struct timespec *time_point);
 

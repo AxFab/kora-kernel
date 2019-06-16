@@ -118,8 +118,8 @@ void apic_override_register(madt_override_t *info)
 {
     kprintf(KLOG_ERR, " - override IRQ %d on bus %d, GSIs %d, %s %s.\n",
             info->irq, info->bus, info->gsi,
-            info->flags & 8 ? "level" : "edge",
-            info->flags & 2 ? "low" : "high");
+            (info->flags & 8) ? "level" : "edge",
+            (info->flags & 2) ? "low" : "high");
 
 }
 

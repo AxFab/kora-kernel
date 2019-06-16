@@ -65,7 +65,7 @@ SRCS-y += $(wildcard $(arcdir)/kernel/*.$(ASM_EXT))
 SRCS-y += $(wildcard $(arcdir)/kernel/*.c)
 ifneq ($(target_arch),_simu)
 SRCS-y += $(wildcard $(srcdir)/stdc/*.c)
-SRCS-y += $(srcdir)/scheduler.c
+SRCS-y += $(wildcard $(srcdir)/misc/*.c)
 else
 SRCS-y += $(srcdir)/stdc/mtx.c
 SRCS-y += $(srcdir)/stdc/cnd.c
@@ -87,6 +87,8 @@ endif
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 CHECKS += cksync ckutils
+CHECKS += ckpipe ckblk ckgfx # Files
+CHECKS += ckkrn # No args, put all files on coverage
 
 include $(topdir)/make/check.mk
 
@@ -110,6 +112,47 @@ ckutils_src-y += $(srcdir)/basic/hmap.c
 ckutils_src-y += $(srcdir)/tests/stub.c
 ckutils_src-y += $(srcdir)/tests/tst_utils.c
 $(eval $(call link_bin,ckutils,ckutils_src,CKLFLGS))
+
+ckpipe_src-y += $(srcdir)/basic/futex.c
+ckpipe_src-y += $(srcdir)/basic/bbtree.c
+ckpipe_src-y += $(srcdir)/files/pipe.c
+ckpipe_src-y += $(srcdir)/stdc/cnd.c
+ckpipe_src-y += $(srcdir)/stdc/mtx.c
+ckpipe_src-y += $(srcdir)/tests/stub.c
+ckpipe_src-y += $(srcdir)/tests/thrd.c
+ckpipe_src-y += $(srcdir)/tests/sched.c
+ckpipe_src-y += $(srcdir)/tests/tst_pipe.c
+$(eval $(call link_bin,ckpipe,ckpipe_src,CKLFLGS))
+
+ckblk_src-y += $(srcdir)/basic/bbtree.c
+ckblk_src-y += $(srcdir)/basic/futex.c
+ckblk_src-y += $(srcdir)/stdc/cnd.c
+ckblk_src-y += $(srcdir)/stdc/mtx.c
+ckblk_src-y += $(srcdir)/files/map.c
+ckblk_src-y += $(srcdir)/tests/stub.c
+ckblk_src-y += $(srcdir)/tests/thrd.c
+ckblk_src-y += $(srcdir)/tests/sched.c
+ckblk_src-y += $(srcdir)/tests/tst_blk.c
+$(eval $(call link_bin,ckblk,ckblk_src,CKLFLGS))
+
+ckgfx_src-y += $(srcdir)/files/gfx.c
+ckgfx_src-y += $(srcdir)/tests/stub.c
+ckgfx_src-y += $(srcdir)/tests/tst_gfx.c
+$(eval $(call link_bin,ckgfx,ckgfx_src,CKLFLGS))
+
+
+ckkrn_src-y += $(wildcard $(srcdir)/basic/*.c)
+ckkrn_src-y += $(wildcard $(srcdir)/core/*.c)
+ckkrn_src-y += $(wildcard $(srcdir)/files/*.c)
+ckkrn_src-y += $(wildcard $(srcdir)/mem/*.c)
+ckkrn_src-y += $(wildcard $(srcdir)/net/*.c)
+ckkrn_src-y += $(wildcard $(srcdir)/task/*.c)
+ckkrn_src-y += $(wildcard $(srcdir)/vfs/*.c)
+ckkrn_src-y += $(wildcard $(topdir)/arch/_simu/kernel/*.c)
+ckkrn_src-y += $(srcdir)/stdc/mtx.c
+ckkrn_src-y += $(srcdir)/stdc/cnd.c
+ckkrn_src-y += $(srcdir)/tests/thrd.c
+$(eval $(call link_bin,ckkrn,ckkrn_src,CKLFLGS))
 
 
 ifeq ($(NODEPS),)

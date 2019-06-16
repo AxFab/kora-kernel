@@ -33,7 +33,6 @@ struct map_page {
 
 struct map_cache {
     inode_t *ino;
-    size_t block;
     int(*read)(inode_t *, char *data, size_t, off_t);
     int(*write)(inode_t *, const char *data, size_t, off_t);
     bbtree_t tree;
@@ -47,7 +46,6 @@ map_cache_t *map_create(inode_t *ino, void *read, void *write)
     cache->read = read;
     cache->write = write;
     cache->ino = ino;
-    cache->block = ino->dev->block;
     splock_init(&cache->lock);
     bbtree_init(&cache->tree);
     return cache;
