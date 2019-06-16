@@ -88,6 +88,7 @@ endif
 
 CHECKS += cksync ckutils
 CHECKS += ckpipe ckblk ckgfx # Files
+CHECKS += ckvfs
 CHECKS += ckkrn # No args, put all files on coverage
 
 include $(topdir)/make/check.mk
@@ -139,6 +140,19 @@ ckgfx_src-y += $(srcdir)/files/gfx.c
 ckgfx_src-y += $(srcdir)/tests/stub.c
 ckgfx_src-y += $(srcdir)/tests/tst_gfx.c
 $(eval $(call link_bin,ckgfx,ckgfx_src,CKLFLGS))
+
+
+ckvfs_src-y += $(srcdir)/basic/bbtree.c
+ckvfs_src-y += $(srcdir)/basic/hmap.c
+ckvfs_src-y += $(srcdir)/basic/futex.c
+ckvfs_src-y += $(srcdir)/core/debug.c
+ckvfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
+ckvfs_src-y += $(srcdir)/tests/stub.c
+ckvfs_src-y += $(srcdir)/tests/thrd.c
+ckvfs_src-y += $(srcdir)/tests/sched.c
+ckvfs_src-y += $(srcdir)/tests/tst_vfs.c
+ckvfs_src-y += $(topdir)/arch/_simu/kernel/hostfs.c
+$(eval $(call link_bin,ckvfs,ckvfs_src,CKLFLGS))
 
 ckkrn_src-y += $(wildcard $(srcdir)/basic/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/core/*.c)

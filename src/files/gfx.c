@@ -91,8 +91,8 @@ void gfx_destroy(framebuffer_t *fb, void *pixels)
 void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels)
 {
     // TODO -- in val & copy
-    if (fb->width >= w && fb->height >= h)
-        return;
+    // if (fb->width >= w && fb->height >= h)
+    //     return;
     rwlock_wrlock(&fb->lock);
     if (pixels == NULL) {
         kunmap(fb->pixels, ALIGN_UP(fb->height * fb->pitch, PAGE_SIZE));
@@ -237,15 +237,15 @@ void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int 
 }
 
 
-void gfx_copy_blend(framebuffer_t *dest, framebuffer_t *src, int x, int y)
+void gfx_copy_blend(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int h)
 {
     rwlock_rdlock(&src->lock);
     rwlock_rdlock(&dest->lock);
     int j, i;
     int minx = MAX(0, -x);
-    int maxx = MIN(src->width, dest->width - x);
+    int maxx = MIN(MIN(w, src->width), dest->width - x);
     int miny = MAX(0, -y);
-    int maxy = MIN(src->height, dest->height - y);
+    int maxy = MIN(MIN(h, src->height), dest->height - y);
 
     int dd = dest->depth, ds = src->depth;
     for (j = miny; j < maxy; ++j) {
