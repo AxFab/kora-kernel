@@ -3,16 +3,17 @@ ENTRY(_start)
 OUTPUT_FORMAT(elf32-i386)
 SECTIONS
 {
-    . = 0x200000;
-    .text ALIGN(0x1000) :
+    . = 2M;
+    .text ALIGN(4K) :
     {
         code = .;
         *(.text.boot);
         *(.text);
     }
-    .data ALIGN(0x1000) :
+    .data ALIGN(4K) :
     {
         *(.data);
+        *(.rodata);
     }
     .bss :
     {
@@ -20,4 +21,11 @@ SECTIONS
         *(.bss);
     }
     end = .;
+
+    /DISCARD/ :
+    {
+        *(.comment)
+        *(.eh_frame)
+        *(.note.gnu.build-id)
+    }
 }

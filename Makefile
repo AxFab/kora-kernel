@@ -140,7 +140,6 @@ ckgfx_src-y += $(srcdir)/tests/stub.c
 ckgfx_src-y += $(srcdir)/tests/tst_gfx.c
 $(eval $(call link_bin,ckgfx,ckgfx_src,CKLFLGS))
 
-
 ckkrn_src-y += $(wildcard $(srcdir)/basic/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/core/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/files/*.c)
@@ -156,5 +155,5 @@ $(eval $(call link_bin,ckkrn,ckkrn_src,CKLFLGS))
 
 
 ifeq ($(NODEPS),)
--include $(call fn_deps,SRCS-y)
+# -include $(call fn_deps,SRCS-y)
 endif

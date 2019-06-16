@@ -7,10 +7,6 @@
 
 void futex_init();
 
-void async_wait() {}
-void async_raise() {}
-
-
 pipe_t *pipe_create();
 void pipe_destroy(pipe_t *pipe);
 int pipe_resize(pipe_t *pipe, size_t size);
@@ -78,7 +74,7 @@ TEST_CASE(tst_pipe_02)
     // }
 
     ck_ok(-1 == pipe_read(pp, buf, 26, IO_ATOMIC | IO_NO_BLOCK));
-    // ck_ok(errno == EWOULDBLOCK);
+    ck_ok(errno == EWOULDBLOCK);
 
 
 
