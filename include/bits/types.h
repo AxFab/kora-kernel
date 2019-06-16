@@ -65,7 +65,7 @@ typedef unsigned int __uid_t;
 typedef unsigned int __gid_t;
 typedef unsigned long int __ino_t;
 typedef unsigned int __mode_t;
-//typedef unsigned long int __nlink_t;
+typedef unsigned long int __nlink_t;
 typedef long int __off_t;
 typedef int __pid_t;
 typedef struct {
@@ -86,7 +86,7 @@ typedef long int __blkcnt_t;
 typedef unsigned long int __fsblkcnt_t;
 typedef unsigned long int __fsfilcnt_t;
 typedef char *__caddr_t;
-//typedef unsigned int __socklen_t;
+typedef unsigned int __socklen_t;
 typedef __quad_t *__qaddr_t;
 
 

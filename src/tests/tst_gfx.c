@@ -1,0 +1,54 @@
+#include <kernel/core.h>
+#include <kernel/files.h>
+#include <threads.h>
+#include <assert.h>
+#include <string.h>
+#include "check.h"
+
+void futex_init();
+
+
+
+framebuffer_t *gfx_create(int width, int height, int depth, void *pixels);
+void gfx_destroy(framebuffer_t *fb, void *pixels);
+void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels);
+void gfx_rect(framebuffer_t *fb, int x, int y, int w, int h, uint32_t color);
+void gfx_shadow(framebuffer_t *fb, int x, int y, int r, uint32_t color);
+void gfx_clear(framebuffer_t *fb, uint32_t color);
+void gfx_slide(framebuffer_t *fb, int height, uint32_t color);
+void gfx_copy(framebuffer_t *dest, framebuffer_t *src, int x, int y, int w, int h);
+void gfx_copy_blend(framebuffer_t *dest, framebuffer_t *src, int x, int y);
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+TEST_CASE(tst_gfx_01)
+{
+    framebuffer_t *fb1 = gfx_create(120, 120, 4, NULL);
+    framebuffer_t *fb2 = gfx_create(120, 120, 4, NULL);
+
+    gfx_clear(fb1, 0x181818);
+    gfx_copy(fb2, fb1, 0, 0, 120, 120);
+
+    gfx_destroy(fb1, NULL);
+    gfx_destroy(fb2, NULL);
+}
+
+
+jmp_buf __tcase_jump;
+SRunner runner;
+
+int main()
+{
+    kSYS.cpus = calloc(sizeof(struct kCpu), 0x500);
+    // futex_init();
+
+    suite_create("Gfx");
+    fixture_create("Non blocking operation");
+    tcase_create(tst_gfx_01);
+
+    free(kSYS.cpus);
+    return summarize();
+}
+
+

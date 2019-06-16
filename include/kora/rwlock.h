@@ -105,10 +105,10 @@ static inline bool rwlock_wrtrylock(rwlock_t *lock)
     if (lock->readers)
         return false;
 
-    else if (!splock_trylock(&lock->lock))
+    if (!splock_trylock(&lock->lock))
         return false;
 
-    else if (lock->readers) {
+    if (lock->readers) {
         splock_unlock(&lock->lock);
         return false;
     }

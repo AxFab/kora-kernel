@@ -64,4 +64,23 @@ long txt_window(const char *line)
     return irq_syscall(SYS_WINDOW, 0, 0, 0, 0, 0);
 }
 
+long txt_futex_wait(const char *line)
+{
+    return irq_syscall(SYS_FUTEX_WAIT, 0, 0, 0, 0, 0);
+}
+
+long txt_futex_requeue(const char *line)
+{
+    return irq_syscall(SYS_FUTEX_REQUEUE, 0, 0, 0, 0, 0);
+}
+
+long txt_ginfo(const char *line)
+{
+    return irq_syscall(SYS_GINFO, 0, 0, 0, 0, 0);
+}
+
+long txt_sinfo(const char *line)
+{
+    return irq_syscall(SYS_SINFO, 0, 0, 0, 0, 0);
+}
 

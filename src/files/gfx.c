@@ -81,6 +81,13 @@ framebuffer_t *gfx_create(int width, int height, int depth, void *pixels)
     return fb;
 }
 
+void gfx_destroy(framebuffer_t *fb, void *pixels)
+{
+    if (pixels == NULL)
+        kunmap(fb->pixels, ALIGN_UP(fb->height * fb->pitch, PAGE_SIZE));
+    kfree(fb);
+}
+
 void gfx_resize(framebuffer_t *fb, int w, int h, void *pixels)
 {
     // TODO -- in val & copy

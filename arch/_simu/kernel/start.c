@@ -23,6 +23,10 @@ int kmod_loaderrf() {}
 
 int main(int argc, char **argv)
 {
+    if (argc < 2) {
+        kprintf(-1, "No arguments...\n");
+        return 0;
+    }
     // Initialize variables
     opts.cpu_count = 1;
     opts.cpu_vendor = "EloCorp.";
