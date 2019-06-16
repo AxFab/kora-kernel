@@ -18,12 +18,10 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/files.h>
-#include <kernel/task.h>
 #include <kora/mcrs.h>
-#include <kora/splock.h>
-#include <kora/llist.h>
 #include <string.h>
 #include <errno.h>
+#include <threads.h>
 
 
 struct pipe {
@@ -35,9 +33,9 @@ struct pipe {
     size_t max_size;
     size_t avail;
 
-    splock_t lock;
-    emitter_t rlist;
-    emitter_t wlist;
+    mtx_t mutex;
+    cnd_t rd_cond;
+    cnd_t wr_cond;
 };
 
 static int pipe_resize_unlock_(pipe_t *pipe, size_t size)
@@ -106,11 +104,13 @@ pipe_t *pipe_create()
     pipe->rpen = pipe->base;
     pipe->wpen = pipe->base;
     pipe->end = pipe->base + pipe->size;
+    mtx_init(&pipe->mutex, mtx_plain);
     return pipe;
 }
 
 void pipe_destroy(pipe_t *pipe)
 {
+    mtx_destroy(&pipe->mutex);
     kunmap(pipe->base, pipe->size);
     kfree(pipe);
 }
@@ -118,17 +118,17 @@ void pipe_destroy(pipe_t *pipe)
 
 int pipe_resize(pipe_t *pipe, size_t size)
 {
-    splock_lock(&pipe->lock);
+    mtx_lock(&pipe->mutex);
     int ret = pipe_resize_unlock_(pipe, size);
-    splock_unlock(&pipe->lock);
+    mtx_unlock(&pipe->mutex);
     return ret;
 }
 
 int pipe_erase(pipe_t *pipe, size_t len)
 {
-    splock_lock(&pipe->lock);
+    mtx_lock(&pipe->mutex);
     int ret = pipe_erase_unlock_(pipe, len);
-    splock_unlock(&pipe->lock);
+    mtx_unlock(&pipe->mutex);
     return ret;
 }
 
@@ -141,9 +141,9 @@ int pipe_reset(pipe_t *pipe)
 int pipe_write(pipe_t *pipe, const char *buf, size_t len, int flags)
 {
     int bytes = 0;
-    splock_lock(&pipe->lock);
+    mtx_lock(&pipe->mutex);
     if (flags & IO_NO_BLOCK && len > pipe->size - pipe->avail) {
-        splock_unlock(&pipe->lock);
+        mtx_unlock(&pipe->mutex);
         errno = EWOULDBLOCK;
         return -1;
     } else if (flags & IO_ATOMIC) {
@@ -154,7 +154,7 @@ int pipe_write(pipe_t *pipe, const char *buf, size_t len, int flags)
         while (len > pipe->size)
             pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size));
         while (len > pipe->size - pipe->avail)
-            async_wait(&pipe->lock, &pipe->wlist, -1);
+            cnd_wait(&pipe->wr_cond, &pipe->mutex);
     }
     while (len > 0) {
         int cap = MIN3(len, (size_t)(pipe->end - pipe->wpen), pipe->size - pipe->avail);
@@ -164,14 +164,15 @@ int pipe_write(pipe_t *pipe, const char *buf, size_t len, int flags)
                 pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size));
                 continue;
             }
-            async_raise(&pipe->rlist, 0);
+            // cnd_signal(&pipe->rd_cond);
+            cnd_broadcast(&pipe->rd_cond);
             if (flags & IO_NO_BLOCK)
                 break;
             if (flags & IO_CONSUME) {
                 pipe_erase_unlock_(pipe, len);
                 continue;
             }
-            async_wait(&pipe->lock, &pipe->wlist, -1);
+            cnd_wait(&pipe->wr_cond, &pipe->mutex);
             continue;
         }
         memcpy(pipe->wpen, buf, cap);
@@ -183,8 +184,9 @@ int pipe_write(pipe_t *pipe, const char *buf, size_t len, int flags)
         if (pipe->wpen == pipe->end)
             pipe->wpen = pipe->base;
     }
-    async_raise(&pipe->rlist, 0);
-    splock_unlock(&pipe->lock);
+    // cnd_signal(&pipe->rd_cond);
+    cnd_broadcast(&pipe->rd_cond);
+    mtx_unlock(&pipe->mutex);
     errno = 0;
     return bytes;
 }
@@ -192,9 +194,9 @@ int pipe_write(pipe_t *pipe, const char *buf, size_t len, int flags)
 int pipe_read(pipe_t *pipe, char *buf, size_t len, int flags)
 {
     int bytes = 0;
-    splock_lock(&pipe->lock);
+    mtx_lock(&pipe->mutex);
     if (flags & IO_NO_BLOCK && len > pipe->avail) {
-        splock_unlock(&pipe->lock);
+        mtx_unlock(&pipe->mutex);
         errno = EWOULDBLOCK;
         return -1;
     } else if (flags & IO_ATOMIC) {
@@ -203,15 +205,16 @@ int pipe_read(pipe_t *pipe, char *buf, size_t len, int flags)
             return -1;
         }
         while (len > pipe->avail)
-            async_wait(&pipe->lock, &pipe->rlist, -1);
+            cnd_wait(&pipe->rd_cond, &pipe->mutex);
     }
     while (len > 0) {
         int cap = MIN3(len, (size_t)(pipe->end - pipe->rpen), pipe->avail);
         if (cap == 0) {
-            async_raise(&pipe->wlist, 0);
+            // cnd_signal(&pipe->wr_cond);
+            cnd_broadcast(&pipe->wr_cond);
             if (flags & IO_NO_BLOCK)
                 break;
-            async_wait(&pipe->lock, &pipe->rlist, -1);
+            cnd_wait(&pipe->rd_cond, &pipe->mutex);
             continue;
         }
         memcpy(buf, pipe->rpen, cap);
@@ -223,8 +226,9 @@ int pipe_read(pipe_t *pipe, char *buf, size_t len, int flags)
         if (pipe->rpen == pipe->end)
             pipe->rpen = pipe->base;
     }
-    async_raise(&pipe->wlist, 0);
-    splock_unlock(&pipe->lock);
+    // cnd_signal(&pipe->wr_cond);
+    cnd_broadcast(&pipe->wr_cond);
+    mtx_unlock(&pipe->mutex);
     errno = 0;
     return bytes;
 }
