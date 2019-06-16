@@ -55,7 +55,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
     inode->rcu = 1;
     inode->links = 0;
     inode->dev = volume;
-    ++volume->rcu;
+    atomic_fetch_add(&volume->rcu, 1);
 
     inode->bnode.value_ = no;
     rwlock_wrlock(&volume->brwlock);
@@ -156,8 +156,27 @@ void vfs_close(inode_t *ino)
         // if (ino->ops->close)
         //     ino->ops->close(ino);
 
-        --ino->dev->rcu;
-        // TODO -- DEVICE
+        // Check device
+        int devrcu = atomic_fetch_sub(&ino->dev->rcu, 1);
+        if (devrcu <= 1) {
+            // TODO -- Call rmdev for dev->info
+            if (ino->dev->devname)
+                kfree(ino->dev->devname);
+            if (ino->dev->devclass)
+                kfree(ino->dev->devclass);
+            if (ino->dev->vendor)
+                kfree(ino->dev->vendor);
+            if (ino->dev->model)
+                kfree(ino->dev->model);
+
+            if (ino->dev->underlying)
+                vfs_close(ino->dev->underlying);
+
+            // TODO -- Ensure cache is empty
+            hmp_destroy(&ino->dev->hmap, 0);
+            kfree(ino->dev);
+        }
+
 
         // TODO -- Close IO file
         // if (ino->dev != NULL) {
@@ -165,7 +184,7 @@ void vfs_close(inode_t *ino)
         // } else if (ino->fs != NULL) {
         //     vfs_mountpt_rcu_(ino->fs);
         // }
-        // kfree(ino);
+        kfree(ino);
         return;
     }
 

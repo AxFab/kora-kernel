@@ -1,4 +1,5 @@
 #include <kernel/vfs.h>
+#include <kernel/futex.h>
 #include <kernel/device.h>
 #include <errno.h>
 
@@ -53,6 +54,7 @@ static dfs_table_t *devfs_extends(int first)
     int i;
     dfs_table_t *table;
     table = kmap(PAGE_SIZE, NULL, 0, VMA_ANON_RW);
+    memset(table, 0, PAGE_SIZE);
     int sz = (PAGE_SIZE - sizeof(dfs_table_t)) / sizeof(dfs_info_t);
     table->length = sz;
     table->free = sz;
@@ -135,8 +137,9 @@ static inode_t *devfs_inode(dfs_info_t *info)
 
 int null_read(inode_t *ino, char *buf, size_t len, int flags)
 {
+    int s = 0;
     while (flags & VFS_BLOCK)
-        async_wait(NULL, NULL, -1);
+        futex_wait(&s, 0, -1, 0);
     errno = EWOULDBLOCK;
     return 0;
 }
@@ -296,3 +299,24 @@ void devfs_mount()
     devfs_dev("null", FL_CHR, DF_ROOT, &devfs_null_ops);
     devfs_dev("rand", FL_CHR, DF_ROOT, &devfs_rand_ops);
 }
+
+
+void devfs_sweep()
+{
+    int i;
+    dfs_table_t *table = kSYS.dev_table;
+    while (table) {
+        for (i = 0; i < table->length; ++i) {
+            dfs_info_t *info = &table->entries[i];
+            if (info->flags == 0)
+                continue;
+            vfs_close(info->dev);
+            kfree(info->name);
+        }
+
+        dfs_table_t *p = table;
+        table = table->next;
+        kunmap(p, PAGE_SIZE);
+    }
+}
+
