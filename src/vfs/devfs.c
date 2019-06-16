@@ -326,10 +326,10 @@ void vfs_init()
     // devfs_setup();
 }
 
-void vfs_sweep()
-{
-    // devfs_sweep();
-}
+// void vfs_sweep()
+// {
+//     // devfs_sweep();
+// }
 
 int vfs_mkdev(inode_t *ino, CSTR name)
 {

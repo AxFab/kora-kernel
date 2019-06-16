@@ -88,6 +88,7 @@ endif
 
 CHECKS += cksync ckutils
 CHECKS += ckpipe ckblk ckgfx # Files
+CHECKS += ckelf ckmem
 CHECKS += ckvfs
 CHECKS += ckkrn # No args, put all files on coverage
 
@@ -140,6 +141,21 @@ ckgfx_src-y += $(srcdir)/files/gfx.c
 ckgfx_src-y += $(srcdir)/tests/stub.c
 ckgfx_src-y += $(srcdir)/tests/tst_gfx.c
 $(eval $(call link_bin,ckgfx,ckgfx_src,CKLFLGS))
+
+ckelf_src-y += $(srcdir)/core/elf.c
+# ckelf_src-y += $(srcdir)/core/dlib.c
+ckelf_src-y += $(srcdir)/basic/hmap.c
+ckelf_src-y += $(srcdir)/tests/stub.c
+ckelf_src-y += $(srcdir)/tests/tst_elf.c
+$(eval $(call link_bin,ckelf,ckelf_src,CKLFLGS))
+
+ckmem_src-y += $(wildcard $(srcdir)/mem/*.c)
+ckmem_src-y += $(srcdir)/basic/bbtree.c
+ckmem_src-y += $(srcdir)/core/debug.c
+ckmem_src-y += $(srcdir)/tests/stub.c
+ckmem_src-y += $(srcdir)/tests/tst_mem.c
+ckmem_src-y += $(topdir)/arch/_simu/mmu.c
+$(eval $(call link_bin,ckmem,ckmem_src,CKLFLGS))
 
 
 ckvfs_src-y += $(srcdir)/basic/bbtree.c
