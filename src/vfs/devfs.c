@@ -234,6 +234,7 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
     dfs_info_t *info = devfs_fetch_new();
     switch (ino->type) {
     case FL_DIR:
+    case FL_VOL:
         info->show = DF_MOUNT;
         if (ino->dev->id[0] != '0')
             info->show |= DF_MOUNT1;
@@ -243,11 +244,11 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
         kprintf(KLOG_MSG, "Mount drive as \033[35m%s\033[0m (%s)\n", ino->dev->devname, ino->dev->devclass);
         break;
     case FL_BLK:
-        info->show = DF_DISK;
+        info->show = DF_DISK | DF_ROOT;
         if (ino->dev->id[0] != '0')
-            info->show = DF_DISK1;
+            info->show |= DF_DISK1;
         if (ino->dev->devname[0] != '0')
-            info->show = DF_DISK2;
+            info->show |= DF_DISK2;
         if (ino->length)
             kprintf(KLOG_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
                     ino->dev->model ? ino->dev->model : "", sztoa(ino->length), name);
@@ -318,5 +319,24 @@ void devfs_sweep()
         table = table->next;
         kunmap(p, PAGE_SIZE);
     }
+}
+
+void vfs_init()
+{
+    // devfs_setup();
+}
+
+void vfs_sweep()
+{
+    // devfs_sweep();
+}
+
+int vfs_mkdev(inode_t *ino, CSTR name)
+{
+    devfs_register(ino, NULL, name);
+}
+
+void vfs_rmdev(CSTR name)
+{
 }
 

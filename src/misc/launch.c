@@ -66,8 +66,9 @@ void kernel_master()
 {
     // Read kernel command, load modules and mount correct device
 #if defined KORA_KRN
+    inode_t *dev;
     for (;;) {
-        inode_t *dev = vfs_search_device("sdC");
+        dev = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "sdC", NULL);
         if (dev != NULL)
             break;
         kprintf(-1, "Looking for 'sdC' !\n");
@@ -80,7 +81,7 @@ void kernel_master()
     // Look for home file system
     inode_t *root;
     for (;;) {
-        root = vfs_mount("sdC", "isofs");
+        root = vfs_mount("sdC", "isofs", "cdrom");
         if (root != NULL)
             break;
         kprintf(-1, "Waiting for 'sdC' volume !\n");

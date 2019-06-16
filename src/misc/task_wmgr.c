@@ -142,7 +142,7 @@ void wmgr_main()
 {
     inode_t *dev;
     for (;;) {
-        dev = vfs_search_device("fb0");
+        dev = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "fb0", NULL);
         if (dev != NULL)
             break;
         sys_sleep(MSEC_TO_KTIME(50));

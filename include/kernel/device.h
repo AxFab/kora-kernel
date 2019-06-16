@@ -123,7 +123,7 @@ void vfs_show_devices();
 void register_fs(CSTR, fs_mount mount);
 void unregister_fs(CSTR name);
 
-inode_t *vfs_mount(CSTR dev, CSTR fs);
+inode_t *vfs_mount(CSTR dev, CSTR fs, CSTR name);
 int vfs_umount(inode_t *ino);
 
 #endif  /* _KERNEL_DRIVERS_H */

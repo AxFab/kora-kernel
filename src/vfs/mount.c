@@ -47,7 +47,7 @@ void unregister_fs(CSTR name)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t *vfs_mount(CSTR devname, CSTR fs)
+inode_t *vfs_mount(CSTR devname, CSTR fs, CSTR name)
 {
     if (!fs_init) {
         errno = ENOSYS;
@@ -62,7 +62,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs)
 
     inode_t *dev = NULL;
     if (devname) {
-        dev = vfs_search_device(devname);
+        dev = vfs_search(kSYS.dev_ino, kSYS.dev_ino, devname, NULL);
         if (dev == NULL) {
             errno = ENODEV;
             return NULL;
@@ -76,27 +76,29 @@ inode_t *vfs_mount(CSTR devname, CSTR fs)
         return NULL;
     }
 
+
+    vfs_mkdev(ino, name);
     assert(ino->type == FL_VOL);
-    kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", devname, ino->dev->devname, ino->dev->devclass);
+    // kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", devname, ino->dev->devname, ino->dev->devclass);
     errno = 0;
     return ino;
 }
 
-int vfs_umount(inode_t *ino)
-{
-    assert(ino->type == FL_VOL);
-    device_t *volume = ino->dev;
+// int vfs_umount(inode_t *ino)
+// {
+//     assert(ino->type == FL_VOL);
+//     device_t *volume = ino->dev;
 
-    errno = 0;
-    if (ino->ops->close)
-        ino->ops->close(ino);
+//     errno = 0;
+//     if (ino->ops->close)
+//         ino->ops->close(ino);
 
-    inode_t *file;
-    for bbtree_each(&volume->btree, file, inode_t, bnode)
-        kprintf(KLOG_INO, "Need rmlink of %3x\n", file->no);
+//     inode_t *file;
+//     for bbtree_each(&volume->btree, file, inode_t, bnode)
+//         kprintf(KLOG_INO, "Need rmlink of %3x\n", file->no);
 
 
-    // vfs_close(ino);
-    return 0;
-}
+//     // vfs_close(ino);
+//     return 0;
+// }
 

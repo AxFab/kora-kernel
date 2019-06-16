@@ -30,8 +30,8 @@ resx_fs_t *resx_fs_create()
         resx->root = resx_fs_root(kCPU.running->resx_fs);
         resx->pwd = resx_fs_pwd(kCPU.running->resx_fs);
     } else {
-        resx->root = kSYS.dev_ino;
-        resx->pwd = kSYS.dev_ino;
+        resx->root = vfs_open(kSYS.dev_ino);
+        resx->pwd = vfs_open(kSYS.dev_ino);
     }
     resx->umask = 022;
     atomic_inc(&resx->users);
