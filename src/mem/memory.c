@@ -32,7 +32,6 @@ struct kMmu kMMU;
 void memory_initialize()
 {
     kMMU.max_vma_size = _Gib_;
-    memset(MMU_BMP, 0xff, MMU_LG);
     kMMU.upper_physical_page = 0;
     kMMU.pages_amount = 0;
     kMMU.free_pages = 0;
@@ -42,7 +41,6 @@ void memory_initialize()
     bbtree_init(&kernel_space.tree);
     splock_init(&kernel_space.lock);
     kMMU.kspace = &kernel_space;
-    splock_init(&kMMU.kspace->lock);
 
     /* Enable MMU */
     mmu_enable();

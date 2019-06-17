@@ -99,28 +99,6 @@ int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us)
     return lock == NULL || errno == 0 ? 0 : -1;
 }
 
-/* Wait for an event to be emited */
-int async_wait_rd(rwlock_t *lock, emitter_t *emitter, long timeout_us)
-{
-    assert(kCPU.running != NULL);
-    assert(kCPU.irq_semaphore == (lock == NULL ? 0 : 1));
-    assert((lock == NULL) == (emitter == NULL));
-    assert(emitter != NULL || timeout_us > 0);
-
-    advent_t *advent = async_advent(emitter, timeout_us);
-    if (lock != NULL)
-        rwlock_rdunlock(lock);
-    /* We have no locks but IRQs are still off, we can switch task */
-    scheduler_switch(TS_BLOCKED, 0);
-
-    /* We have been rescheduled */
-    errno = advent->err;
-    kfree(advent);
-    if (lock != NULL)
-        rwlock_rdlock(lock);
-    return lock == NULL || errno == 0 ? 0 : -1;
-}
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void async_cancel(task_t *task)

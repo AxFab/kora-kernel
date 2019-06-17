@@ -59,7 +59,6 @@ void page_range(long long base, long long length)
     kMMU.free_pages += count;
     int i = start / 8;
     int j = start % 8;
-#if 1
     mzone_t *zn = kalloc(sizeof(mzone_t));
     zn->offset = i * 8;
     zn->reserved = j;
@@ -68,24 +67,6 @@ void page_range(long long base, long long length)
     zn->free = count;
     ll_append(&lzone, &zn->node);
     kprintf(-1, "page at %d.%d count %d\n", i, j, count);
-#else
-    while (count > 0 && j != 0) {
-        MMU_BMP[i] = MMU_BMP[i] & ~(1 << j);
-        j = (j + 1) % 8;
-        count--;
-    }
-    start = ALIGN_UP(start + 1, 8);
-    memset(&MMU_BMP[start / 8], 0, count / 8);
-    start += count & (~8);
-    count = count % 8;
-    i = start / 8;
-    j = 0;
-    while (count > 0) {
-        MMU_BMP[i] = MMU_BMP[i] & ~(1 << j);
-        j++;
-        count--;
-    }
-#endif
 }
 
 void bitsclr(uint8_t *ptr, int start, int count)
@@ -153,7 +134,6 @@ int bitschrz(uint8_t *ptr, int len)
 /* Allocate a single page for the system and return it's physical address */
 page_t page_new()
 {
-#if 1
     mzone_t *mz;
     /* Look on each memory zone */
     for ll_each(&lzone, mz, mzone_t, node) {
@@ -180,50 +160,12 @@ page_t page_new()
         return idx * PAGE_SIZE;
     }
     kpanic("No page available");
-#else
-    int i = 0, j = 0;
-    while (i < MMU_LG && MMU_BMP[i] == 0xff)
-        ++i;
-    if (i == MMU_LG)
-        kpanic("No page available");
-    uint8_t page_byte = MMU_BMP[i];
-    while (page_byte & 1) {
-        ++j;
-        page_byte = page_byte >> 1;
-    }
-    MMU_BMP[i] = MMU_BMP[i] | (1 << j);
-    kMMU.free_pages--;
-    return (page_t)(i * 8 + j) * PAGE_SIZE;
-#endif
 }
 
-/* Look for count pages in continuous memory */
-page_t page_get(int zone, int count)
-{
-    assert((count & 7) == 0);
-    count = ALIGN_UP(count, 8) / 8;
-    int i = 0, j = 0;
-    while (i < MMU_LG) {
-        while (i < MMU_LG && MMU_BMP[i] != 0)
-            ++i;
-        if (i + count >= MMU_LG)
-            return 0;
-        j = 0;
-        while (j < count && MMU_BMP[i + j] == 0)
-            ++j;
-        if (j == count) {
-            memset(&MMU_BMP[i], 0xFF, count);
-            return (page_t)(i * 8 * PAGE_SIZE);
-        }
-        i += j;
-    }
-    return 0;
-}
 
 /* Mark a physique page, returned by `page_new`, as available again */
 void page_release(page_t paddress)
 {
-#if 1
     mzone_t *mz;
     long idx = paddress / PAGE_SIZE;
     /* Look on each memory zone */
@@ -240,13 +182,6 @@ void page_release(page_t paddress)
         return;
     }
     kpanic("Page is not referenced");
-#else
-    int i = (paddress / PAGE_SIZE) / 8;
-    int j = (paddress / PAGE_SIZE) % 8;
-    assert(i < MMU_LG && (MMU_BMP[i] & (1 << j)) != 0);
-    kMMU.free_pages++;
-    MMU_BMP[i] = MMU_BMP[i] & ~(1 << j);
-#endif
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

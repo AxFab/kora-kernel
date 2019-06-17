@@ -7,6 +7,3 @@ typedef size_t cpu_state_t[6];
 
 #define KSTACK (PAGE_SIZE)
 
-#define MMU_BMP ((unsigned char*)0)
-#define MMU_LG  0xffffff
-

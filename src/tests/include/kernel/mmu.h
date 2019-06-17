@@ -24,10 +24,6 @@
 typedef unsigned long page_t;
 
 
-#define MMU_BMP  (mmu_bmp)
-#define MMU_LG  (128 / 8)   // 512 * PAGE_SIZE => 2 Mb
-extern unsigned char mmu_bmp[];
-
 
 #include <setjmp.h>
 

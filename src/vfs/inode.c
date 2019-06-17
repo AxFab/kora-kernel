@@ -30,7 +30,6 @@
 inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
 {
     inode_t *inode;
-#if 1
     if (volume != NULL) {
         rwlock_rdlock(&volume->brwlock);
         inode = bbtree_search_eq(&volume->btree, no, inode_t, bnode);
@@ -61,71 +60,6 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
     rwlock_wrlock(&volume->brwlock);
     bbtree_insert(&volume->btree, &inode->bnode);
     rwlock_wrunlock(&volume->brwlock);
-
-#else
-    if (volume != NULL) {
-        rwlock_rdlock(&volume->brwlock);
-        inode = bbtree_search_eq(&volume->btree, no, inode_t, bnode);
-        rwlock_rdunlock(&volume->brwlock);
-        if (inode != NULL) {
-            assert(inode->no == no);
-            assert(inode->type == type);
-            return vfs_open(inode);
-        }
-    }
-
-    inode = (inode_t *)kalloc(sizeof(inode_t));
-    inode->no = no;
-    inode->type = type;
-
-    inode->rcu = 1;
-    inode->links = 0;
-    // kprintf(KLOG_INO, "CRT %3x.%08x\n", no, volume);
-
-    switch (type) {
-    case FL_REG:  /* Regular file (FS) */
-    case FL_DIR:  /* Directory (FS) */
-    case FL_LNK:  /* Symbolic link (FS) */
-        assert(volume != NULL);
-        atomic_inc(&volume->rcu);
-        inode->dev = volume;
-        inode->bnode.value_ = no;
-        rwlock_wrlock(&volume->brwlock);
-        bbtree_insert(&volume->btree, &inode->bnode);
-        rwlock_wrunlock(&volume->brwlock);
-        break;
-    case FL_VOL:  /* File system volume */
-        assert(volume == NULL);
-        inode->bnode.value_ = no;
-        inode->dev = kalloc(sizeof(device_t));
-        bbtree_init(&inode->dev->btree);
-        bbtree_insert(&inode->dev->btree, &inode->bnode);
-        hmp_init(&inode->dev->hmap, 16);
-        break;
-    case FL_BLK:  /* Block device */
-    case FL_CHR:  /* Char device */
-    case FL_VDO:  /* Video stream */
-        assert(volume == NULL);
-        inode->dev = kalloc(sizeof(device_t));
-        break;
-    case FL_PIPE:  /* Pipe */
-        assert(volume == NULL);
-        break;
-    case FL_WIN:  /* Window (Virtual) */
-    case FL_TTY:  /* Terminal (Virtual) */
-        assert(volume == NULL);
-        // !?
-        break;
-    case FL_NET:  /* Network interface */
-    case FL_SOCK:  /* Network socket */
-    case FL_INFO:  /* Information file */
-    case FL_SFC:  /* Application surface */
-
-    default:
-        assert(false);
-        break;
-    }
-#endif
     return inode;
 }
 
