@@ -46,7 +46,9 @@ CFLAGS += -DKORA_KRN -D__NO_SYSCALL
 endif
 endif
 ifneq ($(target_os),kora)
+ifeq ($(NOCOV),)
 CFLAGS += --coverage -fprofile-arcs -ftest-coverage
+endif
 endif
 
 
@@ -94,9 +96,13 @@ CHECKS += ckkrn # No args, put all files on coverage
 
 include $(topdir)/make/check.mk
 
+ifeq ($(NOCOV),)
 CKLFLGS += --coverage -fprofile-arcs -ftest-coverage
+endif
 CKLFLGS += -lpthread
-# CKLFLGS = -latomic
+ifeq ($(USE_ATOMIC),y)
+CKLFLGS = -latomic
+endif
 
 cksync_src-y += $(srcdir)/basic/futex.c
 cksync_src-y += $(srcdir)/basic/bbtree.c

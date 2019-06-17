@@ -4,8 +4,6 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include "check.h"
 
 void futex_init();

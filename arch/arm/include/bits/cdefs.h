@@ -30,6 +30,7 @@
 #define __ARCH "arm"
 #define __ILP32
 #define __ILPx
+#define __TYPES_MOD_2
 
 #if defined KORA_KRN
 #define RELAX ((void)0)
