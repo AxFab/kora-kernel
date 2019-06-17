@@ -23,8 +23,6 @@
 #include <kora/mcrs.h>
 #include "../check.h"
 
-unsigned char mmu_bmp[MMU_LG] = { 0 };
-
 size_t __um_mspace_pages_count = 64;
 size_t __um_pages_available = 64;
 

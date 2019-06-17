@@ -39,9 +39,6 @@ typedef unsigned long long page_t; */
 #define MMU_KTBL_HIGH  (MMU_KSPACE_UPPER / (4 * _Mib_))
 
 
-#define MMU_BMP  ((uint8_t*)0x120000)
-#define MMU_LG  (128 * _Kib_)   // 128 Kb => 4 Gb
-
 
 #define KRN_PG_DIR 0x2000
 #define KRN_PG_TBL 0x3000
