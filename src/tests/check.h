@@ -71,6 +71,7 @@ pthread_t pthread_self(void);
 #define TEST_CASE(n) void n()
 #define ck_assert(e) do { if (!(e)) ck_fails(#e, __FILE__, __LINE__); } while(0)
 #define ck_ok(e)  ck_assert(e)
+#define ck_abort(e)  do { if (e) ck_abort_(#e, __FILE__, __LINE__); } while(0)
 #define tcase_create(f)  tcase_create_(#f,f)
 
 void kprintf(int no, const char *fmt, ...);
@@ -123,12 +124,15 @@ static inline void fixture_create(const char *name)
 static inline void tcase_create_(const char *name, void(*test)())
 {
     runner.count++;
-    if (setjmp(__tcase_jump) == 0) {
+    int val = setjmp(__tcase_jump);
+    if (val == 0) {
         test();
         kprintf(-1, "\033[90m%24s %s%s\033[0m\n", name, "\033[32m", "OK");
         runner.success++;
-    } else
+    } else if (val == 1)
         kprintf(-1, "\033[90m%24s %s%s\033[0m\n", name, "\033[31m", "FAILS");
+    else
+        kprintf(-1, "\033[90m%24s %s%s\033[0m\n", name, "\033[34m", "ABORT");
 }
 
 
@@ -136,6 +140,13 @@ static inline void ck_fails(const char *expr, const char *file, int line)
 {
     kprintf(-1, "\033[91mCheck fails at %s l.%d: %s\033[0m\n", file, line, expr);
     longjmp(__tcase_jump, 1);
+}
+
+static inline void ck_abort_(const char *expr, const char *file, int line)
+{
+    kprintf(-1, "\033[94mAbort test at %s l.%d: %s\033[0m\n", file, line, expr);
+    runner.count--;
+    longjmp(__tcase_jump, 2);
 }
 
 void ck_reset();

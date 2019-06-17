@@ -44,8 +44,8 @@ typedef void *(*fs_opendir)(inode_t *ino);
 typedef inode_t *(*fs_readdir)(inode_t *ino, char *name, void *ctx);
 typedef int (*fs_closedir)(inode_t *ino, void *ctx);
 
-typedef int (*blk_read)(inode_t *ino, void *buf, size_t len, off_t off);
-typedef int (*blk_write)(inode_t *ino, const void *buf, size_t len, off_t off);
+// typedef int (*blk_read)(inode_t *ino, void *buf, size_t len, off_t off);
+// typedef int (*blk_write)(inode_t *ino, const void *buf, size_t len, off_t off);
 typedef int (*chr_write)(inode_t *ino, const void *buf, size_t len);
 
 typedef int (*dev_rmdev)(inode_t *ino, void *ops);

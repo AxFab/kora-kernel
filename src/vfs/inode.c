@@ -177,7 +177,7 @@ inode_t *vfs_create(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
     }
 
     /* Reserve a cache directory entry */
-    dirent_t *ent = vfs_dirent_(dir, name, !(flags & VFS_BLOCK));
+    dirent_t *ent = vfs_dirent_(dir, name, flags | VFS_NOBLOCK);
     if (ent == NULL) {
         assert(errno != 0);
         return NULL;

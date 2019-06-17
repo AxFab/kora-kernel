@@ -26,8 +26,10 @@
 
 
 
-typedef struct map_page map_page_t;
-typedef struct map_cache map_cache_t;
+typedef struct blk_page blk_page_t;
+typedef struct blk_cache blk_cache_t;
+#define map_page_t blk_page_t
+#define map_cache_t blk_cache_t
 
 typedef struct surface surface_t;
 typedef struct line line_t;
@@ -141,12 +143,17 @@ int pipe_reset(pipe_t *pipe);
 inode_t *pipe_inode();
 
 
+blk_cache_t *blk_create(inode_t *ino, void *read, void *write);
+void blk_destroy(blk_cache_t *cache);
+page_t blk_fetch(blk_cache_t *cache, off_t off);
+void blk_sync(blk_cache_t *cache, off_t off, page_t pg);
+void blk_release(blk_cache_t *cache, off_t off, page_t pg);
 
-map_cache_t *map_create(inode_t *ino, void *read, void *write);
-void map_destroy(map_cache_t *cache);
-page_t map_fetch(map_cache_t *cache, off_t off);
-void map_sync(map_cache_t *cache, off_t off, page_t pg);
-void map_release(map_cache_t *cache, off_t off, page_t pg);
+blk_cache_t *map_create(inode_t *ino, void *read, void *write);
+void map_destroy(blk_cache_t *cache);
+page_t map_fetch(blk_cache_t *cache, off_t off);
+void map_sync(blk_cache_t *cache, off_t off, page_t pg);
+void map_release(blk_cache_t *cache, off_t off, page_t pg);
 
 
 

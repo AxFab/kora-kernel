@@ -138,10 +138,12 @@ static inode_t *devfs_inode(dfs_info_t *info)
 int null_read(inode_t *ino, char *buf, size_t len, int flags)
 {
     int s = 0;
-    while (flags & VFS_BLOCK)
-        futex_wait(&s, 0, -1, 0);
-    errno = EWOULDBLOCK;
-    return 0;
+    if (flags & VFS_NOBLOCK) {
+        errno = EWOULDBLOCK;
+        return 0;
+    }
+    while (0 == futex_wait(&s, 0, -1, 0));
+    return -1;
 }
 
 int null_write(inode_t *ino, const char *buf, size_t len, int flags)
@@ -166,15 +168,17 @@ int rand_read(inode_t *ino, char *buf, size_t len, int flags)
     return len;
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 
 inode_t *devfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int flags)
 {
-    // TODO - If create exclusive, return EROFS
-    dfs_info_t *info = devfs_fetch(dir->no);
-    if (info == NULL || info->flags != 2) {
-        errno = ENOENT;
+    if ((flags & (VFS_OPEN | VFS_CREAT)) == VFS_CREAT) {
+        errno = EROFS;
         return NULL;
     }
+    dfs_info_t *info = devfs_fetch(dir->no);
+    assert (info != NULL && info->flags == 2);
 
     // Look on name / label or uuid ?
     int idx;
@@ -201,29 +205,88 @@ inode_t *devfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int fl
     return NULL;
 }
 
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+typedef struct devfs_dir_it
+{
+    dfs_info_t *info;
+    int idx;
+} devfs_dir_it_t;
+
+
+devfs_dir_it_t* devfs_opendir(inode_t *dir, acl_t *acl)
+{
+    dfs_info_t *info = devfs_fetch(dir->no);
+    assert (info != NULL && info->flags == 2);
+
+    devfs_dir_it_t *it = kalloc(sizeof(devfs_dir_it_t));
+    it->info = info;
+    it->idx = 0;
+}
+
+inode_t *devfs_readdir(inode_t *dir, char *name, devfs_dir_it_t *ctx)
+{
+    (void)dir;
+    dfs_table_t *table = kSYS.dev_table;
+    int no = ctx->idx;
+    while (no > table->length) {
+        no -= table->length;
+        table = table->next;
+    }
+
+    for (;;++no) {
+        if (no > table->length) {
+            table = table->next;
+            if (table == NULL)
+                return NULL;
+            no = 0;
+        }
+        ctx->idx++;
+
+        dfs_info_t *en = &table->entries[no];
+        if (en->flags != 2)
+            continue;
+        if ((en->show & ctx->info->filter) == 0)
+            continue;
+
+        strcpy(name, en->name);
+        return devfs_inode(en);
+    }
+}
+
+void devfs_closedir(inode_t *dir, devfs_dir_it_t *ctx)
+{
+    (void)dir;
+    kfree(ctx);
+}
+
 dev_ops_t dev_ops = {
     .ioctl = NULL,
 };
 
 fs_ops_t devfs_fs_ops = {
-    .open = devfs_open,
+    .open = (void*)devfs_open,
 };
 
 ino_ops_t devfs_dir_ops = {
-
+    .opendir = (void*)devfs_opendir,
+    .readdir = (void*)devfs_readdir,
+    .closedir = (void*)devfs_closedir,
 };
 
 ino_ops_t devfs_zero_ops = {
-    .read = zero_read,
+    .read = (void*)zero_read,
 };
 
 ino_ops_t devfs_null_ops = {
-    .read = null_read,
-    .write = null_write,
+    .read = (void*)null_read,
+    .write = (void*)null_write,
 };
 
 ino_ops_t devfs_rand_ops = {
-    .read = rand_read,
+    .read = (void*)rand_read,
 };
 
 
@@ -238,7 +301,7 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
         info->show = DF_MOUNT;
         if (ino->dev->id[0] != '0')
             info->show |= DF_MOUNT1;
-        if (ino->dev->devname[0] != '0')
+        if (ino->dev->devname != NULL)
             info->show |= DF_MOUNT2;
         // kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", devname, ino->dev->devname, ino->dev->devclass);
         kprintf(KLOG_MSG, "Mount drive as \033[35m%s\033[0m (%s)\n", ino->dev->devname, ino->dev->devclass);
@@ -247,7 +310,7 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
         info->show = DF_DISK | DF_ROOT;
         if (ino->dev->id[0] != '0')
             info->show |= DF_DISK1;
-        if (ino->dev->devname[0] != '0')
+        if (ino->dev->devname != NULL)
             info->show |= DF_DISK2;
         if (ino->length)
             kprintf(KLOG_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
@@ -268,7 +331,7 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
     info->flags = 2;
 }
 
-void devfs_mount()
+void vfs_init()
 {
     kSYS.dev_table = devfs_extends(1);
     dfs_info_t *info = devfs_fetch_new();
@@ -299,10 +362,12 @@ void devfs_mount()
     devfs_dev("zero", FL_CHR, DF_ROOT, &devfs_zero_ops);
     devfs_dev("null", FL_CHR, DF_ROOT, &devfs_null_ops);
     devfs_dev("rand", FL_CHR, DF_ROOT, &devfs_rand_ops);
+
+    // TODO -- FS drivers list
 }
 
 
-void devfs_sweep()
+void vfs_sweep()
 {
     int i;
     dfs_table_t *table = kSYS.dev_table;
@@ -312,24 +377,15 @@ void devfs_sweep()
             if (info->flags == 0)
                 continue;
             vfs_close(info->dev);
-            kfree(info->name);
         }
 
         dfs_table_t *p = table;
         table = table->next;
         kunmap(p, PAGE_SIZE);
     }
+    kSYS.dev_table = NULL;
+    // Clean inode cache
 }
-
-void vfs_init()
-{
-    // devfs_setup();
-}
-
-// void vfs_sweep()
-// {
-//     // devfs_sweep();
-// }
 
 int vfs_mkdev(inode_t *ino, CSTR name)
 {
