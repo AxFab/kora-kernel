@@ -2,6 +2,7 @@
 #include <kernel/device.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <time.h>
 
 void *hostfs_opendir(inode_t *dir)
@@ -19,10 +20,34 @@ inode_t *hostfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int f
     snprintf(path, 256, "%s/%s", dir->info, name);
     struct stat st;
     if (lstat(path, &st) != 0) {
-        errno = ENOENT;
+        if (!(flags & VFS_CREAT)) {
+            errno = ENOENT;
+            return NULL;
+        }
+        if (mode == FL_REG) {
+            int fd = open(path, O_CREAT | O_EXCL, 0644);
+            if (fd == -1 || lstat(path, &st) != 0) {
+                close(fd);
+                errno = EIO;
+                return NULL;
+            }
+            close(fd);
+        } else if (mode == FL_DIR) {
+            mkdir(path, 0755);
+            if (lstat(path, &st) != 0) {
+                errno = EIO;
+                return NULL;
+            }
+        }
+    } else if (!(flags & VFS_OPEN)) {
+        errno = EEXIST;
         return NULL;
     }
-    int type = FL_REG;
+
+    int type = 0;
+    if (S_ISDIR(st.st_mode)) type = FL_DIR;
+    if (S_ISREG(st.st_mode)) type = FL_REG;
+
     inode_t *ino = vfs_inode(st.st_ino, type, dir->dev);
     if (ino->ops == NULL) {
         ino->ops = &hostfs_opendir;
@@ -30,15 +55,44 @@ inode_t *hostfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int f
         ino->ctime = TMSPEC_TO_USEC(st.st_ctim);
         ino->mtime = TMSPEC_TO_USEC(st.st_mtim);
         ino->atime = TMSPEC_TO_USEC(st.st_atim);
+        ino->info = strdup(path);
     }
 
     errno = 0;
     return ino;
 }
 
+int hostfs_unlink(inode_t *dir, CSTR name)
+{
+    char path[256];
+    snprintf(path, 256, "%s/%s", dir->info, name);
+    struct stat st;
+    if (lstat(path, &st) != 0) {
+        errno = ENOENT;
+        return -1;
+    }
+
+    int ret;
+    if (S_ISDIR(st.st_mode))
+        ret = rmdir(path);
+    else if (S_ISREG(st.st_mode))
+        ret = unlink(path);
+    else {
+        errno = ENOSYS;
+        return -1;
+    }
+    if (ret != 0) {
+        errno = EIO;
+        return -1;
+    }
+    // TODO -- Set errno!
+    return ret;
+}
+
 
 fs_ops_t hostfs_fs_ops = {
     .open = hostfs_open,
+    .unlink = hostfs_unlink,
 };
 
 

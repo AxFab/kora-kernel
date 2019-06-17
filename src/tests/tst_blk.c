@@ -21,17 +21,17 @@ page_t mmu_read(size_t address)
 }
 
 
-map_cache_t *map_create(inode_t *ino, void *read, void *write);
-void map_destroy(map_cache_t *cache);
+map_cache_t *blk_create(inode_t *ino, void *read, void *write);
+void blk_destroy(map_cache_t *cache);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 TEST_CASE(tst_blk_01)
 {
     int fd1 = 5;// open()
-    map_cache_t *map1 = map_create((void*)fd1, read, write);
+    blk_cache_t *map1 = blk_create((void*)fd1, read, write);
 
-    map_destroy(map1);
+    blk_destroy(map1);
 }
 
 

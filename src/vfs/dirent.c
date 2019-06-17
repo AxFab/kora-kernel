@@ -122,7 +122,7 @@ void vfs_dirent_rcu_(inode_t *ino)
 }
 
 
-void vfs_sweep(device_t *fs, int max)
+void vfs_scavenge(device_t *fs, int max)
 {
     /* Lock so that nobody can access new dirent_t */
     splock_lock(&fs->lock);

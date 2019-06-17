@@ -23,7 +23,7 @@
 #include <kernel/files.h>
 #include <threads.h>
 
-struct map_page {
+struct blk_page {
     bbnode_t bnode;
     int rcu;
     page_t phys;
@@ -31,7 +31,7 @@ struct map_page {
     cnd_t cond;
 };
 
-struct map_cache {
+struct blk_cache {
     inode_t *ino;
     int(*read)(inode_t *, char *data, size_t, off_t);
     int(*write)(inode_t *, const char *data, size_t, off_t);
@@ -40,9 +40,9 @@ struct map_cache {
 };
 
 
-map_cache_t *map_create(inode_t *ino, void *read, void *write)
+blk_cache_t *blk_create(inode_t *ino, void *read, void *write)
 {
-    map_cache_t *cache = kalloc(sizeof(map_cache_t));
+    blk_cache_t *cache = kalloc(sizeof(blk_cache_t));
     cache->read = read;
     cache->write = write;
     cache->ino = ino;
@@ -51,37 +51,37 @@ map_cache_t *map_create(inode_t *ino, void *read, void *write)
     return cache;
 }
 
-void map_destroy(map_cache_t *cache)
+void blk_destroy(blk_cache_t *cache)
 {
     // assert(cache->tree.count_ == 0);
     kfree(cache);
 }
 
-static void map_close(map_cache_t *cache, map_page_t *page)
+static void blk_close(blk_cache_t *cache, blk_page_t *page)
 {
     if (--page->rcu == 0) {
         // IF DIRTY SYNC
         // TODO push on LRU
-        // kSYS.map_pages_lru
+        // kSYS.blk_pages_lru
     }
 }
 
 /*
-int map_scavenge(int count, int min)
+int blk_scavenge(int count, int min)
 {
     int del = 0;
-    while (count-- > 0 && kSYS.map_pages_lru.count_ > min) {
+    while (count-- > 0 && kSYS.blk_pages_lru.count_ > min) {
 
-        map_page_t *page = map_pages_lru.first;
-        map_cache_t *cache;
+        blk_page_t *page = blk_pages_lru.first;
+        blk_cache_t *cache;
         while (splock_trylock(&cache->lock) != 0) {
             // TODO -- don't touch MIN lasts items!
-            page = llnext(&page->node, map_cache_t, node);
+            page = llnext(&page->node, blk_cache_t, node);
         }
 
         ++del;
         // TODO pop from on LRU
-        // kSYS.map_pages_lru
+        // kSYS.blk_pages_lru
         bbtree_remove(&cache->tree, page->bnode.value_);
         page_release(page->phys);
         splock_unlock(&cache->lock);
@@ -91,7 +91,7 @@ int map_scavenge(int count, int min)
 
 
 
-page_t map_fetch(map_cache_t *cache, off_t off)
+page_t blk_fetch(blk_cache_t *cache, off_t off)
 {
     // kprintf(-1, "FETCH page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
     if (cache->ino->length != 0 && off > cache->ino->length)
@@ -100,7 +100,7 @@ page_t map_fetch(map_cache_t *cache, off_t off)
     assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&cache->lock);
-    map_page_t *page = bbtree_search_eq(&cache->tree, off / PAGE_SIZE, map_page_t, bnode);
+    blk_page_t *page = bbtree_search_eq(&cache->tree, off / PAGE_SIZE, blk_page_t, bnode);
     if (page != NULL) {
         // TODO - ensure not in LRU
         page->rcu++;
@@ -109,7 +109,7 @@ page_t map_fetch(map_cache_t *cache, off_t off)
         return page->phys;
     }
 
-    page = kalloc(sizeof(map_page_t));
+    page = kalloc(sizeof(blk_page_t));
     cnd_init(&page->cond);
     page->rcu = 1;
     page->bnode.value_ = off / PAGE_SIZE;
@@ -132,12 +132,12 @@ page_t map_fetch(map_cache_t *cache, off_t off)
     return pg;
 }
 
-void map_sync(map_cache_t *cache, off_t off, page_t pg)
+void blk_sync(blk_cache_t *cache, off_t off, page_t pg)
 {
     assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&cache->lock);
-    map_page_t *page = bbtree_search_eq(&cache->tree, off / PAGE_SIZE, map_page_t, bnode);
+    blk_page_t *page = bbtree_search_eq(&cache->tree, off / PAGE_SIZE, blk_page_t, bnode);
     assert(page != NULL);
     if (!page->dirty) {
         splock_unlock(&cache->lock);
@@ -155,14 +155,105 @@ void map_sync(map_cache_t *cache, off_t off, page_t pg)
     kunmap(ptr, PAGE_SIZE);
 }
 
-void map_release(map_cache_t *cache, off_t off, page_t pg)
+void blk_release(blk_cache_t *cache, off_t off, page_t pg)
 {
     // kprintf(-1, "RELEASE page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&cache->lock);
-    map_page_t *page = bbtree_search_eq(&cache->tree, off / PAGE_SIZE, map_page_t, bnode);
+    blk_page_t *page = bbtree_search_eq(&cache->tree, off / PAGE_SIZE, blk_page_t, bnode);
     assert(page != NULL);
-    map_close(cache, page);
+    blk_close(cache, page);
     splock_unlock(&cache->lock);
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+blk_cache_t *map_create(inode_t *ino, void *read, void *write)
+{
+    return blk_create(ino, read, write);
+}
+
+void map_destroy(blk_cache_t *cache)
+{
+    blk_destroy(cache);
+}
+
+page_t map_fetch(blk_cache_t *cache, off_t off)
+{
+    return blk_fetch(cache, off);
+}
+
+void map_sync(blk_cache_t *cache, off_t off, page_t pg)
+{
+    blk_sync(cache, off, pg);
+}
+
+void map_release(blk_cache_t *cache, off_t off, page_t pg)
+{
+    blk_release(cache, off, pg);
+}
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+int blk_read(inode_t *ino, char *buf, size_t len, int flags, off_t off)
+{
+    if (off >= ino->length && ino->length != 0)
+        return 0;
+    off_t poff = -1;
+    char *map = NULL;
+    int bytes = 0;
+    while (len > 0) {
+        off_t po = ALIGN_DW(off, PAGE_SIZE);
+        if (poff != po) {
+            if (map != NULL)
+                kunmap(map, PAGE_SIZE);
+            poff = po;
+            map = kmap(PAGE_SIZE, ino, poff, VMA_FILE_RO | VMA_RESOLVE);
+            if (map == NULL)
+                return -1;
+        }
+        size_t disp = (size_t)(off & (PAGE_SIZE - 1));
+        int cap = MIN3((size_t)len, PAGE_SIZE - disp, (size_t)(ino->length - off));
+        if (cap == 0)
+            return bytes;
+        memcpy(buf, map + disp, cap);
+        len -= cap;
+        off += cap;
+        buf += cap;
+        bytes += cap;
+    }
+    kunmap(map, PAGE_SIZE);
+    return bytes;
+}
+
+int blk_write(inode_t *ino, const char *buf, size_t len, int flags, off_t off)
+{
+    if (off >= ino->length && ino->length != 0)
+        return 0;
+    off_t poff = -1;
+    char *map = NULL;
+    int bytes = 0;
+    while (len > 0) {
+        off_t po = ALIGN_DW(off, PAGE_SIZE);
+        if (poff != po) {
+            if (map != NULL)
+                kunmap(map, PAGE_SIZE);
+            poff = po;
+            map = kmap(PAGE_SIZE, ino, poff, VMA_FILE_RW | VMA_RESOLVE);
+            if (map == NULL)
+                return -1;
+        }
+        size_t disp = (size_t)(off & (PAGE_SIZE - 1));
+        int cap = MIN3((size_t)len, PAGE_SIZE - disp, (size_t)(ino->length - off));
+        if (cap == 0)
+            return bytes;
+        memcpy(map + disp, buf, cap);
+        len -= cap;
+        off += cap;
+        buf += cap;
+        bytes += cap;
+    }
+    kunmap(map, PAGE_SIZE);
+    return bytes;
+}

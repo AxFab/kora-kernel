@@ -141,7 +141,6 @@ void kernel_start()
     kprintf(KLOG_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
 
     assert(kCPU.irq_semaphore == 1);
-    devfs_mount();
     vfs_init();
     futex_init();
     kmod_init();

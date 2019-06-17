@@ -32,7 +32,7 @@
 
 #define VFS_OPEN  0x01
 #define VFS_CREAT  0x02
-#define VFS_BLOCK  0x04
+#define VFS_NOBLOCK  0x04
 
 #define VFS_RDONLY  0x001
 
@@ -88,9 +88,9 @@ struct ino_ops {
     page_t(*fetch)(inode_t *ino, off_t off);
     void(*sync)(inode_t *ino, off_t off, page_t pg);
     void(*release)(inode_t *ino, off_t off, page_t pg);
-    // Fifo
-    int(*read)(inode_t *ino, char *buf, size_t len, int flags);
-    int(*write)(inode_t *ino, const char *buf, size_t len, int flags);
+    // Read / Write
+    int(*read)(inode_t *ino, char *buf, size_t len, int flags, off_t off);
+    int(*write)(inode_t *ino, const char *buf, size_t len, int flags, off_t off);
     int(*reset)(inode_t *ino);
     // Directory
     void *(*opendir)(inode_t *dir);

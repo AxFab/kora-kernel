@@ -36,7 +36,6 @@ int main(int argc, char **argv)
     kprintf(-1, "\033[1;97mKoraOs\033[0m\n");
     mmu_setup();
     cpu_setup();
-    devfs_mount();
     vfs_init();
     futex_init();
     // scheduler_init();

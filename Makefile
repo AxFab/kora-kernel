@@ -89,7 +89,7 @@ endif
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 CHECKS += cksync ckutils
-CHECKS += ckpipe ckblk ckgfx # Files
+CHECKS += ckpipe ckblk ckgfx ckwin # Files
 CHECKS += ckelf ckmem
 CHECKS += ckvfs
 CHECKS += ckkrn # No args, put all files on coverage
@@ -136,7 +136,7 @@ ckblk_src-y += $(srcdir)/basic/bbtree.c
 ckblk_src-y += $(srcdir)/basic/futex.c
 ckblk_src-y += $(srcdir)/stdc/cnd.c
 ckblk_src-y += $(srcdir)/stdc/mtx.c
-ckblk_src-y += $(srcdir)/files/map.c
+ckblk_src-y += $(srcdir)/files/blk.c
 ckblk_src-y += $(srcdir)/tests/stub.c
 ckblk_src-y += $(srcdir)/tests/thrd.c
 ckblk_src-y += $(srcdir)/tests/sched.c
@@ -162,7 +162,6 @@ ckmem_src-y += $(srcdir)/tests/stub.c
 ckmem_src-y += $(srcdir)/tests/tst_mem.c
 ckmem_src-y += $(topdir)/arch/_simu/mmu.c
 $(eval $(call link_bin,ckmem,ckmem_src,CKLFLGS))
-
 
 ckvfs_src-y += $(srcdir)/basic/bbtree.c
 ckvfs_src-y += $(srcdir)/basic/hmap.c
