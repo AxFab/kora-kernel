@@ -5,8 +5,12 @@
 #include <string.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <unistd.h>
+// #include <unistd.h>
 #include "check.h"
+
+long read(int fd, char *buf, size_t lg);
+long write(int fd, const char *buf, size_t lg);
+
 
 void futex_init();
 

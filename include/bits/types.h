@@ -22,7 +22,6 @@
 
 
 #include <bits/cdefs.h>
-// #include <bits/typesizes.h>
 
 typedef unsigned char __u_char;
 typedef unsigned short int __u_short;
@@ -60,12 +59,39 @@ typedef unsigned long int __u_quad_t;
 
 
 
+/* Datatypes pointer size */
+#if defined __ILP32
+
+typedef long int __fsword_t;
+typedef long int __syscall_slong_t;
+typedef unsigned long int __syscall_ulong_t;
+typedef int __intptr_t;
+typedef long int __ssize_t;
+
+#elif defined __LP64
+
+typedef long int __fsword_t;
+typedef long int __syscall_slong_t;
+typedef unsigned long int __syscall_ulong_t;
+typedef long int __intptr_t;
+typedef long int __ssize_t;
+
+#elif defined __LLP64
+
+typedef long long int __fsword_t;
+typedef long long int __syscall_slong_t;
+typedef unsigned long long int __syscall_ulong_t;
+typedef long long int __intptr_t;
+typedef long long int __ssize_t;
+
+#endif  /* Datatypes pointer size */
+
+
+
 typedef unsigned long int __dev_t;
 typedef unsigned int __uid_t;
 typedef unsigned int __gid_t;
 typedef unsigned long int __ino_t;
-typedef unsigned int __mode_t;
-typedef unsigned long int __nlink_t;
 typedef long int __off_t;
 typedef int __pid_t;
 typedef struct {
@@ -86,30 +112,17 @@ typedef long int __blkcnt_t;
 typedef unsigned long int __fsblkcnt_t;
 typedef unsigned long int __fsfilcnt_t;
 typedef char *__caddr_t;
-typedef unsigned int __socklen_t;
 typedef __quad_t *__qaddr_t;
 
-
-/* Datatypes pointer size */
-#if defined __ILP32
-
-typedef long int __fsword_t;
-typedef long int __syscall_slong_t;
-typedef unsigned long int __syscall_ulong_t;
-typedef int __intptr_t;
-typedef long int __ssize_t;
-
-#elif defined __LP64
-
-typedef long int __fsword_t;
-typedef long int __syscall_slong_t;
-typedef unsigned long int __syscall_ulong_t;
-typedef long int __intptr_t;
-typedef long int __ssize_t;
-
-#endif  /* Datatypes pointer size */
-
-
+#ifdef __TYPES_MOD_2
+typedef unsigned short __mode_t;
+typedef unsigned int __nlink_t;
+typedef signed int __socklen_t;
+#else
+typedef unsigned int __mode_t;
+typedef unsigned long int __nlink_t;
+typedef unsigned int __socklen_t;
+#endif
 
 
 /* Datatypes 64 */
