@@ -77,6 +77,8 @@ typedef struct pipe pipe_t;
 
 // Network
 typedef struct netdev netdev_t;
+typedef struct ifnet ifnet_t;
+typedef struct protocol protocol_t;
 typedef struct skb skb_t;
 typedef struct socket socket_t;
 
