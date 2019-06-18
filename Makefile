@@ -148,6 +148,19 @@ ckgfx_src-y += $(srcdir)/tests/stub.c
 ckgfx_src-y += $(srcdir)/tests/tst_gfx.c
 $(eval $(call link_bin,ckgfx,ckgfx_src,CKLFLGS))
 
+cknet_src-y += $(srcdir)/basic/futex.c
+cknet_src-y += $(srcdir)/basic/bbtree.c
+cknet_src-y += $(srcdir)/files/pipe.c
+cknet_src-y += $(srcdir)/stdc/cnd.c
+cknet_src-y += $(srcdir)/stdc/mtx.c
+cknet_src-y += $(srcdir)/net/socket.c
+cknet_src-y += $(srcdir)/net/local.c
+cknet_src-y += $(srcdir)/tests/stub.c
+cknet_src-y += $(srcdir)/tests/thrd.c
+cknet_src-y += $(srcdir)/tests/sched.c
+cknet_src-y += $(srcdir)/tests/tst_sock.c
+$(eval $(call link_bin,cknet,cknet_src,CKLFLGS))
+
 ckelf_src-y += $(srcdir)/core/elf.c
 # ckelf_src-y += $(srcdir)/core/dlib.c
 ckelf_src-y += $(srcdir)/basic/hmap.c

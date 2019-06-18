@@ -114,6 +114,7 @@ int ntp_receive(skb_t *skb, int length);
 #define IP6_ALEN 16
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+#define ifnet_t netdev_t
 struct netdev {
     unsigned mtu;
     int no;
@@ -168,15 +169,28 @@ struct skb {
     uint8_t ip4_addr[IP4_ALEN];
     char log[NET_LOG_SIZE];
     llnode_t node;
+    bbnode_t bnode;
+    int fragment;
+    int data_len;
+    protocol_t *protocol;
     uint8_t buf[1500];
 };
 
+
 struct socket {
-    netdev_t *ifnet;
-    uint16_t sport;
-    uint16_t dport;
-    uint8_t addr[16];
-    int(*packet)(socket_t *socket);
+    ifnet_t *ifnet;
+    bbtree_t packets;
+    int next_frag;
+    int send_frag;
+    pipe_t *input;
+    protocol_t *protocol;
+};
+
+struct protocol {
+    int(*max_frame)(socket_t *);
+    int(*packet)(socket_t *, const char *, size_t);
+    int(*receive)(skb_t *skb);
+    int(*connect)(socket_t *, char *);
 };
 
 #define NET_ERR_OVERFILL (1 << 0)
