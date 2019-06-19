@@ -102,6 +102,21 @@ static void vga_change_offset(uint16_t offset)
     outw(VGA_PORT_DATA, offset);
 }
 
+int vga_fcntl(inode_t *ino, int cmd, ...)
+{
+    if (cmd == 800) {
+        vga_flip(ino);
+        return 0;
+    }
+    return -1;
+}
+
+page_t vga_fetch(inode_t *ino, off_t off)
+{
+    framebuffer_t *fb = (framebuffer_t *)ino->info;
+    return mmu_read(ADDR_OFF(fb->pixels, off));
+}
+
 void vga_flip(inode_t *ino)
 {
     framebuffer_t *fb = (framebuffer_t *)ino->info;
@@ -113,6 +128,8 @@ void vga_flip(inode_t *ino)
 
 ino_ops_t vga_ino_ops = {
     .flip = vga_flip,
+    .fcntl = vga_fcntl,
+    .fetch = vga_fetch,
 };
 
 dev_ops_t vga_dev_ops = {
@@ -152,7 +169,6 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
 
     framebuffer_t *fb = gfx_create(size[i * 2], size[i * 2 + 1], 4, (void *) - 1);
     uint32_t pixels1 = pixels0 + fb->pitch * fb->height;
-    fb->pixels = (uint8_t *)pixels1;
     fb->pixels = (uint8_t *)pixels0;
     fb->backup = (uint8_t *)pixels1;
     vga_change_offset(fb->height);

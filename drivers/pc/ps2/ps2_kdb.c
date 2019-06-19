@@ -43,8 +43,12 @@ static void PS2_kbd_led(uint8_t status)
 }
 
 
+
+
 void PS2_kdb_handler()
 {
+    gfx_msg_t msg;
+    pipe_t *kdb_buffer = (pipe_t *)kdb_ino->info;
     char c = 0;
     for (;;) {
         if (inb(0x60) != c)
@@ -77,8 +81,11 @@ void PS2_kdb_handler()
         else if (c == KEY_HOST)
             kdb_status |= KDB_HOST;
 
-
-        wmgr_input(kdb_ino, EV_KEYDOWN, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
+        msg.param1 = (kdb_status << 16) | c;
+        msg.param2 = (kdb_status << 16) | c;
+        msg.message = EV_KEYDOWN;
+        pipe_write(kdb_buffer, &msg, sizeof(msg), 0);
+        // wmgr_input(kdb_ino, EV_KEYDOWN, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
         // PS2_event(kdb_ino, EV_KEY_PRESS, 0, (kdb_status << 16) | c);
 
     } else {
@@ -98,7 +105,11 @@ void PS2_kdb_handler()
         else if (c == KEY_HOST)
             kdb_status &= ~KDB_HOST;
 
-        wmgr_input(kdb_ino, EV_KEYUP, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
+        msg.param1 = (kdb_status << 16) | c;
+        msg.param2 = (kdb_status << 16) | c;
+        msg.message = EV_KEYUP;
+        pipe_write(kdb_buffer, &msg, sizeof(msg), 0);
+        // wmgr_input(kdb_ino, EV_KEYUP, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
         // PS2_event(kdb_ino, EV_KEY_RELEASE, 0, (kdb_status << 16) | c);
     }
 }

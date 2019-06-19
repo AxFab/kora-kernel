@@ -73,9 +73,15 @@ static inline uint8_t PS2_mouse_read()
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+int mseX = 0;
+int mseY = 0;
+
 //Mouse functions
 void PS2_mouse_handler()
 {
+    gfx_msg_t msg;
+    pipe_t *kdb_buffer = (pipe_t *)kdb_ino->info;
+
     uint8_t status = inb(MOUSE_STATUS);
     while (status & MOUSE_DATA_BIT && status & MOUSE_F_BIT) {
         uint8_t byte = inb(MOUSE_PORT);
@@ -101,12 +107,23 @@ void PS2_mouse_handler()
                 mouse_y = mouse_y - 0x100;
             if (mouse_byte[0] & 0x40 || mouse_byte[0] & 0x80)
                 mouse_x = mouse_y = 0; // Overflow
-            if (mouse_x != 0 || mouse_y != 0)
-                PS2_event(mouse_ino, EV_MOUSEMOVE, mouse_x, -mouse_y);
+            if (mouse_x != 0 || mouse_y != 0) {
+                mouse_y = -mouse_y;
+                mseX = MIN(1280, MAX(0, mseX + mouse_x));
+                mseY = MIN(780, MAX(0, mseY + mouse_y));
+                msg.param1 = mouse_x;
+                msg.param2 = mouse_y;
+                msg.message = EV_MOUSEMOVE;
+                pipe_write(kdb_buffer, &msg, sizeof(msg), 0);
 
+            }
             if (mouse_btn != (mouse_byte[0] & 7)) {
-                // PS2_event(mouse_ino, EV_MOUSE_BTN, mouse_btn, 0);
+                int diff = mouse_btn ^ mouse_byte[0] & 7;
                 mouse_btn = mouse_byte[0] & 7;
+                // msg.param1 = diff;
+                // msg.param2 = mouse_btn;
+                // msg.message = EV_MOUSEBTN;
+                // pipe_write(kdb_buffer, &msg, sizeof(msg), 0);
             }
 
             return;

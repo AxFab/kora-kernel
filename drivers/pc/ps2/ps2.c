@@ -76,36 +76,39 @@ dev_ops_t ps2_kdb_dev_ops = {
 
 };
 
-ino_ops_t ps2_kdb_ino_ops = {
+ino_ops_t ps2_ino_ops = {
     .read = ps2_read
 };
-
 
 
 
 void PS2_setup()
 {
     irq_register(1, (irq_handler_t)PS2_kdb_handler, NULL);
-    // irq_register(12, (irq_handler_t)PS2_mouse_handler, NULL);
-    // PS2_mouse_setup();
+    irq_register(12, (irq_handler_t)PS2_mouse_handler, NULL);
+    PS2_mouse_setup();
 
     kdb_ino = vfs_inode(1, FL_CHR, NULL);
     kdb_ino->dev->block = sizeof(event_t);
     kdb_ino->dev->flags = VFS_RDONLY;
     kdb_ino->dev->ops = &ps2_kdb_dev_ops;
-    kdb_ino->ops = &ps2_kdb_ino_ops;
+    kdb_ino->ops = &ps2_ino_ops;
     kdb_ino->dev->devclass = (char *)"PS/2 Keyboard";
     kdb_ino->info = pipe_create();
     vfs_mkdev(kdb_ino, "kdb");
     vfs_close(kdb_ino);
 
-    /*
+
     mouse_ino = vfs_inode(2, FL_CHR, NULL);
-    ps2_mse.block = sizeof(event_t);
-    ps2_mse.class = "PS/2 Mouse";
-    vfs_mkdev("mouse", &ps2_mse, mouse_ino);
+    mouse_ino->dev->block = sizeof(event_t);
+    mouse_ino->dev->flags = VFS_RDONLY;
+    mouse_ino->dev->ops = &ps2_kdb_dev_ops;
+    mouse_ino->ops = &ps2_ino_ops;
+    mouse_ino->dev->devclass = (char *)"PS/2 Mouse";
+    mouse_ino->info = pipe_create();
+    vfs_mkdev(mouse_ino, "mouse");
     vfs_close(mouse_ino);
-    */
+
 }
 
 void PS2_teardown()

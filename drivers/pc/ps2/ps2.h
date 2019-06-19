@@ -37,4 +37,13 @@ void PS2_mouse_handler();
 void PS2_mouse_setup();
 
 
+typedef struct gfx_msg {
+    int64_t timestamp;
+    int32_t param1;
+    int32_t param2;
+    uint16_t message;
+    uint16_t unsued;
+} gfx_msg_t;
+
+
 #endif  /* _SRC_DRV_PS2_H */
