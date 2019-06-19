@@ -161,3 +161,111 @@ void exec_task(const char **exec_args)
     cpu_usermode(start, stack);
 }
 
+
+void list_dir (inode_t *dir)
+{
+    inode_t *ino;
+    char name[256];
+    void *dir_ctx = vfs_opendir(dir, NULL);
+    // kprintf(-1, "Root readdir:");
+    while ((ino = vfs_readdir(dir, name, dir_ctx)) != NULL) {
+        kprintf(-1, " - %s%s\n", name, VFS_ISDIR(ino) ? "/" : "");
+        vfs_close(ino);
+    }
+    vfs_closedir(dir, dir_ctx);
+}
+void exec_proc(const char **exec_args)
+{
+    // Create a new memory space
+    mspace_t *mspace = mspace_create();
+    mmu_context(mspace);
+    kCPU.running->usmem = mspace;
+
+
+    inode_t *root;
+    for (;;) {
+        root = vfs_mount("sdC", "isofs", "cdrom");
+        if (root != NULL)
+            break;
+        kprintf(-1, "Waiting for 'sdC' volume !\n");
+        sys_sleep(MSEC_TO_KTIME(1000));
+    }
+
+    // Create a new process structure
+    proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace);
+    kCPU.running->proc = proc;
+
+
+    // inode_t *dir = kSYS.dev_ino;
+    // kprintf(-1, "List /dev\n");
+    // list_dir(dir);
+    // dir = vfs_lookup(dir, "mnt");
+    // kprintf(-1, "List /dev/mnt\n");
+    // list_dir(dir);
+    // dir = vfs_lookup(dir, "boot");
+    // kprintf(-1, "List /dev/mnt/boot\n");
+    // list_dir(dir);
+
+    // kprintf(-1, "List /dev/mnt/cdrom\n");
+    // list_dir(root);
+    proc->root = root;
+
+    root = vfs_lookup(root, "usr");
+    // kprintf(-1, "List /dev/mnt/cdrom/usr\n");
+    // list_dir(root);
+
+    root = vfs_lookup(root, "bin");
+    // kprintf(-1, "List /dev/mnt/cdrom/usr/bin\n");
+    // list_dir(root);
+    proc->pwd = root;
+
+    kprintf(-1, "Loading '%s'\n", exec_args[0]);
+
+
+
+    // We call the linker
+    int ret = dlib_openexec(proc, exec_args[0]);
+    if (ret != 0) {
+        kprintf(-1, "PROCESS] %s Unable to create executable image\n", exec_args[0]);
+        sys_exit(-1);
+    }
+
+    ret = dlib_map_all(proc);
+    if (ret != 0) {
+        kprintf(-1, "PROCESS] %s Error while mapping executable\n", exec_args[0]);
+        sys_exit(-1);
+    }
+
+    inode_t *in_tty = pipe_inode();
+    inode_t *out_tty = pipe_inode();
+    // inode_t *std_tty = tty_inode(tty);
+    stream_t *std_in = resx_set(kCPU.running->resx, in_tty);
+    stream_t *std_out = resx_set(kCPU.running->resx, out_tty);
+    stream_t *std_err = resx_set(kCPU.running->resx, out_tty);
+
+    void *start = dlib_exec_entry(proc);
+    void *stack = mspace_map(mspace, 0, _Mib_, NULL, 0, VMA_STACK_RW);
+    stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
+    // kprintf(-1, "%s: start:%p, stack:%p\n", exec_args[0], start, stack);
+    // mspace_display(mspace);
+
+    // Write arguments on stack
+    int i, argc = 3;
+    char **argv = ADDR_PUSH(stack, argc * sizeof(char *));
+    for (i = 0; i < argc; ++i) {
+        int lg = strlen(exec_args[i]) + 1;
+        argv[i] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
+        strcpy(argv[i], exec_args[i]);
+        // kprintf(-1, "Set arg.%d: '%s'\n", i, argv[i]);
+    }
+
+    size_t *args = ADDR_PUSH(stack, 4 * sizeof(char *));
+    args[1] = argc;
+    args[2] = (size_t)argv;
+    args[3] = 0;
+
+    // kprintf(-1, "%s: start:%p, stack:%p\n", exec_args[0], start, stack);
+    irq_reset(false);
+    cpu_tss(kCPU.running);
+    cpu_usermode(start, stack);
+}

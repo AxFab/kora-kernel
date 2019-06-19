@@ -108,6 +108,8 @@ void elf_symbol(dynsym_t *symbol, elf_sym32_t *sym, dynlib_t *lib, elf_dynamic_t
     }
     symbol->size = sym->size;
     symbol->flags = 0;
+    if (sym->info >= 32)
+        symbol->flags |= 0x80;
     // kprintf(-1, "S: %06x  %s [%d]\n", symbol->address, symbol->name, sym->info);
 }
 
