@@ -39,7 +39,7 @@ PACK(struct NTP_header {
 int ntp_packet(netdev_t *ifnet)
 {
     uint8_t ntp_server_ip[IP4_ALEN];
-    skb_t *skb = net_packet(ifnet, 128);
+    skb_t *skb = net_packet(ifnet);
     if (skb == NULL)
         return -1;
     if (udp_header(skb, ntp_server_ip, sizeof(NTP_header_t), UDP_PORT_NTP, 0) != 0)

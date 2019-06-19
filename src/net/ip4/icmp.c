@@ -39,7 +39,7 @@ static uint16_t icmp_checksum(ICMP_header_t *header)
 static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type,
                        uint8_t code, uint32_t data, void *extra, int len)
 {
-    skb_t *skb = net_packet(ifnet, 128);
+    skb_t *skb = net_packet(ifnet);
     if (skb == NULL)
         return -1;
     if (ip4_header(skb, ip, rand32(), 0, sizeof(ICMP_header_t) + len, IP4_ICMP) != 0)

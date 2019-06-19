@@ -155,6 +155,7 @@ void mboot_load_modules()
         for (i = 0; i < mboot_table->mods_count; ++i) {
             kprintf(KLOG_MSG, "Module preloaded [%s] %s\n", sztoa(mods->end - mods->start), mods->string);
             inode_t *root = tar_mount(mods->start, mods->end, mods->string);
+            vfs_mkdev(root, "boot");
             kmod_mount(root);
             vfs_close(root);
         }

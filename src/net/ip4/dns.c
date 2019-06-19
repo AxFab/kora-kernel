@@ -34,7 +34,7 @@ PACK(struct DNS_header {
 
 int dns_packet(netdev_t *ifnet)
 {
-    skb_t *skb = net_packet(ifnet, 500);
+    skb_t *skb = net_packet(ifnet);
     if (skb == NULL)
         return -1;
     int length = 0;

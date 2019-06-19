@@ -231,7 +231,7 @@ static int dhcp_parse(skb_t *skb, dhcp_info_t *info, int length)
 static skb_t *dhcp_header(netdev_t *ifnet, const uint8_t *ip, uint32_t uid,
                           int opcode, int options_len)
 {
-    skb_t *skb = net_packet(ifnet, 576);
+    skb_t *skb = net_packet(ifnet);
     if (skb == NULL)
         return NULL;
     uint16_t port_local = opcode == 1 ? UDP_PORT_DHCP : UDP_PORT_DHCP_S;

@@ -173,7 +173,7 @@ struct skb {
     int fragment;
     int data_len;
     protocol_t *protocol;
-    uint8_t buf[1500];
+    uint8_t buf[0];
 };
 
 
@@ -184,6 +184,10 @@ struct socket {
     int send_frag;
     pipe_t *input;
     protocol_t *protocol;
+
+    uint16_t sport, dport;
+    void *packet;
+    uint8_t addr[16];
 };
 
 struct protocol {
@@ -207,9 +211,9 @@ struct protocol {
 /* Register a network device */
 int net_device(netdev_t *ifnet);
 /* Create a new tx packet */
-skb_t *net_packet(netdev_t *ifnet, unsigned size);
+skb_t *net_packet(netdev_t *ifnet);
 /* Create a new rx packet and push it into received queue */
-void net_recv(netdev_t *ifnet, uint8_t *buf, unsigned len);
+void net_recv(netdev_t *ifnet, protocol_t *protocol, uint8_t *buf, unsigned len);
 /* Send a tx packet to the network card */
 int net_send(skb_t *skb);
 /* Trash a faulty tx packet */
@@ -220,6 +224,14 @@ int net_read(skb_t *skb, void *buf, unsigned len);
 int net_write(skb_t *skb, const void *buf, unsigned len);
 /* Get pointer on data from a packet and move cursor */
 void *net_pointer(skb_t *skb, unsigned len);
+
+void net_service();
+
+
+int net_sock_recv(socket_t *socket, skb_t *skb);
+int net_socket_read(socket_t *socket, char *buf, int len);
+int net_socket_write(socket_t *socket, const char *buf, int len);
+socket_t *net_socket(int protocol, char *buf);
 
 
 char *net_ethstr(char *buf, uint8_t *mac);
