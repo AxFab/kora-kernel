@@ -91,9 +91,13 @@ inode_t *dlib_lookfor_all(proc_t *proc, inode_t *pwddir, CSTR libname, CSTR xpat
 
 inode_t *dlib_lookfor(proc_t *proc, inode_t *dir, CSTR libname, CSTR env, CSTR sys)
 {
-    inode_t *ino;
-    if (strchr(libname, '/'))
-        return vfs_search(proc->root, dir, libname, proc->acl);
+    inode_t *ino = NULL;
+
+    // if EXEC, not SHARED
+    ino = vfs_search(proc->root, dir, libname, proc->acl);
+
+    if (ino != NULL || strchr(libname, '/'))
+        return ino;
 
     if (proc->exec.rpath != NULL) {
         ino = dlib_lookfor_all(proc, dir, libname, proc->exec.rpath);
@@ -158,10 +162,8 @@ int dlib_openexec(proc_t *proc, const char *execname)
     dynlib_t *lib;
     // Look for executable file
     inode_t *ino = dlib_lookfor(proc, proc->pwd, execname, "PATH", "/usr/bin:/bin");
-    if (ino == NULL) {
-        assert(errno != 0);
+    if (ino == NULL)
         return -1;
-    }
     proc->exec.ino = ino;
     proc->exec.name = strdup(execname);
 
@@ -172,7 +174,6 @@ int dlib_openexec(proc_t *proc, const char *execname)
         ll_append(&proc->libraries, &lib->node);
         if (dlib_open(proc, lib) != 0) {
             dlib_destroy(&proc->exec);
-            assert(errno = 0);
             return -1;
         }
 
@@ -250,6 +251,8 @@ bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib)
     dynsym_t *symbol;
     int missing = 0;
     for ll_each(&lib->extern_symbols, symbol, dynsym_t, node) {
+        if (symbol->flags & 0x80)
+            continue;
         // Resolve symbol
         sym = hmp_get(&proc->symbols, symbol->name, strlen(symbol->name));
         if (sym == NULL) {

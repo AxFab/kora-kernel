@@ -40,7 +40,7 @@ void clock_ticks()
         int sec = (secs % SEC_PER_MIN);
         int min = secs % SEC_PER_HOUR / 60;
         int hour = secs / 3600;
-        kprintf(-1, "Hour: %02d:%02d:%02d\n", hour, min, sec);
+        // kprintf(-1, "Hour: %02d:%02d:%02d\n", hour, min, sec);
     }
 
     // kprintf(-1, "CPU.%d Ticks\n", cpu_no());

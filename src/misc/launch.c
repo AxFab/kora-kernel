@@ -65,7 +65,6 @@ void wmgr_main();
 void kernel_master()
 {
     // Read kernel command, load modules and mount correct device
-#if defined KORA_KRN
     inode_t *dev;
     for (;;) {
         dev = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "sdC", NULL);
@@ -96,7 +95,6 @@ void kernel_master()
     resx_fs_chroot(kCPU.running->resx_fs, root);
     resx_fs_chpwd(kCPU.running->resx_fs, root);
     vfs_close(root);
-#endif
 
     task_create(wmgr_main, NULL, "Local display");
 
@@ -117,6 +115,13 @@ void kmod_loader();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+void exec_proc(const char **exec_args);
+
+char *init_args[3] = {
+    "logon", "-x", "-s"
+};
+
+
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()
 {
@@ -125,14 +130,11 @@ void kernel_start()
     irq_disable();
     kprintf(KLOG_MSG, "\033[97mKoraOS\033[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
 
+    /* Architecture initialization */
     assert(kCPU.irq_semaphore == 1);
-    memory_initialize();
-    // Resolve page fault for allocation -- circular deps between mspace_map and kalloc
-    kalloc(2);
-    memory_info();
     // mmu_setup();
-    assert(kCPU.irq_semaphore == 1);
-
+    memory_initialize();
+    memory_info();
     cpu_setup();
     assert(kCPU.irq_semaphore == 1);
 
@@ -147,9 +149,12 @@ void kernel_start()
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 
+
     task_create(kmod_loader, NULL, "Kernel loader #1");
-    task_create(kmod_loader, NULL, "Kernel loader #2");
-    task_create(kernel_master, NULL, "Master");
+    // task_create(kmod_loader, NULL, "Kernel loader #2");
+    // task_create(kernel_master, NULL, "Master");
+
+    task_create(exec_proc, init_args, init_args[0]);
 
     clock_init();
     assert(kCPU.irq_semaphore == 1);
