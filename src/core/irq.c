@@ -132,6 +132,7 @@ void irq_enter(int no)
     int status = kCPU.status;
     clock_elapsed(CPU_IRQ);
 
+    // kprintf(KLOG_IRQ, "Received IRQ%d, on CPU%d, stack %p.\n", no, cpu_no(), ALIGN_UP((size_t)&no, PAGE_SIZE));
     assert(no >= 0 && no < IRQ_MAX);
     irq_record_t *record;
     if (irqv[no].list.count_ == 0)
@@ -150,6 +151,7 @@ void irq_enter(int no)
 
 void irq_fault(const fault_t *fault)
 {
+    // kprintf(KLOG_IRQ, "Received CPU Exception, on CPU%d, stack %p.\n", cpu_no(), ALIGN_UP((size_t)&fault, PAGE_SIZE));
     assert(fault != NULL);
     // assert(kCPU.irq_semaphore == 0);
     // assert(kCPU.running != NULL);
@@ -250,6 +252,7 @@ scall_entry_t syscall_entries[64] = {
 
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
+    // kprintf(KLOG_IRQ, "Received syscall[%s], on CPU%d, stack %p.\n", kCPU.running->name, cpu_no(), ALIGN_UP((size_t)&no, PAGE_SIZE));
     if (no < 0 || no > 64 || &syscall_entries[no] == NULL || syscall_entries[no].name == NULL) {
         kprintf(-1, "\033[96msyscall(%d) = -1\033[0m\n", no);
         return -1;

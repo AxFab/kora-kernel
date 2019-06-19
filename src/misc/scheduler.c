@@ -68,7 +68,6 @@ void scheduler_switch(int status, int retcode)
         splock_lock(&task->lock);
         task->retcode = retcode;
         if (cpu_save(task->state) != 0) {
-            cpu_tss(task);
             return;
         }
         // kprintf(-1, "Saved Task %d\n", task->pid);
@@ -101,5 +100,6 @@ void scheduler_switch(int status, int retcode)
         mmu_context(task->usmem);
     clock_elapsed(CPU_USER);
     // kprintf(-1, "Restore Task %d\n", task->pid);
+    cpu_tss(task);
     cpu_restore(task->state);
 }

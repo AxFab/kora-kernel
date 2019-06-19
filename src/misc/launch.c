@@ -125,6 +125,7 @@ char *init_args[3] = {
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()
 {
+    int i = 0;
     kSYS.cpus = &kCPU0;
     irq_reset(false);
     irq_disable();
@@ -142,6 +143,7 @@ void kernel_start()
     slog = tty_create(1024);
     kprintf(KLOG_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
 
+    // kprintf(KLOG_IRQ, "Kernel start, on CPU%d, stack %p.\n", cpu_no(), ALIGN_UP((size_t)&i, PAGE_SIZE));
     assert(kCPU.irq_semaphore == 1);
     vfs_init();
     futex_init();
