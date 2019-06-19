@@ -10,16 +10,17 @@
 
 void futex_init();
 void net_service();
+void lo_setup();
 
 void sock_recv(socket_t *sock, const char *buf, int len, int frag)
 {
-    skb_t *skb = kalloc(sizeof(skb_t));
+    skb_t *skb = kalloc(sizeof(skb_t) + len);
     memcpy(skb->buf, buf, len);
     skb->length = len;
+    skb->size = len;
     skb->data_len = len;
     skb->fragment = frag;
-    net_sock_recv(sock, &skb);
-    
+    net_sock_recv(sock, skb);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -43,18 +44,19 @@ TEST_CASE(tst_sock_01)
 
     // Read
     int sz;
-    char buf[20];
+    char buf[32];
+    memset(buf, 0, 32);
     sz = net_socket_read(socket, buf, 26);
     ck_ok(sz == 26 && strcmp(buf, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") == 0);
 
     // Write
-    // socket->send_frag = 5;
+    socket->send_frag = 5;
     net_socket_write(socket, "abcdefghijklmnopqrstuvwxyz", 26);
 
     // Read
+    memset(buf, 0, 32);
     //sz = net_socket_read(socket, buf, 26);
     //ck_ok(sz == 26 && strcmp(buf, "abcdefghijklmnopqrstuvwxuz") == 0);
-
 }
 
 
@@ -66,8 +68,8 @@ int main()
     kSYS.cpus = calloc(sizeof(struct kCpu), 0x500);
     futex_init();
 
-    suite_create("Sockets");
-    // fixture_create("Non blocking operation");
+    suite_create("Network");
+    fixture_create("Sockets");
     tcase_create(tst_sock_01);
 
     free(kSYS.cpus);

@@ -251,6 +251,9 @@ struct kSys {
     inode_t *dev_ino;
     void *dev_table;
 
+    /* Network */
+    splock_t packet_lock;
+    llhead_t packet_queue;
 };
 
 

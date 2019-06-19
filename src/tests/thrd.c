@@ -9,6 +9,8 @@
 #include <kernel/task.h>
 #include <kernel/futex.h>
 
+void cpu_sweep();
+
 struct impl_thrd_param {
     thrd_start_t func;
     void *arg;

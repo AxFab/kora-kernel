@@ -61,6 +61,7 @@ SRCS-y += $(wildcard $(srcdir)/core/*.c)
 SRCS-y += $(wildcard $(srcdir)/files/*.c)
 SRCS-y += $(wildcard $(srcdir)/mem/*.c)
 SRCS-y += $(wildcard $(srcdir)/net/*.c)
+SRCS-y += $(wildcard $(srcdir)/net/ip4/*.c)
 SRCS-y += $(wildcard $(srcdir)/task/*.c)
 SRCS-y += $(wildcard $(srcdir)/vfs/*.c)
 SRCS-y += $(wildcard $(arcdir)/*.$(ASM_EXT))
@@ -89,8 +90,8 @@ endif
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 CHECKS += cksync ckutils
-CHECKS += ckpipe ckblk ckgfx ckwin # Files
-CHECKS += ckelf ckmem
+CHECKS += ckpipe ckblk ckgfx # Files
+CHECKS += ckelf ckmem cknet
 CHECKS += ckvfs
 CHECKS += ckkrn # No args, put all files on coverage
 
@@ -150,15 +151,17 @@ $(eval $(call link_bin,ckgfx,ckgfx_src,CKLFLGS))
 
 cknet_src-y += $(srcdir)/basic/futex.c
 cknet_src-y += $(srcdir)/basic/bbtree.c
+cknet_src-y += $(srcdir)/core/debug.c
 cknet_src-y += $(srcdir)/files/pipe.c
 cknet_src-y += $(srcdir)/stdc/cnd.c
 cknet_src-y += $(srcdir)/stdc/mtx.c
+cknet_src-y += $(srcdir)/net/net.c
 cknet_src-y += $(srcdir)/net/socket.c
 cknet_src-y += $(srcdir)/net/local.c
 cknet_src-y += $(srcdir)/tests/stub.c
 cknet_src-y += $(srcdir)/tests/thrd.c
 cknet_src-y += $(srcdir)/tests/sched.c
-cknet_src-y += $(srcdir)/tests/tst_sock.c
+cknet_src-y += $(srcdir)/tests/tst_net.c
 $(eval $(call link_bin,cknet,cknet_src,CKLFLGS))
 
 ckelf_src-y += $(srcdir)/core/elf.c
@@ -193,6 +196,7 @@ ckkrn_src-y += $(wildcard $(srcdir)/core/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/files/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/mem/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/net/*.c)
+ckkrn_src-y += $(wildcard $(srcdir)/net/ip4/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/task/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/vfs/*.c)
 ckkrn_src-y += $(wildcard $(topdir)/arch/_simu/*.c)

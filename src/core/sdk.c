@@ -137,7 +137,7 @@ kdk_api_t base_kapi[] = {
 
     /* NETWORK */
     KAPI(net_recv),
-    KAPI(net_device),
+    // KAPI(net_device),
 
     /* SYSCALLS */
     // KAPI(sys_power),
