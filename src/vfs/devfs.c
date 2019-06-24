@@ -224,6 +224,7 @@ devfs_dir_it_t* devfs_opendir(inode_t *dir, acl_t *acl)
     devfs_dir_it_t *it = kalloc(sizeof(devfs_dir_it_t));
     it->info = info;
     it->idx = 0;
+    return it;
 }
 
 inode_t *devfs_readdir(inode_t *dir, char *name, devfs_dir_it_t *ctx)
@@ -339,7 +340,7 @@ void vfs_init()
     kSYS.dev_ino = vfs_inode(1, FL_DIR, NULL);
     kSYS.dev_ino->ops = &devfs_dir_ops;
     kSYS.dev_ino->dev->fsops = &devfs_fs_ops;
-    info->ino = kSYS.dev_ino;
+    info->dev = kSYS.dev_ino;
     info->filter = DF_ROOT;
     info->flags = 2;
 
@@ -390,6 +391,7 @@ void vfs_sweep()
 int vfs_mkdev(inode_t *ino, CSTR name)
 {
     devfs_register(ino, NULL, name);
+    return 0;
 }
 
 void vfs_rmdev(CSTR name)
