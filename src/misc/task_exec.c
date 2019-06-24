@@ -131,9 +131,10 @@ void exec_task(const char **exec_args)
         tty_puts(tty, "Proc mapping error!!\n");
 
     inode_t *std_tty = tty_inode(tty);
-    stream_t *std_in = resx_set(kCPU.running->resx, std_tty);
-    stream_t *std_out = resx_set(kCPU.running->resx, std_tty);
-    stream_t *std_err = resx_set(kCPU.running->resx, std_tty);
+    // stream_t *std_in =
+    resx_set(kCPU.running->resx, std_tty);
+    resx_set(kCPU.running->resx, std_tty);
+    resx_set(kCPU.running->resx, std_tty);
 
     void *start = dlib_exec_entry(proc);
     void *stack = mspace_map(mspace, 0, _Mib_, NULL, 0, VMA_STACK_RW);
@@ -239,9 +240,11 @@ void exec_proc(const char **exec_args)
     inode_t *in_tty = pipe_inode();
     inode_t *out_tty = pipe_inode();
     // inode_t *std_tty = tty_inode(tty);
-    stream_t *std_in = resx_set(kCPU.running->resx, in_tty);
-    stream_t *std_out = resx_set(kCPU.running->resx, out_tty);
-    stream_t *std_err = resx_set(kCPU.running->resx, out_tty);
+    // stream_t *std_in =
+    resx_set(kCPU.running->resx, in_tty);
+    resx_set(kCPU.running->resx, out_tty);
+    resx_set(kCPU.running->resx, out_tty);
+
 
     void *start = dlib_exec_entry(proc);
     void *stack = mspace_map(mspace, 0, _Mib_, NULL, 0, VMA_STACK_RW);

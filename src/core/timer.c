@@ -15,7 +15,7 @@ static void itimer_wake_advent(advent_t *advent)
     advent->until += advent->interval;
     evmsg_t msg = {0};
     msg.message = EV_TIMER;
-    pipe_write(advent->pipe, &msg, sizeof(msg), 0);
+    pipe_write(advent->pipe, (char*)&msg, sizeof(msg), 0);
 }
 
 static void itimer_dtor_advent(advent_t *advent)
@@ -51,7 +51,6 @@ void itimer_create(pipe_t *pipe, long delay, long interval)
     splock_lock(&itimer_lock);
     ll_append(&itimer_list, &advent->tnode);
     splock_unlock(&itimer_lock);
-    return 0;
 }
 
 void sleep_timer(long timeout)
@@ -67,7 +66,6 @@ void sleep_timer(long timeout)
     splock_unlock(&itimer_lock);
 
     scheduler_switch(TS_BLOCKED, 0);
-    return 0;
 }
 
 

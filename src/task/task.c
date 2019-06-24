@@ -226,7 +226,6 @@ int task_stop(task_t *task, int code)
         splock_unlock(&task->lock);
         return -1;
     } else if (task->status == TS_BLOCKED) {
-        // async_cancel(task);
         task->status = TS_ZOMBIE;
         splock_unlock(&task->lock);
     } else

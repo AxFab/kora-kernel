@@ -284,7 +284,7 @@ int sys_fcntl(int fd, int cmd, void *args)
     // mtx_lock(&stream->lock) ;
     if (stream->ino->ops->fcntl == NULL) {
         errno = ENOSYS;
-        mtx_unlock(&stream->lock);
+        // mtx_unlock(&stream->lock);
         return -1;
     }
 
