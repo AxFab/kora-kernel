@@ -49,7 +49,7 @@ void kernel_top(long sec)
 {
     sys_sleep(10000);
     for (;;) {
-        async_wait(NULL, NULL, sec * 1000000);
+        sys_sleep(SEC_TO_KTIME(sec));
         task_show_all();
         mspace_display(kMMU.kspace);
         memory_info();
@@ -111,7 +111,8 @@ void kernel_master()
 }
 
 void kmod_loader();
-
+void futex_init();
+void itimer_init();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -125,7 +126,6 @@ char *init_args[3] = {
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()
 {
-    int i = 0;
     kSYS.cpus = &kCPU0;
     irq_reset(false);
     irq_disable();
@@ -147,6 +147,7 @@ void kernel_start()
     assert(kCPU.irq_semaphore == 1);
     vfs_init();
     futex_init();
+    itimer_init();
     kmod_init();
     platform_setup();
     assert(kCPU.irq_semaphore == 1);

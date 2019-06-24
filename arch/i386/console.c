@@ -260,8 +260,7 @@ dev_ops_t csl_dops = {
 };
 
 ino_ops_t csl_fops = {
-
-    .write = csl_write,
+    .write = (void*)csl_write,
     .close = NULL
 };
 

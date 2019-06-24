@@ -100,6 +100,8 @@ kdk_api_t base_kapi[] = {
     KAPI(gmtime_r),
     KAPI(kclock),
 
+    KAPI(itimer_create),
+
     /* VFS */
     KAPI(vfs_inode),
     KAPI(vfs_mkdev),

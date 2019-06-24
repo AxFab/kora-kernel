@@ -105,42 +105,30 @@ ifeq ($(USE_ATOMIC),y)
 CKLFLGS = -latomic
 endif
 
-cksync_src-y += $(srcdir)/basic/futex.c
-cksync_src-y += $(srcdir)/basic/bbtree.c
-cksync_src-y += $(srcdir)/basic/hmap.c
-cksync_src-y += $(srcdir)/stdc/cnd.c
-cksync_src-y += $(srcdir)/stdc/mtx.c
-cksync_src-y += $(srcdir)/tests/stub.c
-cksync_src-y += $(srcdir)/tests/thrd.c
-cksync_src-y += $(srcdir)/tests/sched.c
+TEST_SRC += $(wildcard $(srcdir)/basic/*.c)
+TEST_SRC += $(srcdir)/tests/stub.c
+SYNC_SRC += $(srcdir)/core/futex.c
+SYNC_SRC += $(srcdir)/stdc/cnd.c
+SYNC_SRC += $(srcdir)/stdc/mtx.c
+SYNC_SRC += $(srcdir)/tests/thrd.c
+SYNC_SRC += $(srcdir)/tests/sched.c
+
+
+cksync_src-y += $(TEST_SRC) $(SYNC_SRC)
 cksync_src-y += $(srcdir)/tests/tst_sync.c
 $(eval $(call link_bin,cksync,cksync_src,CKLFLGS))
 
-ckutils_src-y += $(srcdir)/basic/bbtree.c
-ckutils_src-y += $(srcdir)/basic/hmap.c
-ckutils_src-y += $(srcdir)/tests/stub.c
+ckutils_src-y += $(TEST_SRC)
 ckutils_src-y += $(srcdir)/tests/tst_utils.c
 $(eval $(call link_bin,ckutils,ckutils_src,CKLFLGS))
 
-ckpipe_src-y += $(srcdir)/basic/futex.c
-ckpipe_src-y += $(srcdir)/basic/bbtree.c
+ckpipe_src-y += $(TEST_SRC) $(SYNC_SRC)
 ckpipe_src-y += $(srcdir)/files/pipe.c
-ckpipe_src-y += $(srcdir)/stdc/cnd.c
-ckpipe_src-y += $(srcdir)/stdc/mtx.c
-ckpipe_src-y += $(srcdir)/tests/stub.c
-ckpipe_src-y += $(srcdir)/tests/thrd.c
-ckpipe_src-y += $(srcdir)/tests/sched.c
 ckpipe_src-y += $(srcdir)/tests/tst_pipe.c
 $(eval $(call link_bin,ckpipe,ckpipe_src,CKLFLGS))
 
-ckblk_src-y += $(srcdir)/basic/bbtree.c
-ckblk_src-y += $(srcdir)/basic/futex.c
-ckblk_src-y += $(srcdir)/stdc/cnd.c
-ckblk_src-y += $(srcdir)/stdc/mtx.c
+ckblk_src-y += $(TEST_SRC) $(SYNC_SRC)
 ckblk_src-y += $(srcdir)/files/blk.c
-ckblk_src-y += $(srcdir)/tests/stub.c
-ckblk_src-y += $(srcdir)/tests/thrd.c
-ckblk_src-y += $(srcdir)/tests/sched.c
 ckblk_src-y += $(srcdir)/tests/tst_blk.c
 $(eval $(call link_bin,ckblk,ckblk_src,CKLFLGS))
 
@@ -149,44 +137,31 @@ ckgfx_src-y += $(srcdir)/tests/stub.c
 ckgfx_src-y += $(srcdir)/tests/tst_gfx.c
 $(eval $(call link_bin,ckgfx,ckgfx_src,CKLFLGS))
 
-cknet_src-y += $(srcdir)/basic/futex.c
-cknet_src-y += $(srcdir)/basic/bbtree.c
+cknet_src-y += $(TEST_SRC) $(SYNC_SRC)
 cknet_src-y += $(srcdir)/core/debug.c
 cknet_src-y += $(srcdir)/files/pipe.c
-cknet_src-y += $(srcdir)/stdc/cnd.c
-cknet_src-y += $(srcdir)/stdc/mtx.c
 cknet_src-y += $(srcdir)/net/net.c
 cknet_src-y += $(srcdir)/net/socket.c
 cknet_src-y += $(srcdir)/net/local.c
-cknet_src-y += $(srcdir)/tests/stub.c
-cknet_src-y += $(srcdir)/tests/thrd.c
-cknet_src-y += $(srcdir)/tests/sched.c
 cknet_src-y += $(srcdir)/tests/tst_net.c
 $(eval $(call link_bin,cknet,cknet_src,CKLFLGS))
 
+ckelf_src-y += $(TEST_SRC)
 ckelf_src-y += $(srcdir)/core/elf.c
 # ckelf_src-y += $(srcdir)/core/dlib.c
-ckelf_src-y += $(srcdir)/basic/hmap.c
-ckelf_src-y += $(srcdir)/tests/stub.c
 ckelf_src-y += $(srcdir)/tests/tst_elf.c
 $(eval $(call link_bin,ckelf,ckelf_src,CKLFLGS))
 
+ckmem_src-y += $(TEST_SRC)
 ckmem_src-y += $(wildcard $(srcdir)/mem/*.c)
-ckmem_src-y += $(srcdir)/basic/bbtree.c
 ckmem_src-y += $(srcdir)/core/debug.c
-ckmem_src-y += $(srcdir)/tests/stub.c
 ckmem_src-y += $(srcdir)/tests/tst_mem.c
 ckmem_src-y += $(topdir)/arch/_simu/mmu.c
 $(eval $(call link_bin,ckmem,ckmem_src,CKLFLGS))
 
-ckvfs_src-y += $(srcdir)/basic/bbtree.c
-ckvfs_src-y += $(srcdir)/basic/hmap.c
-ckvfs_src-y += $(srcdir)/basic/futex.c
-ckvfs_src-y += $(srcdir)/core/debug.c
+ckvfs_src-y += $(TEST_SRC) $(SYNC_SRC)
 ckvfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
-ckvfs_src-y += $(srcdir)/tests/stub.c
-ckvfs_src-y += $(srcdir)/tests/thrd.c
-ckvfs_src-y += $(srcdir)/tests/sched.c
+ckvfs_src-y += $(srcdir)/core/debug.c
 ckvfs_src-y += $(srcdir)/tests/tst_vfs.c
 ckvfs_src-y += $(topdir)/arch/_simu/hostfs.c
 $(eval $(call link_bin,ckvfs,ckvfs_src,CKLFLGS))

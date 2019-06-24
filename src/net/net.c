@@ -21,8 +21,6 @@
 #include <kernel/task.h>
 #include <string.h>
 
-static int net_no = 0;
-
 /* Create a new tx packet */
 skb_t *net_packet(netdev_t *ifnet)
 {

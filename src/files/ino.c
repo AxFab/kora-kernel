@@ -47,8 +47,8 @@ int pipe_write_ino(inode_t *ino, const char *buf, size_t len, int flags)
 ino_ops_t pipe_ops = {
     .fcntl = pipe_fcntl,
     .close = pipe_close,
-    .read = pipe_read_ino,
-    .write = pipe_write_ino,
+    .read = (void*)pipe_read_ino,
+    .write = (void*)pipe_write_ino,
 };
 
 inode_t *pipe_inode()

@@ -122,7 +122,7 @@ dev_ops_t com_dops = {
 
 ino_ops_t com_fops = {
 
-    .write = com_write,
+    .write = (void*)com_write,
     .close = NULL
 };
 

@@ -19,6 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
+#include <kernel/futex.h>
 #include <kernel/task.h>
 
 uint64_t ticks_last = 0;
@@ -29,17 +30,20 @@ uint64_t ticks_elapsed = 0;
 #define  SEC_PER_HOUR (60*60)
 #define  SEC_PER_MIN (60)
 
+tick_t futex_tick();
+tick_t itimer_tick();
+
 int ls = 0;
 
 void clock_ticks()
 {
     if (ls++ > HZ) {
         ls = 0;
-        clock64_t now = KTIME_TO_SEC(kclock());
-        int secs = now % SEC_PER_DAY;
-        int sec = (secs % SEC_PER_MIN);
-        int min = secs % SEC_PER_HOUR / 60;
-        int hour = secs / 3600;
+        // clock64_t now = KTIME_TO_SEC(kclock());
+        // int secs = now % SEC_PER_DAY;
+        // int sec = (secs % SEC_PER_MIN);
+        // int min = secs % SEC_PER_HOUR / 60;
+        // int hour = secs / 3600;
         // kprintf(-1, "Hour: %02d:%02d:%02d\n", hour, min, sec);
     }
 
@@ -50,7 +54,8 @@ void clock_ticks()
         kSYS.jiffies++;
         splock_unlock(&kSYS.time_lock);
     }
-    async_timesup();
+    futex_tick();
+    itimer_tick();
     if (kCPU.flags & CPU_NO_TASK)
         return;
     scheduler_switch(TS_READY, 0);

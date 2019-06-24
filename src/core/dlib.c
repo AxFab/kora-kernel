@@ -151,6 +151,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
         lib->ino = ino;
         lib->name = strdup(dep->name);
         dep->lib = lib;
+        hmp_put(&proc->libs_map, (char *)lib->ino, sizeof(void *), lib);
         ll_enqueue(&proc->queue, &lib->node);
     }
     return 0;
@@ -176,8 +177,6 @@ int dlib_openexec(proc_t *proc, const char *execname)
             dlib_destroy(&proc->exec);
             return -1;
         }
-
-        hmp_put(&proc->libs_map, (char *)&lib->ino, sizeof(void *), lib);
     }
 
     // Add libraries to process memory space
@@ -218,7 +217,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
     }
 
     // List symbols
-    kprintf(-1, "\033[94mRebase lib %s at %p\033[0m\n", lib->name, base);
+    kprintf(-1, "\033[94mRebase lib %s at %p (.text: %p)\033[0m\n", lib->name, base, base + lib->text_off);
     lib->base = (size_t)base;
     for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
         symbol->address += (size_t)base;
