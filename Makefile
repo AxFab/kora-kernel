@@ -90,7 +90,7 @@ endif
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 CHECKS += cksync ckutils
-CHECKS += ckpipe ckblk ckgfx # Files
+CHECKS += ckpipe ckblk ckgfx ckwin # Files
 CHECKS += ckelf ckmem cknet
 CHECKS += ckvfs
 CHECKS += ckkrn # No args, put all files on coverage
@@ -136,6 +136,16 @@ ckgfx_src-y += $(srcdir)/files/gfx.c
 ckgfx_src-y += $(srcdir)/tests/stub.c
 ckgfx_src-y += $(srcdir)/tests/tst_gfx.c
 $(eval $(call link_bin,ckgfx,ckgfx_src,CKLFLGS))
+
+ckwin_src-y += $(TEST_SRC) $(SYNC_SRC)
+ckwin_src-y += $(srcdir)/core/debug.c
+ckwin_src-y += $(srcdir)/core/timer.c
+ckwin_src-y += $(srcdir)/files/pipe.c
+ckwin_src-y += $(srcdir)/files/wmgr.c
+ckwin_src-y += $(srcdir)/files/gfx.c
+ckwin_src-y += $(srcdir)/tests/stub.c
+ckwin_src-y += $(srcdir)/tests/tst_win.c
+$(eval $(call link_bin,ckwin,ckwin_src,CKLFLGS))
 
 cknet_src-y += $(TEST_SRC) $(SYNC_SRC)
 cknet_src-y += $(srcdir)/core/debug.c

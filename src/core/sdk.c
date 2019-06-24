@@ -135,7 +135,6 @@ kdk_api_t base_kapi[] = {
     KAPI(bio_access),
     KAPI(bio_sync),
     KAPI(bio_clean),
-    KAPI(wmgr_input),
 
     /* NETWORK */
     KAPI(net_recv),

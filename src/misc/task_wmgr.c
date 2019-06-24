@@ -140,51 +140,51 @@ const char *krish_args[3] = {
 
 void wmgr_main()
 {
-    inode_t *dev;
-    for (;;) {
-        dev = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "fb0", NULL);
-        if (dev != NULL)
-            break;
-        sys_sleep(MSEC_TO_KTIME(50));
-    }
+    // inode_t *dev;
+    // for (;;) {
+    //     dev = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "fb0", NULL);
+    //     if (dev != NULL)
+    //         break;
+    //     sys_sleep(MSEC_TO_KTIME(50));
+    // }
 
-    // We found the screen
-    framebuffer_t *fb = (framebuffer_t *)dev->info;
-    gfx_clear(fb, RGB(112, 146, 190));
-    dev->ops->flip(dev);
+    // // We found the screen
+    // framebuffer_t *fb = (framebuffer_t *)dev->info;
+    // gfx_clear(fb, RGB(112, 146, 190));
+    // dev->ops->flip(dev);
 
-    kprintf(-1, "Desktop %dx%d -- #%x\n", fb->width, fb->height, RGB(112, 146, 190));
+    // kprintf(-1, "Desktop %dx%d -- #%x\n", fb->width, fb->height, RGB(112, 146, 190));
 
-    desktop_t *desk = kalloc(sizeof(desktop_t));
-    desk->ox = desk->oy = DESK_PADDING;
-    splock_init(&desk->lock);
-    desk->screen = kalloc(sizeof(screen_t));
-    desk->screen->sz.w = fb->width;
-    desk->screen->sz.h = fb->height;
-    desk->screen->frame = fb;
-    desk->screen->ino = dev;
-    desk->screen->desk = desk;
-    desk->pointer_sprites = kalloc(sizeof(framebuffer_t *));
-    desk->pointer_sprites[0] = gfx_create(64, 64, 4, NULL);
-    // gfx_shadow(desk->pointer_sprites[0], 32, 32, 16, 0xFFa60000);
+    // desktop_t *desk = kalloc(sizeof(desktop_t));
+    // desk->ox = desk->oy = DESK_PADDING;
+    // splock_init(&desk->lock);
+    // desk->screen = kalloc(sizeof(screen_t));
+    // desk->screen->sz.w = fb->width;
+    // desk->screen->sz.h = fb->height;
+    // desk->screen->frame = fb;
+    // desk->screen->ino = dev;
+    // desk->screen->desk = desk;
+    // desk->pointer_sprites = kalloc(sizeof(framebuffer_t *));
+    // desk->pointer_sprites[0] = gfx_create(64, 64, 4, NULL);
+    // // gfx_shadow(desk->pointer_sprites[0], 32, 32, 16, 0xFFa60000);
 
-    // Start applications
-    kDESK = desk;
-    inode_t *tty0 = tty_inode(slog);
-    task_create(tty_start, tty0, "Tty.0");
-    inode_t *tty = tty_inode(NULL);
-    task_create(tty_start, tty, "Tty.1");
-    task_create(tty_main, tty, "Tty.1.prg");
-    task_create(exec_task, basename_args, "App basename");
-    task_create(exec_task, krish_args, "App Krish");
-    task_create(fake_shell_task, NULL, "Fake shell");
-    task_create(main_clock, NULL, "Clock");
+    // // Start applications
+    // kDESK = desk;
+    // inode_t *tty0 = tty_inode(slog);
+    // task_create(tty_start, tty0, "Tty.0");
+    // inode_t *tty = tty_inode(NULL);
+    // task_create(tty_start, tty, "Tty.1");
+    // task_create(tty_main, tty, "Tty.1.prg");
+    // task_create(exec_task, basename_args, "App basename");
+    // task_create(exec_task, krish_args, "App Krish");
+    // task_create(fake_shell_task, NULL, "Fake shell");
+    // task_create(main_clock, NULL, "Clock");
 
 
-    // Start render loop
-    for (;;) {
-        wmgr_render(kDESK->screen);
-        sys_sleep(MSEC_TO_KTIME(50));
-    }
+    // // Start render loop
+    // for (;;) {
+    //     wmgr_render(kDESK->screen);
+    //     sys_sleep(MSEC_TO_KTIME(50));
+    // }
 }
 
