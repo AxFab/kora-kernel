@@ -382,7 +382,7 @@ void cpu_tss(task_t *task)
 {
     int i = cpu_no();
     // kprintf(-1, "CPU%d - at %p \n", i, &kCPU);
-    TSS_BASE[i].esp0 = task->kstack + PAGE_SIZE - 16;
+    TSS_BASE[i].esp0 = (size_t)(task->kstack + PAGE_SIZE - 16);
 
 }
 

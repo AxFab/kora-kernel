@@ -85,6 +85,20 @@ struct sig_handler {
     void *type;
 };
 
+
+struct advent {
+    int type;
+    ftx_t *futex;
+    task_t *task;
+    llnode_t node;
+    llnode_t anode;
+    llnode_t tnode;
+    clock_t until;
+    pipe_t *pipe;
+    long interval;
+};
+
+
 struct task {
     size_t *kstack;  /* Kernel stack base address */
     size_t *ustack;  /* User space stack base address */
@@ -137,8 +151,8 @@ struct task {
 
     /* Memory address space */
 
-    emitter_t wlist;
-    adv_t *advent;
+
+    llhead_t alist;
 };
 
 #define TSK_USER_SPACE  0x001
@@ -171,6 +185,10 @@ int async_wait_wr(rwlock_t *lock, emitter_t *emitter, long timeout_us);
 void async_cancel(task_t *task);
 void async_raise(emitter_t *emitter, int err);
 void async_timesup();
+
+
+
+void itimer_create(pipe_t *pipe, long delay, long interval);
 
 int elf_open(task_t *task, inode_t *ino);
 

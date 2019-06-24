@@ -213,17 +213,24 @@ int elf_parse(dynlib_t *dlib)
         elf_symbol(sym, &sym_tbl[i], dlib, &dynamic, strtab);
     }
 
-    /* Read relocation table */
+    /* Browse sections */
     uint32_t *rel_tbl = ADDR_OFF(dlib->iomap, dynamic.rel);
     int ent_sz = dynamic.rel_ent / sizeof(uint32_t);
     unsigned rel_sz = 0;
+    elf_shead_t *sh_tbl = ADDR_OFF(dlib->iomap, head->sh_off);
+    elf_shead_t *sh_str = &sh_tbl[head->sh_str_ndx];
+    char* sh_strtab = ADDR_OFF(dlib->iomap, sh_str->offset);
+    // kdump(sh_strtab, sh_str->size);
     for (i = 0; i < head->sh_count; ++i) {
-        size_t sh_offset = head->sh_off + i * sizeof(elf_shead_t);
-        elf_shead_t *sh_tbl = ADDR_OFF(dlib->iomap, sh_offset);
-        if (sh_tbl->type == 9)
-            rel_sz += sh_tbl->size / dynamic.rel_ent;
+        if (sh_tbl[i].type == 9)
+            rel_sz += sh_tbl[i].size / dynamic.rel_ent;
+        if (sh_tbl[i].type == 1 && strcmp(&sh_strtab[sh_tbl[i].name_idx], ".text") == 0) {
+            dlib->text_off = sh_tbl[i].addr - dlib->base;
+        }
+        // kprintf(-1, "Section %s - %p\n", &sh_strtab[sh_tbl[i].name_idx], sh_tbl[i].addr);
     }
 
+    /* Read relocation table */
     for (i = 0; i < rel_sz; ++i) {
         int rel_type = rel_tbl[i * ent_sz + 1] & 0xF;
         if (rel_type == 0)

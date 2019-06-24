@@ -14,13 +14,6 @@ struct ftx {
     int flags;
 };
 
-struct adv {
-    ftx_t *futex;
-    task_t *task;
-    llnode_t node;
-    llnode_t tnode;
-    clock_t until;
-};
 
 splock_t futex_lock;
 bbtree_t futex_tree;
@@ -69,14 +62,38 @@ static void futex_close(ftx_t *futex)
     splock_unlock(&futex_lock);
 }
 
+static void futex_wake_advent(advent_t *advent)
+{
+    ftx_t *futex = advent->futex;
+    /* wake up the thread */
+    if (advent->until != 0) {
+        ll_remove(&futex_list, &advent->tnode);
+    }
+    ll_remove(&futex->queue, &advent->node);
+    scheduler_add(advent->task);
+    ll_remove(&advent->task->alist, &advent->anode);
+    // advent->task->advent = NULL;
+}
+
+static void futex_dtor_advent(advent_t *advent)
+{
+    ftx_t *futex = advent->futex;
+    splock_lock(&futex->lock);
+    // assert(advent.task->advent == NULL);
+    // assert(advent.node.next_ == NULL && advent.node.prev_ == NULL);
+    futex_close(futex);
+}
+
+
 int futex_wait(int *addr, int val, long timeout, int flags)
 {
     ftx_t *futex = futex_open(addr, flags | FUTEX_CREATE);
-    adv_t advent;
+    advent_t advent;
     memset(&advent, 0, sizeof(advent));
     advent.futex = futex;
     advent.task = kCPU.running;
-    advent.task->advent = &advent;
+    ll_append(&advent.task->alist, &advent.anode);
+    // advent.task->advent = &advent;
     if (timeout > 0) {
         advent.until = clock_read(CLOCK_MONOTONIC);
         splock_lock(&futex_lock);
@@ -93,7 +110,7 @@ int futex_wait(int *addr, int val, long timeout, int flags)
         splock_lock(&futex->lock);
     }
 
-    assert(advent.task->advent == NULL);
+    // assert(advent.task->advent == NULL);
     assert(advent.node.next_ == NULL && advent.node.prev_ == NULL);
     futex_close(futex);
     return 0;
@@ -104,26 +121,21 @@ int sys_futex_wait(int *addr, int val, long timeout, int flags)
     return futex_wait(addr, val, timeout, flags);
 }
 
+
 int futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
 {
     ftx_t *origin = futex_open(addr, 0);
     if (origin == NULL)
         return 0;
     splock_lock(&origin->lock);
-    adv_t *it = ll_first(&origin->queue, adv_t, node);
+    advent_t *it = ll_first(&origin->queue, advent_t, node);
     while (it && val-- > 0) {
-        adv_t *advent = it;
-        it = ll_next(&it->node, adv_t, node);
-        /* wake up the thread */
-        if (advent->until != 0) {
-            splock_lock(&futex_lock);
-            ll_remove(&futex_list, &advent->tnode);
-            splock_unlock(&futex_lock);
-        }
+        advent_t *advent = it;
+        it = ll_next(&it->node, advent_t, node);
+        splock_lock(&futex_lock);
         assert(advent->futex == origin);
-        ll_remove(&origin->queue, &advent->node);
-        scheduler_add(advent->task);
-        advent->task->advent = NULL;
+        futex_wake_advent(advent);
+        splock_unlock(&futex_lock);
     }
 
     if (val2 == 0 || addr2 == NULL) {
@@ -134,8 +146,8 @@ int futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
     ftx_t *target = futex_open(addr2, flags | FUTEX_CREATE);
     splock_lock(&target->lock);
     while (it && val2-- > 0) {
-        adv_t *advent = it;
-        it = ll_next(&it->node, adv_t, node);
+        advent_t *advent = it;
+        it = ll_next(&it->node, advent_t, node);
         /* move to next futex */
         assert(advent->futex == origin);
         ll_remove(&origin->queue, &advent->node);
@@ -160,26 +172,23 @@ int futex_wake(int *addr, int val)
     return futex_requeue(addr, val, 0, NULL, 0);
 }
 
+
 tick_t futex_tick()
 {
     tick_t now = clock_read(CLOCK_MONOTONIC);
     tick_t next = now + MIN_TO_USEC(30);
     splock_lock(&futex_lock);
 
-    adv_t *it = ll_first(&futex_list, adv_t, tnode);
+    advent_t *it = ll_first(&futex_list, advent_t, tnode);
     while (it) {
-        adv_t *advent = it;
-        it = ll_next(&it->tnode, adv_t, tnode);
+        advent_t *advent = it;
+        it = ll_next(&it->tnode, advent_t, tnode);
         if (advent->until == 0)
             continue;
         if (advent->until < now) {
-            /* wake up the thread */
             ftx_t *futex = advent->futex;
             splock_lock(&futex->lock);
-            ll_remove(&futex->queue, &advent->node);
-            ll_remove(&futex_list, &advent->tnode);
-            scheduler_add(advent->task);
-            advent->task->advent = NULL;
+            futex_wake_advent(advent);
             splock_unlock(&futex->lock);
         } else if (advent->until < next)
             next = advent->until;

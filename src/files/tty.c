@@ -392,8 +392,8 @@ int tty_ino_write(inode_t *ino, const char *buf, size_t len, int flags)
 }
 
 ino_ops_t tty_ino_ops = {
-    .read = tty_ino_read,
-    .write = tty_ino_write,
+    .read = (void*)tty_ino_read,
+    .write = (void*)tty_ino_write,
 };
 
 inode_t *tty_inode(tty_t *tty)

@@ -79,7 +79,7 @@ page_t win_fetch(inode_t *ino, off_t off)
 {
     window_t *win = (window_t *)ino->info;
     framebuffer_t *frame = win->frame;
-    page_t pg = mmu_read(&frame->pixels[off]);
+    page_t pg = mmu_read((size_t)&frame->pixels[off]);
     return pg;
 }
 
@@ -111,12 +111,14 @@ ino_ops_t win_ops = {
     // .close = win_close,
     .fetch = win_fetch,
     // .release = win_release,
-    .read = wmgr_window_read,
+    .read = (void*)wmgr_window_read,
     // .reset = win_reset,
     .flip = wmgr_window_flip,
     .resize = (void *)wmgr_window_resize,
     // .copy = win_copy,
 };
+
+void itimer_create(pipe_t *pipe, long delay, long interval);
 
 
 window_t *wmgr_window(desktop_t *desk, int width, int height)
@@ -144,6 +146,7 @@ window_t *wmgr_window(desktop_t *desk, int width, int height)
     win->color = RGB(rand8(), rand8(), rand8());
     win->desk = desk;
     win->pipe = pipe_create();
+    itimer_create(win->pipe, MSEC_TO_KTIME(100), MSEC_TO_KTIME(40));
     desk->ox += 2 * DESK_PADDING;
     desk->oy += 2 * DESK_PADDING;
     splock_lock(&desk->lock);

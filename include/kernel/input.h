@@ -49,6 +49,14 @@
 #define EV_DELAY  9
 #define EV_RESIZE 10
 
+typedef struct evmsg {
+    int64_t timestamp;
+    int32_t param1;
+    int32_t param2;
+    uint16_t message;
+    uint16_t unsued;
+} evmsg_t;
+
 
 struct kUsr {
     /* Keyboard repeat */

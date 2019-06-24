@@ -88,13 +88,8 @@ long sys_exit(int status)
 
 long sys_sleep(long timeout)
 {
-    return async_wait(NULL, NULL, timeout);
+    return sleep_timer(timeout);
 }
-
-// long sys_wait(int what, unsigned id, long timeout)
-// {
-//     return async_wait(NULL, NULL, timeout);
-// }
 
 // // exec ve
 
