@@ -163,7 +163,7 @@ void exec_task(const char **exec_args)
 }
 
 
-void list_dir (inode_t *dir)
+void list_dir(inode_t *dir)
 {
     inode_t *ino;
     char name[256];

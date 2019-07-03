@@ -32,7 +32,10 @@ int *__errno_location()
     return &kCPU.err_no;
 }
 
-const char *ksymbol(void *ip, char *buf, int lg) { return NULL; }
+const char *ksymbol(void *ip, char *buf, int lg)
+{
+    return NULL;
+}
 
 
 _Noreturn void __assert_fail(const char *expr, const char *file, int line)

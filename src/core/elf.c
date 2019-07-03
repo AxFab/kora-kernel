@@ -219,14 +219,13 @@ int elf_parse(dynlib_t *dlib)
     unsigned rel_sz = 0;
     elf_shead_t *sh_tbl = ADDR_OFF(dlib->iomap, head->sh_off);
     elf_shead_t *sh_str = &sh_tbl[head->sh_str_ndx];
-    char* sh_strtab = ADDR_OFF(dlib->iomap, sh_str->offset);
+    char *sh_strtab = ADDR_OFF(dlib->iomap, sh_str->offset);
     // kdump(sh_strtab, sh_str->size);
     for (i = 0; i < head->sh_count; ++i) {
         if (sh_tbl[i].type == 9)
             rel_sz += sh_tbl[i].size / dynamic.rel_ent;
-        if (sh_tbl[i].type == 1 && strcmp(&sh_strtab[sh_tbl[i].name_idx], ".text") == 0) {
+        if (sh_tbl[i].type == 1 && strcmp(&sh_strtab[sh_tbl[i].name_idx], ".text") == 0)
             dlib->text_off = sh_tbl[i].addr - dlib->base;
-        }
         // kprintf(-1, "Section %s - %p\n", &sh_strtab[sh_tbl[i].name_idx], sh_tbl[i].addr);
     }
 

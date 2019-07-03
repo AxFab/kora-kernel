@@ -282,12 +282,12 @@ int dlib_map(dynlib_t *dlib, mspace_t *mspace)
         // kprintf(-1, "Section zero <%p,%x>\n", sbase, slen);
         int i, n = (sec->upper - sec->lower) / PAGE_SIZE;
         for (i = 0; i < n; ++i) {
-            if (i < sec->start/PAGE_SIZE)
+            if (i < sec->start / PAGE_SIZE)
                 continue;
-            if (i > sec->end/PAGE_SIZE)
+            if (i > sec->end / PAGE_SIZE)
                 continue;
-            size_t start = i == sec->start/PAGE_SIZE ? sec->start & (PAGE_SIZE-1) : 0;
-            size_t end = i == sec->end/PAGE_SIZE ? sec->end & (PAGE_SIZE-1) : PAGE_SIZE;
+            size_t start = i == sec->start / PAGE_SIZE ? sec->start & (PAGE_SIZE - 1) : 0;
+            size_t end = i == sec->end / PAGE_SIZE ? sec->end & (PAGE_SIZE - 1) : PAGE_SIZE;
             void *dst = (void *)(dlib->base + sec->lower + sec->offset + start + i * PAGE_SIZE);
             int lg = end - start;
             if (lg > 0) {

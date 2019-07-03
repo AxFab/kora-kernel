@@ -3,7 +3,7 @@
 
 protocol_t *local_protocol;
 netdev_t *local_network;
-int (*__vtable_ip_receive)(skb_t*);
+int (*__vtable_ip_receive)(skb_t *);
 
 
 int lo_packet(socket_t *socket, const char *buf, size_t len)
@@ -22,9 +22,9 @@ socket_t *__get_socket = NULL;
 
 int lo_receive(skb_t *skb)
 {
-    int *p = net_pointer(skb, sizeof(int)*4);
+    int *p = net_pointer(skb, sizeof(int) * 4);
     socket_t *socket = NULL;
-    switch(p[0]) {
+    switch (p[0]) {
     case 1:
         socket = __get_socket;
         skb->data_len = p[1];

@@ -21,7 +21,7 @@ int net_sock_recv(socket_t *socket, skb_t *skb)
 
 
     for (;;) {
-        char *buf = (char*)&skb->buf[skb->pen];
+        char *buf = (char *)&skb->buf[skb->pen];
         int sz = pipe_write(socket->input, buf, skb->data_len, IO_ATOMIC | IO_NO_BLOCK);
         if (sz != skb->data_len) {
             // Save packet to retry later
@@ -47,9 +47,8 @@ int net_socket_read(socket_t *socket, char *buf, int len)
     while (len) {
         net_sock_recv(socket, NULL);
         int sz = pipe_read(socket->input, buf, len, IO_ATOMIC);
-        if (sz <= 0) {
+        if (sz <= 0)
             return -1;
-        }
         buf += sz;
         len -= sz;
         bytes += sz;
@@ -63,9 +62,8 @@ int net_socket_write(socket_t *socket, const char *buf, int len)
     int max = socket->protocol->max_frame(socket);
     while (len > 0) {
         int sz = socket->protocol->packet(socket, buf, MIN(len, max));
-        if (sz <= 0) {
-           return -1;
-        }
+        if (sz <= 0)
+            return -1;
         buf += sz;
         len -= sz;
         bytes += sz;

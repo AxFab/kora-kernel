@@ -330,7 +330,7 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, off_t off)
         stream_t *stream = resx_get(resx, fd);
         if (stream == NULL) {
             errno = EBADF;
-            return (void*)-1;
+            return (void *) - 1;
             // } else if ((stream->flags & R_OK) == 0) {
             //     errno = EACCES;
             //     return -1;
@@ -434,7 +434,7 @@ long sys_ginfo(unsigned info, void *buf, int len)
         return ginfo(true, "Visitor", buf, len);
     case SNFO_PWD:
         return ginfo(true, "/", buf, len);
-        // return ginfo(true, kCPU.running->user->login, buf, len);
+    // return ginfo(true, kCPU.running->user->login, buf, len);
     // case SNFO_USERNAME:
     //     return ginfo(true, kCPU.running->user->username, buf, len);
     // case SNFO_USERMAIL:

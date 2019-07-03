@@ -26,9 +26,8 @@ TEST_CASE(tst_pipe_01)
     ck_ok(26 == pipe_read(pp, buf, 26, 0));
     ck_ok(memcmp(buf, "abcdefghijklmnopqrstuvwxyz", 26) == 0);
 
-    for (i = 0; i < n; ++i) {
+    for (i = 0; i < n; ++i)
         ck_ok(26 == pipe_write(pp, "abcdefghijklmnopqrstuvwxyz", 26, 0));
-    }
 
     for (i = 0; i < n; ++i) {
         ck_ok(26 == pipe_read(pp, buf, 26, 0));
@@ -41,9 +40,8 @@ TEST_CASE(tst_pipe_01)
     ck_ok(26 == pipe_read(pp, buf, 26, 0));
     ck_ok(memcmp(buf, "abcdefghijklmnopqrstuvwxyz", 26) == 0);
 
-    for (i = 0; i < n; ++i) {
+    for (i = 0; i < n; ++i)
         ck_ok(26 == pipe_write(pp, "abcdefghijklmnopqrstuvwxyz", 26, 0));
-    }
 
     ck_ok(-1 == pipe_resize(pp, PAGE_SIZE));
 

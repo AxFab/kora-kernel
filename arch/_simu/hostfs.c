@@ -45,8 +45,10 @@ inode_t *hostfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int f
     }
 
     int type = 0;
-    if (S_ISDIR(st.st_mode)) type = FL_DIR;
-    if (S_ISREG(st.st_mode)) type = FL_REG;
+    if (S_ISDIR(st.st_mode))
+        type = FL_DIR;
+    if (S_ISREG(st.st_mode))
+        type = FL_REG;
 
     inode_t *ino = vfs_inode(st.st_ino, type, dir->dev);
     if (ino->ops == NULL) {
@@ -100,9 +102,8 @@ inode_t *hostfs_mount(const char *path, int flags)
 {
     struct stat st;
     lstat(path, &st);
-    if (!S_ISDIR(st.st_mode)) {
+    if (!S_ISDIR(st.st_mode))
         return NULL;
-    }
 
     inode_t *ino = vfs_inode(st.st_ino, FL_DIR, NULL);
     ino->ops = &hostfs_dir_ops;
