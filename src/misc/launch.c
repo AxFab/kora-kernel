@@ -119,7 +119,7 @@ void itimer_init();
 void exec_proc(const char **exec_args);
 
 char *init_args[3] = {
-    "logon", "-x", "-s"
+    "krish", "-x", "-s"
 };
 
 

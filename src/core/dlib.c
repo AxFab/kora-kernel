@@ -279,15 +279,24 @@ int dlib_map(dynlib_t *dlib, mspace_t *mspace)
         void *sbase = (void *)(dlib->base + sec->lower + sec->offset);
         size_t slen = sec->upper - sec->lower;
         memset(sbase, 0, slen);
+        // kprintf(-1, "Section zero <%p,%x>\n", sbase, slen);
         int i, n = (sec->upper - sec->lower) / PAGE_SIZE;
         for (i = 0; i < n; ++i) {
-            uint8_t *page = kmap(PAGE_SIZE, dlib->ino, i * PAGE_SIZE + sec->lower, VMA_FILE_RO);
-            size_t start = i == 0 ? sec->start : 0;
-            void *src = ADDR_OFF(page, start);
+            if (i < sec->start/PAGE_SIZE)
+                continue;
+            if (i > sec->end/PAGE_SIZE)
+                continue;
+            size_t start = i == sec->start/PAGE_SIZE ? sec->start & (PAGE_SIZE-1) : 0;
+            size_t end = i == sec->end/PAGE_SIZE ? sec->end & (PAGE_SIZE-1) : PAGE_SIZE;
             void *dst = (void *)(dlib->base + sec->lower + sec->offset + start + i * PAGE_SIZE);
-            int lg = (i + 1 == n ? (sec->end & (PAGE_SIZE - 1)) : PAGE_SIZE) - start;
-            memcpy(dst, src, lg);
-            kunmap(page, PAGE_SIZE);
+            int lg = end - start;
+            if (lg > 0) {
+                uint8_t *page = kmap(PAGE_SIZE, dlib->ino, i * PAGE_SIZE + sec->lower, VMA_FILE_RO);
+                void *src = ADDR_OFF(page, start);
+                // kprintf(-1, "Section copy <%p,%x (%p)>\n", dst, lg, ADDR_OFF(dst, lg));
+                memcpy(dst, src, lg);
+                kunmap(page, PAGE_SIZE);
+            }
         }
 
         // kprintf(-1, "Section : %p - %x\n", sbase, slen);

@@ -148,6 +148,10 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length,
         if (vma->node.value_ != address) {
             assert(vma->node.value_ < address);
             vma = vma_split(mspace, vma, address - vma->node.value_);
+            if (vma == NULL) {
+                errno = EINVAL;
+                return -1;
+            }
         }
 
         assert(vma->node.value_ == address);

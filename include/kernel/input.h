@@ -50,11 +50,10 @@
 #define EV_RESIZE 10
 
 typedef struct evmsg {
-    int64_t timestamp;
+    uint16_t message;
+    uint16_t window;
     int32_t param1;
     int32_t param2;
-    uint16_t message;
-    uint16_t unsued;
 } evmsg_t;
 
 
@@ -65,11 +64,10 @@ struct kUsr {
 };
 
 struct event {
-    int64_t timestamp;
+    uint16_t message;
+    uint16_t window;
     int32_t param1;
     int32_t param2;
-    uint16_t message;
-    uint16_t unsued;
 };
 
 

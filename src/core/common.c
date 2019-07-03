@@ -44,7 +44,7 @@ void __perror_fail(int err, const char *file, int line, const char *msg)
  * @file  The name of the source file which contains the assertion
  * @line  The line number where is the assertion on the source file
  */
-_Noreturn void __assert_fail(const char *expr, const char *file, int line)
+void __assert_fail(const char *expr, const char *file, int line)
 {
     kprintf(KLOG_ERR, "Assertion failed CPU%d (%s) at %s:%d -- %s\n",        cpu_no(), expr, file, line);
     task_t *task = kCPU.running;
