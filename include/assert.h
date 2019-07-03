@@ -25,7 +25,7 @@
 #if 0
 #define assert(n) ((void)(n))
 #else
-_Noreturn void __assert_fail(const char *expr, const char *file, int line);
+void __assert_fail(const char *expr, const char *file, int line);
 #define assert(n) do { if (!(n)) __assert_fail(#n,__FILE__,__LINE__); } while(0)
 #endif
 

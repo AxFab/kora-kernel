@@ -141,9 +141,9 @@ window_t *wmgr_window(desktop_t *desk, int width, int height)
     itimer_create(win->pipe, MSEC_TO_KTIME(100), MSEC_TO_KTIME(40));
     // desk->ox += 2 * DESK_PADDING;
     // desk->oy += 2 * DESK_PADDING;
-    splock_lock(&desk->lock);
-    ll_append(&desk->windows, &win->node);
-    splock_unlock(&desk->lock);
+    // splock_lock(&desk->lock);
+    // ll_append(&desk->windows, &win->node);
+    // splock_unlock(&desk->lock);
     return win;
 }
 

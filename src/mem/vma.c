@@ -127,6 +127,9 @@ vma_t *vma_clone(mspace_t *mspace, vma_t *model)
 vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length)
 {
     assert(splock_locked(&mspace->lock));
+    if (area->length < length) {
+        return NULL;
+    }
     assert(area->length > length);
 
     /* Alloc a second one */
@@ -164,7 +167,9 @@ int vma_close(mspace_t *mspace, vma_t *vma, int arg)
             page_t pg = mmu_read(vma->node.value_ + off);
             if (pg != 0) {
                 mmu_drop(vma->node.value_ + off);
-                vma->ino->ops->release(vma->ino, vma->offset + off, pg);
+                assert(vma->ino && vma->ino->ops);
+                if (vma->ino->ops->release)
+                    vma->ino->ops->release(vma->ino, vma->offset + off, pg);
             }
         }
         break;

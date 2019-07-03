@@ -68,9 +68,10 @@ void scheduler_switch(int status, int retcode)
         splock_lock(&task->lock);
         task->retcode = retcode;
         if (cpu_save(task->state) != 0) {
+            // kprintf(-1, "Restored task %d (%p)\n", task->pid, &status);
             return;
         }
-        // kprintf(-1, "Saved Task %d\n", task->pid);
+        // kprintf(-1, "Saved Task %d (%p)\n", task->pid, &status);
 
         // TODO Stop task chrono
         if (task->status == TS_ABORTED) {
@@ -92,13 +93,14 @@ void scheduler_switch(int status, int retcode)
     kCPU.running = task;
     if (task == NULL) {
         clock_elapsed(CPU_IDLE);
+        // kprintf(-1, "Halt [%p]\n", ALIGN_UP((size_t)&status, PAGE_SIZE));
         cpu_halt();
     }
     // TODO Start task chrono!
     if (task->usmem)
         mmu_context(task->usmem);
     clock_elapsed(CPU_USER);
-    // kprintf(-1, "Restore Task %d\n", task->pid);
+    // kprintf(-1, "Restore Task %d (%p)\n", task->pid, &status);
     cpu_tss(task);
     cpu_restore(task->state);
 }

@@ -206,6 +206,9 @@ int window_poll_push(inode_t *win, event_t *event);
 clock64_t kclock();
 
 
+void *memcpy32(void *dest, void *src, size_t lg);
+void *memset32(void *dest, uint32_t val, size_t lg);
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 _Noreturn void task_fatal(CSTR error, unsigned signum);
