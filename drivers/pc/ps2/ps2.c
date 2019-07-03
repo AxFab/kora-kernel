@@ -81,6 +81,7 @@ ino_ops_t ps2_ino_ops = {
 };
 
 
+void itimer_create(pipe_t *pipe, long delay, long interval);
 
 void PS2_setup()
 {
@@ -98,6 +99,7 @@ void PS2_setup()
     vfs_mkdev(kdb_ino, "kdb");
     vfs_close(kdb_ino);
 
+    itimer_create(kdb_ino->info, MSEC_TO_KTIME(100), MSEC_TO_KTIME(40));
 
     mouse_ino = vfs_inode(2, FL_CHR, NULL);
     mouse_ino->dev->block = sizeof(event_t);

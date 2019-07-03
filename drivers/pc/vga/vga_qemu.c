@@ -102,7 +102,7 @@ static void vga_change_offset(uint16_t offset)
     outw(VGA_PORT_DATA, offset);
 }
 
-int vga_fcntl(inode_t *ino, int cmd, ...)
+int vga_fcntl(inode_t *ino, int cmd, size_t *params)
 {
     if (cmd == 800) {
         vga_flip(ino);
@@ -124,6 +124,8 @@ void vga_flip(inode_t *ino)
     uint8_t *tmp = fb->pixels;
     fb->pixels = fb->backup;
     fb->backup = tmp;
+
+    memcpy32(fb->pixels, fb->backup, fb->width * fb->height * 4);
 }
 
 ino_ops_t vga_ino_ops = {

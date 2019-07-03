@@ -79,7 +79,7 @@ int mseY = 0;
 //Mouse functions
 void PS2_mouse_handler()
 {
-    gfx_msg_t msg;
+    evmsg_t msg;
     pipe_t *kdb_buffer = (pipe_t *)kdb_ino->info;
 
     uint8_t status = inb(MOUSE_STATUS);
@@ -114,7 +114,7 @@ void PS2_mouse_handler()
                 msg.param1 = mouse_x;
                 msg.param2 = mouse_y;
                 msg.message = EV_MOUSEMOVE;
-                pipe_write(kdb_buffer, &msg, sizeof(msg), 0);
+                pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
 
             }
             if (mouse_btn != (mouse_byte[0] & 7)) {
@@ -123,7 +123,7 @@ void PS2_mouse_handler()
                 // msg.param1 = diff;
                 // msg.param2 = mouse_btn;
                 // msg.message = EV_MOUSEBTN;
-                // pipe_write(kdb_buffer, &msg, sizeof(msg), 0);
+                // pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
             }
 
             return;
