@@ -29,7 +29,7 @@ void blk_destroy(map_cache_t *cache);
 TEST_CASE(tst_blk_01)
 {
     int fd1 = 5;// open()
-    blk_cache_t *map1 = blk_create((void*)fd1, read, write);
+    blk_cache_t *map1 = blk_create((void *)fd1, read, write);
 
     blk_destroy(map1);
 }

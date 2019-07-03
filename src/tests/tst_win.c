@@ -11,8 +11,14 @@
 void futex_init();
 void itimer_init();
 
-page_t mmu_read(size_t addr) { return 0; }
-inode_t *vfs_inode(int ino, int type, device_t *dev) { return NULL; }
+page_t mmu_read(size_t addr)
+{
+    return 0;
+}
+inode_t *vfs_inode(int ino, int type, device_t *dev)
+{
+    return NULL;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

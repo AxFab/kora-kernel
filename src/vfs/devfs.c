@@ -6,8 +6,7 @@
 typedef struct dfs_table dfs_table_t;
 typedef struct dfs_info dfs_info_t;
 
-struct dfs_info
-{
+struct dfs_info {
     int ino;
     int flags;
     char uuid[16];
@@ -18,8 +17,7 @@ struct dfs_info
     inode_t *dev;
 };
 
-struct dfs_table
-{
+struct dfs_table {
     dfs_table_t *next;
     int length;
     int free;
@@ -69,16 +67,16 @@ static dfs_info_t *devfs_fetch_new()
     int idx;
     dfs_table_t *table = kSYS.dev_table;
     for (idx = 0; ; ++idx) {
-    	if (table->free == 0 || idx >= table->length) {
-    	    if (table->next == NULL)
-    		table->next = devfs_extends(table->entries[0].ino + table->length);
-    	    table = table->next;
-    	    idx = 0;
-    	}
-    	if (table->entries[idx].flags == 0) {
-    	    table->entries[idx].flags = 1;
-    	    return &table->entries[idx];
-    	}
+        if (table->free == 0 || idx >= table->length) {
+            if (table->next == NULL)
+                table->next = devfs_extends(table->entries[0].ino + table->length);
+            table = table->next;
+            idx = 0;
+        }
+        if (table->entries[idx].flags == 0) {
+            table->entries[idx].flags = 1;
+            return &table->entries[idx];
+        }
     }
 }
 
@@ -116,7 +114,7 @@ static inode_t *devfs_dev(const char *name, int type, int show, ino_ops_t *ops)
     strncpy(info->name, name, 32);
     info->flags = 2;
     kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
-        ino->dev->model ? ino->dev->model : "", name);
+            ino->dev->model ? ino->dev->model : "", name);
 
     return ino;
 }
@@ -178,7 +176,7 @@ inode_t *devfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int fl
         return NULL;
     }
     dfs_info_t *info = devfs_fetch(dir->no);
-    assert (info != NULL && info->flags == 2);
+    assert(info != NULL && info->flags == 2);
 
     // Look on name / label or uuid ?
     int idx;
@@ -198,9 +196,8 @@ inode_t *devfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int fl
             continue;
 
         int k = strcmp(en->name, name);
-        if (k == 0) {
+        if (k == 0)
             return devfs_inode(en);
-        }
     }
     return NULL;
 }
@@ -209,17 +206,16 @@ inode_t *devfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int fl
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-typedef struct devfs_dir_it
-{
+typedef struct devfs_dir_it {
     dfs_info_t *info;
     int idx;
 } devfs_dir_it_t;
 
 
-devfs_dir_it_t* devfs_opendir(inode_t *dir, acl_t *acl)
+devfs_dir_it_t *devfs_opendir(inode_t *dir, acl_t *acl)
 {
     dfs_info_t *info = devfs_fetch(dir->no);
-    assert (info != NULL && info->flags == 2);
+    assert(info != NULL && info->flags == 2);
 
     devfs_dir_it_t *it = kalloc(sizeof(devfs_dir_it_t));
     it->info = info;
@@ -237,7 +233,7 @@ inode_t *devfs_readdir(inode_t *dir, char *name, devfs_dir_it_t *ctx)
         table = table->next;
     }
 
-    for (;;++no) {
+    for (;; ++no) {
         if (no > table->length) {
             table = table->next;
             if (table == NULL)
@@ -268,26 +264,26 @@ dev_ops_t dev_ops = {
 };
 
 fs_ops_t devfs_fs_ops = {
-    .open = (void*)devfs_open,
+    .open = (void *)devfs_open,
 };
 
 ino_ops_t devfs_dir_ops = {
-    .opendir = (void*)devfs_opendir,
-    .readdir = (void*)devfs_readdir,
-    .closedir = (void*)devfs_closedir,
+    .opendir = (void *)devfs_opendir,
+    .readdir = (void *)devfs_readdir,
+    .closedir = (void *)devfs_closedir,
 };
 
 ino_ops_t devfs_zero_ops = {
-    .read = (void*)zero_read,
+    .read = (void *)zero_read,
 };
 
 ino_ops_t devfs_null_ops = {
-    .read = (void*)null_read,
-    .write = (void*)null_write,
+    .read = (void *)null_read,
+    .write = (void *)null_write,
 };
 
 ino_ops_t devfs_rand_ops = {
-    .read = (void*)rand_read,
+    .read = (void *)rand_read,
 };
 
 
@@ -317,8 +313,8 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
             kprintf(KLOG_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
                     ino->dev->model ? ino->dev->model : "", sztoa(ino->length), name);
         else
-        kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
-                ino->dev->model ? ino->dev->model : "", name);
+            kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+                    ino->dev->model ? ino->dev->model : "", name);
         break;
     default:
         info->show = DF_ROOT;

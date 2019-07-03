@@ -66,9 +66,8 @@ static void futex_wake_advent(advent_t *advent)
 {
     ftx_t *futex = advent->futex;
     /* wake up the thread */
-    if (advent->until != 0) {
+    if (advent->until != 0)
         ll_remove(&futex_list, &advent->tnode);
-    }
     ll_remove(&futex->queue, &advent->node);
     scheduler_add(advent->task);
     ll_remove(&advent->task->alist, &advent->anode);

@@ -126,7 +126,7 @@ struct inode {
     ino_ops_t *ops;
 
     device_t *dev;
-     // FL_BLK, FL_CHR, FL_VDO
+    // FL_BLK, FL_CHR, FL_VDO
     // union { // Place holder for underlying device info
     //     device_t *vol; // FL_REG, FL_DIR, FL_LNK, FL_VOL
     //     // pipe_t *pipe; // FL_PIPE

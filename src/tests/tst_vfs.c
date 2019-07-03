@@ -33,7 +33,7 @@ TEST_CASE(tst_devfs_01)
     ck_ok(zero != NULL);
     ck_ok(zero == vfs_search(kSYS.dev_ino, kSYS.dev_ino, "zero", NULL));
     ck_ok(10 == vfs_read(zero, buf, 10, 0, 0));
-    ck_ok(((int*)buf)[0] == 0 && ((int*)buf)[1] == 0);
+    ck_ok(((int *)buf)[0] == 0 && ((int *)buf)[1] == 0);
     vfs_close(zero);
     vfs_close(zero);
 
@@ -204,7 +204,7 @@ int main()
     tcase_create(tst_vfs_01);
     tcase_create(tst_vfs_02);
 
-   fixture_create("TAR Archive");
+    fixture_create("TAR Archive");
     tcase_create(tst_tar_01);
 
     free(kSYS.cpus);

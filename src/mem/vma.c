@@ -127,9 +127,8 @@ vma_t *vma_clone(mspace_t *mspace, vma_t *model)
 vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length)
 {
     assert(splock_locked(&mspace->lock));
-    if (area->length < length) {
+    if (area->length < length)
         return NULL;
-    }
     assert(area->length > length);
 
     /* Alloc a second one */
