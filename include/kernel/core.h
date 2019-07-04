@@ -257,6 +257,9 @@ struct kSys {
     /* Network */
     splock_t packet_lock;
     llhead_t packet_queue;
+
+    usr_t *sys_usr;
+    rxfs_t *sys_rxfs;
 };
 
 
