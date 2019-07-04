@@ -62,8 +62,6 @@ static task_t *task_allocat()
 
     task->status = TS_ZOMBIE;
     task->prio = TASK_DEFAULT_PRIO;
-    if (kCPU.running != NULL)
-        task->parent = kCPU.running;
 
     splock_lock(&tsk_lock);
     do {
@@ -90,49 +88,50 @@ task_t *task_search(pid_t pid)
 }
 
 
-task_t *task_create(void *entry, void *param, CSTR name)
+task_t *task_kernel_thread(void *func, void *param)
 {
-    task_t *task = task_allocat();
-    task->name = strdup(name);
-    task->resx = resx_create();
-    task->resx_fs = resx_fs_create();
-    // task->user != NULL;
+    assert(kSYS.sys_usr != NULL);
+    assert(kSYS.sys_rxfs != NULL);
+    task_t *task = task_open(NULL, kSYS.sys_usr, kSYS.sys_rxfs, NULL);
+    task_setup(task, func, param);
+}
 
-    // kprintf(KLOG_TSK, "Create task #%d, %s\n", task->pid, name);
-    cpu_stack(task, (size_t)entry, (size_t)param);
-    scheduler_add(task);
+task_t *task_create(void *func, void *param, CSTR name)
+{
+    task_t *task = task_kernel_thread(func, param);
+    task->name = strdup(name);
     return task;
 }
 
-
-task_t *task_fork(unsigned flags, void *entry, void *param)
+task_t *task_fork(task_t *parent, int keep, const char **envs)
 {
-    assert(kCPU.running);
-    task_t *model = kCPU.running;
-    task_t *task = task_allocat();
-    task->name = strdup(model->name);
-    task->user = model->user;
+    task_t *fork = task_allocat();
+    fork->parent = parent;
+    fork->envs = keep & KEEP_ENVIRON ? env_open(parent->envs) : env_create(envs);
+    fork->resx = keep & KEEP_FILES ? resx_open(parent->resx) : resx_create();
+    fork->fs = keep & KEEP_FS ? rxfs_open(parent->fs) : rxfs_clone(parent->fs);
+    fork->usmem = keep & KEEP_VM ? mspace_open(parent->usmem) : mspace_create();
+    fork->usr = usr_open(parent->usr);
+    return fork;
+}
 
-    task->resx = flags & FORK_FILES ? resx_create() : resx_open(model->resx);
-    task->resx_fs = flags & FORK_FS ? resx_fs_create() : resx_fs_open(model->resx_fs);
+task_t *task_open(task_t *parent, usr_t *usr, rxfs_t *fs, const char *envs)
+{
+    task_t *fork = task_allocat();
+    fork->parent = parent;
+    fork->envs = env_create(envs);
+    fork->resx = resx_create();
+    fork->fs = rxfs_clone(fs);
+    fork->usmem = mspace_create();
+    fork->usr = usr_open(usr);
+    return fork;
+}
 
-    if (flags & FORK_THREAD) {
-        if (model->usmem) {
-            assert(task->user);
-            if (flags & FORK_VM)
-                task->usmem = mspace_create();
-            else
-                task->usmem = mspace_open(task->usmem);
-            // TODO - Need to create a user stack !?
-        }
-        cpu_stack(task, (size_t)entry, (size_t)param);
-    } else {
-        // TODO -- MSPACE COPY ON WRITE !
-        assert("NotImplemented");
-    }
 
+void task_setup(task_t *task, void *entry, void *param)
+{
+    cpu_stack(task, (size_t)entry, (size_t)param);
     scheduler_add(task);
-    return task;
 }
 
 

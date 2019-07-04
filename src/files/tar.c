@@ -74,7 +74,7 @@ struct tar_info {
 
 inode_t *tar_inode(device_t *vol, tar_entry_t *entry, int length)
 {
-    int lba = ((void *)entry - tinfo.start);
+    int lba = ((char *)entry - (char *)tinfo.start);
     inode_t *ino = vfs_inode(lba / TAR_BLOCK_SIZE + 2, FL_REG, vol);
     ino->length = length;
     ino->lba = lba;
@@ -186,7 +186,7 @@ fs_ops_t tar_fs_ops = {
 inode_t *tar_mount(void *base, void *end, CSTR name)
 {
     tinfo.start = base;
-    tinfo.length = end - base;
+    tinfo.length = (char *)end - (char *)base;
 
     inode_t *ino = vfs_inode(1, FL_VOL, NULL);
     ino->length = 0;
