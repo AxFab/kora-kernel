@@ -160,3 +160,30 @@ int resx_rm(resx_t *resx, int fd)
     return 0;
 }
 
+char *env_open(char *envs)
+{
+    return NULL;
+}
+
+char *env_create(const char *envs)
+{
+    return NULL;
+}
+
+rxfs_t *rxfs_open(rxfs_t *fs)
+{
+    return NULL;
+}
+
+rxfs_t *rxfs_clone(rxfs_t *fs)
+{
+    return NULL;
+}
+
+usr_t *usr_open(usr_t *usr)
+{
+    return NULL;
+}
+
+
+

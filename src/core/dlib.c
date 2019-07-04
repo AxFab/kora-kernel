@@ -217,7 +217,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
     }
 
     // List symbols
-    kprintf(-1, "\033[94mRebase lib %s at %p (.text: %p)\033[0m\n", lib->name, base, base + lib->text_off);
+    kprintf(-1, "\033[94mRebase lib %s at %p (.text: %p)\033[0m\n", lib->name, base, (char*)base + lib->text_off);
     lib->base = (size_t)base;
     for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
         symbol->address += (size_t)base;
