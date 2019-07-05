@@ -280,7 +280,7 @@ int dlib_map(dynlib_t *dlib, mspace_t *mspace)
         size_t slen = sec->upper - sec->lower;
         memset(sbase, 0, slen);
         // kprintf(-1, "Section zero <%p,%x>\n", sbase, slen);
-        int i, n = (sec->upper - sec->lower) / PAGE_SIZE;
+        unsigned i, n = (sec->upper - sec->lower) / PAGE_SIZE;
         for (i = 0; i < n; ++i) {
             if (i < sec->start / PAGE_SIZE)
                 continue;

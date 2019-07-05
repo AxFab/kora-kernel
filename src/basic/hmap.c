@@ -92,7 +92,7 @@ int murmur3_32(const void *key, int bytes, uint32_t seed)
     return hash;
 }
 
-void *memdup(const char *buf, int lg)
+void *memdup(const char *buf, size_t lg)
 {
     void *ptr = malloc(lg);
     memcpy(ptr, buf, lg);

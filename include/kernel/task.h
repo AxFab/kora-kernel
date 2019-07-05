@@ -167,7 +167,7 @@ struct task {
 
 
 task_t *task_fork(task_t *parent, int keep, const char **envs);
-task_t *task_open(task_t *parent, usr_t *usr, rxfs_t *fs, const char *envs);
+task_t *task_open(task_t *parent, usr_t *usr, rxfs_t *fs, const char **envs);
 
 int task_stop(task_t *task, int code);
 int task_kill(task_t *task, unsigned signum);
@@ -188,11 +188,10 @@ void scheduler_rm(task_t *item, int status);
 void scheduler_switch(int status, int retcode);
 
 char *env_open(char *);
-char *env_create(const char *);
+char *env_create(const char **);
 rxfs_t *rxfs_open(rxfs_t *);
 rxfs_t *rxfs_clone(rxfs_t *);
 usr_t *usr_open(usr_t *);
-stream_t *rxfiles_get(rxfiles_t *, int);
 
 /* Wait for an event to be emited */
 int async_wait(splock_t *lock, emitter_t *emitter, long timeout_us);

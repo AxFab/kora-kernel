@@ -1,6 +1,6 @@
 #include <kernel/core.h>
 #include <kernel/memory.h>
-#include <sys/mman.h>
+#include <kernel/mmu.h>
 #include "opts.h"
 
 void page_range(long long base, long long limit);
@@ -15,7 +15,7 @@ void mmu_setup()
     page_range(5 * PAGE_SIZE, 5 * PAGE_SIZE);
     page_range(25 * PAGE_SIZE, 20 * PAGE_SIZE);
     // Initialize memory mapping
-    void *ptr = mmap(NULL, 512 * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+    void *ptr = __valloc(512 * PAGE_SIZE);
     ((long *)ptr)[0] = 0;
     kspace.lower_bound = (size_t)ptr;
     kspace.upper_bound = kspace.lower_bound + 512 * PAGE_SIZE;
@@ -29,7 +29,7 @@ void mmu_context(mspace_t *ms) {}
 
 void mmu_create_uspace(mspace_t *ms)
 {
-    void *ptr = mmap(NULL, 64 * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+    void *ptr = __valloc(64 * PAGE_SIZE);
     ((long *)ptr)[0] = 0;
     ms->lower_bound = (size_t)ptr;
     ms->upper_bound = ms->lower_bound + 64 * PAGE_SIZE;
@@ -39,7 +39,7 @@ void mmu_create_uspace(mspace_t *ms)
 
 void mmu_destroy_uspace(mspace_t *ms)
 {
-    munmap((void *)ms->lower_bound, 64 * PAGE_SIZE);
+    __vfree((void *)ms->lower_bound, 64 * PAGE_SIZE);
 }
 
 void mmu_enable() {}
