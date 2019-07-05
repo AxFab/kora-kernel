@@ -94,6 +94,7 @@ task_t *task_kernel_thread(void *func, void *param)
     assert(kSYS.sys_rxfs != NULL);
     task_t *task = task_open(NULL, kSYS.sys_usr, kSYS.sys_rxfs, NULL);
     task_setup(task, func, param);
+    return task;
 }
 
 task_t *task_create(void *func, void *param, CSTR name)
@@ -115,7 +116,7 @@ task_t *task_fork(task_t *parent, int keep, const char **envs)
     return fork;
 }
 
-task_t *task_open(task_t *parent, usr_t *usr, rxfs_t *fs, const char *envs)
+task_t *task_open(task_t *parent, usr_t *usr, rxfs_t *fs, const char **envs)
 {
     task_t *fork = task_allocat();
     fork->parent = parent;

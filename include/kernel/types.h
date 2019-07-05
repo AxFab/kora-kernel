@@ -96,7 +96,6 @@ typedef struct bio bio_t;
 typedef struct proc proc_t;
 typedef struct usr usr_t;
 typedef struct rxfs rxfs_t;
-typedef struct rxfiles_t rxfiles_t;
 
 typedef struct dynlib dynlib_t;
 typedef struct dynsec dynsec_t;

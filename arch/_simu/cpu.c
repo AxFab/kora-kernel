@@ -7,7 +7,7 @@
 #include "opts.h"
 
 atomic_int __cpu_inc = 0;
-__thread int __cpu_no = 0;
+thread_local int __cpu_no = 0;
 void new_cpu();
 
 int cpu_no()

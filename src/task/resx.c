@@ -165,7 +165,7 @@ char *env_open(char *envs)
     return NULL;
 }
 
-char *env_create(const char *envs)
+char *env_create(const char **envs)
 {
     return NULL;
 }

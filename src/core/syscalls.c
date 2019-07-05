@@ -24,7 +24,6 @@
 #include <kernel/device.h>
 #include <kernel/net.h>
 #include <kernel/task.h>
-#include <threads.h>
 #include <string.h>
 #include <errno.h>
 
@@ -53,7 +52,7 @@ int check_pointer(const void *ptr, int acc)
   Tasks, Process & Sessions
 --------- */
 
-// /* Prepare system shutdown, sleep or partial shutdown (kill session) */
+/* Prepare system shutdown, sleep or partial shutdown (kill session) */
 // long sys_power(unsigned type, long delay)
 // {
 //  // TODO
@@ -80,6 +79,8 @@ long fork(task_t *fork, const char *path, const char **args, int *fds)
     int i;
     proc_start_t *procinfo = kalloc(sizeof(proc_start_t));
     procinfo->path = strdup(path);
+    for (i = 0; args[i]; ++i);
+    procinfo->argv = kalloc(i * sizeof(char *));
     while (*args)
         procinfo->argv[procinfo->argc++] = strdup(*(args++));
 
@@ -93,7 +94,7 @@ long fork(task_t *fork, const char *path, const char **args, int *fds)
 }
 
 /* Start a new task in a new session */
-long sys_sfork(uid_t uid, const char *path, const char **args, const char **envs, int *fds)
+long sys_sfork(unsigned uid, const char *path, const char **args, const char **envs, int *fds)
 {
     if (check_string(path) || check_strings(args) || check_strings(envs) || check_buffer(fds, 3 * sizeof(int))) {
         errno = EINVAL;
@@ -104,7 +105,6 @@ long sys_sfork(uid_t uid, const char *path, const char **args, const char **envs
     task_t *task = task_open(kCPU.running, usr, kCPU.running->fs, envs);
     return fork(task, path, args, fds);
 }
-
 
 /* Start a new task in a new process, same session */
 long sys_pfork(int keep, const char *path, const char **args, const char **envs, int *fds)
@@ -120,7 +120,7 @@ long sys_pfork(int keep, const char *path, const char **args, const char **envs,
 
 
 /* Start a new task in the same process */
-long sys_tfork(int keep, void *func, void *args, int sz, const char *envs)
+long sys_tfork(int keep, void *func, void *args, int sz, const char **envs)
 {
     if (check_pointer(func, X_OK) || check_buffer(args, sz) || check_strings(envs)) {
         errno = EINVAL;

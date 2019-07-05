@@ -28,6 +28,8 @@ _TVOID *_SFM(cpy)(_TVOID *dest, const _TVOID *src, size_t len);
 _TVOID *_SFM(move)(_TVOID *dest, const _TVOID *src, size_t len);
 /* Sets num bytes of buffer to byte c. */
 _TVOID *_SFM(set)(_TVOID *buffer, int c, size_t num);
+/* Duplicate a buffer */
+_TVOID *_SFM(dup)(const _TVOID *buffer, size_t len);
 
 
 /* Appends src to dest. */
@@ -62,9 +64,9 @@ size_t _SFX(spn)(const _TCHAR *s1, const _TCHAR *s2);
 _TCHAR *_SFX(str)(const _TCHAR *str, const _TCHAR *substr);
 /* Scans s1 for the first token not contained in s2. */
 _TCHAR *_SFX(tok)(_TCHAR *s1, const _TCHAR *s2);
-/* duplicate a string  */
+/* Duplicate a string  */
 _TCHAR *_SFX(dup)(const _TCHAR *str);
-/* duplicate a string at most maxlen characters */
+/* Duplicate a string at most maxlen characters */
 _TCHAR *_SFX(ndup)(const _TCHAR *str, size_t maxlen);
 /* Convert a string to lowercase. */
 _TCHAR *_SFX(lwr)(_TCHAR *str);
