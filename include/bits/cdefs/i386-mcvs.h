@@ -17,30 +17,30 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _BITS_CDEFS_H
-#define _BITS_CDEFS_H 1
+#ifndef __BITS_CDEFS_H
+#define __BITS_CDEFS_H 1
 
-#define _Noreturn __attribute__((noreturn))
-#define PACK(decl) decl __attribute__((__packed__))
-#define thread_local __thread
+#define _Noreturn __declspec(noreturn)
+#define PACK(decl) __pragma(pack(push,1)) decl __pragma(pack(pop))
+#define thread_local __declspec(thread)
 #define unlikely(c) c
 #define likely(c) c
 
-#define PAGE_SIZE 4096
-#define __ARCH "arm"
+#define PAGE_SIZE  4096
+#define WORDSIZE 32
+#define __ARCH  "i386"
 #define __ILP32
 #define __ILPx
 
+#define RELAX asm volatile("pause")
+#define BARRIER asm volatile("")
 #if defined KORA_KRN
-#define RELAX ((void)0)
-#define BARRIER ((void)0)
-#define THROW_ON irq_enable()
-#define THROW_OFF irq_disable()
+#  define THROW_ON irq_enable()
+#  define THROW_OFF irq_disable()
 #else
-#define RELAX ((void)0)
-#define BARRIER ((void)0)
-#define THROW_ON ((void)0)
-#define THROW_OFF ((void)0)
+#  define THROW_ON ((void)0)
+#  define THROW_OFF ((void)0)
 #endif
 
-#endif /* _BITS_CDEFS_H */
+
+#endif /* __BITS_CDEFS_H */
