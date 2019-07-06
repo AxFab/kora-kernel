@@ -245,5 +245,21 @@ stream_t *resx_set(resx_t *resx, inode_t *ino);
 int resx_rm(resx_t *resx, int fd);
 
 
+typedef struct proc_start {
+    char *path;
+    char *argv;
+    int argc;
+    inode_t *stdout[3];
+} proc_start_t;
+
+typedef struct task_start {
+    char *func;
+    char *args;
+    int sz;
+} task_start_t;
+
+void exec_process(proc_start_t *info);
+void exec_thread(task_start_t *info);
+
 
 #endif  /* _KERNEL_TASK_H */
