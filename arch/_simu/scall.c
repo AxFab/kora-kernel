@@ -84,3 +84,18 @@ long txt_sinfo(const char *line)
     return irq_syscall(SYS_SINFO, 0, 0, 0, 0, 0);
 }
 
+long txt_sfork(const char *line)
+{
+    return irq_syscall(SYS_SFORK, 0, 0, 0, 0, 0);
+}
+
+long txt_pfork(const char *line)
+{
+    return irq_syscall(SYS_PFORK, 0, 0, 0, 0, 0);
+}
+
+long txt_tfork(const char *line)
+{
+    return irq_syscall(SYS_TFORK, 0, 0, 0, 0, 0);
+}
+

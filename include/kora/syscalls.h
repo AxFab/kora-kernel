@@ -56,9 +56,11 @@
 #define SYS_FUTEX_WAIT 22
 #define SYS_FUTEX_REQUEUE 23
 
+
 #define SYS_START 31
 #define SYS_STOP 32
 
+#define SYS_SLEEP 30
 #define SYS_SFORK 27
 #define SYS_PFORK 28
 #define SYS_TFORK 29

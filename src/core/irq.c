@@ -176,7 +176,7 @@ void irq_fault(const fault_t *fault)
     // task->elapsed_system = clock_elapsed(&task->elapsed_last);
     // kCPU.elapsed_system = clock_elapsed(&kCPU->elapsed_last);
     // assert(kCPU.irq_semaphore == 0);
-    sys_exit(5); // DEBUG
+    sys_exit(5, 0); // DEBUG
 }
 
 void irq_pagefault(size_t vaddr, int reason)
@@ -221,7 +221,8 @@ scall_entry_t syscall_entries[64] = {
     SCALL_ENTRY(SYS_SINFO, sinfo, "%d, \"%s\", %d", true),
 
     // SYS_YIELD
-    SCALL_ENTRY(SYS_EXIT, exit, "%d", false),
+    SCALL_ENTRY(SYS_EXIT, exit, "%d, %d", false),
+    SCALL_ENTRY(SYS_SLEEP, sleep, "%d", false),
     // SYS_WAIT
     // SYS_EXEC
     // SYS_CLONE
@@ -250,6 +251,7 @@ scall_entry_t syscall_entries[64] = {
 
     // SYS_SFORK 27
     SCALL_ENTRY(SYS_PFORK, pfork, "%o, %s, %p, %p, %p", true),
+    SCALL_ENTRY(SYS_TFORK, tfork, "%o, %p, %p, %d, %p", true),
     // SYS_TFORK 29
 
 };

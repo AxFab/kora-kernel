@@ -58,22 +58,6 @@ int check_pointer(const void *ptr, int acc)
 //  // TODO
 // }
 
-typedef struct proc_start {
-    char *path;
-    char *argv;
-    int argc;
-    inode_t *stdout[3];
-} proc_start_t;
-
-typedef struct task_start {
-    char *func;
-    char *args;
-    int sz;
-} task_start_t;
-
-void exec_process();
-void exec_thread();
-
 static long fork(task_t *fork, const char *path, const char **args, int *fds)
 {
     int i;
@@ -159,10 +143,17 @@ long sys_stop(unsigned tid, int status)
 }
 
 /* Kill all the thread of the current process */
-long sys_exit(int status)
+long sys_exit(int status, int tid)
 {
-    // TODO -- All threads!
-    return sys_stop(0, status);
+    if (tid < 0) {
+        return sys_stop(0, status);
+    } else if (tid == 0) {
+        // TODO -- All threads!
+        return sys_stop(0, status);
+    } else {
+        errno = EPERM;
+        return -1;
+    }
 }
 
 // /* Start a thread on a new session */
@@ -179,7 +170,11 @@ long sys_exit(int status)
 
 long sys_sleep(long timeout)
 {
-    return sleep_timer(timeout);
+    if (timeout <= 0) {
+        scheduler_switch(TS_READY, 0);
+        return 0;
+    } else
+        return sleep_timer(timeout);
 }
 
 // // exec ve

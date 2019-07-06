@@ -38,12 +38,8 @@ long sys_pfork(int keep, const char *path, const char **args, const char **envs,
 long sys_tfork(int keep, void *func, void *args, int sz, const char **envs);
 
 
-/* Kill a thread */
-long sys_stop(unsigned tid, int status);
 /* Kill all the thread of the current process */
-long sys_exit(int status);
-/* Start a thread on a new session */
-long sys_start(unsigned uid, int exec, int in, int out, CSTR command);
+long sys_exit(int status, int tid);
 /* Fork the current task and copy some attribute */
 long sys_fork(int clone);
 long sys_sleep(long timeout);
