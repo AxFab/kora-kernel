@@ -24,16 +24,25 @@
 #include <kernel/device.h>
 #include <kernel/net.h>
 #include <kernel/task.h>
-#include <threads.h>
 #include <string.h>
 #include <errno.h>
 
-int scall_check_str(CSTR str)
+int check_string(CSTR str)
 {
     return 0;
 }
 
-int scall_check_buf(const void *buf, int len)
+int check_strings(CSTR *list)
+{
+    return 0;
+}
+
+int check_buffer(const void *buf, int len)
+{
+    return 0;
+}
+
+int check_pointer(const void *ptr, int acc)
 {
     return 0;
 }
@@ -48,6 +57,88 @@ int scall_check_buf(const void *buf, int len)
 // {
 //  // TODO
 // }
+
+typedef struct proc_start {
+    char *path;
+    char *argv;
+    int argc;
+    inode_t *stdout[3];
+} proc_start_t;
+
+typedef struct task_start {
+    char *func;
+    char *args;
+    int sz;
+} task_start_t;
+
+void exec_process();
+void exec_thread();
+
+static long fork(task_t *fork, const char *path, const char **args, int *fds)
+{
+    int i;
+    proc_start_t *procinfo = kalloc(sizeof(proc_start_t));
+    procinfo->path = strdup(path);
+    for (i = 0; args[i]; ++i);
+    procinfo->argv = kalloc(i * sizeof(char *));
+    while (*args)
+        procinfo->argv[procinfo->argc++] = strdup(*(args++));
+
+    for (i = 0; i < 3; ++i) {
+        stream_t *strm = fds[i] >= 3 ? resx_get(kCPU.running->resx, fds[i]) : resx_get(kCPU.running->resx, i);
+        procinfo->stdout[i] = vfs_open(strm->ino);
+    }
+
+    task_setup(fork, exec_process, procinfo);
+    return fork->pid;
+}
+
+/* Start a new task in a new session */
+long sys_sfork(unsigned uid, const char *path, const char **args, const char **envs, int *fds)
+{
+    if (check_string(path) || check_strings(args) || check_strings(envs) || check_buffer(fds, 3 * sizeof(int))) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // usr_t *usr = usr_open(uid);
+    // task_t *task = task_open(kCPU.running, usr, kCPU.running->fs, envs);
+    task_t *task = task_open(kCPU.running, NULL, NULL, envs);
+    return fork(task, path, args, fds);
+}
+
+/* Start a new task in a new process, same session */
+long sys_pfork(int keep, const char *path, const char **args, const char **envs, int *fds)
+{
+    if (check_string(path) || check_strings(args) || check_strings(envs) || check_buffer(fds, 3 * sizeof(int))) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    task_t *task = task_fork(kCPU.running, keep, envs);
+    return fork(task, path, args, fds);
+}
+
+
+/* Start a new task in the same process */
+long sys_tfork(int keep, void *func, void *args, int sz, const char **envs)
+{
+    if (check_pointer(func, X_OK) || check_buffer(args, sz) || check_strings(envs)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    task_t *fork = task_fork(kCPU.running, keep | KEEP_VM, envs);
+
+    task_start_t *thrdinfo = kalloc(sizeof(task_start_t));
+    thrdinfo->func = func;
+    thrdinfo->args = memdup(args, sz);
+    thrdinfo->sz = sz;
+    task_setup(fork, exec_thread, thrdinfo);
+    return fork->pid;
+}
+
+
 
 /* Kill a thread */
 long sys_stop(unsigned tid, int status)
@@ -98,9 +189,10 @@ long sys_sleep(long timeout)
 //   Input & Output
 // --------- */
 
+#include <kernel/input.h>
 long sys_read(int fd, char *buf, int len)
 {
-    if (scall_check_buf(buf, len))
+    if (check_buffer(buf, len))
         return -1;
     resx_t *resx = kCPU.running->resx;
     stream_t *stream = resx_get(resx, fd);
@@ -117,13 +209,16 @@ long sys_read(int fd, char *buf, int len)
         errno = 0;
         stream->off += ret;
     }
-    // mtx_unlock(&stream->lock) ;
+    // mtx_unlock(&stream->lock);
+    evmsg_t *msg = (void*)buf;
+    if (ret == 12 && msg->message == 6 && msg->param1 == 0x1c)
+        kprintf(-1, "You push enter\n !");
     return ret;
 }
 
 long sys_write(int fd, const char *buf, int len)
 {
-    if (scall_check_buf(buf, len))
+    if (check_buffer(buf, len))
         return -1;
     if (fd == 1)
         kprintf(-1, "USR #%d.1 - %s\n", kCPU.running->pid, buf);
@@ -151,7 +246,7 @@ long sys_write(int fd, const char *buf, int len)
 
 long sys_access(int fd, CSTR path, int flags)
 {
-    if (scall_check_str(path))
+    if (check_string(path))
         return -1;
     resx_t *resx = kCPU.running->resx;
     inode_t *dir = resx_fs_pwd(kCPU.running->resx_fs);
@@ -179,7 +274,7 @@ long sys_access(int fd, CSTR path, int flags)
 
 long sys_open(int fd, CSTR path, int flags)
 {
-    if (scall_check_str(path))
+    if (check_string(path))
         return -1;
     resx_t *resx = kCPU.running->resx;
     inode_t *dir = resx_fs_pwd(kCPU.running->resx_fs);
@@ -242,7 +337,7 @@ long sys_close(int fd)
 
 int sys_pipe(int *fds)
 {
-    if (scall_check_buf(fds, 2 * sizeof(int)))
+    if (check_buffer(fds, 2 * sizeof(int)))
         return -1;
     resx_t *resx = kCPU.running->resx;
     inode_t *ino = pipe_inode();
@@ -299,7 +394,7 @@ int sys_socket(int protocol, const char *address, int port)
 {
     inode_t *ino = NULL;
     resx_t *resx = kCPU.running->resx;
-    if (scall_check_buf(address, IP4_ALEN))
+    if (check_buffer(address, IP4_ALEN))
         return -1;
 
     errno = EINVAL;
@@ -414,7 +509,7 @@ static long sinfo(bool expr, char **info, const void *buf, int len)
 long sys_ginfo(unsigned info, void *buf, int len)
 {
     int ret;
-    if (scall_check_buf(buf, len))
+    if (check_buffer(buf, len))
         return -1;
     switch (info) {
     case SNFO_ARCH:
@@ -458,7 +553,7 @@ long sys_ginfo(unsigned info, void *buf, int len)
 long sys_sinfo(unsigned info, const void *buf, int len)
 {
     int ret;
-    if (scall_check_buf(buf, len))
+    if (check_buffer(buf, len))
         return -1;
     switch (info) {
     case SNFO_HOSTNAME:
@@ -479,7 +574,7 @@ long sys_sinfo(unsigned info, const void *buf, int len)
 
 // long sys_log(CSTR msg)
 // {
-//  if (scall_check_str(msg))
+//  if (check_string(msg))
 //      return -1;
 //  if (strchr(msg, '\n') || strchr(msg, '\033'))
 //      return -1;
