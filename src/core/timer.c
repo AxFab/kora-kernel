@@ -15,7 +15,7 @@ static void itimer_wake_advent(advent_t *advent)
     advent->until += advent->interval;
     evmsg_t msg = {0};
     msg.message = EV_TIMER;
-    pipe_write(advent->pipe, (char *)&msg, sizeof(msg), IO_ATOMIC);
+    pipe_write(advent->pipe, (char *)&msg, sizeof(msg), IO_ATOMIC | IO_NO_BLOCK);
 }
 
 static void itimer_dtor_advent(advent_t *advent)

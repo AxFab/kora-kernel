@@ -247,6 +247,11 @@ scall_entry_t syscall_entries[64] = {
     SCALL_ENTRY(SYS_WINDOW, window, "%d, %d, %d, 0%o", true),
     SCALL_ENTRY(SYS_FCNTL, fcntl, "%d, %d, %p", true),
     // SYS_PIPE
+
+    // SYS_SFORK 27
+    SCALL_ENTRY(SYS_PFORK, pfork, "%o, %s, %p, %p, %p", true),
+    // SYS_TFORK 29
+
 };
 
 

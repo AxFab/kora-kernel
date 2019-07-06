@@ -48,9 +48,9 @@ int eth_receive(skb_t *skb)
         return -1;
     switch (type) {
     case ETH_IP4:
-        return ip4_receive(skb);
+        // return ip4_receive(skb);
     case ETH_ARP:
-        return arp_receive(skb);
+        // return arp_receive(skb);
     case ETH_IP6:
     default:
         return -1;

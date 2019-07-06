@@ -32,6 +32,12 @@
 
 /* Prepare system shutdown, sleep or partial shutdown (kill session) */
 long sys_power(unsigned type, long delay);
+
+long sys_sfork(unsigned uid, const char *path, const char **args, const char **envs, int *fds);
+long sys_pfork(int keep, const char *path, const char **args, const char **envs, int *fds);
+long sys_tfork(int keep, void *func, void *args, int sz, const char **envs);
+
+
 /* Kill a thread */
 long sys_stop(unsigned tid, int status);
 /* Kill all the thread of the current process */
@@ -140,6 +146,7 @@ long sys_sysctl(int cmd, void *args);
 long sys_copy(int out, int in, size_t size, int count);
 
 
+long txt_pfork(const char *);
 long txt_access(const char *);
 long txt_open(const char *);
 long txt_close(const char *);

@@ -217,7 +217,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
     }
 
     // List symbols
-    kprintf(-1, "\033[94mRebase lib %s at %p (.text: %p)\033[0m\n", lib->name, base, base + lib->text_off);
+    kprintf(-1, "\033[94mRebase lib %s at %p (.text: %p)\033[0m\n", lib->name, base, (char *)base + lib->text_off);
     lib->base = (size_t)base;
     for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
         symbol->address += (size_t)base;
@@ -280,7 +280,7 @@ int dlib_map(dynlib_t *dlib, mspace_t *mspace)
         size_t slen = sec->upper - sec->lower;
         memset(sbase, 0, slen);
         // kprintf(-1, "Section zero <%p,%x>\n", sbase, slen);
-        int i, n = (sec->upper - sec->lower) / PAGE_SIZE;
+        unsigned i, n = (sec->upper - sec->lower) / PAGE_SIZE;
         for (i = 0; i < n; ++i) {
             if (i < sec->start / PAGE_SIZE)
                 continue;
