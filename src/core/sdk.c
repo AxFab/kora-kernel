@@ -145,7 +145,7 @@ kdk_api_t base_kapi[] = {
 
     /* SYSCALLS */
     // KAPI(sys_power),
-    KAPI(sys_stop),
+    // KAPI(sys_stop),
     KAPI(sys_exit),
     // KAPI(sys_start),
     // KAPI(sys_fork),

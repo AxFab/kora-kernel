@@ -83,7 +83,7 @@ void fake_shell_task()
 
     inode_t *root = resx_fs_pwd(kCPU.running->resx_fs);
     if (root == NULL)
-        sys_exit(-1);
+        sys_exit(-1, 0);
     tty_puts(tty, "shell> ls\n");
     krn_ls(tty, root);
     tty_puts(tty, "shell> cat ");
@@ -115,7 +115,7 @@ void exec_task(const char **exec_args)
     proc_t *proc = dlib_process(kCPU.running->resx_fs, mspace);
     if (proc->root == NULL) {
         tty_puts(tty, "No root! ");
-        sys_exit(-1);
+        sys_exit(-1, 0);
     }
     kCPU.running->proc = proc;
     int ret = dlib_openexec(proc, exec_args[0]);
@@ -175,6 +175,8 @@ void list_dir(inode_t *dir)
     }
     vfs_closedir(dir, dir_ctx);
 }
+
+
 void exec_proc(const char **exec_args)
 {
     // Create a new memory space
@@ -228,13 +230,13 @@ void exec_proc(const char **exec_args)
     int ret = dlib_openexec(proc, exec_args[0]);
     if (ret != 0) {
         kprintf(-1, "PROCESS] %s Unable to create executable image\n", exec_args[0]);
-        sys_exit(-1);
+        sys_exit(-1, 0);
     }
 
     ret = dlib_map_all(proc);
     if (ret != 0) {
         kprintf(-1, "PROCESS] %s Error while mapping executable\n", exec_args[0]);
-        sys_exit(-1);
+        sys_exit(-1, 0);
     }
 
     inode_t *in_tty = pipe_inode();
