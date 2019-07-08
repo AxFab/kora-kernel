@@ -89,7 +89,7 @@ void kernel_master()
 
     if (root == NULL) {
         kprintf(-1, "Expected mount point over 'sdC' !\n");
-        sys_exit(0);
+        sys_exit(0, 0);
     }
 
     resx_fs_chroot(kCPU.running->resx_fs, root);
@@ -157,7 +157,7 @@ void kernel_start()
     // task_create(kmod_loader, NULL, "Kernel loader #2");
     // task_create(kernel_master, NULL, "Master");
 
-    task_create(exec_proc, init_args, init_args[0]);
+    task_create(exec_proc, init_args, "Init");
 
     clock_init();
     assert(kCPU.irq_semaphore == 1);

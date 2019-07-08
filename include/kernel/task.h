@@ -258,6 +258,8 @@ typedef struct task_start {
     int sz;
 } task_start_t;
 
+void exec_kloader();
+void exec_init();
 void exec_process(proc_start_t *info);
 void exec_thread(task_start_t *info);
 
