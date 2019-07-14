@@ -13,7 +13,7 @@ atomic_int __cpu_inc = 1;
 void cpu_setup()
 {
     __cpu_no = atomic_fetch_add(&__cpu_inc, 1);
-    kCPU.running = (task_t *)calloc(sizeof(task_t), 1);
+    kCPU.running = (task_t *)calloc(1, sizeof(task_t));
     kCPU.running->pid = __cpu_no;
 }
 

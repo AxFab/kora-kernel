@@ -110,7 +110,7 @@ _Noreturn void cpu_usermode(size_t entry, size_t param)
     for (;;);
 }
 
-void cpu_tss()
+void cpu_tss(task_t *task)
 {
     /* ERROR i386 Must be part of save/restore or usermode! */
 }

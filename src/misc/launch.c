@@ -152,12 +152,12 @@ void kernel_start()
     platform_setup();
     assert(kCPU.irq_semaphore == 1);
 
-
+    kSYS.init_fs = rxfs_create(kSYS.dev_ino);
     task_create(kmod_loader, NULL, "Kernel loader #1");
     // task_create(kmod_loader, NULL, "Kernel loader #2");
     // task_create(kernel_master, NULL, "Master");
 
-    task_create(exec_proc, init_args, "Init");
+    task_create(exec_init, init_args, "Init");
 
     clock_init();
     assert(kCPU.irq_semaphore == 1);

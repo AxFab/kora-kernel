@@ -52,8 +52,8 @@ void page_range(long long base, long long length)
     long count = length / PAGE_SIZE;
     long start = base / PAGE_SIZE;
 
-    if (kMMU.upper_physical_page < (unsigned)start + count)
-        kMMU.upper_physical_page = (unsigned)start + count;
+    if (kMMU.upper_physical_page < (size_t)(start + count))
+        kMMU.upper_physical_page = (size_t)(start + count);
 
     kMMU.pages_amount += count;
     kMMU.free_pages += count;
@@ -68,6 +68,29 @@ void page_range(long long base, long long length)
     ll_append(&lzone, &zn->node);
     kprintf(-1, "page at %d.%d count %d\n", i, j, count);
 }
+
+void page_teardown()
+{
+    mzone_t *mz;
+    for ll_each(&lzone, mz, mzone_t, node) {
+        splock_lock(&mz->lock);
+        if (mz->available == mz->free) {
+            kfree(mz->ptr);
+            mz->ptr = NULL;
+        }
+        splock_unlock(&mz->lock);
+        // kprintf(-1, "pz %x\n", mz);
+    }
+
+    mzone_t *it = ll_first(&lzone, mzone_t, node);
+    while (it) {
+        mz = it;
+        it = ll_next(&it->node, mzone_t, node);
+        //
+        free(mz);
+    }
+}
+
 
 void bitsclr(uint8_t *ptr, int start, int count)
 {

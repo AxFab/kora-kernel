@@ -79,7 +79,7 @@ inode_t *tar_inode(device_t *vol, tar_entry_t *entry, int length)
     ino->length = length;
     ino->lba = lba;
     ino->ops = &tar_reg_ops;
-    ino->info = map_create(ino, tar_read, NULL);
+    ino->info = blk_create(ino, tar_read, NULL);
     return ino;
 }
 
@@ -156,12 +156,12 @@ int tar_closedir(inode_t *dir, void *ctx)
 
 page_t tar_fetch(inode_t *ino, off_t off)
 {
-    return map_fetch(ino->info, off);
+    return blk_fetch(ino->info, off);
 }
 
 void tar_release(inode_t *ino, off_t off, page_t pg)
 {
-    map_release(ino->info, off, pg);
+    blk_release(ino->info, off, pg);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

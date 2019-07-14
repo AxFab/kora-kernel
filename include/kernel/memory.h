@@ -60,7 +60,8 @@ void page_release(page_t paddress);
 void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean);
 /* Resolve a page fault */
 int page_fault(mspace_t *mspace, size_t address, int reason);
-
+/* - */
+void page_teardown();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* - */

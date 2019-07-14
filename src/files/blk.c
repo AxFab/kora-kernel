@@ -53,14 +53,41 @@ blk_cache_t *blk_create(inode_t *ino, void *read, void *write)
 
 void blk_destroy(blk_cache_t *cache)
 {
+    blk_page_t *it = bbtree_left(cache->tree.root_, blk_page_t, bnode);
+    splock_lock(&cache->lock);
+    while (it) {
+        blk_page_t *page = it;
+        it = bbtree_next(&it->bnode, blk_page_t, bnode);
+        assert(page->rcu == 0);
+        bbtree_remove(&cache->tree, page->bnode.value_);
+        // page_release(page->phys);
+        free(page);
+    }
     // assert(cache->tree.count_ == 0);
+    splock_unlock(&cache->lock);
+
     kfree(cache);
+}
+
+static void blk_sync_page_(blk_cache_t *cache, blk_page_t *page)
+{
+    off_t off = page->bnode.value_ * PAGE_SIZE;
+    page_t pg = page->phys;
+    void *ptr = kmap(PAGE_SIZE, NULL, (off_t)pg, VMA_PHYSIQ);
+    assert(kCPU.irq_semaphore == 0);
+    page->dirty = false;
+    cache->write(cache->ino, ptr, PAGE_SIZE, off);
+    assert(kCPU.irq_semaphore == 0);
+    kunmap(ptr, PAGE_SIZE);
 }
 
 static void blk_close(blk_cache_t *cache, blk_page_t *page)
 {
     if (--page->rcu == 0) {
+        if (page->dirty) {
         // IF DIRTY SYNC
+            blk_sync_page_(cache, page);
+        }
         // TODO push on LRU
         // kSYS.blk_pages_lru
     }
@@ -94,8 +121,8 @@ int blk_scavenge(int count, int min)
 page_t blk_fetch(blk_cache_t *cache, off_t off)
 {
     // kprintf(-1, "FETCH page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
-    if (cache->ino->length != 0 && off > cache->ino->length)
-        kprintf(-1, "Warning - fetching page %x outside of block inode!\n", off);
+    // if (cache->ino->length != 0 && off > cache->ino->length)
+    //     kprintf(-1, "Warning - fetching page %x outside of block inode!\n", off);
 
     assert(kCPU.irq_semaphore == 0);
     assert(IS_ALIGNED(off, PAGE_SIZE));
@@ -132,6 +159,17 @@ page_t blk_fetch(blk_cache_t *cache, off_t off)
     return pg;
 }
 
+void blk_markwr(blk_cache_t *cache, off_t off)
+{
+    assert(kCPU.irq_semaphore == 0);
+    assert(IS_ALIGNED(off, PAGE_SIZE));
+    splock_lock(&cache->lock);
+    blk_page_t *page = bbtree_search_eq(&cache->tree, off / PAGE_SIZE, blk_page_t, bnode);
+    assert(page != NULL);
+    page->dirty = true;
+    splock_unlock(&cache->lock);
+}
+
 void blk_sync(blk_cache_t *cache, off_t off, page_t pg)
 {
     assert(kCPU.irq_semaphore == 0);
@@ -147,12 +185,7 @@ void blk_sync(blk_cache_t *cache, off_t off, page_t pg)
     assert(pg == page->phys);
     // TODO - async io, using CoW !?
     splock_unlock(&cache->lock);
-
-    void *ptr = kmap(PAGE_SIZE, NULL, (off_t)pg, VMA_PHYSIQ);
-    assert(kCPU.irq_semaphore == 0);
-    cache->write(cache->ino, ptr, PAGE_SIZE, off);
-    assert(kCPU.irq_semaphore == 0);
-    kunmap(ptr, PAGE_SIZE);
+    blk_sync_page_(cache, page);
 }
 
 void blk_release(blk_cache_t *cache, off_t off, page_t pg)
@@ -164,33 +197,6 @@ void blk_release(blk_cache_t *cache, off_t off, page_t pg)
     assert(page != NULL);
     blk_close(cache, page);
     splock_unlock(&cache->lock);
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-blk_cache_t *map_create(inode_t *ino, void *read, void *write)
-{
-    return blk_create(ino, read, write);
-}
-
-void map_destroy(blk_cache_t *cache)
-{
-    blk_destroy(cache);
-}
-
-page_t map_fetch(blk_cache_t *cache, off_t off)
-{
-    return blk_fetch(cache, off);
-}
-
-void map_sync(blk_cache_t *cache, off_t off, page_t pg)
-{
-    blk_sync(cache, off, pg);
-}
-
-void map_release(blk_cache_t *cache, off_t off, page_t pg)
-{
-    blk_release(cache, off, pg);
 }
 
 

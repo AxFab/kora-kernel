@@ -95,6 +95,9 @@ CHECKS += ckelf ckmem cknet
 CHECKS += ckvfs
 CHECKS += ckkrn # No args, put all files on coverage
 
+lck:
+	$(S) echo $(patsubst %,val_%,$(CHECKS))
+
 include $(topdir)/make/check.mk
 
 ifeq ($(NOCOV),)
@@ -155,6 +158,15 @@ cknet_src-y += $(srcdir)/net/socket.c
 cknet_src-y += $(srcdir)/net/local.c
 cknet_src-y += $(srcdir)/tests/tst_net.c
 $(eval $(call link_bin,cknet,cknet_src,CKLFLGS))
+
+# ckip4_src-y += $(TEST_SRC) $(SYNC_SRC)
+# ckip4_src-y += $(srcdir)/core/debug.c
+# ckip4_src-y += $(srcdir)/files/pipe.c
+# ckip4_src-y += $(srcdir)/net/net.c
+# ckip4_src-y += $(srcdir)/net/socket.c
+# ckip4_src-y += $(srcdir)/net/local.c
+ckip4_src-y += $(srcdir)/tests/tst_ip4.c
+$(eval $(call link_bin,ckip4,ckip4_src,CKLFLGS))
 
 ckelf_src-y += $(TEST_SRC)
 ckelf_src-y += $(srcdir)/core/elf.c

@@ -19,7 +19,7 @@
  */
 #include <kernel/core.h>
 #include <kernel/cpu.h>
-#include <kernel/drv/pci.h>
+#include <kernel/bus/pci.h>
 #include <kernel/sdk.h>
 
 

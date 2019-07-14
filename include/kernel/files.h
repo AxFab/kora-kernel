@@ -148,6 +148,8 @@ void blk_destroy(blk_cache_t *cache);
 page_t blk_fetch(blk_cache_t *cache, off_t off);
 void blk_sync(blk_cache_t *cache, off_t off, page_t pg);
 void blk_release(blk_cache_t *cache, off_t off, page_t pg);
+void blk_markwr(blk_cache_t *cache, off_t off);
+
 
 blk_cache_t *map_create(inode_t *ino, void *read, void *write);
 void map_destroy(blk_cache_t *cache);

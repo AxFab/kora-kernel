@@ -170,15 +170,61 @@ char *env_create(const char **envs)
     return NULL;
 }
 
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+rxfs_t *rxfs_create(inode_t *ino)
+{
+    rxfs_t *fs = kalloc(sizeof(rxfs_t));
+    fs->root = vfs_open(ino);
+    fs->pwd = vfs_open(ino);
+    fs->umask = 0022;
+    atomic_store(&fs->rcu, 1);
+    return fs;
+}
+
+
 rxfs_t *rxfs_open(rxfs_t *fs)
 {
-    return NULL;
+    atomic_fetch_add(&fs->rcu, 1);
+    return fs;
 }
 
 rxfs_t *rxfs_clone(rxfs_t *fs)
 {
-    return NULL;
+    rxfs_t *copy = kalloc(sizeof(rxfs_t));
+    copy->root = vfs_open(fs->root);
+    copy->pwd = vfs_open(fs->pwd);
+    copy->umask = fs->umask;
+    atomic_store(&copy->rcu, 1);
+    return copy;
 }
+
+void rxfs_close(rxfs_t *fs)
+{
+    int val = atomic_fetch_sub(&fs->rcu, 1);
+    if (val == 1) {
+        vfs_close(fs->root);
+        vfs_close(fs->pwd);
+        kfree(fs);
+    }
+}
+
+void rxfs_chroot(rxfs_t *fs, inode_t *ino)
+{
+    vfs_close(fs->root);
+    fs->root = vfs_open(ino);
+}
+
+void rxfs_chdir(rxfs_t *fs, inode_t *ino)
+{
+    vfs_close(fs->pwd);
+    fs->pwd = vfs_open(ino);
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 
 usr_t *usr_open(usr_t *usr)
 {

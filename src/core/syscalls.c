@@ -170,11 +170,11 @@ long sys_exit(int status, int tid)
 
 long sys_sleep(long timeout)
 {
-    if (timeout <= 0) {
+    if (timeout <= 0)
         scheduler_switch(TS_READY, 0);
-        return 0;
-    } else
-        return sleep_timer(timeout);
+    else
+        sleep_timer(timeout);
+    return 0;
 }
 
 // // exec ve
