@@ -44,6 +44,7 @@ void itimer_create(pipe_t *pipe, long delay, long interval)
     advent_t *advent = kalloc(sizeof(advent_t));
     advent->task = kCPU.running;
     advent->pipe = pipe;
+    advent->dtor = itimer_dtor_advent;
     ll_append(&advent->task->alist, &advent->anode);
 
     advent->until = clock_read(CLOCK_MONOTONIC) + delay;
@@ -58,6 +59,7 @@ void sleep_timer(long timeout)
     advent_t advent;
     memset(&advent, 0, sizeof(advent));
     advent.task = kCPU.running;
+    advent.dtor = sleep_dtor_advent;
     ll_append(&advent.task->alist, &advent.anode);
     // advent.task->advent = &advent;
     advent.until = clock_read(CLOCK_MONOTONIC) + timeout;

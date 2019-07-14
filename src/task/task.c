@@ -92,7 +92,7 @@ task_t *task_kernel_thread(void *func, void *param)
 {
     // assert(kSYS.sys_usr != NULL);
     // assert(kSYS.sys_rxfs != NULL);
-    task_t *task = task_open(NULL, NULL, NULL, NULL);
+    task_t *task = task_open(NULL, NULL, kSYS.init_fs, NULL);
     // task_t *task = task_open(NULL, kSYS.sys_usr, kSYS.sys_rxfs, NULL);
     task_setup(task, func, param);
     return task;
@@ -113,7 +113,7 @@ task_t *task_fork(task_t *parent, int keep, const char **envs)
     // fork->envs = keep & KEEP_ENVIRON ? env_open(parent->envs) : env_create(envs);
     fork->resx = keep & KEEP_FILES ? resx_open(parent->resx) : resx_create();
     fork->resx_fs = resx_fs_create();
-    // fork->fs = keep & KEEP_FS ? rxfs_open(parent->fs) : rxfs_clone(parent->fs);
+    fork->fs = keep & KEEP_FS ? rxfs_open(parent->fs) : rxfs_clone(parent->fs);
     fork->usmem = keep & KEEP_VM ? mspace_open(parent->usmem) : mspace_create();
     // fork->usr = usr_open(parent->usr);
     return fork;
@@ -126,8 +126,8 @@ task_t *task_open(task_t *parent, usr_t *usr, rxfs_t *fs, const char **envs)
     // fork->envs = env_create(envs);
     fork->resx = resx_create();
     fork->resx_fs = resx_fs_create();
-    // fork->fs = rxfs_clone(fs);
-    fork->usmem = mspace_create();
+    fork->fs = rxfs_open(fs);
+    fork->usmem = NULL; // mspace_create();
     // fork->usr = usr_open(usr);
     return fork;
 }

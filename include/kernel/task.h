@@ -96,6 +96,7 @@ struct advent {
     clock_t until;
     pipe_t *pipe;
     long interval;
+    void (*dtor)(advent_t*);
 };
 
 
@@ -193,8 +194,13 @@ void scheduler_switch(int status, int retcode);
 
 char *env_open(char *);
 char *env_create(const char **);
+
+rxfs_t *rxfs_create(inode_t *ino);
 rxfs_t *rxfs_open(rxfs_t *);
 rxfs_t *rxfs_clone(rxfs_t *);
+void rxfs_chroot(rxfs_t *fs, inode_t *ino);
+void rxfs_chdir(rxfs_t *fs, inode_t *ino);
+
 usr_t *usr_open(usr_t *);
 
 
@@ -227,6 +233,8 @@ void clock_ticks();
 void clock_init();
 
 
+void sleep_timer(long timeout);
+
 
 resx_fs_t *resx_fs_create();
 resx_fs_t *resx_fs_open(resx_fs_t *resx);
@@ -244,10 +252,17 @@ stream_t *resx_get(resx_t *resx, int fd);
 stream_t *resx_set(resx_t *resx, inode_t *ino);
 int resx_rm(resx_t *resx, int fd);
 
+struct rxfs {
+    inode_t *root;
+    inode_t *pwd;
+    int umask;
+    atomic_int rcu;
+};
+
 
 typedef struct proc_start {
     char *path;
-    char *argv;
+    char **argv;
     int argc;
     inode_t *stdout[3];
 } proc_start_t;

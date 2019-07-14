@@ -143,15 +143,19 @@ int pipe_write(pipe_t *pipe, const char *buf, size_t len, int flags)
     int bytes = 0;
     mtx_lock(&pipe->mutex);
     if (flags & IO_NO_BLOCK && len > pipe->size - pipe->avail) {
-        mtx_unlock(&pipe->mutex);
-        errno = EWOULDBLOCK;
-        return -1;
+        while (len > pipe->size - pipe->avail && pipe->size * 2 <= pipe->max_size)
+            pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size));
+        if (len > pipe->size - pipe->avail) {
+            mtx_unlock(&pipe->mutex);
+            errno = EWOULDBLOCK;
+            return -1;
+        }
     } else if (flags & IO_ATOMIC) {
         if (len > pipe->max_size) {
             errno = E2BIG;
             return -1;
         }
-        while (len > pipe->size)
+        while (len > pipe->size - pipe->avail && pipe->size * 2 <= pipe->max_size)
             pipe_resize_unlock_(pipe, MIN(pipe->size * 2, pipe->max_size));
         while (len > pipe->size - pipe->avail)
             cnd_wait(&pipe->wr_cond, &pipe->mutex);

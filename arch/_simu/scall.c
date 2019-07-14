@@ -98,4 +98,8 @@ long txt_tfork(const char *line)
 {
     return irq_syscall(SYS_TFORK, 0, 0, 0, 0, 0);
 }
+long txt_sleep(const char *line)
+{
+    return irq_syscall(SYS_SLEEP, 0, 0, 0, 0, 0);
+}
 

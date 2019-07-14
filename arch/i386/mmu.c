@@ -198,11 +198,17 @@ void mmu_destroy_uspace(mspace_t *mspace)
 
 void mmu_context(mspace_t *mspace)
 {
+    int i;
     page_t dir_pg = mspace->directory;
     page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
-    unsigned table = ((unsigned)&mspace) >> 22;
+    // unsigned table = ((unsigned)&mspace) >> 22;
     /* Check the current stack page is present  */
-    dir[table] = ((page_t *)0xFFBFF000)[table];
+    page_t *krn = (page_t *)0xFFBFF000;
+    for (i = 0; i < 4; ++i)
+        dir[i] = krn[i];
+    for (i = 768; i < 1020; ++i)
+        dir[i] = krn[i];
+    // dir[table] = ((page_t *)0xFFBFF000)[table];
     kunmap(dir, PAGE_SIZE);
     x86_set_cr3(dir_pg);
 }

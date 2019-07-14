@@ -143,6 +143,8 @@ long sys_copy(int out, int in, size_t size, int count);
 
 
 long txt_pfork(const char *);
+long txt_tfork(const char *);
+long txt_sleep(const char *);
 long txt_access(const char *);
 long txt_open(const char *);
 long txt_close(const char *);

@@ -18,42 +18,35 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/net.h>
+#include <kernel/net/eth.h>
 #include <string.h>
 
 const uint8_t eth_broadcast[ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-int eth_header(skb_t *skb, const uint8_t *target, uint16_t type)
+
+skb_t *eth_packet(ifnet_t *ifnet, const uint8_t *addr, uint16_t type)
 {
+    skb_t *skb = net_packet(ifnet);
+    eth_header_t *head = net_pointer(skb, sizeof(eth_header_t));
+    memcpy(head->sender, ifnet->hwaddr, ETH_ALEN);
+    memcpy(head->target, addr, ETH_ALEN);
+    head->type = type;
     strncat(skb->log, "eth:", NET_LOG_SIZE);
-    net_write(skb, target, ETH_ALEN);
-    net_write(skb, skb->ifnet->eth_addr, ETH_ALEN);
-    memcpy(skb->eth_addr, target, ETH_ALEN);
-    return net_write(skb, &type, 2);
+    return skb;
 }
+
 
 int eth_receive(skb_t *skb)
 {
-    uint16_t type = 0;
-    uint8_t *mac;
-
+    eth_header_t *head = net_pointer(skb, sizeof(eth_header_t));
     strncat(skb->log, "eth:", NET_LOG_SIZE);
-    mac = net_pointer(skb, ETH_ALEN);
-    if (mac == NULL)
+    if (memcmp(head->target, skb->ifnet->hwaddr, ETH_ALEN) != 0 &&
+        memcmp(head->target, eth_broadcast, ETH_ALEN) != 0)
         return -1;
-    if (memcmp(mac, skb->ifnet->eth_addr, ETH_ALEN) != 0 &&
-        memcmp(mac, eth_broadcast, ETH_ALEN) != 0)
+    // TODO - Firewall
+    inet_recv_t recv = NULL;
+    if (recv == NULL)
         return -1;
-    net_read(skb, skb->eth_addr, ETH_ALEN);
-    if (net_read(skb, &type, 2))
-        return -1;
-    switch (type) {
-    case ETH_IP4:
-        // return ip4_receive(skb);
-    case ETH_ARP:
-        // return arp_receive(skb);
-    case ETH_IP6:
-    default:
-        return -1;
-    }
+    return recv(skb);
 }
 

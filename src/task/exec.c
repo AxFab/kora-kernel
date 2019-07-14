@@ -16,16 +16,23 @@ void exec_kloader()
 
 void exec_init()
 {
-    kprintf(-1, "First process\n");
+    char *execname = "krish";
+    char *exec_args[] = {
+        "krish", "-x", "-s", NULL
+    };
 
     task_t *task = kCPU.running;
-    // Create a new memory space
+    kprintf(-1, "First process\n");
+
+     // Create a new memory space
     if (task->usmem == NULL)
         task->usmem = mspace_create();
-    mmu_context(task->usmem);
+    mspace_t *mspace = task->usmem;
+    mmu_context(mspace);
+    task->usmem = mspace;
 
-    const char **exec_args = { "krish", NULL };
 
+    // Looking for root !
     inode_t *root;
     for (;;) {
         root = vfs_mount("sdC", "isofs", "cdrom");
@@ -35,48 +42,31 @@ void exec_init()
         sys_sleep(MSEC_TO_KTIME(1000));
     }
 
+    // Looking for exec dir
+    inode_t *pwd = vfs_lookup(root, "usr");
+    pwd = vfs_lookup(pwd, "bin");
+
     // Create a new process structure
-    proc_t *proc = dlib_process(kCPU.running->resx_fs, task->usmem);
-    kCPU.running->proc = proc;
-
-
-    // inode_t *dir = kSYS.dev_ino;
-    // kprintf(-1, "List /dev\n");
-    // list_dir(dir);
-    // dir = vfs_lookup(dir, "mnt");
-    // kprintf(-1, "List /dev/mnt\n");
-    // list_dir(dir);
-    // dir = vfs_lookup(dir, "boot");
-    // kprintf(-1, "List /dev/mnt/boot\n");
-    // list_dir(dir);
-
-    // kprintf(-1, "List /dev/mnt/cdrom\n");
-    // list_dir(root);
+    proc_t *proc = dlib_process(task->resx_fs, mspace);
+    task->proc = proc;
     proc->root = root;
+    proc->pwd = pwd;
 
-    root = vfs_lookup(root, "usr");
-    // kprintf(-1, "List /dev/mnt/cdrom/usr\n");
-    // list_dir(root);
-
-    root = vfs_lookup(root, "bin");
-    // kprintf(-1, "List /dev/mnt/cdrom/usr/bin\n");
-    // list_dir(root);
-    proc->pwd = root;
-
-    kprintf(-1, "Loading '%s'\n", exec_args[0]);
-
+    kprintf(-1, "Loading '%s'\n", execname);
+    rxfs_chroot(task->fs, root);
+    rxfs_chdir(task->fs, pwd);
 
 
     // We call the linker
-    int ret = dlib_openexec(proc, exec_args[0]);
+    int ret = dlib_openexec(proc, execname);
     if (ret != 0) {
-        kprintf(-1, "PROCESS] %s Unable to create executable image\n", exec_args[0]);
+        kprintf(-1, "PROCESS] %s Unable to create executable image\n", execname);
         sys_exit(-1, 0);
     }
 
     ret = dlib_map_all(proc);
     if (ret != 0) {
-        kprintf(-1, "PROCESS] %s Error while mapping executable\n", exec_args[0]);
+        kprintf(-1, "PROCESS] %s Error while mapping executable\n", execname);
         sys_exit(-1, 0);
     }
 
@@ -84,20 +74,19 @@ void exec_init()
     inode_t *out_tty = pipe_inode();
     // inode_t *std_tty = tty_inode(tty);
     // stream_t *std_in =
-    resx_set(kCPU.running->resx, in_tty);
-    resx_set(kCPU.running->resx, out_tty);
-    resx_set(kCPU.running->resx, out_tty);
+    resx_set(task->resx, in_tty);
+    resx_set(task->resx, out_tty);
+    resx_set(task->resx, out_tty);
 
 
     void *start = dlib_exec_entry(proc);
-    void *stack = mspace_map(task->usmem, 0, _Mib_, NULL, 0, VMA_STACK_RW);
+    void *stack = mspace_map(mspace, 0, _Mib_, NULL, 0, VMA_STACK_RW);
     stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
-    // kprintf(-1, "%s: start:%p, stack:%p\n", exec_args[0], start, stack);
-    // mspace_display(task->usmem);
+    // kprintf(-1, "%s: start:%p, stack:%p\n", execname, start, stack);
+    // mspace_display(mspace);
 
     // Write arguments on stack
-    int i, argc;
-    for (argc = 0; exec_args[argc]; ++argc);
+    int i, argc = 3;
     char **argv = ADDR_PUSH(stack, argc * sizeof(char *));
     for (i = 0; i < argc; ++i) {
         int lg = strlen(exec_args[i]) + 1;
@@ -111,8 +100,9 @@ void exec_init()
     args[2] = (size_t)argv;
     args[3] = 0;
 
+    // kprintf(-1, "%s: start:%p, stack:%p\n", execname, start, stack);
     irq_reset(false);
-    cpu_tss(kCPU.running);
+    cpu_tss(task);
     cpu_usermode(start, stack);
 }
 
@@ -125,7 +115,8 @@ void exec_process(proc_start_t *info)
      // Create a new process structure
     proc_t *proc = dlib_process(task->resx_fs, task->usmem);
     task->proc = proc;
-    // proc->root = root;
+    proc->root = task->fs->root;
+    proc->pwd = task->fs->pwd;
 
 
     kprintf(-1, "Loading '%s'\n", info->path);
@@ -166,7 +157,7 @@ void exec_process(proc_start_t *info)
 
     int lg = strlen(info->path + 1);
     argv[0] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
-    strcpy(argv[i], info->path);
+    strcpy(argv[0], info->path);
 
     for (i = 1; i < argc; ++i) {
         lg = strlen(info->argv[i]) + 1;

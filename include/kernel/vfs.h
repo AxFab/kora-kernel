@@ -185,6 +185,9 @@ void *vfs_opendir(inode_t *dir, acl_t *acl);
 inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx);
 int vfs_closedir(inode_t *dir, void *ctx);
 
+inode_t *vfs_mount(const char *dev, const char *fs, const char *name);
+int vfs_mkdev(inode_t *ino, const char *name);
+
 void vfs_init();
 void vfs_fini();
 int vfs_fdisk(CSTR dname, long parts, long *sz);

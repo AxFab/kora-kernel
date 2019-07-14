@@ -26,7 +26,7 @@
 
 
 #include <kernel/net.h>
-#include <kernel/drv/pci.h>
+#include <kernel/bus/pci.h>
 
 typedef struct kmnt kmnt_t;
 struct kmnt {
@@ -132,7 +132,7 @@ void kmod_loader()
         mod = ll_dequeue(&kmod_standby, kmod_t, node);
         splock_unlock(&kmod_lock);
         if (mod == NULL) {
-            sys_sleep(MSEC_TO_KTIME(500));
+            sleep_timer(MSEC_TO_KTIME(500));
             splock_lock(&kmod_lock);
             continue;
         }

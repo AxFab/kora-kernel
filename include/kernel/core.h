@@ -154,6 +154,8 @@ void irq_enter(int no);
 
 int cpu_no(); // TODO optimization by writing this one as `pure'.
 /* - */
+void cpu_tss(task_t*);
+/* - */
 time_t cpu_time();
 /* - */
 void cpu_awake();
@@ -259,7 +261,7 @@ struct kSys {
     llhead_t packet_queue;
 
     usr_t *sys_usr;
-    rxfs_t *sys_rxfs;
+    rxfs_t *init_fs;
 };
 
 

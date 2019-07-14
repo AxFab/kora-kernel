@@ -16,21 +16,21 @@ void scheduler_init();
 static void tst_sync_01_waiter()
 {
     test_ck1++;
-    printf("A %d\n", cpu_no());
+    // printf("A %d\n", cpu_no());
     mtx_lock(&test_mtx1);
-    printf("B %d\n", cpu_no());
+    // printf("B %d\n", cpu_no());
     usleep(MSEC_TO_USEC(100));
-    printf("C %d\n", cpu_no());
+    // printf("C %d\n", cpu_no());
     mtx_unlock(&test_mtx1);
-    printf("D %d\n", cpu_no());
+    // printf("D %d\n", cpu_no());
     usleep(MSEC_TO_USEC(100));
-    printf("E %d\n", cpu_no());
+    // printf("E %d\n", cpu_no());
     mtx_lock(&test_mtx1);
-    printf("F %d\n", cpu_no());
+    // printf("F %d\n", cpu_no());
     usleep(MSEC_TO_USEC(100));
-    printf("G %d\n", cpu_no());
+    // printf("G %d\n", cpu_no());
     mtx_unlock(&test_mtx1);
-    printf("H %d\n", cpu_no());
+    // printf("H %d\n", cpu_no());
 }
 
 TEST_CASE(tst_sync_01)

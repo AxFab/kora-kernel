@@ -91,6 +91,7 @@ int futex_wait(int *addr, int val, long timeout, int flags)
     memset(&advent, 0, sizeof(advent));
     advent.futex = futex;
     advent.task = kCPU.running;
+    advent.dtor = futex_dtor_advent;
     ll_append(&advent.task->alist, &advent.anode);
     // advent.task->advent = &advent;
     if (timeout > 0) {
