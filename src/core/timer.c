@@ -62,7 +62,7 @@ void sleep_timer(long timeout)
     advent.dtor = sleep_dtor_advent;
     ll_append(&advent.task->alist, &advent.anode);
     // advent.task->advent = &advent;
-    advent.until = clock_read(CLOCK_MONOTONIC) + timeout;
+    advent.until = clock_read(CLOCK_MONOTONIC) + MAX(1, timeout);
     splock_lock(&itimer_lock);
     ll_append(&itimer_list, &advent.tnode);
     splock_unlock(&itimer_lock);

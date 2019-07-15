@@ -24,10 +24,10 @@
 #include <kernel/types.h>
 
 
-enum {
-    CLOCK_MONOTONIC = 0,
-    CLOCK_REALTIME,
-};
+#ifndef CLOCK_MONOTONIC
+#  define CLOCK_MONOTINIC  0
+#  define CLOCK_REALTIME  1
+#endif
 
 #define MIN_TO_USEC(s)  ((s)*60000000LL)
 #define SEC_TO_USEC(s)  ((s)*1000000LL)

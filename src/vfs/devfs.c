@@ -6,6 +6,8 @@
 typedef struct dfs_table dfs_table_t;
 typedef struct dfs_info dfs_info_t;
 
+void sleep_timer(long);
+
 struct dfs_info {
     int ino;
     int flags;
@@ -140,8 +142,8 @@ int null_read(inode_t *ino, char *buf, size_t len, int flags)
         errno = EWOULDBLOCK;
         return 0;
     }
-    while (0 == futex_wait(&s, 0, -1, 0));
-    return -1;
+    for (;;)
+        sleep_timer(MIN_TO_USEC(15));
 }
 
 int null_write(inode_t *ino, const char *buf, size_t len, int flags)
