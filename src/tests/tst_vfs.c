@@ -55,6 +55,7 @@ TEST_CASE(tst_devfs_01)
     ck_ok(10 == vfs_read(rand, buf, 10, 0, 0));
     ck_ok(-1 == vfs_write(rand, buf, 10, 0, 0));
     vfs_close(rand);
+    vfs_close(rand);
 
     vfs_sweep();
 }
@@ -197,14 +198,14 @@ int main()
 
     fixture_create("Devfs tests");
     tcase_create(tst_devfs_01);
-//    tcase_create(tst_devfs_02);
+    tcase_create(tst_devfs_02);
 
     fixture_create("File system operations");
-//    tcase_create(tst_vfs_01);
-//    tcase_create(tst_vfs_02);
+    tcase_create(tst_vfs_01);
+    tcase_create(tst_vfs_02);
 
     fixture_create("TAR Archive");
-//    tcase_create(tst_tar_01);
+    tcase_create(tst_tar_01);
 
     free(kSYS.cpus);
     return summarize();

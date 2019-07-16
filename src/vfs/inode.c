@@ -26,6 +26,11 @@
 #include "vfs.h"
 
 
+const char *ftype_char = "?rbpcnslifvddtw";
+atomic_int vol_no = 1;
+atomic_int ino_no = 0;
+
+
 /* An inode must be created by the driver using a call to `vfs_inode()' */
 inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
 {
@@ -44,10 +49,12 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
     if (volume == NULL) {
         // TODO -- Give UniqueID / Register on
         volume = kalloc(sizeof(device_t));
+	volume->no = atomic_fetch_add(&vol_no, 1);
         volume->ino = inode;
         bbtree_init(&volume->btree);
         hmp_init(&volume->hmap, 16);
     }
+    kprintf(-1, "Alloc inode %02d-%04d-%c (C.%d)\n", volume->no, no, ftype_char[type], atomic_fetch_add(&ino_no, 1) + 1);
     inode->no = no;
     inode->type = type;
 
@@ -67,6 +74,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
 inode_t *vfs_open(inode_t *ino)
 {
     if (ino) {
+        kprintf(-1, "Open inode %02d-%04d-%c (%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], ino->rcu + 1);
         // kprintf(KLOG_INO, "OPN %3x.%08x (%d)\n", ino->no, ino->dev, ino->rcu + 1);
         atomic_inc(&ino->rcu);
     }
@@ -82,9 +90,12 @@ void vfs_close(inode_t *ino)
     if (ino == NULL)
         return;
     unsigned int cnt = atomic_fetch_sub(&ino->rcu, 1);
+    
+    kprintf(-1, "Close inode %02d-%04d-%c (%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], cnt - 1);
     // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->dev, cnt - 1);
     if (cnt <= 1) {
         // kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->dev);
+        kprintf(-1, "Release inode %02d-%04d-%c (C.%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], atomic_fetch_sub(&ino_no, 1) - 1);
         // device_t *volume = ino->dev;
         // device_t *dev = ino->dev;
         // if (ino->ops->close)
@@ -103,7 +114,7 @@ void vfs_close(inode_t *ino)
                 vfs_close(en->ino);
                 ll_remove(&ino->dev->lru, &en->lru);
 
-                hmp_remove(&ino->dev->hmap, en->key, en->lg);
+                hmp_remove(&en->parent->dev->hmap, en->key, en->lg);
                 // vfs_rm_dirent_(en);
             }
 
