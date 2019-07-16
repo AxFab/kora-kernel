@@ -29,6 +29,7 @@ TEST_CASE(tst_devfs_01)
 {
     int i;
     char buf[10];
+    vfs_init();
 
     inode_t *zero = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "zero", NULL);
     ck_ok(zero != NULL);
@@ -195,7 +196,7 @@ int main()
     suite_create("Virtual file system");
 
     fixture_create("Devfs tests");
-//    tcase_create(tst_devfs_01);
+    tcase_create(tst_devfs_01);
 //    tcase_create(tst_devfs_02);
 
     fixture_create("File system operations");
