@@ -90,9 +90,23 @@ void vfs_close(inode_t *ino)
         // if (ino->ops->close)
         //     ino->ops->close(ino);
 
+        bbtree_remove(&ino->dev->btree, ino->bnode.value_);
+
         // Check device
         int devrcu = atomic_fetch_sub(&ino->dev->rcu, 1);
         if (devrcu <= 1) {
+
+            dirent_t *it = ll_first(&ino->dev->lru, dirent_t, lru);
+            while (it) {
+                dirent_t *en = it;
+                it = ll_next(&it->lru, dirent_t, lru);
+                vfs_close(en->ino);
+                ll_remove(&ino->dev->lru, &en->lru);
+
+                hmp_remove(&ino->dev->hmap, en->key, en->lg);
+                // vfs_rm_dirent_(en);
+            }
+
             // TODO -- Call rmdev for dev->info
             if (ino->dev->devname)
                 kfree(ino->dev->devname);

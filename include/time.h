@@ -25,7 +25,7 @@
 
 
 #ifndef CLOCK_MONOTONIC
-#  define CLOCK_MONOTINIC  0
+#  define CLOCK_MONOTONIC  0
 #  define CLOCK_REALTIME  1
 #endif
 

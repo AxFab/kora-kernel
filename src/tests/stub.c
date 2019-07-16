@@ -5,8 +5,8 @@
 #include <kernel/task.h>
 #include "check.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+// #include <stdio.h>
+// #include <stdlib.h>
 
 struct kSys kSYS;
 
