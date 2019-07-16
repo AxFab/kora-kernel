@@ -109,9 +109,9 @@ void kprintf(int log, const char *msg, ...)
     va_end(ap);
 }
 
-void sleep_timer(long timeout)
-{
-    usleep(MAX(1, timeout));
-}
+// void sleep_timer(long timeout)
+// {
+//     usleep(MAX(1, timeout));
+// }
 
 
