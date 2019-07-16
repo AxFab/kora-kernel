@@ -29,7 +29,7 @@
 const char *ftype_char = "?rbpcnslifvddtw";
 atomic_int vol_no = 1;
 atomic_int ino_no = 0;
-
+atomic_int vcn_no = 0;
 
 /* An inode must be created by the driver using a call to `vfs_inode()' */
 inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
@@ -49,8 +49,9 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
     if (volume == NULL) {
         // TODO -- Give UniqueID / Register on
         volume = kalloc(sizeof(device_t));
-	volume->no = atomic_fetch_add(&vol_no, 1);
+        volume->no = atomic_fetch_add(&vol_no, 1);
         volume->ino = inode;
+        kprintf(-1, "Alloc device %02d-%c (D.%d)\n", volume->no, ftype_char[type], atomic_fetch_add(&vcn_no, 1) + 1);
         bbtree_init(&volume->btree);
         hmp_init(&volume->hmap, 16);
     }
@@ -90,7 +91,7 @@ void vfs_close(inode_t *ino)
     if (ino == NULL)
         return;
     unsigned int cnt = atomic_fetch_sub(&ino->rcu, 1);
-    
+
     kprintf(-1, "Close inode %02d-%04d-%c (%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], cnt - 1);
     // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->dev, cnt - 1);
     if (cnt <= 1) {
@@ -107,6 +108,7 @@ void vfs_close(inode_t *ino)
         int devrcu = atomic_fetch_sub(&ino->dev->rcu, 1);
         if (devrcu <= 1) {
 
+            kprintf(-1, "Release device %02d-_ (D.%d)\n", ino->dev->no, atomic_fetch_sub(&vcn_no, 1) - 1);
             dirent_t *it = ll_first(&ino->dev->lru, dirent_t, lru);
             while (it) {
                 dirent_t *en = it;
@@ -115,7 +117,8 @@ void vfs_close(inode_t *ino)
                 ll_remove(&ino->dev->lru, &en->lru);
 
                 hmp_remove(&en->parent->dev->hmap, en->key, en->lg);
-                // vfs_rm_dirent_(en);
+                rwlock_rdlock(&en->lock);
+                vfs_rm_dirent_(en);
             }
 
             // TODO -- Call rmdev for dev->info
