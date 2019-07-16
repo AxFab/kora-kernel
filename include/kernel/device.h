@@ -61,6 +61,7 @@ typedef int (*dev_ioctl)(inode_t *ino, int cmd, void *params);
 
 struct device {
     uint8_t id[16];
+    int no;
     unsigned flags;
     char *devname;
     char *devclass;
