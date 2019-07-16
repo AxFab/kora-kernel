@@ -185,6 +185,7 @@ ckvfs_src-y += $(TEST_SRC) $(SYNC_SRC)
 ckvfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
 ckvfs_src-y += $(srcdir)/core/debug.c
 ckvfs_src-y += $(srcdir)/tests/tst_vfs.c
+ckvfs_src-y += $(srcdir)/tests/timer.c
 ckvfs_src-y += $(topdir)/arch/_simu/hostfs.c
 $(eval $(call link_bin,ckvfs,ckvfs_src,CKLFLGS))
 
