@@ -31,11 +31,11 @@ void free(void *);
 #define HMAP_FULL_RATIO  3
 
 struct HMP_entry {
+    HMP_entry *next_;
     int lg_;
     uint32_t hash_;
-    HMP_entry *next_;
     void *value_;
-    char *key_;
+    char key_[0];
 };
 
 static void hmap_grow(HMP_map *map)
@@ -116,7 +116,6 @@ void hmp_destroy(HMP_map *map, int all)
         while (map->hashes_[lg] != NULL) {
             HMP_entry *entry = map->hashes_[lg];
             map->hashes_[lg] = entry->next_;
-            free(entry->key_);
             free(entry);
             --map->count_;
         }
@@ -138,8 +137,8 @@ void hmp_put(HMP_map *map, const char *key, int lg, void *value)
     }
     if (map->count_ > HMAP_FULL_RATIO * (map->mask_ + 1))
         hmap_grow(map);
-    entry = (HMP_entry *)malloc(sizeof(HMP_entry));
-    entry->key_ = memdup(key, lg);
+    entry = (HMP_entry *)malloc(sizeof(HMP_entry) + lg);
+    memcpy(entry->key_, key, lg);
     entry->lg_ = lg;
     entry->hash_ = hash;
     entry->value_ = value;
@@ -169,7 +168,6 @@ void hmp_remove(HMP_map *map, const char *key, int lg)
     if (entry->lg_ == lg && memcmp(entry->key_, key, lg) == 0) {
         map->hashes_[hash & map->mask_] = entry->next_;
         --map->count_;
-        free(entry->key_);
         free(entry);
         return;
     }
@@ -178,7 +176,6 @@ void hmp_remove(HMP_map *map, const char *key, int lg)
             HMP_entry *tmp = entry->next_;
             entry->next_ = entry->next_->next_;
             --map->count_;
-            free(tmp->key_);
             free(tmp);
             return;
         }
