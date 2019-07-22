@@ -51,6 +51,8 @@ void cpu_stack(task_t *task, size_t entry, size_t param)
     task->state[0] = open("master.strace", O_RDONLY);
     task->state[1] = param;
     task->state[2] = 0;
+
+    assert(task->state[0] != -1);
 }
 
 

@@ -48,21 +48,13 @@ _Noreturn void abort();
 
 int sched_yield();
 
+#ifndef _WIN32
 #ifndef KORA_KRN
 #define __CPU_MASK_TYPE int
 #include <pthread.h>
 #endif
+#endif
 
-/*
-typedef unsigned long int pthread_t;
-
-int pthread_create(pthread_t *restrict thrd, const void *restrict attr, void *(*func)(void *), void *restrict arg);
-int pthread_join(pthread_t thrd, void **ret);
-int pthread_equal(pthread_t thrd1, pthread_t thrd2);
-_Noreturn void pthread_exit(void *retval);
-int pthread_detach(pthread_t thrd);
-pthread_t pthread_self(void);
-*/
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
