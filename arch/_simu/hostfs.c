@@ -6,6 +6,12 @@
 // #include <unistd.h>
 #include <time.h>
 
+#ifdef _WIN32
+#define lstat stat
+#define S_ISDIR(m)  ((m & _S_IFMT) == S_IFDIR)
+#define S_ISREG(m)  ((m & _S_IFMT) == S_IFREG)
+#endif
+
 void *hostfs_opendir(inode_t *dir)
 {
     return NULL;
@@ -54,10 +60,17 @@ inode_t *hostfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int f
     inode_t *ino = vfs_inode(st.st_ino, type, dir->dev);
     if (ino->ops == NULL) {
         ino->ops = &hostfs_dir_ops;
+#ifndef _WIN32
         ino->btime = TMSPEC_TO_USEC(st.st_ctim);
         ino->ctime = TMSPEC_TO_USEC(st.st_ctim);
         ino->mtime = TMSPEC_TO_USEC(st.st_mtim);
         ino->atime = TMSPEC_TO_USEC(st.st_atim);
+#else
+        ino->btime = SEC_TO_USEC(st.st_ctime);
+        ino->ctime = SEC_TO_USEC(st.st_ctime);
+        ino->mtime = SEC_TO_USEC(st.st_mtime);
+        ino->atime = SEC_TO_USEC(st.st_atime);
+#endif
         ino->info = strdup(path);
     }
 
