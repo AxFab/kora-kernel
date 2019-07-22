@@ -396,3 +396,25 @@ void vfs_rmdev(CSTR name)
 {
 }
 
+unsigned entrop_k = 0;
+unsigned entrop_arr[2];
+unsigned entrop_T0 = 0; // time() % 4219;
+
+void vfs_entropy(unsigned value)
+{
+    unsigned v = (entrop_k++) & 1;
+    entrop_arr[v] = value;
+    if (v) {
+	unsigned T1 = entrop_arr[0] % 2521;
+	unsigned T2 = entrop_arr[1] % 2339;
+
+	unsigned S1 = (entrop_T0 * 3257 + T1 * 5023) % 2833;
+	unsigned S2 = (entrop_T0 * 4051 + T2 * 4643) % 3923;
+
+	entrop_T0 = (S1 * S2 * 27737 + 11831) % 4219;
+	unsigned R0 = (S1 * S2 * 41263 + 11971) % 65729;
+	((void)R0);
+	// pipe_write( , &R0, 2, IO_NO_BLOCK);
+    }
+}
+
