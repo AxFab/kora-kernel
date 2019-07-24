@@ -74,7 +74,24 @@ void kdump(const void *buf, int len)
     int i, j;
     int zero = 0;
     const uint8_t *ptr = (const uint8_t *)buf;
-    for (i = 0; i < len; i += 16) {
+
+    int align = (size_t)ptr & 0xF;
+    if (align != 0) {
+        kprintf(KLOG_DBG, "%04x   ", &ptr[0]);
+        for (j = 0; j < align; ++j)
+            kprintf(KLOG_DBG, "   ");
+        for (j = align; j < 16; ++j)
+            kprintf(KLOG_DBG, "%02x ", ptr[j - align]);
+        kprintf(KLOG_DBG, "  ");
+        for (j = 0; j < align; ++j)
+            kprintf(KLOG_DBG, " ");
+        for (j = align; j < 16; ++j)
+            kprintf(KLOG_DBG, "%c",
+                    ptr[j - align] >= 0x20 && ptr[j - align] < 0x7F ? ptr[j - align] : '.');
+        kprintf(KLOG_DBG, "\n");
+    }
+
+    for (i = (16 - align) % 16; i < len; i += 16) {
         int n = MIN(16, len - i);
         zero++;
         for (j = 0; j < n; ++j) {
@@ -85,10 +102,10 @@ void kdump(const void *buf, int len)
         }
         if (zero) {
             if (zero == 1)
-                kprintf(KLOG_DBG, "%04x    *** \n", i);
+                kprintf(KLOG_DBG, "%04x    *** \n", &ptr[i]);
             continue;
         }
-        kprintf(KLOG_DBG, "%04x   ", i);
+        kprintf(KLOG_DBG, "%04x   ", &ptr[i]);
         for (j = 0; j < n; ++j)
             kprintf(KLOG_DBG, "%02x ", ptr[i + j]);
         for (j = n; j < 16; ++j)
