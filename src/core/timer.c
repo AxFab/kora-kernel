@@ -47,7 +47,7 @@ void itimer_create(pipe_t *pipe, long delay, long interval)
     advent->dtor = itimer_dtor_advent;
     ll_append(&advent->task->alist, &advent->anode);
 
-    advent->until = clock_read(CLOCK_MONOTONIC) + delay;
+    advent->until = cpu_clock(CLOCK_MONOTONIC) + delay;
     advent->interval = interval;
     splock_lock(&itimer_lock);
     ll_append(&itimer_list, &advent->tnode);
@@ -62,7 +62,7 @@ void sleep_timer(long timeout)
     advent.dtor = sleep_dtor_advent;
     ll_append(&advent.task->alist, &advent.anode);
     // advent.task->advent = &advent;
-    advent.until = clock_read(CLOCK_MONOTONIC) + MAX(1, timeout);
+    advent.until = cpu_clock(CLOCK_MONOTONIC) + MAX(1, timeout);
     splock_lock(&itimer_lock);
     ll_append(&itimer_list, &advent.tnode);
     splock_unlock(&itimer_lock);
@@ -71,10 +71,10 @@ void sleep_timer(long timeout)
 }
 
 
-tick_t itimer_tick()
+utime_t itimer_tick()
 {
-    tick_t now = clock_read(CLOCK_MONOTONIC);
-    tick_t next = now + MIN_TO_USEC(30);
+    utime_t now = cpu_clock(CLOCK_MONOTONIC);
+    utime_t next = now + MIN_TO_USEC(30);
     splock_lock(&itimer_lock);
 
     advent_t *it = ll_first(&itimer_list, advent_t, tnode);

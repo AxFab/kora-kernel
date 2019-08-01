@@ -96,7 +96,7 @@ int futex_wait(int *addr, int val, long timeout, int flags)
     ll_append(&advent.task->alist, &advent.anode);
     // advent.task->advent = &advent;
     if (timeout > 0) {
-        advent.until = clock_read(CLOCK_MONOTONIC);
+        advent.until = cpu_clock(CLOCK_MONOTONIC);
         splock_lock(&futex_lock);
         ll_append(&futex_list, &advent.tnode);
         splock_unlock(&futex_lock);
@@ -174,10 +174,10 @@ int futex_wake(int *addr, int val)
 }
 
 
-tick_t futex_tick()
+utime_t futex_tick()
 {
-    tick_t now = clock_read(CLOCK_MONOTONIC);
-    tick_t next = now + MIN_TO_USEC(30);
+    utime_t now = cpu_clock(CLOCK_MONOTONIC);
+    utime_t next = now + MIN_TO_USEC(30);
     splock_lock(&futex_lock);
 
     advent_t *it = ll_first(&futex_list, advent_t, tnode);

@@ -1,32 +1,38 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include <stddef.h>
+#include <stdarg.h>
+#include <assert.h>
+#include <stdatomic.h>
 #include <kora/splock.h>
 #include <kernel/arch.h>
-#include <bits/libio.h>
+#include <kernel/utils.h>
 
 
-#define CLOCK_ID_MAX  2
-#define CLOCK_MONOTONIC  0
-#define CLOCK_REALTIME  1
-#define CLOCK_LOWLATENCY 2
+/* - */
+int write(int fd, const char *buf, size_t len);
 
-
-#define STATE_ID_MAX  5
-#define CPUSTATE_IDLE  0
-#define CPUSTATE_USER  1
-#define CPUSTATE_SYSTEM  2
-#define CPUSTATE_IRQ  3
-#define CPU_STATE_STR  32
-
-#define TASK_ZOMBIE  0
-#define TASK_BLOCKED  1
-#define TASK_SLEEPING  2
-#define TASK_WAITING  3
-#define TASK_RUNNING  4
-
-typedef void * task_t;
-typedef signed long long utime_t;
 
 typedef struct kCpu kCpu_t;
+typedef struct kSys kSys_t;
+
 struct kCpu {
     int irq_sem;
     int err_no;
@@ -34,19 +40,21 @@ struct kCpu {
     int state;
     utime_t elapsed[STATE_ID_MAX];
     utime_t chrono;
-} kCPU;
+};
 
-struct {
+struct kSys {
     utime_t clocks[CLOCK_ID_MAX];
     splock_t syslog_lock;
     splock_t sched_lock;
+    unsigned syslog_bits;
+};
 
-} kSYS;
+kSys_t kSYS;
+kCpu_t kCPU;
 
 
-char *cpu_rdstate(char *buf);
-int kprintf(int log, const char *msg, ...);
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 int *__errno_location()
 {
@@ -56,20 +64,20 @@ int *__errno_location()
 void __assert_fail(const char *expr, const char *file, int line)
 {
     char buf[CPU_STATE_STR];
-    task_t *task = kCPU.running;
     kprintf(-1, "\033[91m;Assertion <%s> %s: on %s:%d\033[0m;\n",
             cpu_rdstate(buf), expr, file, line);
-    splock_lock(&kSYS.syslog_lock);
-    // kwrite(-1, buf, len);
-    splock_unlock(&kSYS.syslog_lock);
     if (kCPU.running)
         scheduler_switch(TASK_ZOMBIE, -1);
     splock_lock(&kSYS.sched_lock);
     for (;;);
 }
 
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
 bool irq_enable()
 {
+    assert(kCPU.irq_sem > 0);
     if (--kCPU.irq_sem == 0) {
         IRQ_ON;
         return true;
@@ -81,9 +89,10 @@ void irq_disable()
 {
     if (kCPU.irq_sem++ == 0)
         IRQ_OFF;
+    assert(kCPU.irq_sem > 0);
 }
 
-void irq_reset(bool enable) 
+void irq_reset(bool enable)
 {
     if (enable) {
         kCPU.irq_sem = 0;
@@ -94,15 +103,53 @@ void irq_reset(bool enable)
     }
 }
 
-void kmap(size_t addr, size_t len, void *ino, size_t off, unsigned flags)
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#define KLOG_ERR  0
+#define KLOG_WRN  1
+#define KLOG_NFO  2
+#define KLOG_DBG  3
+
+int kprintf(int log, const char *msg, ...)
+{
+    if (log >= 0 && log < 32 && (kSYS.syslog_bits | (1 << log)))
+        return 0;;
+    int ret;
+    va_list ap;
+    FILE fp;
+
+    fp.fd_ = log;
+    fp.lbuf_ = EOF;
+    fp.write = kwrite;
+    fp.lock_ = -1;
+
+    splock_lock(&kSYS.syslog_lock);
+    va_start(ap, msg);
+    ret = vfprintf(&fp, msg, ap);
+    va_end(ap);
+    splock_unlock(&kSYS.syslog_lock);
+    return ret;
+}
+
+
+void *kmap(size_t len, void *ino, size_t off, unsigned flags)
 {
 }
 
-void kunmap(size_t addr, size_t len)
+void kunmap(void *addr, size_t leng)
 {
 }
 
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+__thread int __cpu_no;
+atomic_int __cpu_nb = 0;
+
+int cpu_no()
+{
+    return __cpu_no;
+}
 
 utime_t cpu_clock(int clock_id)
 {
@@ -132,51 +179,51 @@ void cpu_state(int state)
     cpu->chrono = now;
 }
 
-void clock_read() {}
-void clock_elapsed() {}
 
-
-int cpu_no() {}
 void cpu_halt() {}
 void cpu_save() {}
 void cpu_restore() {}
 
-
-
-void mmu_context() {}
-void cpu_tss() {}
-
-int kwrite(FILE *fp, const char *buf, int len);
-
-#define KLOG_MEM  1
-#define KLOG_INO  2
-
-
-int kprintf(int log, const char *msg, ...)
+void cpu_setup()
 {
-    if (/*(log == KLOG_DBG && no_dbg) || */log == KLOG_MEM || log == KLOG_INO)
-        return 0;;
-    int ret;
-    va_list ap;
-    FILE fp;
+    utime_t now = cpu_clock(CLOCK_MONOTONIC);
+    __cpu_no = atomic_fetch_add(&__cpu_nb, 1);
+    kCpu_t *cpu = malloc(sizeof(kCpu_t));
+    memset(cpu, 0, sizeof(kCpu_t));
+    cpu->chrono = now;
+}
 
-    fp.fd_ = log;
-    fp.lbuf_ = EOF;
-    fp.write = kwrite;
-    fp.lock_ = -1;
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-    splock_lock(&kSYS.syslog_lock);
-    va_start(ap, msg);
-    ret = vfprintf(&fp, msg, ap);
-    va_end(ap);
-    splock_unlock(&kSYS.syslog_lock);
-    return ret;
+
+void mmu_setup()
+{
+    size_t *pgd = malloc(sizeof(size_t) * 128);
+    pgd[63] = 0x5000 | 6;
+    pgd[0] = 0x6000 | 5;
+
 }
 
 
-int kwrite(FILE *fp, const char *buf, int len)
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+int kwrite(FILE *fp, const char *buf, size_t len)
 {
     return write(1, buf, len);
 }
 
+// void clock_read() {}
+// void clock_elapsed() {}
 
+// void mmu_context() {}
+// void cpu_tss() {}
+
+
+int main()
+{
+    cpu_setup();
+    mmu_setup();
+    return 0;
+}
