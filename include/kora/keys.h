@@ -17,6 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#ifndef _KORA_KEYS_H
+#define _KORA_KEYS_H  1
 
 /* Control characters */
 #define KEY_NUL  0
@@ -144,4 +146,9 @@
 
 
 extern int keyboard_layout_US[0x90][4];
+
+int keyboard_down(int key, int *status, int *key2);
+int keyboard_up(int key, int *status);
+
+#endif  /* _KORA_KEYS_H */
 

@@ -25,7 +25,8 @@ static ftx_t *futex_open(int *addr, int flags)
     splock_lock(&futex_lock);
     ftx_t *futex = bbtree_search_eq(&futex_tree, phys, ftx_t, bnode);
     if (futex == NULL && (flags & FUTEX_CREATE)) {
-        futex = (ftx_t *)kalloc(sizeof(ftx_t));
+        futex = (ftx_t *)malloc(sizeof(ftx_t));
+        memset(futex, 0, sizeof(ftx_t));
         futex->flags = flags;
         if (flags & FUTEX_SHARED) {
             // futex->pointer = ADDR_OFF(kmap(PAGE_SIZE, NULL, ALIGN_DOWN(phys), VMA_PHYSIQ), phys & (PAGE_SIZE-1));
@@ -58,7 +59,7 @@ static void futex_close(ftx_t *futex)
     }
 
     splock_unlock(&futex->lock);
-    kfree(futex);
+    free(futex);
     splock_unlock(&futex_lock);
 }
 

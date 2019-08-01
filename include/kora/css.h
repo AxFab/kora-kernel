@@ -18,29 +18,41 @@
  *   - - - - - - - - - - - - - - -
  */
 #ifndef _KORA_CSS_H
-#define _KORA_CSS_H 1
+#define _KORA_CSS_H  1
 
+#include <kora/mcrs.h>
 #include <stdio.h>
 
 typedef void(*css_setter)(void *, const char *, const char *, const char *);
+
+typedef struct {
+    unsigned unit:4;
+    int len:28;
+} css_size_t;
 
 #define CSS_BUF_SIZE 1024
 
 void css_read_file(FILE *stream, void *arg, css_setter setter);
 unsigned int css_parse_color(const char *value);
-int css_parse_usize(const char *value, int *pSz);
-int css_parse_size(const char *value, int *pSz);
+css_size_t css_parse_usize(const char *value);
+css_size_t css_parse_size(const char *value);
 
-// Transform a size into pixels giveun unit-type dpi, dsp and container-size
-#define CSS_GET_UNIT(v, u, dpi, dsp, sz) ( \
-    (u) == CSS_SIZE_PX ? (v) : ( \
-    (u) == CSS_SIZE_PTS ? (v) * (dpi) / 100 : ( \
-    (u) == CSS_SIZE_DP ? (int)((v) * (dsp)) : ( \
-    (u) == CSS_SIZE_PERC ? (v) * (sz) / 1000 : ( \
+// Transform a size into pixels given unit-type dpi, dsp and container-size
+#define CSS_GET_SIZE(v, dpi, dsp, sz) ( \
+    (v).unit == CSS_SIZE_PX ? (v).len : ( \
+    (v).unit == CSS_SIZE_PTS ? (v).len * (dpi) / 100 : ( \
+    (v).unit == CSS_SIZE_DP ? (int)((v).len * (dsp)) : ( \
+    (v).unit == CSS_SIZE_PERC ? (v).len * (sz) / 1000 : ( \
       0 )))))
 
-#define MAX(a,b) ((a)>(b)?(a):(b))
-#define MIN(a,b) ((a)<(b)?(a):(b))
+#define CSS_GET_SIZE_R(v, dpi, dsp, sz) ( \
+    (v).unit == CSS_SIZE_PX ? (v).len : ( \
+    (v).unit == CSS_SIZE_PTS ? (v).len * (dpi) / 100 : ( \
+    (v).unit == CSS_SIZE_DP ? (int)((v).len * (dsp)) : ( \
+    (v).unit == CSS_SIZE_PERC ? ((v).len ? 1000 * (sz) / (v).len : 0) : ( \
+      0 )))))
+
+#define CSS_SET_PX(v,n)  do { (v).len = (n); (v).unit = CSS_SIZE_PX; } while(0)
 
 enum {
     CSS_SIZE_UNDEF = 0,
