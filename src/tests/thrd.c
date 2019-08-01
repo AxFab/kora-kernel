@@ -83,7 +83,7 @@ void thrd_yield(void)
     sched_yield();
 }
 
-tick_t clock_read(int clk)
+utime_t cpu_clock(int clk)
 {
     struct timespec xt;
     clock_gettime(clk, &xt);
