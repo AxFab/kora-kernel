@@ -19,7 +19,7 @@
 topdir ?= $(shell readlink -f $(dir $(word 1,$(MAKEFILE_LIST))))
 gendir ?= $(shell pwd)
 
-include $(topdir)/make/global.mk
+include $(topdir)/var/make/global.mk
 ASM_EXT := asm
 srcdir = $(topdir)/src
 arcdir = $(topdir)/arch/$(target_arch)
@@ -33,11 +33,10 @@ install: $(bindir)/$(kname)
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-CFLAGS += -Wall -Wextra -Wno-unused-parameter
+CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb
 CFLAGS += -ffreestanding
 CFLAGS += -I$(topdir)/include
 CFLAGS += -I$(topdir)/arch/$(target_arch)/include
-CFLAGS += -ggdb
 CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
 ifneq ($(target_arch),_simu)
@@ -52,7 +51,7 @@ endif
 endif
 
 
-include $(topdir)/make/build.mk
+include $(topdir)/var/make/build.mk
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -98,7 +97,7 @@ CHECKS += ckkrn # No args, put all files on coverage
 lck:
 	$(S) echo $(patsubst %,val_%,$(CHECKS))
 
-include $(topdir)/make/check.mk
+include $(topdir)/var/make/check.mk
 
 ifeq ($(NOCOV),)
 CKLFLGS += --coverage -fprofile-arcs -ftest-coverage

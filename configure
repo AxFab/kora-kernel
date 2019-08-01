@@ -13,7 +13,7 @@ EOF
 TOPDIR=$(readlink -f `dirname ${BASH_SOURCE[0]}`)
 GENDIR=`pwd`
 PREFIX=$GENDIR
-TARGET=`$TOPDIR/make/host.sh || true`
+TARGET=`$TOPDIR/var/make/host.sh || true`
 if [ "$TOPDIR" == "$GENDIR" ]; then
     echo "This script doesn't allow to persist build parameters on source folder" >&2
     echo "Please build on another directory" >&2
@@ -23,14 +23,14 @@ fi
 
 while (( $# > 0 )); do
     case $1 in
-        --target=*) TARGET=`$TOPDIR/make/host.sh ${1:9} || true` ;;
+        --target=*) TARGET=`$TOPDIR/var/make/host.sh ${1:9} || true` ;;
         --prefix=*) PREFIX=`readlink -f ${1:9}` ;;
         *) HELP; exit 1 ;;
     esac
 	shift
 done
 
-if [ "$TARGET" != "`$TOPDIR/make/host.sh`" ]; then
+if [ "$TARGET" != "`$TOPDIR/var/make/host.sh`" ]; then
     CROSS="$TARGET-"
     IFS='-' read -ra THST <<< "$TARGET"
     T_ARCH=${THST[0]}
@@ -55,7 +55,7 @@ if [ "$TARGET" != "`$TOPDIR/make/host.sh`" ]; then
     fi
     if [ -z $GCC ]; then
         echo "Unable to find the toolchain for target $TARGET" >&2
-        exit 1
+        GCC=`gcc`
     fi
 fi
 
@@ -64,8 +64,7 @@ topdir:=$TOPDIR
 gendir:=$GENDIR
 prefix:=$PREFIX
 target:=$TARGET
-CROSS:=$CROSS
-CC:=gcc
+CC:=$GCC
 include $TOPDIR/Makefile
 EOF
 
