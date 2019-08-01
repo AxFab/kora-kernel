@@ -55,7 +55,7 @@ if [ "$TARGET" != "`$TOPDIR/var/make/host.sh`" ]; then
     fi
     if [ -z $GCC ]; then
         echo "Unable to find the toolchain for target $TARGET" >&2
-        GCC=`gcc`
+        GCC='gcc'
     fi
 fi
 
