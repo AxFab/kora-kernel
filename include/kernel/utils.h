@@ -26,6 +26,9 @@ uint32_t rand32();
 uint64_t rand64();
 
 
+typedef int64_t utime_t;
+
+
 
 typedef struct inode inode_t;
 

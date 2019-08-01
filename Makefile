@@ -83,10 +83,14 @@ include $(topdir)/arch/$(target_arch)/make.mk
 $(bindir)/$(kname): $(call fn_objs,SRCS-y)
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    LD  "$@
-ifneq ($(target_arch),_simu)
-	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
+ifeq ($(target_arch),_simu)
+	$(V) $(LDC) -o $@ $^ -latomic -lpthread
 else
-	$(V) $(CC) -o $@ $^ -latomic -lpthread
+ifeq ($(target_arch),blank)
+	$(V) $(LDC) -o $@ $^ -latomic -lpthread
+else
+	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
+endif
 endif
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

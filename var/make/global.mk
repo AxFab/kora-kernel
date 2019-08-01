@@ -46,8 +46,8 @@ AR ?= ar
 CC ?= gcc
 CXX ?= g++
 LD ?= ld
-LDC ?= gcc
-LDCX ?= g++
+LDC ?= $(CC)
+LDCX ?= $(CXX)
 NM ?= nm
 INSTALL ?= install
 

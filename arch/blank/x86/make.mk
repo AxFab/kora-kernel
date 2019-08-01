@@ -15,14 +15,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-# ifeq($(target_vendor),raspberry2)
-ARM_CPU = -mcpu=arm1176jzf-s
-# endif
-
-KRN_FLAGS += $(ARM_CPU)
-# -mgeneral-regs-only
-
-$(outdir)/%.o: $(topdir)/%.s
+$(outdir)/%.o: $(topdir)/%.asm
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    ASM "$@
-	$(V) $(CC) $(ARM_CPU) -fpic -ffreestanding -c -o $@ $^
+	$(V) nasm -f elf32 -o $@ $^
