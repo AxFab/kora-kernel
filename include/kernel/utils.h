@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <bits/libio.h>
+#include <kora/mcrs.h>
 #include <kora/llist.h>
 #include <kora/bbtree.h>
 #include <kora/splock.h>
@@ -75,7 +76,7 @@ uint64_t rand64();
 /* - */
 int snprintf(char *buf, size_t len, const char *msg, ...);
 /* - */
-int vfprintf(FILE *fp, const char *msg, va_list ap);
+int _PRT(vfprintf)(FILE *fp, const char *msg, va_list ap);
 
 
 /* - */

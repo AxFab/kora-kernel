@@ -21,7 +21,6 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <stdatomic.h>
-#include <kora/splock.h>
 #include <kernel/arch.h>
 #include <kernel/utils.h>
 
@@ -47,10 +46,11 @@ struct kSys {
     splock_t syslog_lock;
     splock_t sched_lock;
     unsigned syslog_bits;
+    kCpu_t *cpus[64];
 };
 
 kSys_t kSYS;
-kCpu_t kCPU;
+#define kCPU  (*(kSYS.cpus[cpu_no()]))
 
 
 
@@ -125,7 +125,8 @@ int kprintf(int log, const char *msg, ...)
 
     splock_lock(&kSYS.syslog_lock);
     va_start(ap, msg);
-    ret = vfprintf(&fp, msg, ap);
+    ret = vprintf(msg, ap);
+    // ret = _PRT(vfprintf)(&fp, msg, ap);
     va_end(ap);
     splock_unlock(&kSYS.syslog_lock);
     return ret;
@@ -164,25 +165,52 @@ char *cpu_rdstate(char *buf)
 {
     task_t *task = kCPU.running;
     int pid = 0; // task ? task->pid : 0;
-    snprintf(buf, 12, "Cpu.%d.%s-%c.%d", cpu_no(), __cpu_states[kCPU.state], task ? 'T' : 'K', pid);
+    snprintf(buf, 16, "Cpu.%d.%s-%c.%d", cpu_no(), __cpu_states[kCPU.state], task ? 'T' : 'K', pid);
     return buf;
 }
 
 
 void cpu_state(int state)
 {
+    char p[16];
+    char n[16];
     kCpu_t *cpu = &kCPU;
     utime_t now = cpu_clock(CLOCK_MONOTONIC);
 
+    cpu_rdstate(p);
     cpu->elapsed[cpu->state] += cpu->chrono - now;
     cpu->state = state;
     cpu->chrono = now;
+    cpu_rdstate(n);
+    kprintf(-1, "CPU state <%s> --> <%s>\n", p, n);
 }
 
 
-void cpu_halt() {}
-void cpu_save() {}
-void cpu_restore() {}
+void cpu_prepare(task_t *task/* cpu_save_t *buf */)
+{
+    // Set SP, IP, TSS, MMU
+    // struct cpu_save { size_t bx, si, di, bp, sp, eip, tss, cr3; };
+}
+
+void cpu_halt()
+{
+    // No tasks, so we sleep until next ticks
+    // reset TSS, CR3 use cpu stack!
+}
+
+int cpu_save(/* cpu_save_t *buf */)
+{
+    // Save SP, IP, TSS, MMU + ctx_reg(float/sse)
+
+    // i386: EBX, ESI, EDI, EBP, ESP, EIP, TSS, CR3
+}
+
+void cpu_restore(/* cpu_save_t *buf */)
+{
+    // Restore SP, IP, TSS, MMU + ctx_reg(float/sse)
+
+    // i386: EBX, ESI, EDI, EBP, ESP, EIP, TSS, CR3
+}
 
 void cpu_setup()
 {
@@ -191,6 +219,8 @@ void cpu_setup()
     kCpu_t *cpu = malloc(sizeof(kCpu_t));
     memset(cpu, 0, sizeof(kCpu_t));
     cpu->chrono = now;
+    kSYS.cpus[cpu_no()] = cpu;
+    cpu_state(CPUSTATE_SYSTEM);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -214,16 +244,18 @@ int kwrite(FILE *fp, const char *buf, size_t len)
     return write(1, buf, len);
 }
 
-// void clock_read() {}
-// void clock_elapsed() {}
+void clock_elapsed() {}
 
-// void mmu_context() {}
-// void cpu_tss() {}
+void mmu_context() {}
+void cpu_tss() {}
 
 
 int main()
 {
+    memset(&kSYS, 0, sizeof(kSYS));
     cpu_setup();
     mmu_setup();
+
+
     return 0;
 }
