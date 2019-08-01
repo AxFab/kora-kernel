@@ -101,7 +101,10 @@ int mmu_resolve(size_t vaddr, page_t phys, int flags)
             *dir = *krn;
         } else {
             pages++;
-            *dir = page_new() | MMU_U_RW;
+            page_t pgd = page_new();
+            *dir = pgd | MMU_U_RW;
+            if (vaddr < 0x500000)
+               kprintf(-1, "[MMU] Missing table %p using %p\n", vaddr, pgd);
             memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
         }
     }
@@ -111,6 +114,8 @@ int mmu_resolve(size_t vaddr, page_t phys, int flags)
             pages++;
             phys = page_new();
         }
+    if (vaddr < 0x500000)
+        kprintf(-1, "[MMU] Resolve at %p using %p\n", vaddr, phys);
         *tbl = phys | mmu_flags(vaddr, flags);
     } else
         assert(vaddr >= MMU_KSPACE_LOWER);
@@ -127,14 +132,18 @@ page_t mmu_read(size_t vaddr)
     return *tbl & ~(PAGE_SIZE - 1);
 }
 
+
 /* Release a virtual page, returns physical one in case release is required */
 page_t mmu_drop(size_t vaddr)
 {
+    // kprintf(-1, " - %08x\n", vaddr);
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if ((*dir & 1) == 0 || ((*tbl & 1) == 0))
         return 0;
     page_t pg = *tbl & ~(PAGE_SIZE - 1);
+    if (vaddr < 0x500000)
+        kprintf(-1, "[MMU] Drop page at %p using %p\n", vaddr, pg);
     *tbl = 0;
     asm volatile(
         "movl %0,%%eax\n"
@@ -215,14 +224,17 @@ void mmu_context(mspace_t *mspace)
 
 void mmu_explain(size_t vaddr)
 {
+    size_t cr3 = x86_get_cr3();
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if (*dir)
-        kprintf(KLOG_DBG, " @%p -> {%p:%p} / {%p:%p}\n", vaddr, dir,
-                *dir, tbl, *tbl);
+        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p} / {%p:%p}\n", vaddr, cr3, mmu_read(dir),
+                *dir, mmu_read(tbl), *tbl);
     else
-        kprintf(KLOG_DBG, " @%p -> {%p:%p}\n", vaddr, dir, *dir);
+        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p}\n", vaddr, cr3, mmu_read(dir), *dir);
 }
+
+
 
 void mmu_dump()
 {

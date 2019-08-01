@@ -56,24 +56,27 @@ include $(topdir)/var/make/build.mk
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 SRCS-y += $(wildcard $(srcdir)/basic/*.c)
-SRCS-y += $(wildcard $(srcdir)/core/*.c)
-SRCS-y += $(wildcard $(srcdir)/files/*.c)
-SRCS-y += $(wildcard $(srcdir)/mem/*.c)
-SRCS-y += $(wildcard $(srcdir)/net/*.c)
+# SRCS-y += $(wildcard $(srcdir)/core/*.c)
+# SRCS-y += $(wildcard $(srcdir)/files/*.c)
+# SRCS-y += $(wildcard $(srcdir)/mem/*.c)
+# SRCS-y += $(wildcard $(srcdir)/net/*.c)
 # SRCS-y += $(wildcard $(srcdir)/net/ip4/*.c)
-SRCS-y += $(wildcard $(srcdir)/task/*.c)
-SRCS-y += $(wildcard $(srcdir)/vfs/*.c)
+# SRCS-y += $(wildcard $(srcdir)/task/*.c)
+# SRCS-y += $(wildcard $(srcdir)/vfs/*.c)
 SRCS-y += $(wildcard $(arcdir)/*.$(ASM_EXT))
 SRCS-y += $(wildcard $(arcdir)/*.c)
 ifneq ($(target_arch),_simu)
 SRCS-y += $(wildcard $(srcdir)/stdc/*.c)
-SRCS-y += $(wildcard $(srcdir)/misc/*.c)
+# SRCS-y += $(wildcard $(srcdir)/misc/*.c)
 else
 SRCS-y += $(srcdir)/stdc/mtx.c
 SRCS-y += $(srcdir)/stdc/cnd.c
 SRCS-y += $(srcdir)/tests/thrd.c
 endif
 SRCS-y += # Drivers
+
+SRCS-y += $(srcdir)/core/futex.c
+SRCS-y += $(srcdir)/misc/scheduler.c
 
 include $(topdir)/arch/$(target_arch)/make.mk
 
