@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
-#include <kernel/drv/pci.h>
+#include <kernel/bus/pci.h>
 #include <kernel/cpu.h>
 
 #define AC97_VENDOR_ID 0x8086

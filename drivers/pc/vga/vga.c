@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/core.h>
-#include <kernel/drv/pci.h>
+#include <kernel/bus/pci.h>
 #include <string.h>
 
 struct device_id {

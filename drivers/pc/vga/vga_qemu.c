@@ -21,7 +21,7 @@
 #include <kernel/files.h>
 #include <kernel/device.h>
 #include <kernel/vfs.h>
-#include <kernel/drv/pci.h>
+#include <kernel/bus/pci.h>
 
 #define VGA_PORT_CMD 0x1CE
 #define VGA_PORT_DATA 0x1CF
