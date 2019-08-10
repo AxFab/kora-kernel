@@ -209,6 +209,8 @@ static int ATA_Detect(struct ATA_Drive *dr)
     dr->size_ = (dr->commandsets_ & (1 << 26)) ?
                 *((uint32_t *)(ptr + ATA_IDENT_MAX_LBA_EXT)) :
                 *((uint32_t *)(ptr + ATA_IDENT_MAX_LBA));
+    if (dr->size_ >= 0x80000000)
+        dr->size_ = 0;
 
     // String indicates model of device (like Western Digital HDD and SONY DVD-RW...):
     for (k = 0; k < 40; k += 2) {
