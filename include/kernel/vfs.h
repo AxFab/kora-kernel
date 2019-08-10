@@ -187,6 +187,7 @@ int vfs_closedir(inode_t *dir, void *ctx);
 
 inode_t *vfs_mount(const char *dev, const char *fs, const char *name);
 int vfs_mkdev(inode_t *ino, const char *name);
+char *vfs_inokey(inode_t *ino, char *buf);
 
 void vfs_init();
 void vfs_fini();

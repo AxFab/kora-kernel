@@ -356,3 +356,9 @@ int vfs_access(inode_t *ino, int access, acl_t *acl)
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+char *vfs_inokey(inode_t *ino, char *buf)
+{
+    snprintf(buf, 12, "%02d-%04d-%c", ino->dev->no, ino->no, ftype_char[ino->type]);
+    return buf;
+}
