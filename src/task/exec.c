@@ -33,12 +33,15 @@ void exec_init()
 
 
     // Looking for root !
+    bool rm = false;
     inode_t *root;
     for (;;) {
         root = vfs_mount("sdC", "isofs", "cdrom");
         if (root != NULL)
             break;
-        kprintf(-1, "Waiting for 'sdC' volume !\n");
+        if (!rm)
+            kprintf(-1, "Waiting for 'sdC' volume !\n");
+        rm = true;
         sys_sleep(MSEC_TO_KTIME(1000));
     }
 

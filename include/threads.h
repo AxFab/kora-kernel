@@ -38,7 +38,7 @@ enum {
     thrd_error = -1,
     thrd_success = 0,
     thrd_busy = 1,
-    thrd_timedout,
+    thrd_timeout,
     thrd_nomem,
 };
 

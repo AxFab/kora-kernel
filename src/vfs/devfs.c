@@ -293,6 +293,7 @@ ino_ops_t devfs_rand_ops = {
 
 void devfs_register(inode_t *ino, inode_t *dir, const char *name)
 {
+    char tmp[12];
     dfs_info_t *info = devfs_fetch_new();
     switch (ino->type) {
     case FL_DIR:
@@ -325,6 +326,7 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
         break;
     }
 
+    kprintf(-1, "Device %s\n", vfs_inokey(ino, tmp));
     info->dev = vfs_open(ino);
     strncpy(info->name, name, 32);
     info->flags = 2;
