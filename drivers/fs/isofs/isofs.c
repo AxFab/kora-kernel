@@ -85,7 +85,7 @@ static inode_t *isofs_inode(device_t *volume, ISOFS_entry_t *entry)
     ino->atime = ino->ctime;
     ino->mtime = ino->ctime;
     if (type == FL_REG) {
-        ino->info = map_create(ino, isofs_read, NULL);
+        ino->info = blk_create(ino, isofs_read, NULL);
         ino->ops = &iso_reg_ops;
     } else
         ino->ops = &iso_dir_ops;
@@ -96,7 +96,7 @@ static inode_t *isofs_inode(device_t *volume, ISOFS_entry_t *entry)
 int isofs_close(inode_t *ino)
 {
     if (ino->type == FL_REG)
-        map_destroy(ino->info);
+        blk_destroy(ino->info);
     else if (ino->type == FL_VOL) {
         kfree(ino->dev->devname);
         kfree(ino->dev);
@@ -242,12 +242,12 @@ int isofs_read(inode_t *ino, void *buffer, size_t length, off_t offset)
 
 page_t isofs_fetch(inode_t *ino, off_t off)
 {
-    return map_fetch(ino->info, off);
+    return blk_fetch(ino->info, off);
 }
 
 void isofs_release(inode_t *ino, off_t off, page_t pg)
 {
-    map_release(ino->info, off, pg);
+    blk_release(ino->info, off, pg);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

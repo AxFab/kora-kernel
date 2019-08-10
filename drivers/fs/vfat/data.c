@@ -44,17 +44,17 @@ int fatfs_write(inode_t *ino, const void *buffer, size_t length, off_t offset)
 
 page_t fatfs_fetch(inode_t *ino, off_t off)
 {
-    return map_fetch(ino->info, off);
+    return blk_fetch(ino->info, off);
 }
 
 void fatfs_sync(inode_t *ino, off_t off, page_t pg)
 {
-    map_sync(ino->info, off, pg);
+    blk_sync(ino->info, off, pg);
 }
 
 void fatfs_release(inode_t *ino, off_t off, page_t pg)
 {
-    map_release(ino->info, off, pg);
+    blk_release(ino->info, off, pg);
 }
 
 
