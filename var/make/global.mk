@@ -41,11 +41,11 @@ V := $(shell [ -z $(VERBOSE) ] && echo @)
 Q := $(shell [ -z $(QUIET) ] && echo @ || echo @true)
 
 # C O M M A N D S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-AS ?= as
-AR ?= ar
-CC ?= gcc
-CXX ?= g++
-LD ?= ld
+AS ?= $(CROSS)as
+AR ?= $(CROSS)ar
+CC ?= $(CROSS)gcc
+CXX ?= $(CROSS)g++
+LD ?= $(CROSS)ld
 LDC ?= $(CC)
 LDCX ?= $(CXX)
 NM ?= nm

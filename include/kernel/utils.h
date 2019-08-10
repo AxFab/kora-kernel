@@ -55,7 +55,7 @@ typedef struct task task_t;
 
 
 /* Format string and write on syslog. */
-int kprintf(int log, const char *msg, ...);
+void kprintf(int log, const char *msg, ...);
 /* Allocate a block of memory and initialize it to zero */
 void *kalloc(size_t len);
 void *malloc(size_t len);

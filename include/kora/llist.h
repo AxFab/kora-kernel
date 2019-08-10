@@ -220,11 +220,11 @@ static inline bool quick_sort(int *arr, int elmts)
             if (i == MAX_ELMTS)
                 return false;
             while (L < R) {
-                while(arr[R] >= piv && L < R)
+                while (arr[R] >= piv && L < R)
                     R--;
                 if (L < R)
                     arr[L++] = arr[R];
-                while(arr[L] <= piv && L < R)
+                while (arr[L] <= piv && L < R)
                     L++;
                 if (L < R)
                     arr[R--] = arr[L];
@@ -302,8 +302,7 @@ static inline void llist_insert_sort(llhead_t *list, llnode_t *node, int off, in
     }
 
     /* if the node is to,be inserted at the beginning */
-    if (compare(itemof_(list->first_, off), itemof_(node, off)) >= 0)
-    {
+    if (compare(itemof_(list->first_, off), itemof_(node, off)) >= 0) {
         node->prev_ = NULL;
         node->next_ = list->first_;
         list->first_ = node;

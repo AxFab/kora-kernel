@@ -104,7 +104,7 @@ int mmu_resolve(size_t vaddr, page_t phys, int flags)
             page_t pgd = page_new();
             *dir = pgd | MMU_U_RW;
             if (vaddr < 0x500000)
-               kprintf(-1, "[MMU] Missing table %p using %p\n", vaddr, pgd);
+                kprintf(-1, "[MMU] Missing table %p using %p\n", vaddr, pgd);
             memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
         }
     }
@@ -114,8 +114,8 @@ int mmu_resolve(size_t vaddr, page_t phys, int flags)
             pages++;
             phys = page_new();
         }
-    if (vaddr < 0x500000)
-        kprintf(-1, "[MMU] Resolve at %p using %p\n", vaddr, phys);
+        if (vaddr < 0x500000)
+            kprintf(-1, "[MMU] Resolve at %p using %p\n", vaddr, phys);
         *tbl = phys | mmu_flags(vaddr, flags);
     } else
         assert(vaddr >= MMU_KSPACE_LOWER);
@@ -228,10 +228,10 @@ void mmu_explain(size_t vaddr)
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if (*dir)
-        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p} / {%p:%p}\n", vaddr, cr3, mmu_read(dir),
+        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p} / {%p:%p}\n", vaddr, cr3, mmu_read((size_t)dir),
                 *dir, mmu_read(tbl), *tbl);
     else
-        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p}\n", vaddr, cr3, mmu_read(dir), *dir);
+        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p}\n", vaddr, cr3, mmu_read((size_t)dir), *dir);
 }
 
 

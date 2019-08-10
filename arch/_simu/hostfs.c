@@ -107,8 +107,8 @@ int hostfs_unlink(inode_t *dir, CSTR name)
 
 
 fs_ops_t hostfs_fs_ops = {
-    .open = (void*)hostfs_open,
-    .unlink = (void*)hostfs_unlink,
+    .open = (void *)hostfs_open,
+    .unlink = (void *)hostfs_unlink,
 };
 
 

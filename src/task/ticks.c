@@ -30,8 +30,8 @@ uint64_t ticks_elapsed = 0;
 #define  SEC_PER_HOUR (60*60)
 #define  SEC_PER_MIN (60)
 
-tick_t futex_tick();
-tick_t itimer_tick();
+utime_t futex_tick();
+utime_t itimer_tick();
 
 int ls = 0;
 

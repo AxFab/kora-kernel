@@ -65,9 +65,9 @@ uint16_t ip4_checksum(uint16_t *ptr, size_t len)
 
 int ip4_check_cnx(ip4_cnx_t *cnx, uint8_t *ip)
 {
-    uint32_t addr = htonl(*((uint32_t*)ip));
-    uint32_t mask = htonl(*((uint32_t*)cnx->mask));
-    uint32_t lan = htonl(*((uint32_t*)cnx->address));
+    uint32_t addr = htonl(*((uint32_t *)ip));
+    uint32_t mask = htonl(*((uint32_t *)cnx->mask));
+    uint32_t lan = htonl(*((uint32_t *)cnx->address));
     return (addr & mask) == (lan & mask);
 }
 
@@ -87,7 +87,7 @@ int ip4_receive(skb_t *skb)
     uint16_t checksum = head->checksum;
     // uint16_t length = htonw(header->length) - sizeof(IP4_header_t);
     head->checksum = 0;
-    if (checksum != ip4_checksum((uint16_t*)head, sizeof(ip4_header_t)))
+    if (checksum != ip4_checksum((uint16_t *)head, sizeof(ip4_header_t)))
         return -1;
 
     switch (head->protocol) {
@@ -129,7 +129,7 @@ skb_t *ip4_packet(ifnet_t *ifnet, ip4_route_t *route, ip4_frame_t *frame)
     memcpy(head->source, ip_sender, IP4_ALEN);
     memcpy(head->target, route->addr, IP4_ALEN);
     head->checksum = 0;
-    head->checksum = ip4_checksum((uint16_t*)head, sizeof(ip4_header_t));
+    head->checksum = ip4_checksum((uint16_t *)head, sizeof(ip4_header_t));
     return skb;
 }
 
