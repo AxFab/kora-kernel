@@ -15,7 +15,7 @@ int __atomic_fetch_sub_4(atomic_int *ref, int val, int mode)
 }
 
 bool __atomic_compare_exchange_4(atomic_int *ref, int *ptr, int val,
-        bool weak, int mode_success, int mode_failure)
+                                 bool weak, int mode_success, int mode_failure)
 {
     ((void)weak);
     ((void)mode_success);

@@ -24,7 +24,7 @@ void exec_init()
     task_t *task = kCPU.running;
     kprintf(-1, "First process\n");
 
-     // Create a new memory space
+    // Create a new memory space
     if (task->usmem == NULL)
         task->usmem = mspace_create();
     mspace_t *mspace = task->usmem;
@@ -112,7 +112,7 @@ void exec_process(proc_start_t *info)
     task_t *task = kCPU.running;
     mmu_context(task->usmem);
 
-     // Create a new process structure
+    // Create a new process structure
     proc_t *proc = dlib_process(task->resx_fs, task->usmem);
     task->proc = proc;
     proc->root = task->fs->root;
@@ -162,7 +162,7 @@ void exec_process(proc_start_t *info)
     for (i = 1; i < argc; ++i) {
         lg = strlen(info->argv[i]) + 1;
         argv[i] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
-        strcpy(argv[i], info->argv[i-1]);
+        strcpy(argv[i], info->argv[i - 1]);
         // kprintf(-1, "Set arg.%d: '%s'\n", i, argv[i]);
     }
 

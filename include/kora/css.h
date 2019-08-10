@@ -26,8 +26,8 @@
 typedef void(*css_setter)(void *, const char *, const char *, const char *);
 
 typedef struct {
-    unsigned unit:4;
-    int len:28;
+    unsigned unit: 4;
+    int len: 28;
 } css_size_t;
 
 #define CSS_BUF_SIZE 1024

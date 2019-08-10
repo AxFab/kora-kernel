@@ -52,7 +52,7 @@ int mtx_timedlock(mtx_t *restrict mutex, const struct timespec *restrict time_po
             start = now;
             timeout -= (long)elapsed;
             if (timeout <= 0 || elapsed >= LONG_MAX)
-                return thrd_timedout;
+                return thrd_timeout;
         }
     }
     return 0;

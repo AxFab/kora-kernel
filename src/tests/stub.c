@@ -3,6 +3,7 @@
 #include <kernel/types.h>
 #include <kernel/core.h>
 #include <kernel/task.h>
+#include <kernel/arch.h>
 #include "check.h"
 
 // #include <stdio.h>

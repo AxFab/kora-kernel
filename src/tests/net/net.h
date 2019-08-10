@@ -45,7 +45,7 @@ struct skb {
 struct socket {
     void *route;
     int (*connect)(socket_t *socket, uint8_t *addr);
-    skb_t*(*packet)(socket_t *socket);
+    skb_t *(*packet)(socket_t *socket);
 };
 
 void net_recv(ifnet_t *ifnet, const void *buf, size_t len);

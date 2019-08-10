@@ -62,9 +62,8 @@ TEST_CASE(tst_pipe_02)
     ck_ok(26 == pipe_read(pp, buf, 26, IO_ATOMIC | IO_NO_BLOCK));
     ck_ok(memcmp(buf, "abcdefghijklmnopqrstuvwxyz", 26) == 0);
 
-    for (i = 0; i < n; ++i) {
+    for (i = 0; i < n; ++i)
         ck_ok(26 == pipe_write(pp, "abcdefghijklmnopqrstuvwxyz", 26, IO_ATOMIC | IO_NO_BLOCK));
-    }
 
     for (i = 0; i < n; ++i) {
         ck_ok(26 == pipe_read(pp, buf, 26, IO_ATOMIC));

@@ -30,7 +30,7 @@ Configuration macro:
 #endif
 #define EMULATED_THREADS_TSS_DTOR_SLOTNUM 64  // see TLS_MINIMUM_AVAILABLE
 
-#include "threads.h"
+#include <threads.h>
 
 
 /*

@@ -161,6 +161,6 @@ void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 
     while (1);
 
-        // uart_putc(uart_getc());
-    
+    // uart_putc(uart_getc());
+
 }

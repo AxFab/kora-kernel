@@ -85,7 +85,7 @@ static void blk_close(blk_cache_t *cache, blk_page_t *page)
 {
     if (--page->rcu == 0) {
         if (page->dirty) {
-        // IF DIRTY SYNC
+            // IF DIRTY SYNC
             blk_sync_page_(cache, page);
         }
         // TODO push on LRU

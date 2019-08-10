@@ -35,8 +35,9 @@
 #define TMSPEC_TO_USEC(t)  ((t).tv_sec*1000000LL+(t).tv_nsec/1000L)
 
 
-
+#ifndef _WIN32
 typedef __time_t time_t;
+#endif
 typedef __clock_t clock_t;
 
 #define CLOCKS_PER_SEC  1000000L

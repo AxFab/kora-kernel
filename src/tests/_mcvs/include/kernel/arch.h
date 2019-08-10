@@ -17,9 +17,15 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _KERNEL_CPU_H
-#define _KERNEL_CPU_H 1
+#ifndef _KERNEL_ARCH_H
+#define _KERNEL_ARCH_H 1
 
-#include <kernel/arch.h>
+#include <stddef.h>
+#define PAGE_SIZE  4096
 
-#endif /* _KERNEL_CPU_H */
+typedef size_t cpu_state_t[16];
+
+#define IRQ_ON  ((void)0)
+#define IRQ_OFF  ((void)0)
+
+#endif  /* _KERNEL_ARCH_H */

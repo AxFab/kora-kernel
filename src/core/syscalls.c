@@ -145,9 +145,9 @@ long sys_stop(unsigned tid, int status)
 /* Kill all the thread of the current process */
 long sys_exit(int status, int tid)
 {
-    if (tid < 0) {
+    if (tid < 0)
         return sys_stop(0, status);
-    } else if (tid == 0) {
+    else if (tid == 0) {
         // TODO -- All threads!
         return sys_stop(0, status);
     } else {
