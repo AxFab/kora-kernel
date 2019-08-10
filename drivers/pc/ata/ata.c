@@ -497,17 +497,17 @@ int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
 
 page_t ata_fetch(inode_t *ino, off_t off)
 {
-    return map_fetch((map_cache_t *)ino->info, off);
+    return blk_fetch((blk_cache_t *)ino->info, off);
 }
 
 void ata_sync(inode_t *ino, off_t off, page_t pg)
 {
-    map_sync((map_cache_t *)ino->info, off, pg);
+    blk_sync((blk_cache_t *)ino->info, off, pg);
 }
 
 void ata_release(inode_t *ino, off_t off, page_t pg)
 {
-    map_release((map_cache_t *)ino->info, off, pg);
+    blk_release((blk_cache_t *)ino->info, off, pg);
 }
 
 
@@ -558,7 +558,7 @@ void ATA_setup()
             blk->dev->devclass = strdup(IDE_ATA ? "IDE ATA" : "IDE ATAPI");
             blk->dev->ops = &ata_dev_ops;
             blk->ops = &ata_ino_ops;
-            blk->info = map_create(blk, ATA_read, ATA_write);
+            blk->info = blk_create(blk, ATA_read, ATA_write);
             vfs_mkdev(blk, sdNames[i]);
             vfs_close(blk);
         }
