@@ -26,6 +26,11 @@
 #include "vfs.h"
 
 
+const char *ftype_char = "?rbpcnslifvddtw";
+atomic_int vol_no = 1;
+atomic_int ino_no = 0;
+atomic_int vcn_no = 0;
+
 /* An inode must be created by the driver using a call to `vfs_inode()' */
 inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
 {
@@ -44,10 +49,13 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
     if (volume == NULL) {
         // TODO -- Give UniqueID / Register on
         volume = kalloc(sizeof(device_t));
+        volume->no = atomic_fetch_add(&vol_no, 1);
         volume->ino = inode;
+        // kprintf(-1, "Alloc device %02d-%c (D.%d)\n", volume->no, ftype_char[type], atomic_fetch_add(&vcn_no, 1) + 1);
         bbtree_init(&volume->btree);
         hmp_init(&volume->hmap, 16);
     }
+    // kprintf(-1, "Alloc inode %02d-%04d-%c (C.%d)\n", volume->no, no, ftype_char[type], atomic_fetch_add(&ino_no, 1) + 1);
     inode->no = no;
     inode->type = type;
 
@@ -67,6 +75,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
 inode_t *vfs_open(inode_t *ino)
 {
     if (ino) {
+        // kprintf(-1, "Open inode %02d-%04d-%c (%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], ino->rcu + 1);
         // kprintf(KLOG_INO, "OPN %3x.%08x (%d)\n", ino->no, ino->dev, ino->rcu + 1);
         atomic_inc(&ino->rcu);
     }
@@ -82,17 +91,37 @@ void vfs_close(inode_t *ino)
     if (ino == NULL)
         return;
     unsigned int cnt = atomic_fetch_sub(&ino->rcu, 1);
+
+    // kprintf(-1, "Close inode %02d-%04d-%c (%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], cnt - 1);
     // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->dev, cnt - 1);
     if (cnt <= 1) {
         // kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->dev);
+        // kprintf(-1, "Release inode %02d-%04d-%c (C.%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], atomic_fetch_sub(&ino_no, 1) - 1);
         // device_t *volume = ino->dev;
         // device_t *dev = ino->dev;
         // if (ino->ops->close)
         //     ino->ops->close(ino);
 
+        bbtree_remove(&ino->dev->btree, ino->bnode.value_);
+
         // Check device
         int devrcu = atomic_fetch_sub(&ino->dev->rcu, 1);
         if (devrcu <= 1) {
+
+            /*
+            // kprintf(-1, "Release device %02d-_ (D.%d)\n", ino->dev->no, atomic_fetch_sub(&vcn_no, 1) - 1);
+            dirent_t *it = ll_first(&ino->dev->lru, dirent_t, lru);
+            while (it) {
+                dirent_t *en = it;
+                it = ll_next(&it->lru, dirent_t, lru);
+                vfs_close(en->ino);
+                ll_remove(&ino->dev->lru, &en->lru);
+
+                hmp_remove(&en->parent->dev->hmap, en->key, en->lg);
+                rwlock_rdlock(&en->lock);
+                vfs_rm_dirent_(en);
+            }
+
             // TODO -- Call rmdev for dev->info
             if (ino->dev->devname)
                 kfree(ino->dev->devname);
@@ -109,6 +138,7 @@ void vfs_close(inode_t *ino)
             // TODO -- Ensure cache is empty
             hmp_destroy(&ino->dev->hmap, 0);
             kfree(ino->dev);
+            */
         }
 
 
@@ -118,7 +148,7 @@ void vfs_close(inode_t *ino)
         // } else if (ino->fs != NULL) {
         //     vfs_mountpt_rcu_(ino->fs);
         // }
-        kfree(ino);
+        // kfree(ino);
         return;
     }
 
@@ -326,3 +356,9 @@ int vfs_access(inode_t *ino, int access, acl_t *acl)
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+char *vfs_inokey(inode_t *ino, char *buf)
+{
+    snprintf(buf, 12, "%02d-%04d-%c", ino->dev->no, ino->no, ftype_char[ino->type]);
+    return buf;
+}

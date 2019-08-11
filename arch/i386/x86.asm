@@ -18,7 +18,7 @@ use32
 
 global x86_cpuid
 global x86_enable_mmu
-global x86_set_cr3
+global x86_set_cr3, x86_get_cr3
 global x86_set_tss
 global x86_delay
 
@@ -56,6 +56,10 @@ x86_enable_mmu:
 x86_set_cr3:
     mov eax, [esp + 4]
     mov cr3, eax
+    ret
+
+x86_get_cr3:
+    mov eax, cr3
     ret
 
 x86_set_tss:

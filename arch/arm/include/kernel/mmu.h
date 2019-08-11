@@ -21,7 +21,7 @@
 #define _KERNEL_ASM_MMU_H 1
 
 #include <kora/mcrs.h>
-#include <sys/cdefs.h>
+#include <bits/cdefs.h>
 
 typedef unsigned long page_t;
 /* Larger page in order to support 36bits physical address.

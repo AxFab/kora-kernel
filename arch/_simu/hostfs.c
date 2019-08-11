@@ -3,7 +3,14 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <fcntl.h>
+// #include <unistd.h>
 #include <time.h>
+
+#ifdef _WIN32
+#define lstat stat
+#define S_ISDIR(m)  ((m & _S_IFMT) == S_IFDIR)
+#define S_ISREG(m)  ((m & _S_IFMT) == S_IFREG)
+#endif
 
 void *hostfs_opendir(inode_t *dir)
 {
@@ -52,11 +59,18 @@ inode_t *hostfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int f
 
     inode_t *ino = vfs_inode(st.st_ino, type, dir->dev);
     if (ino->ops == NULL) {
-        ino->ops = &hostfs_opendir;
+        ino->ops = &hostfs_dir_ops;
+#ifndef _WIN32
         ino->btime = TMSPEC_TO_USEC(st.st_ctim);
         ino->ctime = TMSPEC_TO_USEC(st.st_ctim);
         ino->mtime = TMSPEC_TO_USEC(st.st_mtim);
         ino->atime = TMSPEC_TO_USEC(st.st_atim);
+#else
+        ino->btime = SEC_TO_USEC(st.st_ctime);
+        ino->ctime = SEC_TO_USEC(st.st_ctime);
+        ino->mtime = SEC_TO_USEC(st.st_mtime);
+        ino->atime = SEC_TO_USEC(st.st_atime);
+#endif
         ino->info = strdup(path);
     }
 
@@ -93,8 +107,8 @@ int hostfs_unlink(inode_t *dir, CSTR name)
 
 
 fs_ops_t hostfs_fs_ops = {
-    .open = hostfs_open,
-    .unlink = hostfs_unlink,
+    .open = (void *)hostfs_open,
+    .unlink = (void *)hostfs_unlink,
 };
 
 
@@ -121,8 +135,9 @@ int hostfs_setup()
 
     // vfs_mount2(ino, NULL, kSYS.dev_ino, name, "hostfs", flags);
 
-    devfs_register(ino, NULL, "boot");
+    vfs_mkdev(ino, "boot");
 
     vfs_close(ino);
+    return 0;
 }
 

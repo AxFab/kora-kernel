@@ -5,7 +5,7 @@
 
 typedef long long tick_t;
 
-const int th_N = 5;
+#define th_N  5
 atomic_int test_ck1;
 cnd_t test_cnd1;
 mtx_t test_mtx1;
@@ -93,7 +93,7 @@ static void tst_sync_03_task()
     tp.tv_sec = 0;
     tp.tv_nsec = 500 * 1000 * 1000;
     int ret = mtx_timedlock(&test_mtx1, &tp);
-    ck_ok(ret == thrd_timedout);
+    ck_ok(ret == thrd_timeout);
 }
 
 TEST_CASE(tst_sync_03)

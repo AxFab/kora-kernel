@@ -180,7 +180,9 @@ void tty_input(tty_t *tty, int unicode);
 void tty_resize(tty_t *tty, int width, int height);
 
 
+#ifndef RGB
 #define RGB(r,g,b) ((((r) &0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff))
+#endif
 
 #define DESK_PADDING 10
 #define DESK_BORDER 2

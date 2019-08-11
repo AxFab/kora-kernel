@@ -37,9 +37,9 @@ int mtx_timedlock(mtx_t *restrict mutex, const struct timespec *restrict time_po
     if (s == 1)
         s = atomic_exchange(&mutex->value, 2);
 
-    tick_t start;
+    utime_t start;
     if (time_point->tv_sec >= 0)
-        start = clock_read(CLOCK_MONOTONIC);
+        start = cpu_clock(CLOCK_MONOTONIC);
 
     while (s) {
         /* wait in the kernel */
@@ -47,12 +47,12 @@ int mtx_timedlock(mtx_t *restrict mutex, const struct timespec *restrict time_po
         s = atomic_exchange(&mutex->value, 2);
 
         if (time_point->tv_sec >= 0) {
-            tick_t now = clock_read(CLOCK_MONOTONIC);
-            tick_t elapsed = now - start;
+            utime_t now = cpu_clock(CLOCK_MONOTONIC);
+            utime_t elapsed = now - start;
             start = now;
             timeout -= (long)elapsed;
             if (timeout <= 0 || elapsed >= LONG_MAX)
-                return thrd_timedout;
+                return thrd_timeout;
         }
     }
     return 0;

@@ -85,7 +85,7 @@ static void blk_close(blk_cache_t *cache, blk_page_t *page)
 {
     if (--page->rcu == 0) {
         if (page->dirty) {
-        // IF DIRTY SYNC
+            // IF DIRTY SYNC
             blk_sync_page_(cache, page);
         }
         // TODO push on LRU
@@ -120,7 +120,8 @@ int blk_scavenge(int count, int min)
 
 page_t blk_fetch(blk_cache_t *cache, off_t off)
 {
-    // kprintf(-1, "FETCH page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
+    char tmp[12];
+    // kprintf(-1, "FETCH page: %s, pg:%d\033[0m\n", vfs_inokey(cache->ino, tmp), off / PAGE_SIZE);
     // if (cache->ino->length != 0 && off > cache->ino->length)
     //     kprintf(-1, "Warning - fetching page %x outside of block inode!\n", off);
 
@@ -147,7 +148,7 @@ page_t blk_fetch(blk_cache_t *cache, off_t off)
     void *ptr = kmap(PAGE_SIZE, NULL, 0, VMA_PHYSIQ);
     assert(kCPU.irq_semaphore == 0);
     if (cache->read(cache->ino, ptr, PAGE_SIZE, off) != 0) {
-        kprintf(-1, "\033[35mError while reading page: %p, n%d\033[0m\n", cache->ino, off / PAGE_SIZE);
+        kprintf(-1, "\033[35mError while reading page: %s, pg:%d\033[0m\n", vfs_inokey(cache->ino, tmp), off / PAGE_SIZE);
         // TODO -- Handle bad page or retry  !?
     }
     assert(kCPU.irq_semaphore == 0);

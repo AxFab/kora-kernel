@@ -22,7 +22,7 @@ ARM_CPU = -mcpu=arm1176jzf-s
 KRN_FLAGS += $(ARM_CPU)
 # -mgeneral-regs-only
 
-$(outdir)/krn/%.o: $(topdir)/%.s
+$(outdir)/%.o: $(topdir)/%.s
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    ASM "$@
 	$(V) $(CC) $(ARM_CPU) -fpic -ffreestanding -c -o $@ $^

@@ -14,6 +14,8 @@
 #   include <bits/cdefs/arm-mcvs.h>
 #elif defined _M_IX86
 #   include <bits/cdefs/i386-mcvs.h>
+#elif defined _M_AMD64
+#   include <bits/cdefs/x86_64-mcvs.h>
 #elif defined _M_IA64
 #   include <bits/cdefs/ia64-mcvs.h>
 #else

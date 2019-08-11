@@ -160,11 +160,13 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
 
 int dlib_openexec(proc_t *proc, const char *execname)
 {
+    char tmp[12];
     dynlib_t *lib;
     // Look for executable file
     inode_t *ino = dlib_lookfor(proc, proc->pwd, execname, "PATH", "/usr/bin:/bin");
     if (ino == NULL)
         return -1;
+    kprintf(-1, "Locate %s ino: %s\n", execname, vfs_inokey(ino, tmp));
     proc->exec.ino = ino;
     proc->exec.name = strdup(execname);
 

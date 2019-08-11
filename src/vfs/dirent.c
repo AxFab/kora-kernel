@@ -58,6 +58,7 @@ dirent_t *vfs_dirent_(inode_t *dir, CSTR name, bool block)
     }
     if (ent == NULL) {
         ent = (dirent_t *)kalloc(sizeof(dirent_t));
+        // kprintf(-1, "Alloc dirent %02d-%04d-%s\n", dir->dev->no, dir->no, name);
         ent->parent = dir;
         ent->/*map_ent.*/lg = lg;
         memcpy(ent->key, key, lg + 1);
@@ -93,6 +94,7 @@ void vfs_set_dirent_(dirent_t *ent, inode_t *ino)
     // splock_lock(&fs->lock);
     // TODO -- Wake up other !
     // splock_unlock(&fs->lock);
+    // rwlock_rdunlock(&ent->lock);
 }
 
 void vfs_rm_dirent_(dirent_t *ent)
@@ -109,9 +111,11 @@ void vfs_rm_dirent_(dirent_t *ent)
         vfs_close(ent->ino);
         ent->ino = NULL;
     }
-    kprintf(KLOG_INO, "Freeing %p\n", ent);
+    // kprintf(KLOG_INO, "Freeing %p\n", ent);
     rwlock_wrunlock(&ent->lock);
-    //kfree(ent);
+    inode_t *dir = ent->parent;
+    // kprintf(-1, "Release dirent %02d-%04d-%s\n", dir->dev->no, dir->no, ((char*)ent->key)+4);
+    // kfree(ent);
 
     splock_unlock(&fs->lock);
 }

@@ -107,6 +107,7 @@ kdk_api_t base_kapi[] = {
 
     /* VFS */
     KAPI(vfs_inode),
+    KAPI(vfs_inokey),
     KAPI(vfs_mkdev),
     KAPI(vfs_open),
     KAPI(vfs_close),

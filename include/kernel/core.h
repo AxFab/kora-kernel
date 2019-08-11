@@ -25,7 +25,6 @@
 #include <kora/llist.h>
 #include <kora/mcrs.h>
 #include <kora/rwlock.h>
-#include <kernel/mmu.h>
 #include <kernel/types.h>
 #include <kernel/vma.h>
 #include <time.h>
@@ -43,7 +42,7 @@ void kfree(void *ptr);
 void kprintf(int log, const char *msg, ...);
 char *sztoa(size_t lg);
 char *sztoa_r(size_t number, char *sz_format);
-void *kmap(size_t length, inode_t *ino, off_t offset, int flags);
+void *kmap(size_t length, void *ino, size_t offset, unsigned flags);
 void kunmap(void *address, size_t length);
 _Noreturn void kpanic(const char *ms, ...);
 // void kclock(struct timespec *ts);
@@ -154,7 +153,7 @@ void irq_enter(int no);
 
 int cpu_no(); // TODO optimization by writing this one as `pure'.
 /* - */
-void cpu_tss(task_t*);
+void cpu_tss(task_t *);
 /* - */
 time_t cpu_time();
 /* - */

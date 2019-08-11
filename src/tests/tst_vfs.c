@@ -20,6 +20,9 @@ int blk_write(inode_t *ino, const char *buf, size_t len, int flags, off_t off)
     return -1;
 }
 
+void vfs_sweep();
+void hostfs_setup();
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 TEST_CASE(tst_devfs_01)
@@ -27,7 +30,6 @@ TEST_CASE(tst_devfs_01)
     int i;
     char buf[10];
     vfs_init();
-    futex_init();
 
     inode_t *zero = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "zero", NULL);
     ck_ok(zero != NULL);
@@ -53,6 +55,7 @@ TEST_CASE(tst_devfs_01)
     ck_ok(10 == vfs_read(rand, buf, 10, 0, 0));
     ck_ok(-1 == vfs_write(rand, buf, 10, 0, 0));
     vfs_close(rand);
+    vfs_close(rand);
 
     vfs_sweep();
 }
@@ -60,7 +63,6 @@ TEST_CASE(tst_devfs_01)
 TEST_CASE(tst_devfs_02)
 {
     vfs_init();
-    futex_init();
 
     inode_t *zero = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "zero", NULL);
     ck_ok(zero != NULL);
@@ -87,7 +89,6 @@ TEST_CASE(tst_devfs_02)
 TEST_CASE(tst_vfs_01)
 {
     vfs_init();
-    futex_init();
     hostfs_setup();
 
     // Be sure the folder doesn't exist
@@ -127,7 +128,6 @@ TEST_CASE(tst_vfs_01)
 TEST_CASE(tst_vfs_02)
 {
     vfs_init();
-    futex_init();
     hostfs_setup();
 
     // Be sure the folder doesn't exist
@@ -160,13 +160,12 @@ TEST_CASE(tst_vfs_02)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 ino_ops_t img_dev_ops = {
-
+    .close = NULL,
 };
 
 TEST_CASE(tst_tar_01)
 {
     vfs_init();
-    futex_init();
     hostfs_setup();
 
     int fd = open("test.tar", O_RDONLY);
@@ -192,7 +191,8 @@ SRunner runner;
 
 int main()
 {
-    kSYS.cpus = calloc(sizeof(struct kCpu), 0x500);
+    kSYS.cpus = calloc(sizeof(struct kCpu), 0x20);
+    // futex_init();
 
     suite_create("Virtual file system");
 
