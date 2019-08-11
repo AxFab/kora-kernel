@@ -104,8 +104,8 @@ int mmu_resolve(size_t vaddr, page_t phys, int flags)
             pages++;
             page_t pgd = page_new();
             *dir = pgd | MMU_U_RW;
-            if (vaddr < 0x500000)
-                kprintf(-1, "[MMU] Missing table %p using %p {%p.%p}\n", vaddr, pgd, cr3, dir);
+            // if (vaddr < 0x500000)
+            //     kprintf(-1, "[MMU] Missing table %p using %p {%p.%p}\n", vaddr, pgd, cr3, dir);
             memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
         }
     }

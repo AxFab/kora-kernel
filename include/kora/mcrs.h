@@ -45,6 +45,11 @@
 #define MAX3(a,b,c)    MAX(a,MAX(b,c))
 #define POW2(v)     ((v) != 0 && ((v) & ((v)-1)) == 0)
 
+#define MIN_TO_USEC(s)  ((s)*60000000LL)
+#define SEC_TO_USEC(s)  ((s)*1000000LL)
+#define MSEC_TO_USEC(s)  ((s)*1000LL)
+#define TMSPEC_TO_USEC(t)  ((t).tv_sec*1000000LL+(t).tv_nsec/1000L)
+
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 #define __AT__  __FILE__ ":" TOSTRING(__LINE__)
@@ -66,6 +71,7 @@ static inline int POW2_UP(int val)
 #define VERS32_MJ(v) (((v) >> 20) & 0x3FF)
 #define VERS32_MN(v) (((v) >> 8) & 0x3FF)
 #define VERS32_PT(v) ((v) & 0xFF)
+
 
 #ifndef KORA_PRT
 #  define _PRT(p)  p

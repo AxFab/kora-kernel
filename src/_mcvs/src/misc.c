@@ -30,4 +30,5 @@ char *strndup(const char *str)
     return ptr;
 }
 
-void futex_tick() {}
+// void futex_tick() {}
+// void futex_init() {}

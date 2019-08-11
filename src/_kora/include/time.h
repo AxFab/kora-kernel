@@ -21,34 +21,30 @@
 #define _TIME_H 1
 
 #include <stddef.h>
-#include <kernel/types.h>
-
+#include <bits/types.h>
 
 #ifndef CLOCK_MONOTONIC
 #  define CLOCK_MONOTONIC  0
 #  define CLOCK_REALTIME  1
+#  define CLOCK_LOWLATENCY   2
+#  define CLOCK_ID_MAX  3
 #endif
-
-#define MIN_TO_USEC(s)  ((s)*60000000LL)
-#define SEC_TO_USEC(s)  ((s)*1000000LL)
-#define MSEC_TO_USEC(s)  ((s)*1000LL)
-#define TMSPEC_TO_USEC(t)  ((t).tv_sec*1000000LL+(t).tv_nsec/1000L)
 
 
 #ifndef _WIN32
 typedef __time_t time_t;
+#else
+#define __clock_t long
 #endif
 typedef __clock_t clock_t;
 
 #define CLOCKS_PER_SEC  1000000L
 
-#include <bits/timespec.h>
 
-//struct timespec {
-//    time_t tv_sec;    /* Seconds.  */
-//    long int tv_nsec;   /* Nanoseconds.  */
-//};
-
+struct timespec {
+    time_t tv_sec;
+    long tv_nsec;
+};
 
 /* Used by other time functions.  */
 struct tm {

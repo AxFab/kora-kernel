@@ -62,11 +62,6 @@ int *__errno_location()
     return &kCPU.err_no;
 }
 
-clock64_t clock_read(int no)
-{
-    return kSYS.clock_us + kSYS.clock_adj;
-}
-
 #endif
 
 clock64_t kclock()

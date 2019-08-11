@@ -3,8 +3,7 @@
 #include <threads.h>
 #include <assert.h>
 #include <string.h>
-#include <stdio.h>
-#include <fcntl.h>
+// #include <fcntl.h>
 #include "check.h"
 
 

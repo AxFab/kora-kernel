@@ -40,11 +40,13 @@ int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
     if (ino->type == FL_DIR || ino->type == FL_VOL || ino->type == FL_NET || ino->type == FL_VDO)
         assert(ino->ops->read == NULL);
 
+#ifdef KORA_KRN
     if ((ino->type == FL_REG || ino->type == FL_BLK) && ino->ops->read == NULL) {
         kprintf(-1, "Unset IO block operations at %p\n", ino->ops);
         ino->ops->read = blk_read;
         ino->ops->write = blk_write;
     }
+#endif
 
     if (ino->ops->read == NULL) {
         errno = ENOSYS;
@@ -66,11 +68,13 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
     if (ino->type == FL_DIR || ino->type == FL_VOL || ino->type == FL_NET || ino->type == FL_VDO || ino->type == FL_WIN)
         assert(ino->ops->read == NULL);
 
+#ifdef KORA_KRN
     if ((ino->type == FL_REG || ino->type == FL_BLK) && ino->ops->read == NULL) {
         kprintf(-1, "Unset IO block operations at %p\n", ino->ops);
         ino->ops->read = blk_read;
         ino->ops->write = blk_write;
     }
+#endif
 
     if (ino->dev->flags & VFS_RDONLY) {
         errno = EROFS;

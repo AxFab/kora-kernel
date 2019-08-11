@@ -40,7 +40,7 @@ TEST_CASE(tst_sync_01)
     mtx_init(&test_mtx1, mtx_plain);
     test_ck1 = 0;
 
-    tick_t start = clock_read(CLOCK_MONOTONIC);
+    tick_t start = cpu_clock(CLOCK_MONOTONIC);
     for (i = 0; i < th_N; ++i)
         thrd_create(&threads[i], (thrd_start_t)tst_sync_01_waiter, NULL);
     usleep(MSEC_TO_USEC(100));
@@ -49,7 +49,7 @@ TEST_CASE(tst_sync_01)
     for (i = 0; i < th_N; ++i)
         thrd_join(threads[i], NULL);
 
-    tick_t elapsed = clock_read(CLOCK_MONOTONIC) - start;
+    tick_t elapsed = cpu_clock(CLOCK_MONOTONIC) - start;
     ck_ok(elapsed >= th_N * MSEC_TO_USEC(200));
     ck_ok(elapsed <= th_N * MSEC_TO_USEC(300));
 }
@@ -76,13 +76,13 @@ TEST_CASE(tst_sync_02)
     usleep(MSEC_TO_USEC(10));
     ck_ok(test_ck1 == th_N);
 
-    tick_t start = clock_read(CLOCK_MONOTONIC);
+    tick_t start = cpu_clock(CLOCK_MONOTONIC);
     usleep(MSEC_TO_USEC(100));
     cnd_broadcast(&test_cnd1);
     for (i = 0; i < th_N; ++i)
         thrd_join(threads[i], NULL);
 
-    tick_t elapsed = clock_read(CLOCK_MONOTONIC) - start;
+    tick_t elapsed = cpu_clock(CLOCK_MONOTONIC) - start;
     ck_ok(elapsed >= MSEC_TO_USEC(100));
     ck_ok(elapsed < th_N * MSEC_TO_USEC(100));
 }
@@ -102,10 +102,10 @@ TEST_CASE(tst_sync_03)
     mtx_init(&test_mtx1, mtx_timed);
     mtx_lock(&test_mtx1);
 
-    tick_t start = clock_read(CLOCK_MONOTONIC);
+    tick_t start = cpu_clock(CLOCK_MONOTONIC);
     thrd_create(&thread, (thrd_start_t)tst_sync_03_task, NULL);
     thrd_join(thread, NULL);
-    tick_t elapsed = clock_read(CLOCK_MONOTONIC) - start;
+    tick_t elapsed = cpu_clock(CLOCK_MONOTONIC) - start;
     ck_ok(elapsed >= MSEC_TO_USEC(500));
 }
 

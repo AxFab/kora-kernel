@@ -1,13 +1,11 @@
 #include <bits/cdefs.h>
+#include <bits/types.h>
 #include <stdatomic.h>
 #include <kernel/types.h>
 #include <kernel/core.h>
 #include <kernel/task.h>
 #include <kernel/arch.h>
 #include "check.h"
-
-// #include <stdio.h>
-// #include <stdlib.h>
 
 struct kSys kSYS;
 
@@ -92,7 +90,7 @@ void kfree(void *ptr)
     free(ptr);
 }
 
-void *kmap(size_t len, inode_t *ino, off_t off, int flags)
+void *kmap(size_t len, void *ino, size_t off, unsigned flags)
 {
     return _valloc(len);
 }
@@ -114,5 +112,9 @@ void kprintf(int log, const char *msg, ...)
 // {
 //     usleep(MAX(1, timeout));
 // }
+
+
+void futex_tick() {}
+void futex_init() {}
 
 

@@ -135,7 +135,7 @@ int thrd_detach(thrd_t thr);
 int thrd_equal(thrd_t thr0, thrd_t thr1);
 void thrd_exit(int res);
 int thrd_join(thrd_t thr, int *res);
-void thrd_sleep(const xtime *xt);
+int thrd_sleep(const struct timespec *req, struct timespec *res);
 void thrd_yield(void);
 
 int tss_create(tss_t *key, tss_dtor_t dtor);
