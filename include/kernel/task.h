@@ -21,7 +21,7 @@
 #define _KERNEL_TASK_H 1
 
 #include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/arch.h>
 #include <kernel/memory.h>
 #include <kora/bbtree.h>
 #include <kora/splock.h>
@@ -96,7 +96,7 @@ struct advent {
     clock_t until;
     pipe_t *pipe;
     long interval;
-    void (*dtor)(advent_t*);
+    void (*dtor)(advent_t *);
 };
 
 

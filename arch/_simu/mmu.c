@@ -3,7 +3,6 @@
 #include <kernel/mmu.h>
 #include "opts.h"
 
-
 #ifdef _WIN32
 // Windows
 #include <windows.h>

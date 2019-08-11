@@ -13,8 +13,17 @@
 // preserve these registers as argument for kernel_main
 _start:
 start:
+    # cpsid if
+
+    // Shut off extra core
+    mrc p15, 0, r5, c1, c0, 0
+    # and r5, r5, #3
+    # cmp r5, #0
+    # bne halt
+
     // Setup the stack.
-    mov sp, #0x8000
+    ldr r5, _start
+    mov sp, r5
 
     // Clear out bss.
     ldr r4, =__bss_start

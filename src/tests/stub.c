@@ -3,7 +3,11 @@
 #include <kernel/types.h>
 #include <kernel/core.h>
 #include <kernel/task.h>
+#include <kernel/arch.h>
 #include "check.h"
+
+// #include <stdio.h>
+// #include <stdlib.h>
 
 struct kSys kSYS;
 
@@ -38,7 +42,7 @@ const char *ksymbol(void *ip, char *buf, int lg)
 }
 
 
-_Noreturn void __assert_fail(const char *expr, const char *file, int line)
+void __assert_fail(const char *expr, const char *file, int line)
 {
     printf("Assertion - %s at %s:%d\n", expr, file, line);
     abort();
@@ -90,12 +94,12 @@ void kfree(void *ptr)
 
 void *kmap(size_t len, inode_t *ino, off_t off, int flags)
 {
-    return valloc(len);
+    return _valloc(len);
 }
 
 void kunmap(void *addr, size_t len)
 {
-    free(addr);
+    _vfree(addr);
 }
 
 void kprintf(int log, const char *msg, ...)
@@ -105,4 +109,10 @@ void kprintf(int log, const char *msg, ...)
     vprintf(msg, ap);
     va_end(ap);
 }
+
+// void sleep_timer(long timeout)
+// {
+//     usleep(MAX(1, timeout));
+// }
+
 

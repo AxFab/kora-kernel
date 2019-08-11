@@ -202,4 +202,150 @@ static inline void llist_init(llhead_t *list)
     list->count_ = 0;
 }
 
+#include "stdbool.h"
+
+#define MAX_ELMTS 2000
+
+static inline bool quick_sort(int *arr, int elmts)
+{
+    int piv, beg[MAX_ELMTS], end[MAX_ELMTS], i = 0, L, R;
+
+    beg[0] = 0;
+    end[0] = elmts;
+    while (i >= 0) {
+        L = beg[i];
+        R = end[i] - 1;
+        if (L < R) {
+            piv = arr[L];
+            if (i == MAX_ELMTS)
+                return false;
+            while (L < R) {
+                while (arr[R] >= piv && L < R)
+                    R--;
+                if (L < R)
+                    arr[L++] = arr[R];
+                while (arr[L] <= piv && L < R)
+                    L++;
+                if (L < R)
+                    arr[R--] = arr[L];
+            }
+            arr[L] = piv;
+            beg[i + 1] = L + 1;
+            end[i + 1] = end[i];
+            end[i] = L;
+            i++;
+        } else
+            i--;
+    }
+    return true;
+}
+
+static inline bool llist_check(llhead_t *list)
+{
+    llnode_t *node = list->first_;
+    if (node == NULL)
+        return list->count_ == 0;
+    if (node->prev_)
+        return false;
+    int i = 0;
+    while (node->next_) {
+        llnode_t *next = node->next_;
+        ++i;
+        if (node->prev_ != node)
+            return false;
+        node = next;
+    }
+    if (node != list->last_)
+        return false;
+    return list->count_ == i;
+}
+
+static inline void llist_swap(llhead_t *list, llnode_t *a, llnode_t *b)
+{
+    llnode_t *tmp;
+
+    tmp = a->next_;
+    a->next_ = b->next_;
+    b->next_ = tmp;
+    if (a->next_ != NULL)
+        a->next_->prev_ = a;
+    else
+        list->last_ = a;
+    if (b->next_ != NULL)
+        b->next_->prev_ = b;
+    else
+        list->last_ = b;
+
+    tmp = a->prev_;
+    a->prev_ = b->prev_;
+    b->prev_ = tmp;
+    if (a->prev_ != NULL)
+        a->prev_->next_ = a;
+    else
+        list->first_ = a;
+    if (b->prev_ != NULL)
+        b->prev_->next_ = b;
+    else
+        list->first_ = b;
+}
+
+static inline void llist_insert_sort(llhead_t *list, llnode_t *node, int off, int(*compare)(void *, void *))
+{
+    /* if list is empty */
+    if (list->first_ == NULL) {
+        node->prev_ = NULL;
+        node->next_ = NULL;
+        list->first_ = node;
+        list->last_ = node;
+        list->count_ = 1;
+        return;
+    }
+
+    /* if the node is to,be inserted at the beginning */
+    if (compare(itemof_(list->first_, off), itemof_(node, off)) >= 0) {
+        node->prev_ = NULL;
+        node->next_ = list->first_;
+        list->first_ = node;
+        list->count_++;
+        return;
+    }
+
+    llnode_t *cursor = list->first_;
+    /* locate the node after which the node is to be inserted */
+    while (cursor->next_ != NULL && compare(itemof_(cursor->next_, off), itemof_(node, off)) < 0)
+        cursor = cursor->next_;
+    /* Make the appropriate links */
+    node->next_ = cursor->next_;
+    cursor->next_ = node;
+    if (node->next_ != NULL)
+        node->next_->prev_ = node;
+    else
+        list->last_ = node;
+    node->prev_ = cursor;
+    list->count_++;
+}
+
+
+
+static inline void llist_sort(llhead_t *list, int off, int (*compare)(void *, void *))
+{
+    /* Initialize 'sorted' double linked list */
+    llhead_t sorted = INIT_LLHEAD;
+
+    /* Traverse and reinsert nodes on sorted list */
+    llnode_t *next;
+    for (llnode_t *node = list->first_; node != NULL; node = next) {
+        /* store for next iteration */
+        next = node->next_;
+        /* Insert node into sorted list */
+        node->prev_ = node->next_ = NULL;
+        llist_insert_sort(&sorted, node, off, compare);
+    }
+
+    /* Update list to point on new list */
+    list->first_ = sorted.first_;
+    list->last_ = sorted.last_;
+    list->count_ = sorted.count_;
+}
+
 #endif  /* _KORA_LLIST_H */

@@ -19,7 +19,7 @@
 topdir ?= $(shell readlink -f $(dir $(word 1,$(MAKEFILE_LIST))))
 gendir ?= $(shell pwd)
 
-include $(topdir)/make/global.mk
+include $(topdir)/var/make/global.mk
 ASM_EXT := asm
 srcdir = $(topdir)/src
 arcdir = $(topdir)/arch/$(target_arch)
@@ -33,11 +33,10 @@ install: $(bindir)/$(kname)
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-CFLAGS += -Wall -Wextra -Wno-unused-parameter
+CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb
 CFLAGS += -ffreestanding
 CFLAGS += -I$(topdir)/include
 CFLAGS += -I$(topdir)/arch/$(target_arch)/include
-CFLAGS += -ggdb
 CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
 ifneq ($(target_arch),_simu)
@@ -52,7 +51,7 @@ endif
 endif
 
 
-include $(topdir)/make/build.mk
+include $(topdir)/var/make/build.mk
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -76,15 +75,22 @@ SRCS-y += $(srcdir)/tests/thrd.c
 endif
 SRCS-y += # Drivers
 
+SRCS-y += $(srcdir)/core/futex.c
+SRCS-y += $(srcdir)/misc/scheduler.c
+
 include $(topdir)/arch/$(target_arch)/make.mk
 
 $(bindir)/$(kname): $(call fn_objs,SRCS-y)
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    LD  "$@
-ifneq ($(target_arch),_simu)
-	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
+ifeq ($(target_arch),_simu)
+	$(V) $(LDC) -o $@ $^ -latomic -lpthread
 else
-	$(V) $(CC) -o $@ $^ -latomic -lpthread
+ifeq ($(target_arch),blank)
+	$(V) $(LDC) -o $@ $^ -latomic -lpthread
+else
+	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
+endif
 endif
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -98,7 +104,7 @@ CHECKS += ckkrn # No args, put all files on coverage
 lck:
 	$(S) echo $(patsubst %,val_%,$(CHECKS))
 
-include $(topdir)/make/check.mk
+include $(topdir)/var/make/check.mk
 
 ifeq ($(NOCOV),)
 CKLFLGS += --coverage -fprofile-arcs -ftest-coverage
@@ -185,6 +191,7 @@ ckvfs_src-y += $(TEST_SRC) $(SYNC_SRC)
 ckvfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
 ckvfs_src-y += $(srcdir)/core/debug.c
 ckvfs_src-y += $(srcdir)/tests/tst_vfs.c
+ckvfs_src-y += $(srcdir)/tests/timer.c
 ckvfs_src-y += $(topdir)/arch/_simu/hostfs.c
 $(eval $(call link_bin,ckvfs,ckvfs_src,CKLFLGS))
 

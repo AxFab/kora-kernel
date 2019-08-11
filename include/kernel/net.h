@@ -115,10 +115,13 @@ int ntp_receive(skb_t *skb, int length);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 #define ifnet_t netdev_t
+typedef int (*inet_recv_t)(skb_t *);
+
 struct netdev {
     unsigned mtu;
     int no;
     int flags;
+    uint8_t hwaddr[16];
     uint8_t eth_addr[ETH_ALEN];
     uint8_t ip4_addr[IP4_ALEN];
     int(*send)(netdev_t *, skb_t *);

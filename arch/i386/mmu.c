@@ -87,6 +87,7 @@ void mmu_leave()
 int mmu_resolve(size_t vaddr, page_t phys, int flags)
 {
     int pages = 0;
+    size_t cr3 = x86_get_cr3();
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if (*dir == 0) {
@@ -101,7 +102,10 @@ int mmu_resolve(size_t vaddr, page_t phys, int flags)
             *dir = *krn;
         } else {
             pages++;
-            *dir = page_new() | MMU_U_RW;
+            page_t pgd = page_new();
+            *dir = pgd | MMU_U_RW;
+            if (vaddr < 0x500000)
+                kprintf(-1, "[MMU] Missing table %p using %p {%p.%p}\n", vaddr, pgd, cr3, dir);
             memset((void *)ALIGN_DW((size_t)tbl, PAGE_SIZE), 0, PAGE_SIZE);
         }
     }
@@ -111,6 +115,8 @@ int mmu_resolve(size_t vaddr, page_t phys, int flags)
             pages++;
             phys = page_new();
         }
+        // if (vaddr < 0x500000)
+        //     kprintf(-1, "[MMU] Resolve at %p using %p {%p.%p}\n", vaddr, phys, cr3, tbl);
         *tbl = phys | mmu_flags(vaddr, flags);
     } else
         assert(vaddr >= MMU_KSPACE_LOWER);
@@ -127,14 +133,19 @@ page_t mmu_read(size_t vaddr)
     return *tbl & ~(PAGE_SIZE - 1);
 }
 
+
 /* Release a virtual page, returns physical one in case release is required */
 page_t mmu_drop(size_t vaddr)
 {
+    size_t cr3 = x86_get_cr3();
+    // kprintf(-1, " - %08x\n", vaddr);
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if ((*dir & 1) == 0 || ((*tbl & 1) == 0))
         return 0;
     page_t pg = *tbl & ~(PAGE_SIZE - 1);
+    // if (vaddr < 0x500000)
+    //     kprintf(-1, "[MMU] Drop page at %p using %p {%p.%p}\n", vaddr, pg, cr3, tbl);
     *tbl = 0;
     asm volatile(
         "movl %0,%%eax\n"
@@ -204,7 +215,7 @@ void mmu_context(mspace_t *mspace)
     // unsigned table = ((unsigned)&mspace) >> 22;
     /* Check the current stack page is present  */
     page_t *krn = (page_t *)0xFFBFF000;
-    for (i = 0; i < 4; ++i)
+    for (i = 0; i < 1; ++i)
         dir[i] = krn[i];
     for (i = 768; i < 1020; ++i)
         dir[i] = krn[i];
@@ -215,14 +226,17 @@ void mmu_context(mspace_t *mspace)
 
 void mmu_explain(size_t vaddr)
 {
+    size_t cr3 = x86_get_cr3();
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if (*dir)
-        kprintf(KLOG_DBG, " @%p -> {%p:%p} / {%p:%p}\n", vaddr, dir,
-                *dir, tbl, *tbl);
+        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p} / {%p:%p}\n", vaddr, cr3, mmu_read((size_t)dir),
+                *dir, mmu_read(tbl), *tbl);
     else
-        kprintf(KLOG_DBG, " @%p -> {%p:%p}\n", vaddr, dir, *dir);
+        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p}\n", vaddr, cr3, mmu_read((size_t)dir), *dir);
 }
+
+
 
 void mmu_dump()
 {

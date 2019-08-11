@@ -22,7 +22,6 @@
 
 #include <stddef.h>
 #include <kora/llist.h>
-#include <kernel/mmu.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -31,12 +30,13 @@
 
 typedef long off_t;
 typedef int pid_t;
+typedef size_t page_t;
 
 #if !defined(_WIN32)
 typedef long __time_t;
 // # define __time_t long // Unix time seconds since EPOCH (max is +/-68 years -> 2038)
 #else
-# define __time_t long long
+# define __time_t long
 #endif
 #define __clock64_t long long // in us -> Max is +/-292'471 years (start from EPOCH)
 #define __clock_t long
