@@ -36,6 +36,7 @@ install: $(bindir)/$(kname)
 CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb
 CFLAGS += -ffreestanding
 CFLAGS += -I$(topdir)/include
+CFLAGS += -I$(topdir)/src/_$(target_os)/include
 CFLAGS += -I$(topdir)/arch/$(target_arch)/include
 CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
@@ -95,7 +96,8 @@ endif
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-CHECKS += cksync ckutils
+# CHECKS += cksync
+CHECKS += ckutils
 CHECKS += ckpipe ckblk ckgfx ckwin # Files
 CHECKS += ckelf ckmem cknet
 CHECKS += ckvfs
@@ -111,21 +113,21 @@ CKLFLGS += --coverage -fprofile-arcs -ftest-coverage
 endif
 CKLFLGS += -lpthread
 ifeq ($(USE_ATOMIC),y)
-CKLFLGS = -latomic
+CKLFLGS += -latomic
 endif
 
 TEST_SRC += $(wildcard $(srcdir)/basic/*.c)
 TEST_SRC += $(srcdir)/tests/stub.c
-SYNC_SRC += $(srcdir)/core/futex.c
-SYNC_SRC += $(srcdir)/stdc/cnd.c
-SYNC_SRC += $(srcdir)/stdc/mtx.c
-SYNC_SRC += $(srcdir)/tests/thrd.c
+# SYNC_SRC += $(srcdir)/core/futex.c
+# SYNC_SRC += $(srcdir)/stdc/cnd.c
+# SYNC_SRC += $(srcdir)/stdc/mtx.c
+SYNC_SRC += $(srcdir)/_$(target_os)/src/thrd.c
 SYNC_SRC += $(srcdir)/tests/sched.c
 
 
-cksync_src-y += $(TEST_SRC) $(SYNC_SRC)
-cksync_src-y += $(srcdir)/tests/tst_sync.c
-$(eval $(call link_bin,cksync,cksync_src,CKLFLGS))
+# cksync_src-y += $(TEST_SRC) $(SYNC_SRC)
+# cksync_src-y += $(srcdir)/tests/tst_sync.c
+# $(eval $(call link_bin,cksync,cksync_src,CKLFLGS))
 
 ckutils_src-y += $(TEST_SRC)
 ckutils_src-y += $(srcdir)/tests/tst_utils.c
@@ -204,12 +206,12 @@ ckkrn_src-y += $(wildcard $(srcdir)/net/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/task/*.c)
 ckkrn_src-y += $(wildcard $(srcdir)/vfs/*.c)
 ckkrn_src-y += $(wildcard $(topdir)/arch/_simu/*.c)
-ckkrn_src-y += $(srcdir)/stdc/mtx.c
-ckkrn_src-y += $(srcdir)/stdc/cnd.c
-ckkrn_src-y += $(srcdir)/tests/thrd.c
+# ckkrn_src-y += $(srcdir)/stdc/mtx.c
+# ckkrn_src-y += $(srcdir)/stdc/cnd.c
+ckkrn_src-y += $(srcdir)/_$(target_os)/src/thrd.c
 $(eval $(call link_bin,ckkrn,ckkrn_src,CKLFLGS))
 
 
 ifeq ($(NODEPS),)
-# -include $(call fn_deps,SRCS-y)
+-include $(call fn_deps,SRCS-y)
 endif

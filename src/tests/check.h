@@ -28,33 +28,32 @@
 #include <stdarg.h>
 #include <bits/cdefs.h>
 #include <bits/types.h>
-#include <bits/timespec.h>
 
-void *calloc(size_t len, size_t cnt);
+#ifndef _WIN32
+//#ifndef KORA_KRN
+// #define __CPU_MASK_TYPE int
+// #include <pthread.h>
+// #include <stdio.h>
+// #endif
+#else
+#undef snprintf
+#include <stdio.h>
+#include <stdlib.h>
+#endif
+
+
+void* calloc(size_t len, size_t cnt);
 void free();
-void *valloc(size_t len);
+void* valloc(size_t len);
 
-int printf(const char *msg, ...);
-int vprintf(const char *msg, va_list ap);
+int printf(const char* msg, ...);
+int vprintf(const char* msg, va_list ap);
 
-long long clock_read(int clockid);
 int usleep(__useconds_t usecs);
-
-void clock_gettime(int clockid, struct timespec *time_point);
 
 _Noreturn void abort();
 
-
-
 int sched_yield();
-
-#ifndef _WIN32
-#ifndef KORA_KRN
-#define __CPU_MASK_TYPE int
-#include <pthread.h>
-#endif
-#endif
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

@@ -25,7 +25,6 @@ void kunmap(size_t addr, size_t len)
 }
 
 
-void clock_read() {}
 void clock_elapsed() {}
 
 

@@ -26,6 +26,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <bits/types.h>
 
 
 typedef long off_t;

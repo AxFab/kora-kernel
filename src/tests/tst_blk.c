@@ -3,8 +3,7 @@
 #include <threads.h>
 #include <assert.h>
 #include <string.h>
-#include <stdio.h>
-#include <fcntl.h>
+// #include <fcntl.h>
 // #include <unistd.h>
 #include "check.h"
 
@@ -25,6 +24,11 @@ map_cache_t *blk_create(inode_t *ino, void *read, void *write);
 void blk_destroy(map_cache_t *cache);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+char* vfs_inokey(inode_t* ino, char* buf)
+{
+
+}
 
 long bread(int fd, char *buf, size_t lg, off_t off)
 {

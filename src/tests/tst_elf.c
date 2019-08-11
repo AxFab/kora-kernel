@@ -3,7 +3,6 @@
 #include <threads.h>
 #include <assert.h>
 #include <string.h>
-#include <stdio.h>
 #include "check.h"
 
 void futex_init();

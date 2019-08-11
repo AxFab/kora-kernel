@@ -101,6 +101,7 @@ typedef struct {
 typedef unsigned long int __rlim_t;
 typedef unsigned int __id_t;
 typedef long int __time_t;
+typedef long int __clock_t;
 typedef unsigned int __useconds_t;
 typedef long int __suseconds_t;
 typedef int __daddr_t;
@@ -147,6 +148,5 @@ typedef unsigned long long int __fsfilcnt64_t;
 typedef __off64_t __loff_t;
 
 #endif  /* Datatypes 64 */
-
 
 #endif  /* __BITS_TYPES_H */

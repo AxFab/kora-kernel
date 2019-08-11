@@ -1,7 +1,7 @@
 #include <kernel/vfs.h>
 #include <kernel/device.h>
-#include <sys/stat.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 // #include <unistd.h>
 #include <time.h>
@@ -11,6 +11,7 @@
 #define S_ISDIR(m)  ((m & _S_IFMT) == S_IFDIR)
 #define S_ISREG(m)  ((m & _S_IFMT) == S_IFREG)
 #endif
+
 
 void *hostfs_opendir(inode_t *dir)
 {

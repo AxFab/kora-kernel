@@ -8,17 +8,9 @@
 #include <stdio.h>
 #include "check.h"
 
+
 void futex_init();
 
-int blk_read(inode_t *ino, char *buf, size_t len, int flags, off_t off)
-{
-    return -1;
-}
-
-int blk_write(inode_t *ino, const char *buf, size_t len, int flags, off_t off)
-{
-    return -1;
-}
 
 void vfs_sweep();
 void hostfs_setup();

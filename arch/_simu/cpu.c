@@ -121,12 +121,12 @@ void cpu_tss(task_t *task)
 
 #include <time.h>
 
-int64_t cpu_clock(int no)
-{
-    struct timespec sp;
-    clock_gettime(CLOCK_MONOTONIC, &sp);
-    return sp.tv_sec * 1000000LL + sp.tv_nsec / 1000;
-}
+// int64_t cpu_clock(int no)
+// {
+//     struct timespec sp;
+//     clock_gettime(CLOCK_MONOTONIC, &sp);
+//     return sp.tv_sec * 1000000LL + sp.tv_nsec / 1000;
+// }
 
 time_t cpu_time()
 {

@@ -26,9 +26,7 @@
 
 #define ONCE_FLAG_INIT {0}
 #define TSS_DTOR_ITERATIONS 1
-#define  TIME_UTC  1
-
-#define thread_local __thread
+#define TIME_UTC  1
 
 
 typedef atomic_int once_flag;
@@ -63,17 +61,7 @@ typedef void(*tss_dtor_t)(void *);
 typedef struct mtx mtx_t;
 typedef struct cnd cnd_t;
 typedef unsigned tss_t;
-
-#if defined _MSC_VER
-#include <windows.h>
-typedef HANDLE thrd_t;
-#elif defined KORA_KRN
 typedef unsigned thrd_t;
-#else
-#define __CPU_MASK_TYPE int
-#include <pthread.h>
-typedef pthread_t thrd_t;
-#endif
 
 
 struct mtx {

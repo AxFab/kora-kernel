@@ -35,10 +35,6 @@ typedef struct inode inode_t;
 typedef struct task task_t;
 
 
-#define CLOCK_ID_MAX  2
-#define CLOCK_MONOTONIC  0
-#define CLOCK_REALTIME  1
-#define CLOCK_LOWLATENCY 2
 
 #define STATE_ID_MAX  5
 #define CPUSTATE_IDLE  0

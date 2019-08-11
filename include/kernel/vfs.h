@@ -21,6 +21,7 @@
 #define _KERNEL_VFS_H 1
 
 #include <kernel/core.h>
+#include <kernel/types.h>
 #include <kora/llist.h>
 #include <kora/bbtree.h>
 #include <string.h>
