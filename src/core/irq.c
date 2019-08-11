@@ -275,7 +275,7 @@ long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
         kprintf(-1, "[task %3d] \033[96m%s(%s)\033[0m\n", pid, entry->name, arg_buf);
     }
     ret = entry->routine(a1, a2, a3, a4, a5);
-    if (entry->ret/* && no != SYS_READ && no != SYS_WRITE*/) {
+    if (entry->ret && no != SYS_READ && no != SYS_WRITE) {
         snprintf(arg_buf, 50, entry->args, a1, a2, a3, a4, a5);
         kprintf(-1, "[task %3d] \033[96m%s(%s) = %d\033[0m\n", pid, entry->name, arg_buf, ret);
     }
