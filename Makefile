@@ -212,6 +212,22 @@ ckkrn_src-y += $(srcdir)/_$(target_os)/src/thrd.c
 $(eval $(call link_bin,ckkrn,ckkrn_src,CKLFLGS))
 
 
+
+CLILFLGS = $(CKLFLGS) -ldl -rdynamic
+cli_vfs_src-y += $(wildcard $(srcdir)/basic/*.c)
+cli_vfs_src-y += $(srcdir)/core/debug.c $(srcdir)/core/bio.c $(srcdir)/core/timer.c
+cli_vfs_src-y += $(srcdir)/files/pipe.c $(srcdir)/files/blk.c $(srcdir)/files/gfx.c
+
+cli_vfs_src-y += $(wildcard $(srcdir)/vfs/*.c)
+cli_vfs_src-y += $(srcdir)/_linux-gnu/src/thrd.c
+cli_vfs_src-y += $(srcdir)/tests/stub.c
+cli_vfs_src-y += $(srcdir)/tests/imgdk.c
+cli_vfs_src-y += $(srcdir)/tests/sched.c
+cli_vfs_src-y += $(srcdir)/tests/cli_vfs.c
+# cli_vfs_src-y += $(srcdir)/_$(target_os)/src/thrd.c
+$(eval $(call link_bin,cli_vfs,cli_vfs_src,CLILFLGS))
+
+
 ifeq ($(NODEPS),)
 -include $(call fn_deps,SRCS-y)
 endif

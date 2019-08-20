@@ -206,8 +206,8 @@ long sys_read(int fd, char *buf, int len)
     }
     // mtx_unlock(&stream->lock);
     // evmsg_t *msg = (void*)buf;
-    // if (ret == 12 && msg->message == 6 && msg->param1 == 0x1c)
-    //     kprintf(-1, "You push enter!\n");
+    // if (ret == 12 && msg->message != EV_TIMER)
+    //     kprintf(-1, "Event <%d:%x.%x>!\n", msg->message, msg->param1, msg->param2);
     return ret;
 }
 
