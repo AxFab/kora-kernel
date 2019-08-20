@@ -14,12 +14,6 @@ long write(int fd, const char *buf, size_t lg);
 void futex_init();
 
 
-page_t mmu_read(size_t address)
-{
-    return address;
-}
-
-
 map_cache_t *blk_create(inode_t *ino, void *read, void *write);
 void blk_destroy(map_cache_t *cache);
 

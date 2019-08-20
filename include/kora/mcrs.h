@@ -49,6 +49,7 @@
 #define SEC_TO_USEC(s)  ((s)*1000000LL)
 #define MSEC_TO_USEC(s)  ((s)*1000LL)
 #define TMSPEC_TO_USEC(t)  ((t).tv_sec*1000000LL+(t).tv_nsec/1000L)
+#define USEC_TO_SEC(s)  ((s)/1000000LL)
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -72,6 +73,13 @@ static inline int POW2_UP(int val)
 #define VERS32_MN(v) (((v) >> 8) & 0x3FF)
 #define VERS32_PT(v) ((v) & 0xFF)
 
+#if defined(WIN32) || defined(_WIN32)
+# define LIBAPI __declspec(dllexport)
+# define EXTAPI __declspec(dllimport)
+#else
+# define LIBAPI
+# define EXTAPI
+#endif
 
 #ifndef KORA_PRT
 #  define _PRT(p)  p
