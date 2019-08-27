@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="src\vfs">
+      <UniqueIdentifier>{c468924b-8bfd-4942-a151-cb750dae79f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\basic">
+      <UniqueIdentifier>{0bbe6619-564e-4161-b685-a8eb2c6c0fe6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\mcvs">
+      <UniqueIdentifier>{86aab883-1cd7-47cc-a1bc-6f83a9aca6a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{c3f3eaa7-7d69-46b1-860e-bb8b9af205fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="include\kernel">
+      <UniqueIdentifier>{4d60435c-cf98-494a-88a7-baa519264c34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\kora">
+      <UniqueIdentifier>{574b7c15-5f37-4261-b704-57b9f7aa66d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\files">
+      <UniqueIdentifier>{b250bf40-f76c-4fa3-841e-85bfa1e0e3dd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\vfs\data.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\devfs.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\directory.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\dirent.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\inode.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\mount.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\vfs\parts.c">
+      <Filter>src\vfs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\basic\bbtree.c">
+      <Filter>src\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\basic\hmap.c">
+      <Filter>src\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\_mcvs\src\atomic.c">
+      <Filter>src\mcvs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\_mcvs\src\misc.c">
+      <Filter>src\mcvs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\stub.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\cli_vfs.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\core\debug.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\core\bio.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\files\blk.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\files\gfx.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\files\pipe.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\files\tar.c">
+      <Filter>src\files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\_mcvs\src\threads_mcvs.c">
+      <Filter>src\mcvs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tests\imgdk.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\vfs\vfs.h">
+      <Filter>src\vfs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\core.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\device.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\dlib.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\files.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\futex.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\input.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\memory.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\net.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\scall.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\sdk.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\syscalls.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\task.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\types.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\utils.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\vfs.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kernel\vma.h">
+      <Filter>include\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\bbtree.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\css.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\gfx.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\hmap.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\keys.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\llist.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\mcrs.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\rwlock.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\splock.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\syscalls.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\kora\xml.h">
+      <Filter>include\kora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\assert.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\ctype.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\errno.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\mbstring.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\string.h">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

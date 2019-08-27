@@ -76,32 +76,27 @@ struct gfx_handlers {
 };
 
 
-void gfx_clear(gfx_t *gfx, uint32_t color);
-void gfx_rect(gfx_t *gfx, int x, int y, int w, int h, uint32_t color);
-void gfx_glyph(gfx_t *gfx, const font_bmp_t *font, uint32_t unicode, uint32_t fg, uint32_t bg, int x, int y);
+LIBAPI void gfx_clear(gfx_t *gfx, uint32_t color);
+LIBAPI void gfx_rect(gfx_t *gfx, int x, int y, int w, int h, uint32_t color);
+LIBAPI void gfx_glyph(gfx_t *gfx, const font_bmp_t *font, uint32_t unicode, uint32_t fg, uint32_t bg, int x, int y);
 
-gfx_t *gfx_create_window(void *ctx, int width, int height, int flags);
+LIBAPI gfx_t *gfx_create_window(void *ctx, int width, int height, int flags);
 
-void gfx_destroy(gfx_t *gfx);
-int gfx_map(gfx_t *gfx);
-int gfx_unmap(gfx_t *gfx);
-int gfx_loop(gfx_t *gfx, void *arg, gfx_handlers_t *handlers);
+LIBAPI void gfx_destroy(gfx_t *gfx);
+LIBAPI int gfx_map(gfx_t *gfx);
+LIBAPI int gfx_unmap(gfx_t *gfx);
+LIBAPI int gfx_loop(gfx_t *gfx, void *arg, gfx_handlers_t *handlers);
 
-void gfx_flip(gfx_t *gfx);
-int gfx_poll(gfx_t *gfx, gfx_msg_t *msg);
+LIBAPI void gfx_flip(gfx_t *gfx);
+LIBAPI int gfx_poll(gfx_t *gfx, gfx_msg_t *msg);
 
-void clipboard_copy(const char *buf, int len);
-int clipboard_paste(char *buf, int len);
+LIBAPI void clipboard_copy(const char *buf, int len);
+LIBAPI int clipboard_paste(char *buf, int len);
 
-int keyboard_down(int key, int *status, int *key2);
-int keyboard_up(int key, int *status);
+LIBAPI int keyboard_down(int key, int *status, int *key2);
+LIBAPI int keyboard_up(int key, int *status);
 
-
-extern const font_bmp_t font_6x10;
-extern const font_bmp_t font_8x15;
-extern const font_bmp_t font_7x13;
-extern const font_bmp_t font_6x9;
-extern const font_bmp_t font_8x8;
+LIBAPI font_bmp_t* gfx_fetch_font(int idx);
 
 
 #define EV_QUIT  0

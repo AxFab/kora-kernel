@@ -52,6 +52,7 @@ struct llnode {
 #define INIT_LLHEAD  {NULL,NULL,0}
 
 #define ll_append(h,n)  ll_push_back(h,n)
+#define ll_take(h,t,m)  itemof(ll_pop_front(h),t,m)
 #define ll_enqueue(h,n)  ll_push_front(h,n)
 #define ll_dequeue(h,t,m)  itemof(ll_pop_back(h),t,m)
 

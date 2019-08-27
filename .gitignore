@@ -38,7 +38,6 @@
 
 # Visual studio
 [Dd]ebug/
-[Rr]elease/
 !var/vs/*.sln
 !var/vs/**/*.vcxproj.*
 

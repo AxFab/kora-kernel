@@ -21,6 +21,7 @@
 #define _KORA_BBTREE_H 1
 
 #include <stddef.h>
+#include <kora/mcrs.h>
 
 typedef struct bbtree bbtree_t;
 typedef struct bbnode bbnode_t;
@@ -35,8 +36,6 @@ static inline void *itemof_(void *ptr, int off)
 }
 #endif
 
-extern bbnode_t _NIL;
-#define __NIL (&_NIL)
 
 /* BBTree (self-balancing binary tree) head */
 struct bbtree {
@@ -53,26 +52,17 @@ struct bbnode {
     int level_;
 };
 
-#define INIT_BBTREE     {__NIL,0}
-#define INIT_BBNODE(n)  {NULL,NULL,NULL,n,0}
+LIBAPI void bbtree_init(bbtree_t* tree);
+LIBAPI int bbtree_check(bbnode_t *node);
+LIBAPI int bbtree_insert(bbtree_t *tree, bbnode_t *node);
+LIBAPI int bbtree_remove(bbtree_t *tree, size_t value);
 
+LIBAPI bbnode_t *bbtree_left_(bbnode_t *node);
+LIBAPI bbnode_t *bbtree_right_(bbnode_t *node);
+LIBAPI bbnode_t *bbtree_next_(bbnode_t *node);
+LIBAPI bbnode_t *bbtree_previous_(bbnode_t *node);
 
-static inline void bbtree_init(bbtree_t *tree)
-{
-    tree->root_ = __NIL;
-    tree->count_ = 0;
-}
-
-int bbtree_check(bbnode_t *node);
-int bbtree_insert(bbtree_t *tree, bbnode_t *node);
-int bbtree_remove(bbtree_t *tree, size_t value);
-
-bbnode_t *bbtree_left_(bbnode_t *node);
-bbnode_t *bbtree_right_(bbnode_t *node);
-bbnode_t *bbtree_next_(bbnode_t *node);
-bbnode_t *bbtree_previous_(bbnode_t *node);
-
-bbnode_t *bbtree_search_(bbnode_t *node, size_t value, int accept);
+LIBAPI bbnode_t *bbtree_search_(bbnode_t *node, size_t value, int accept);
 
 #define bbtree_first(t,s,m) (s*)itemof(bbtree_left_((t)->root_),s,m)
 #define bbtree_last(t,s,m) (s*)itemof(bbtree_right_((t)->root_),s,m)
