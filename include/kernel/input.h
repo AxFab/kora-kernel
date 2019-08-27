@@ -63,12 +63,12 @@ struct kUsr {
     uint16_t key_ticks;
 };
 
-struct event {
+PACK(struct event {
     uint16_t message;
     uint16_t window;
-    int32_t param1;
-    int32_t param2;
-};
+    uint32_t param1;
+    uint32_t param2;
+});
 
 
 int seat_event(uint8_t type, uint32_t param1, uint16_t param2);
