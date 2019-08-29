@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/device.h>
+#include <kernel/files.h>
 #include <kora/mcrs.h>
 #include <kora/splock.h>
 #include <string.h>
@@ -55,8 +56,8 @@ int imgdk_ioctl(inode_t *ino, int cmd, long *params);
 int imgdk_close(inode_t *ino);
 
 ino_ops_t imgdk_ino_ops = {
-    .read = imgdk_read,
-    .write = imgdk_write,
+    .read = (void*)imgdk_read,
+    .write = (void*)imgdk_write,
     .close = imgdk_close,
     .fetch = imgdk_fetch,
     .sync = imgdk_sync,
@@ -64,7 +65,7 @@ ino_ops_t imgdk_ino_ops = {
 };
 
 dev_ops_t imgdk_dev_ops = {
-    .ioctl = imgdk_ioctl,
+    .ioctl = (void*)imgdk_ioctl,
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
