@@ -4,6 +4,20 @@
 #include <stddef.h>
 
 
+
+#define rcu_open(n)  rcu_open_(n, &(n)->rcu)
+#define rcu_close(n,dtor) do { if (rcu_close_(n, &(n)->rcu)) dtor(n); } while(0)
+
+static inline void *rcu_open_(void *ptr, atomic_int *rcu) {
+    atomic_fetch_add(rcu, 1);
+    return ptr;
+}
+
+static inline bool rcu_close_(void *ptr, atomic_int *rcu) {
+    int val = atomic_fetch_sub(rcu, 1);
+    return val == 1;
+}
+
 void *kalloc(size_t len);
 void kfree(void *ptr);
 void *kmap(size_t len, void *ino, size_t off, unsigned flags);
