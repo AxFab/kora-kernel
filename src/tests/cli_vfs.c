@@ -85,6 +85,20 @@ void do_mount(const char* path)
 	vfs_mount(dev, fs, name);
 }
 
+void do_hd(const char *arg)
+{
+	char* rp;
+	char* path = strtok_r(arg, ";", &rp);
+	int lba = strtol(strtok_r(NULL, ";", &rp), NULL, 10);
+
+	inode_t* ino = getinode(path);
+	int len = 512;
+	char *buf = malloc(len);
+	vfs_read(ino, buf, len, len * lba, 0);
+	kdump(buf, len);
+    free(buf);
+}
+
 void do_exec(const char* path)
 {
 	FILE* fp = fopen(path, "r");
@@ -190,7 +204,15 @@ void do_fs(const char* path)
 		printf("Error loading %s: %s\n", path, dlerror());
 		return;
 	}
-	kmod_t* mod = dlsym(ctx, "kmod_info_isofs");
+	char buf[128];
+	char *nm = strrchr(path, '/') + 1;
+	char *dt = strchr(nm, '.');
+	if (dt)
+	    dt[0] = '\0';
+	snprintf(buf, 128, "kmod_info_%s", nm);
+	printf("Open %s.\n", buf);
+	
+	kmod_t* mod = dlsym(ctx, buf);
 	if (mod == NULL) {
 		printf("No kernel info structure\n");
 		return;
@@ -269,6 +291,7 @@ struct {
 	_ROUTINE(mount, "Mount a device, arg is dev;fs;name"),
 	_ROUTINE(stat, "Print information about an inode"),
 	_ROUTINE(exec, "Run commands from file"),
+	_ROUTINE(hd,"Dump a block of the file (arg is PATH:LBA"),
 	_ROUTINE(disk, "Mount a virtual disk image as a block device"),
 	{ NULL, NULL }
 };
