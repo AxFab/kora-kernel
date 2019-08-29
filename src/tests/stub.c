@@ -90,9 +90,24 @@ void kfree(void *ptr)
     free(ptr);
 }
 
+#include <kernel/vfs.h>
+
 void *kmap(size_t len, void *ino, size_t off, unsigned flags)
 {
-    return _valloc(len);
+    if (ino == NULL)
+        return _valloc(len);
+    printf("KMAP %x %X %X %o\n", len, ino, off, flags);
+    void *ptr = _valloc(len);
+    char *buf = ptr;
+    while (len > 0) {
+        page_t pg = ((inode_t*)ino)->ops->fetch(ino, off);
+        memcpy(buf, (void*)pg, PAGE_SIZE);
+        ((inode_t*)ino)->ops->release(ino, off, pg);
+        len -= PAGE_SIZE;
+        buf += PAGE_SIZE;
+        off += PAGE_SIZE;
+    }
+    return ptr;
 }
 
 void kunmap(void *addr, size_t len)
