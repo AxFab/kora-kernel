@@ -220,6 +220,27 @@ void do_fs(const char* path)
 	mod->setup();
 }
 #endif
+
+void do_image_vhd(char *arg)
+{
+	char* rp;
+	char* path = strtok_r(arg, ";", &rp);
+	char *sfx;
+	size_t len = strtoul(strtok_r(NULL, ";", &rp), &sfx, 10);
+	switch (sfx[0] | 0x20) {
+        case 'k':
+            len *= _Kib_;
+            break;
+        case 'm':
+            len *= _Mib_;
+            break;
+        case 'g':
+            len *= _Gib_;
+            break;
+    }
+    vhd_create_dyn(path, len);
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 char* tokenize(const char* line, const char** sreg)
@@ -293,6 +314,7 @@ struct {
 	_ROUTINE(exec, "Run commands from file"),
 	_ROUTINE(hd,"Dump a block of the file (arg is PATH:LBA"),
 	_ROUTINE(disk, "Mount a virtual disk image as a block device"),
+	_ROUTINE(image_vhd, "Create a VHD disk image"),
 	{ NULL, NULL }
 };
 
@@ -364,10 +386,19 @@ int read_cmds(FILE *fp)
 	return 0;
 }
 
-int main()
+int main(int argc, char **argv)
 {
 	kSYS.cpus = kalloc(sizeof(struct kCpu) * 2);
 	vfs_init();
+	for (int o = 1; o < argc; ++o) {
+        if (argv[o][0] == '-')
+            continue;
+        FILE *fp = fopen(argv[o], "r");
+        if (fp == NULL)
+            continue;
+        read_cmds(fp);
+        fclose(fp);
+    }
 	return read_cmds(stdin);
 }
 

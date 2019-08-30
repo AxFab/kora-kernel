@@ -423,6 +423,13 @@ void vhd_create_dyn(CSTR name, size_t size)
 {
     char buf[512];
     int fd = open(name, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, 0644);
+    
+    int blocks = size / (2 * _Mib_);
+    int cnt = 4 + ALIGN_UP(blocks * 4, 512) / 512;
+    printf("write %d sectors\n", cnt);
+    memset(buf, 0xff, 512);
+    for (int i = 0; i < cnt; ++i)
+        write(fd, buf, 512);
 
     struct footer_vhd *footer = (void*)&buf;
 
@@ -463,16 +470,16 @@ void vhd_create_dyn(CSTR name, size_t size)
     footer->type = 3;
     footer->uuid[0] = rand8();
     footer->checksum = vhd_checksum(footer, sizeof(struct footer_vhd));
-    int blocks = size / (2 * _Mib_);
+
+    lseek(fd, 0, SEEK_SET);
     write(fd, buf, 512);
-    lseek(fd, 1536 + ALIGN_UP(blocks * 4, 512), SEEK_SET);
+    lseek(fd, (cnt - 1) * 512, SEEK_SET);
     write(fd, buf, 512);
     lseek(fd, 512, SEEK_SET);
 
     struct header_vhd *header = (void*)&buf;
 
     memset(buf, 0, 512);
-    write(fd, buf, 512);
     memcpy(header->cookie, "cxsparse", 8);
 
     header->data_off = __swap64(0);
@@ -485,8 +492,7 @@ void vhd_create_dyn(CSTR name, size_t size)
     write(fd, buf, 512);
 
     memset(buf, 0, 512);
-    for (int i = 0; i < ALIGN_UP(blocks * 4, 512) / 512; ++i)
-        write(fd, buf, 512);
+    write(fd, buf, 512);
 
     close(fd);
 }
