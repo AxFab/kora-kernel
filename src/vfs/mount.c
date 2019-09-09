@@ -78,7 +78,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs, CSTR name)
 
 
     vfs_mkdev(ino, name);
-    assert(ino->type == FL_VOL);
+    assert(ino->type == FL_VOL || ino->type == FL_DIR);
     // kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", devname, ino->dev->devname, ino->dev->devclass);
     errno = 0;
     return ino;

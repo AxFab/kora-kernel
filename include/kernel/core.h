@@ -284,4 +284,6 @@ extern struct kSys kSYS;
 #  define INT64_MAX  0x7FFFFFFFFFFFFFFF
 #endif
 
+#define kclock() cpu_clock(0)
+
 #endif  /* _KERNEL_CORE_H */
