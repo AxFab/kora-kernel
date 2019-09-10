@@ -114,5 +114,5 @@ void fatfs_teardown()
     unregister_fs("fatfs");
 }
 
-MODULE(fatfs, fatfs_setup, fatfs_teardown);
+MODULE(vfat, fatfs_setup, fatfs_teardown);
 

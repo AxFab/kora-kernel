@@ -29,9 +29,8 @@ extern ino_ops_t ext2_dir_ops;
 extern ino_ops_t ext2_reg_ops;
 extern fs_ops_t ext2_fs_ops;
 
-inode_t *ext2_inode(device_t *volume, uint32_t no)
+inode_t *ext2_inode(ext2_volume_t *vol, uint32_t no)
 {
-    ext2_volume_t *vol = (ext2_volume_t *) volume->info;
     uint32_t group = (no - 1) / vol->sb->inodes_per_group;
     uint32_t index = (no - 1) % vol->sb->inodes_per_group;
     // uint32_t block = (index * vol->sb->inode_size) / (1024 << vol->sb->log_block_size);
@@ -51,7 +50,7 @@ inode_t *ext2_inode(device_t *volume, uint32_t no)
         return NULL;
     }
 
-    inode_t *ino = vfs_inode(no, type, volume);
+    inode_t *ino = vfs_inode(no, type, /*vol->*/NULL);
     ino->length = entry->size;
     ino->btime = entry->ctime * _PwNano_;
     ino->ctime = entry->ctime * _PwNano_;
@@ -126,7 +125,7 @@ inode_t *ext2_readdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
     uint32_t ino_no = ext2_nextdir(dir, name, it);
     if (ino_no == 0)
         return NULL;
-    return ext2_inode(dir->dev, ino_no);
+    return ext2_inode(dir->dev->info, ino_no);
 }
 
 int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it)
@@ -169,7 +168,7 @@ inode_t *ext2_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
             return NULL;
         }
 
-        inode_t *ino = ext2_inode(dir->dev, ino_no);
+        inode_t *ino = ext2_inode(dir->dev->info, ino_no);
         ext2_closedir(dir, it);
         errno = 0;
         return ino;
@@ -268,7 +267,7 @@ inode_t *ext2_mount(inode_t *dev)
         kprintf(-1, "Group %d block bitmap, %d inode bitmap, %d inodes, %d data\n", ib, bb, it, dt);
     }
 
-    inode_t *ino = ext2_inode(NULL, 2); // TODO volume !?
+    inode_t *ino = ext2_inode(vol, 2); // TODO volume !?
     if (ino == NULL) {
         kunmap(ptr, PAGE_SIZE);
         errno = EBADF;
@@ -295,3 +294,4 @@ void ext2_teardown()
 }
 
 MODULE(ext2, ext2_setup, ext2_teardown);
+

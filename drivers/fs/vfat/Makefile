@@ -1,4 +1,5 @@
 
+vfat_LFLAGS += $(LFLAGS)
 vfat_SRCS-y := $(wildcard $(topdir)/vfat/*.c)
 $(eval $(call link_driver,vfat))
 
