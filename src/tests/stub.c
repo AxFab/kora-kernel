@@ -134,8 +134,8 @@ void futex_init() {}
 
 
 
-page_t mmu_read(size_t address)
-{
-    return address;
-}
+// page_t mmu_read(size_t address)
+// {
+//     return address;
+// }
 

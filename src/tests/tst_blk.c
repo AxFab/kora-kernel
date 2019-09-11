@@ -19,6 +19,11 @@ void blk_destroy(map_cache_t *cache);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+page_t mmu_read(size_t addr)
+{
+    return 0;
+}
+
 char* vfs_inokey(inode_t* ino, char* buf)
 {
 
