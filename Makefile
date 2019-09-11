@@ -214,6 +214,7 @@ $(eval $(call link_bin,ckkrn,ckkrn_src,CKLFLGS))
 
 
 CLILFLGS = $(CKLFLGS) -ldl -rdynamic
+
 cli_vfs_src-y += $(wildcard $(srcdir)/basic/*.c)
 cli_vfs_src-y += $(srcdir)/core/debug.c $(srcdir)/core/bio.c $(srcdir)/core/timer.c
 cli_vfs_src-y += $(srcdir)/files/pipe.c $(srcdir)/files/blk.c $(srcdir)/files/gfx.c
@@ -223,19 +224,17 @@ cli_vfs_src-y += $(srcdir)/tests/stub.c
 cli_vfs_src-y += $(srcdir)/tests/imgdk.c
 cli_vfs_src-y += $(srcdir)/tests/sched.c
 cli_vfs_src-y += $(srcdir)/tests/cli_vfs.c
-
 $(eval $(call link_bin,cli_vfs,cli_vfs_src,CLILFLGS))
 
 cli_net_src-y += $(wildcard $(srcdir)/basic/*.c)
 cli_net_src-y += $(srcdir)/core/debug.c $(srcdir)/core/bio.c $(srcdir)/core/timer.c
 cli_net_src-y += $(srcdir)/files/pipe.c
-cli_net_src-y += $(wildcard $(srcdir)/vfs/*.c)
+# cli_net_src-y += $(wildcard $(srcdir)/net/*.c)
 cli_net_src-y += $(wildcard $(srcdir)/_$(target_os)/src/*.c)
 cli_net_src-y += $(srcdir)/tests/stub.c
 cli_net_src-y += $(srcdir)/tests/lnet.c
 cli_net_src-y += $(srcdir)/tests/sched.c
 cli_net_src-y += $(srcdir)/tests/cli_net.c
-
 $(eval $(call link_bin,cli_net,cli_net_src,CLILFLGS))
 
 

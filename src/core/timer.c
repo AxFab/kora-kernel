@@ -9,6 +9,11 @@
 splock_t itimer_lock;
 llhead_t itimer_list;
 
+#ifndef CLOCK_MONOTONIC
+# define CLOCK_MONOTONIC 0
+#endif
+
+
 
 static void itimer_wake_advent(advent_t *advent)
 {

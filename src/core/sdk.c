@@ -98,7 +98,7 @@ kdk_api_t base_kapi[] = {
     KAPI(mktime),
     KAPI(gmtime),
     KAPI(gmtime_r),
-    KAPI(kclock),
+    // KAPI(kclock),
 
 
     KAPI(memcpy32),

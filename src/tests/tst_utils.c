@@ -6,6 +6,7 @@
 #include <assert.h>
 #include "check.h"
 
+#define INIT_BBNODE(n) { NULL, NULL, NULL, (n), 0 }
 
 bbnode_t **test_bbtree_alloc(int count)
 {

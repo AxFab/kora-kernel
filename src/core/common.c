@@ -64,10 +64,10 @@ int *__errno_location()
 
 #endif
 
-clock64_t kclock()
-{
-    return kSYS.clock_us + kSYS.clock_adj;
-}
+// clock64_t kclock()
+// {
+//     return kSYS.clock_us + kSYS.clock_adj;
+// }
 
 int isspace(char a)
 {

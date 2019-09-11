@@ -92,7 +92,7 @@ PACK(struct footer_vhd {
     char creator_app[4];
     uint16_t creator_vers_maj;
     uint16_t creator_vers_min;
-    uint32_t creator_host;
+    char creator_host[4];
     uint64_t original_size;
     uint64_t actual_size;
     uint16_t cylinders;
@@ -421,14 +421,15 @@ uint32_t vhd_checksum(char *buf, int len)
 
 void vhd_create_dyn(CSTR name, size_t size)
 {
+    int i;
     char buf[512];
     int fd = open(name, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, 0644);
-    
+
     int blocks = size / (2 * _Mib_);
     int cnt = 4 + ALIGN_UP(blocks * 4, 512) / 512;
     printf("write %d sectors\n", cnt);
     memset(buf, 0xff, 512);
-    for (int i = 0; i < cnt; ++i)
+    for (i = 0; i < cnt; ++i)
         write(fd, buf, 512);
 
     struct footer_vhd *footer = (void*)&buf;
@@ -439,12 +440,12 @@ void vhd_create_dyn(CSTR name, size_t size)
     footer->features = 0x2000000;
     footer->vers_maj = __swap16(1);
     footer->vers_min = __swap16(0);
-    footer->offset = __swap32(512);
+    footer->offset = __swap64(512);
     footer->timestamp = 0;
     memcpy(footer->creator_app, "kora", 4);
     footer->creator_vers_maj = __swap16(1);
     footer->creator_vers_min = __swap16(0);
-    footer->creator_host = 0;
+    memcpy(footer->creator_host, "kora", 4);
     footer->original_size = __swap64(size);
     footer->actual_size = __swap64(size);
     if (sectors > 65535 * 16 * 63) {
@@ -467,8 +468,9 @@ void vhd_create_dyn(CSTR name, size_t size)
         }
         footer->cylinders = __swap16(cys / footer->heads);
     }
-    footer->type = 3;
-    footer->uuid[0] = rand8();
+    footer->type = __swap32(3);
+    for (i = 0; i < 16; ++i)
+        footer->uuid[i] = rand8();
     footer->checksum = vhd_checksum(footer, sizeof(struct footer_vhd));
 
     lseek(fd, 0, SEEK_SET);
@@ -482,11 +484,11 @@ void vhd_create_dyn(CSTR name, size_t size)
     memset(buf, 0, 512);
     memcpy(header->cookie, "cxsparse", 8);
 
-    header->data_off = __swap64(0);
+    header->data_off = ~0ULL;
     header->table_off = __swap64(1536);
     header->vers_maj = __swap16(1);
     header->vers_min = __swap16(0);
-    header->entries_count = 0;
+    header->entries_count = __swap32(4);
     header->block_size = __swap32(2 * _Mib_);
     header->checksum = vhd_checksum(header, sizeof(struct header_vhd));
     write(fd, buf, 512);

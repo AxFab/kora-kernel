@@ -29,6 +29,12 @@
 #include <kora/bbtree.h>
 #include <kora/splock.h>
 
+#if defined(_WIN32)
+# define __STDI _ACRTIMP
+#else
+# define __STDI
+#endif
+
 
 typedef int64_t utime_t;
 typedef struct inode inode_t;
@@ -54,10 +60,10 @@ typedef struct task task_t;
 void kprintf(int log, const char *msg, ...);
 /* Allocate a block of memory and initialize it to zero */
 void *kalloc(size_t len);
-void *malloc(size_t len);
+__STDI void *malloc(size_t len);
 /* Free a block of memory previously allocated by `kalloc' */
 void kfree(void *ptr);
-void free(void *ptr);
+__STDI void free(void *ptr);
 /* Map a area into kernel memory */
 void *kmap(size_t len, void *ino, size_t off, unsigned flags);
 /* Unmap a area into kernel memory */
