@@ -64,9 +64,10 @@ static long fork(task_t *fork, const char *path, const char **args, int *fds)
     proc_start_t *procinfo = kalloc(sizeof(proc_start_t));
     procinfo->path = strdup(path);
     for (i = 0; args[i]; ++i);
-    procinfo->argv = kalloc(i * sizeof(char *));
+    procinfo->argv = kalloc((i + 1) * sizeof(char *));
     while (*args)
         procinfo->argv[procinfo->argc++] = strdup(*(args++));
+    procinfo->argv[procinfo->argc] = NULL;
 
     for (i = 0; i < 3; ++i) {
         stream_t *strm = fds[i] >= 3 ? resx_get(kCPU.running->resx, fds[i]) : resx_get(kCPU.running->resx, i);

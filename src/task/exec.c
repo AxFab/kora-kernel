@@ -154,18 +154,17 @@ void exec_process(proc_start_t *info)
     // mspace_display(task->usmem);
 
     // Write arguments on stack
-    int i, argc;
-    for (argc = 1; info->argv[argc]; ++argc);
+    int i, argc = info->argc + 1;
     char **argv = ADDR_PUSH(stack, argc * sizeof(char *));
 
     int lg = strlen(info->path + 1);
     argv[0] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
     strcpy(argv[0], info->path);
 
-    for (i = 1; i < argc; ++i) {
+    for (i = 0; i < info->argc; ++i) {
         lg = strlen(info->argv[i]) + 1;
-        argv[i] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
-        strcpy(argv[i], info->argv[i - 1]);
+        argv[i + 1] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
+        strcpy(argv[i + 1], info->argv[i]);
         // kprintf(-1, "Set arg.%d: '%s'\n", i, argv[i]);
     }
 
@@ -185,6 +184,8 @@ void exec_process(proc_start_t *info)
 void exec_thread(task_start_t *info)
 {
     kprintf(-1, "New thread\n");
+    task_show_all();
+    // TODO -- Create a new stack', init stack and go!
     for (;;)
         sys_sleep(SEC_TO_KTIME(1));
 }

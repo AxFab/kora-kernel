@@ -186,25 +186,25 @@ void task_show_all()
     static char buf2[10];
     splock_lock(&tsk_lock);
     task_t *task = bbtree_first(&pid_tree, task_t, bnode);
-    kprintf(-1, "  PID PPID USER    PR ST %%CPU %%MEM   V.MEM    P.MEM   UP TIME  NAME\n");
+    kprintf(-1, "  PID PPID USER    PR ST %%CPU %%MEM   V.MEM    P.MEM   UP TIME   USTACK  KSTACK   NAME\n");
     for (; task; task = bbtree_next(&task->bnode, task_t, bnode)) {
         // PID / USER / PRIO / VIRT / RES / SHR / ST / %CPU %MEM  TIME+ CMD
         if (task->usmem != NULL)
-            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  %3d  %s  %s  00:00:00 %s\n",
+            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  %3d  %s  %s  00:00:00 `%5x  %5x` %s\n",
                     task->pid, task->parent->pid, "no-user", 0,
                     status[task->status],
                     task->usmem->p_size * 100 / kMMU.pages_amount,
                     task->usmem ? sztoa_r(task->usmem->v_size, buf1) : "      -",
                     task->usmem ? sztoa_r(task->usmem->p_size * PAGE_SIZE, buf2) : "      -",
-                    task->name);
+                    (size_t)task->ustack >> 12, (size_t)task->kstack >> 12, task->name);
         else if (task->parent != NULL)
-            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  0.0        -        -  00:00:00 %s\n",
+            kprintf(-1, " %4d %4d %8s %2d  %c  0.0  0.0        -        -  00:00:00 `%5x  %5x` %s\n",
                     task->pid, task->parent->pid, "no-user", 0,
-                    status[task->status], task->name);
+                    status[task->status], (size_t)task->ustack >> 12, (size_t)task->kstack >> 12, task->name);
         else
-            kprintf(-1, " %4d    - %8s %2d  %c  0.0  0.0        -        -  00:00:00 %s\n",
+            kprintf(-1, " %4d    - %8s %2d  %c  0.0  0.0        -        -  00:00:00 `%5x  %5x` %s\n",
                     task->bnode.value_, "no-user", 0,
-                    status[task->status], task->name);
+                    status[task->status], (size_t)task->ustack >> 12, (size_t)task->kstack >> 12, task->name);
     }
     splock_unlock(&tsk_lock);
 }
