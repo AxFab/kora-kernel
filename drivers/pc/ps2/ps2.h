@@ -32,6 +32,7 @@ extern inode_t *kdb_ino;
 void PS2_event(inode_t *ino, uint8_t type, int32_t param1, int32_t param2);
 
 void PS2_kdb_handler();
+void PS2_kdb_setup();
 
 void PS2_mouse_handler();
 void PS2_mouse_setup();

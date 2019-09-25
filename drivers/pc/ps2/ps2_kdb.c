@@ -42,7 +42,14 @@ static void PS2_kbd_led(uint8_t status)
     outb(0x60, status & 7);
 }
 
+void PS2_kdb_setup()
+{
+    while ((inb(0x64) & 0x01)) {
+        inb(0x60);
+    }
 
+    outb(0x64, 0xAE);
+}
 
 
 void PS2_kdb_handler()
@@ -50,9 +57,9 @@ void PS2_kdb_handler()
     evmsg_t msg;
     pipe_t *kdb_buffer = (pipe_t *)kdb_ino->info;
     char c = 0;
-    for (;;) {
-        if (inb(0x60) != c)
-            break;
+
+    if (!(inb(0x64) & 0x01)) {
+        return;
     }
 
     c = inb(0x60);

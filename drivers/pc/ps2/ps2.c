@@ -88,6 +88,7 @@ void PS2_setup()
     irq_register(1, (irq_handler_t)PS2_kdb_handler, NULL);
     irq_register(12, (irq_handler_t)PS2_mouse_handler, NULL);
     PS2_mouse_setup();
+    PS2_kdb_setup();
 
     kdb_ino = vfs_inode(1, FL_CHR, NULL);
     kdb_ino->dev->block = sizeof(event_t);
