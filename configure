@@ -1,4 +1,24 @@
 #!/bin/bash
+#      This file is part of the KoraOS project.
+#  Copyright (C) 2018  <Fabien Bavent>
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as
+#  published by the Free Software Foundation, either version 3 of the
+#  License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#  This makefile is more or less generic.
+#  The configuration is on `sources.mk`.
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 set -e
 
 function HELP {
@@ -15,7 +35,7 @@ TOPDIR=$(readlink -f `dirname ${BASH_SOURCE[0]}`)
 GENDIR=`pwd`
 PREFIX='/usr/local'
 SYSDIR='/usr'
-TARGET=`$TOPDIR/var/make/host.sh || true`
+TARGET=`$TOPDIR/make/host.sh || true`
 if [ "$TOPDIR" == "$GENDIR" ]; then
     echo "This script doesn't allow to persist build parameters on source folder" >&2
     echo "Please build on another directory" >&2
@@ -25,7 +45,7 @@ fi
 
 while (( $# > 0 )); do
     case $1 in
-        --target=*) TARGET=`$TOPDIR/var/make/host.sh ${1:9} || true` ;;
+        --target=*) TARGET=`$TOPDIR/make/host.sh ${1:9} || true` ;;
         --prefix=*) PREFIX=`readlink -f ${1:9}` ;;
         --sysdir=*) SYSDIR=`readlink -f ${1:9}` ;;
         *) HELP; exit 1 ;;
@@ -36,7 +56,7 @@ done
 CROSS=''
 CC='gcc'
 LD='ld'
-if [ "$TARGET" != "`$TOPDIR/var/make/host.sh`" ]; then
+if [ "$TARGET" != "`$TOPDIR/make/host.sh`" ]; then
     CROSS="$TARGET-"
     IFS='-' read -ra THST <<< "$TARGET"
     T_ARCH=${THST[0]}

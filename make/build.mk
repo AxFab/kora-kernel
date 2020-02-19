@@ -22,6 +22,12 @@ endef
 define fn_deps
 	$(patsubst $(topdir)/%.c,$(outdir)/%.d,$(patsubst $(topdir)/%.$(ASM_EXT),,$($(1))))
 endef
+define fn_inst
+	$(patsubst $(gendir)/%,$(prefix)/%,$(1))
+endef
+define fn_flcp
+	$(patsubst $(topdir)/%,$(prefix)/%,$(1))
+endef
 
 $(outdir)/%.o: $(topdir)/%.c
 	$(S) mkdir -p $(dir $@)
@@ -34,7 +40,7 @@ $(outdir)/%.d: $(topdir)/%.c
 	$(V) $(CC) -M -o $@ $< $(CFLAGS)
 
 define link_shared
-LIBS += lib$(1)
+LIBS += $(libdir)/lib$(1).so
 lib$(1): $(libdir)/lib$(1).so
 install-lib$(1): $(prefix)/lib/lib$(1).so
 $(libdir)/lib$(1).so: $(call fn_objs,$(2)-y)
@@ -44,7 +50,7 @@ $(libdir)/lib$(1).so: $(call fn_objs,$(2)-y)
 endef
 
 define link_bin
-BINS += $(1)
+BINS += $(bindir)/$(1)
 $(1): $(bindir)/$(1)
 install-$(1): $(prefix)/bin/$(1)
 $(bindir)/$(1): $(call fn_objs,$(2)-y)
@@ -60,10 +66,12 @@ clean:
 
 $(prefix)/lib/%: $(libdir)/%
 	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    INSTALL  $@"
 	$(V) $(INSTALL) $< $@
 
 $(prefix)/bin/%: $(bindir)/%
 	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    INSTALL  $@"
 	$(V) $(INSTALL) $< $@
 
 

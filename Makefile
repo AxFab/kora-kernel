@@ -19,7 +19,7 @@
 topdir ?= $(shell readlink -f $(dir $(word 1,$(MAKEFILE_LIST))))
 gendir ?= $(shell pwd)
 
-include $(topdir)/var/make/global.mk
+include $(topdir)/make/global.mk
 ASM_EXT := asm
 srcdir = $(topdir)/src
 arcdir = $(topdir)/arch/$(target_arch)
@@ -29,7 +29,12 @@ all: kernel
 
 kernel: $(bindir)/$(kname)
 
-install: $(bindir)/$(kname)
+install: $(prefix)/boot/$(kname)
+
+$(prefix)/boot/$(kname): $(bindir)/$(kname)
+	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    INSTALL "$@
+	$(V) $(INSTALL) $< $@
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -52,7 +57,7 @@ endif
 endif
 
 
-include $(topdir)/var/make/build.mk
+include $(topdir)/make/build.mk
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -106,7 +111,7 @@ CHECKS += ckkrn # No args, put all files on coverage
 lck:
 	$(S) echo $(patsubst %,val_%,$(CHECKS))
 
-include $(topdir)/var/make/check.mk
+include $(topdir)/make/check.mk
 
 ifeq ($(NOCOV),)
 CKLFLGS += --coverage -fprofile-arcs -ftest-coverage
