@@ -20,7 +20,7 @@
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 # Parse first argument if provided
-if [ -n $1 ]; then
+if [ -n "$1" ]; then
     IFS='-' read -ra THST <<< "$1"
     arch=${THST[0]}
     vendor=${THST[1]}

@@ -1,1 +1,19 @@
-*.h linguist-language=C
+# Building files
+Makefile            text eol=lf linguist-language=Makefile whitespace=tabwidth=4
+*.mk                text eol=lf linguist-language=Makefile whitespace=tabwidth=4
+configure           text eol=lf linguist-language=Shell whitespace=tabwidth=4
+*.sh                text eol=lf linguist-language=Shell whitespace=tabwidth=4
+*.yml               text eol=lf whitespace=tabwidth=2
+
+# Source files
+*.h                 text eol=lf linguist-language=C whitespace=tabwidth=4
+*.c                 text eol=lf linguist-language=C whitespace=tabwidth=4
+*.[Ss]              text eol=lf linguist-language=Assembly whitespace=tabwidth=4
+*.asm               text eol=lf linguist-language=Assembly whitespace=tabwidth=4
+
+# Repository files
+.git*               text eol=lf export-ignore
+.travis.yml         text eol=lf export-ignore linguist-language=YAML whitespace=tabwidth=2
+.gitlab-ci.yml      text eol=lf export-ignore linguist-language=YAML whitespace=tabwidth=2
+.gdbinit            text eol=lf linguist-language=GDB
+*.md                text eol=lf linguist-language=Markdown
