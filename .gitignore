@@ -35,8 +35,3 @@
 
 # Ressouces
 !resx/**/*
-
-# Visual studio
-!vs/*.sln
-!vs/*.vcxproj.*
-

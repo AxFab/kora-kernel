@@ -259,7 +259,7 @@ scall_entry_t syscall_entries[64] = {
 
 long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
 {
-    // kprintf(KLOG_IRQ, "Received syscall[%s], on CPU%d, stack %p.\n", kCPU.running->name, cpu_no(), ALIGN_UP((size_t)&no, PAGE_SIZE));
+    // kprintf(KLOG_IRQ, "Received syscall[%d-%s], on CPU%d, stack %p.\n", kCPU.running->pid, kCPU.running->name, cpu_no(), &no);
     if (no < 0 || no > 64 || &syscall_entries[no] == NULL || syscall_entries[no].name == NULL) {
         kprintf(-1, "\033[96msyscall(%d) = -1\033[0m\n", no);
         return -1;

@@ -38,30 +38,28 @@
 /*
  * Event types
  */
-#define EV_QUIT  0
-#define EV_MOUSEMOVE  2
-#define EV_BUTTONDOWN  3
-#define EV_BUTTONUP  4
-#define EV_MOUSEWHEEL  5
-#define EV_KEYDOWN  6
-#define EV_KEYUP  7
-#define EV_TIMER  8
-#define EV_DELAY  9
-#define EV_RESIZE 10
-
-typedef struct evmsg {
-    uint16_t message;
-    uint16_t window;
-    int32_t param1;
-    int32_t param2;
-} evmsg_t;
-
-
-struct kUsr {
-    /* Keyboard repeat */
-    uint16_t key_last;
-    uint16_t key_ticks;
+enum gfx_event {
+    GFX_EV_QUIT = 0,
+    GFX_EV_MOUSEMOVE,
+    GFX_EV_BTNUP,
+    GFX_EV_BTNDOWN,
+    GFX_EV_KEYUP,
+    GFX_EV_KEYDOWN,
+    GFX_EV_MOUSEWHEEL,
+    GFX_EV_TIMER,
+    GFX_EV_RESIZE,
+    GFX_EV_PAINT,
+    GFX_EV_UNICODE,
+    GFX_EV_DELAY = 128,
 };
+
+typedef struct event evmsg_t;
+
+// struct kUsr {
+//     /* Keyboard repeat */
+//     uint16_t key_last;
+//     uint16_t key_ticks;
+// };
 
 PACK(struct event {
     uint16_t message;
@@ -71,10 +69,10 @@ PACK(struct event {
 });
 
 
-int seat_event(uint8_t type, uint32_t param1, uint16_t param2);
+// int seat_event(uint8_t type, uint32_t param1, uint16_t param2);
 
 
-extern struct kUsr kUSR;
+// extern struct kUsr kUSR;
 
 
 // void surface_copy(surface_t *dest, surface_t *src, int relx, int rely);
