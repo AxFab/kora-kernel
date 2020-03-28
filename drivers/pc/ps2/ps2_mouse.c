@@ -113,7 +113,7 @@ void PS2_mouse_handler()
                 mseY = MIN(780, MAX(0, mseY + mouse_y));
                 msg.param1 = mouse_x;
                 msg.param2 = mouse_y;
-                msg.message = EV_MOUSEMOVE;
+                msg.message = GFX_EV_MOUSEMOVE;
                 pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
 
             }
@@ -122,7 +122,7 @@ void PS2_mouse_handler()
                 mouse_btn = mouse_byte[0] & 7;
                 // msg.param1 = diff;
                 // msg.param2 = mouse_btn;
-                // msg.message = EV_MOUSEBTN;
+                // msg.message = GFX_EV_MOUSEBTN;
                 // pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
             }
 

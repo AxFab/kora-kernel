@@ -125,7 +125,7 @@ void vga_flip(inode_t *ino)
     fb->pixels = fb->backup;
     fb->backup = tmp;
 
-    memcpy32(fb->pixels, fb->backup, fb->width * fb->height * 4);
+    memcpy32(fb->pixels, fb->backup, fb->pitch * fb->height);
 }
 
 ino_ops_t vga_ino_ops = {

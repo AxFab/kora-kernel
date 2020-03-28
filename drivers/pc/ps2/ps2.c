@@ -77,7 +77,7 @@ dev_ops_t ps2_kdb_dev_ops = {
 };
 
 ino_ops_t ps2_ino_ops = {
-    .read = ps2_read
+    .read = ps2_read,
 };
 
 
