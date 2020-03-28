@@ -93,6 +93,7 @@ task_t *task_kernel_thread(void *func, void *param)
     // assert(kSYS.sys_usr != NULL);
     // assert(kSYS.sys_rxfs != NULL);
     task_t *task = task_open(NULL, NULL, kSYS.init_fs, NULL);
+    kprintf(-1, "Create new kernel thread <%d : %x>\n", task->pid, task->kstack);
     // task_t *task = task_open(NULL, kSYS.sys_usr, kSYS.sys_rxfs, NULL);
     task_setup(task, func, param);
     return task;

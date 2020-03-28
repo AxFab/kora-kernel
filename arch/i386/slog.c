@@ -47,3 +47,11 @@ time_t cpu_time()
     pit_interval(HZ);
     return rtc_time();
 }
+
+
+void cpu_dumpstate(size_t *state)
+{
+    kprintf(-1, " EBX: %08x   ESI: %08x   EDI: %08x   \n", state[0], state[1], state[2]);
+    kprintf(-1, " EBP: %08x   ESP: %08x   EIP: %08x   \n", state[3], state[4], state[5]);
+}
+

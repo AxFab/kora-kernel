@@ -207,7 +207,7 @@ long sys_read(int fd, char *buf, int len)
     }
     // mtx_unlock(&stream->lock);
     // evmsg_t *msg = (void*)buf;
-    // if (ret == 12 && msg->message != EV_TIMER)
+    // if (ret == 12 && msg->message != GFX_EV_TIMER)
     //     kprintf(-1, "Event <%d:%x.%x>!\n", msg->message, msg->param1, msg->param2);
     return ret;
 }

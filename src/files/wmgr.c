@@ -86,7 +86,12 @@ page_t win_fetch(inode_t *ino, off_t off)
 
 int wmgr_window_read(inode_t *ino, char *buf, size_t len, int flags)
 {
-    return pipe_read(((window_t *) ino->info)->pipe, buf, len, flags) ;
+    return pipe_read(((window_t *) ino->info)->pipe, buf, len, flags);
+}
+
+int wmgr_window_write(inode_t *ino, char *buf, size_t len, int flags)
+{
+    return pipe_write(((window_t *) ino->info)->pipe, buf, len, flags);
 }
 
 int wmgr_window_resize(inode_t *ino, int width, int height)
@@ -103,6 +108,7 @@ ino_ops_t win_ops = {
     .fetch = win_fetch,
     // .release = win_release,
     .read = (void *)wmgr_window_read,
+    .write = (void *)wmgr_window_write,
     // .reset = win_reset,
     .flip = wmgr_window_flip,
     .resize = (void *)wmgr_window_resize,

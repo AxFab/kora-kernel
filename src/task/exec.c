@@ -46,8 +46,8 @@ void exec_init()
     }
 
     // Looking for exec dir
-    inode_t *pwd = vfs_lookup(root, "usr");
-    pwd = vfs_lookup(pwd, "bin");
+    inode_t *pwd = vfs_lookup(root, "bin");
+    //pwd = vfs_lookup(pwd, "bin");
 
     // Create a new process structure
     proc_t *proc = dlib_process(task->resx_fs, mspace);
@@ -56,8 +56,8 @@ void exec_init()
     proc->pwd = pwd;
 
     kprintf(-1, "Loading '%s'\n", execname);
-    rxfs_chroot(task->fs, root);
-    rxfs_chdir(task->fs, pwd);
+    rxfs_chroot(task->fs, proc->root);
+    rxfs_chdir(task->fs, proc->pwd);
 
 
     // We call the linker
@@ -105,6 +105,7 @@ void exec_init()
 
     // kprintf(-1, "%s: start:%p, stack:%p\n", execname, start, stack);
     irq_reset(false);
+
     cpu_tss(task);
     cpu_usermode(start, stack);
 }
