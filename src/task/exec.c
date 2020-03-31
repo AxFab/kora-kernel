@@ -185,8 +185,41 @@ void exec_process(proc_start_t *info)
 void exec_thread(task_start_t *info)
 {
     kprintf(-1, "New thread\n");
-    task_show_all();
+    task_t *task = kCPU.running;
+    // task_show_all();
     // TODO -- Create a new stack', init stack and go!
+
+    // COPY l.152
+    void *stack = mspace_map(task->usmem, 0, _Mib_, NULL, 0, VMA_STACK_RW);
+    stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
+
+    // Write arguments on stack
+    // int i, argc = info->argc + 1;
+    // char **argv = ADDR_PUSH(stack, argc * sizeof(char *));
+
+    // int lg = strlen(info->path + 1);
+    // argv[0] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
+    // strcpy(argv[0], info->path);
+
+    // for (i = 0; i < info->argc; ++i) {
+    //     lg = strlen(info->argv[i]) + 1;
+    //     argv[i + 1] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
+    //     strcpy(argv[i + 1], info->argv[i]);
+    //     // kprintf(-1, "Set arg.%d: '%s'\n", i, argv[i]);
+    // }
+
+    // size_t *args = ADDR_PUSH(stack, 4 * sizeof(char *));
+    // args[1] = argc;
+    // args[2] = (size_t)argv;
+    // args[3] = 0;
+    char *args = ADDR_PUSH(stack, info->sz);
+    memcpy(args, info->args, info->sz);
+    ADDR_PUSH(stack, sizeof(void *));
+
+    irq_reset(false);
+    cpu_tss(kCPU.running);
+    cpu_usermode(info->func, stack);
+
     for (;;)
         sys_sleep(SEC_TO_KTIME(1));
 }

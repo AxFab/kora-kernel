@@ -232,6 +232,8 @@ inode_t *devfs_readdir(inode_t *dir, char *name, devfs_dir_it_t *ctx)
     int no = ctx->idx;
     while (no > table->length) {
         no -= table->length;
+        if (table->next == NULL)
+            return NULL;
         table = table->next;
     }
 

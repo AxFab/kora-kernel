@@ -63,6 +63,7 @@ struct stream {
     inode_t *ino;
     off_t off;
     int flags;
+    void *ctx;
     bbnode_t node; // TODO -- Is BBTree the best data structure !?
     rwlock_t lock; // TODO -- Usage
 };

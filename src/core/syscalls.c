@@ -229,7 +229,7 @@ long sys_write(int fd, const char *buf, int len)
         //     errno = EACCES;
         //     return -1;
     }
-    // mtx_lock(&stream->lock) ;
+    // mtx_lock(&stream->lock);
     int ret = vfs_write(stream->ino, buf, len, stream->off, stream->flags);
     if (ret >= 0) {
         errno = 0;
@@ -306,6 +306,59 @@ long sys_close(int fd)
     return resx_rm(resx, fd);
 }
 
+
+struct dirent {
+    int d_ino;
+    int d_off;
+    unsigned short int d_reclen;
+    unsigned char d_type;
+    char d_name[256];
+};
+
+long sys_readdir(int fd, char *buf, int len)
+{
+    if (check_buffer(buf, len))
+        return -1;
+    resx_t *resx = kCPU.running->resx;
+    stream_t *stream = resx_get(resx, fd);
+    if (stream == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    if (!VFS_ISDIR(stream->ino)) {
+        errno = ENOTDIR;
+        return -1;
+    }
+
+    if (stream->ctx == NULL) {
+        stream->off = 0;
+        stream->ctx = vfs_opendir(stream->ino, NULL);
+        if (stream->ctx == NULL)
+            return -1;
+    }
+
+    long size = 0;
+    char name[256];
+    while (len >= sizeof(struct dirent)) {
+        // TODO -- vfs_readdir(stream->ino, name, stream->off);
+        inode_t *ino = vfs_readdir(stream->ino, name, stream->ctx);
+        if (ino == NULL)
+            break; // TODO -- check for errors !
+        struct dirent *entry = (void*)buf;
+        entry->d_ino = ino->no;
+        entry->d_off = stream->off;
+        entry->d_reclen = sizeof(struct dirent);
+        strncpy(entry->d_name, name, 256);
+        buf += sizeof(struct dirent);
+        len -= sizeof(struct dirent);
+        size += sizeof(struct dirent);
+        stream->off++;
+    }
+    return size;
+}
+
+
 // lseek
 // sync
 // umask
@@ -331,7 +384,7 @@ long sys_close(int fd)
 
 // dup
 
-int sys_pipe(int *fds)
+int sys_pipe(int *fds, int flags)
 {
     if (check_buffer(fds, 2 * sizeof(int)))
         return -1;
@@ -343,7 +396,7 @@ int sys_pipe(int *fds)
     sout->flags = W_OK;
     stream_t *sin = resx_set(resx, ino);
     sin->flags = R_OK;
-    fds[0] = sout->node.value_;
+    fds[0] = sin->node.value_;
     fds[1] = sout->node.value_;
     errno = 0;
     return 0;

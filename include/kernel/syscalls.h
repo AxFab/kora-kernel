@@ -60,6 +60,7 @@ long sys_access(int fd, CSTR path, int flags);
 long sys_open(int fd, CSTR path, int flags);
 // long sys_open(int fd, CSTR path, int flags, ftype_t type, int mode);
 long sys_close(int fd);
+long sys_readdir(int fd, char *buf, int len);
 // lseek
 // sync
 // umask
@@ -84,7 +85,7 @@ long sys_close(int fd);
 // rmdir
 
 // dup
-int sys_pipe(int *fds);
+int sys_pipe(int *fds, int flags);
 int sys_window(int ctx, int width, int height, unsigned flags);
 int sys_fcntl(int fd, int cmd, void *args);
 
@@ -150,6 +151,7 @@ long txt_open(const char *);
 long txt_close(const char *);
 long txt_read(const char *);
 long txt_write(const char *);
+long txt_readdir(const char *);
 long txt_mmap(const char *);
 long txt_munmap(const char *);
 long txt_exit(const char *);

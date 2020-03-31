@@ -204,7 +204,14 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
     char *fname = strtok_r(path_cpy, "/\\", &rent);
     ino = vfs_open(ino);
     while (fname != NULL) {
-        if (ino->type == FL_LNK) {
+        if (strcmp(fname, ".") == 0) {
+            fname = strtok_r(NULL, "/\\", &rent);
+            continue;
+        } else if (strcmp(fname, "..") == 0) {
+            kprintf(-1, "Not implemented, vfs_parent() !\n");
+            errno = ENOSYS;
+            return NULL;
+        } else if (ino->type == FL_LNK) {
             // TODO -- Follow symbolic link
             (*links)++;
             vfs_close(ino);
