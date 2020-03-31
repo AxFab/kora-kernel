@@ -48,6 +48,7 @@
 #define SYS_READ  8
 #define SYS_WRITE  9
 #define SYS_SEEK  10
+#define SYS_READDIR  33
 
 #define SYS_WINDOW  18
 #define SYS_PIPE  19
