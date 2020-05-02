@@ -95,6 +95,7 @@ void vfs_close(inode_t *ino)
     // kprintf(-1, "Close inode %02d-%04d-%c (%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], cnt - 1);
     // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->dev, cnt - 1);
     if (cnt <= 1) {
+        kprintf(-1, "Inode closing...\n");
         // kprintf(KLOG_INO, "DST %3x.%08x\n", ino->no, ino->dev);
         // kprintf(-1, "Release inode %02d-%04d-%c (C.%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], atomic_fetch_sub(&ino_no, 1) - 1);
         // device_t *volume = ino->dev;
