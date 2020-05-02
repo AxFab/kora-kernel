@@ -214,6 +214,8 @@ int pipe_read(pipe_t *pipe, char *buf, size_t len, int flags)
     while (len > 0) {
         int cap = MIN3(len, (size_t)(pipe->end - pipe->rpen), pipe->avail);
         if (cap == 0) {
+            if (bytes > 0) // TODO -- flags !?
+                break;
             // cnd_signal(&pipe->wr_cond);
             cnd_broadcast(&pipe->wr_cond);
             if (flags & IO_NO_BLOCK)

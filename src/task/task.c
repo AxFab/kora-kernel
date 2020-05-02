@@ -143,7 +143,7 @@ void task_setup(task_t *task, void *entry, void *param)
 
 void task_close(task_t *task)
 {
-    // kprintf(-1, "TASK CLOSE %s\n", task->name);
+    kprintf(-1, "Task close <%d>\n", task->pid);
     if (atomic_fetch_sub(&task->rcu, 1) != 1)
         return;
 

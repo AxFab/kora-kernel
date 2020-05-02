@@ -58,6 +58,17 @@ int check_pointer(const void *ptr, int acc)
 //  // TODO
 // }
 
+static inode_t *fds_open(int fd)
+{
+    resx_t *resx = kCPU.running->resx;
+    stream_t *stream = resx_get(resx, fd);
+    if (stream == NULL) {
+        errno = EBADF;
+        return NULL;
+    }
+    return vfs_open(stream->ino);
+}
+
 static long fork(task_t *fork, const char *path, const char **args, int *fds)
 {
     int i;
@@ -69,10 +80,10 @@ static long fork(task_t *fork, const char *path, const char **args, int *fds)
         procinfo->argv[procinfo->argc++] = strdup(*(args++));
     procinfo->argv[procinfo->argc] = NULL;
 
-    for (i = 0; i < 3; ++i) {
-        stream_t *strm = fds[i] >= 3 ? resx_get(kCPU.running->resx, fds[i]) : resx_get(kCPU.running->resx, i);
-        procinfo->stdout[i] = vfs_open(strm->ino);
-    }
+    // for (i = 0; i < 3; ++i) {
+    //     stream_t *strm = fds[i] >= 3 ? resx_get(kCPU.running->resx, fds[i]) : resx_get(kCPU.running->resx, i);
+    //     procinfo->stdout[i] = vfs_open(strm->ino);
+    // }
 
     task_setup(fork, exec_process, procinfo);
     return fork->pid;
@@ -101,6 +112,20 @@ long sys_pfork(int keep, const char *path, const char **args, const char **envs,
     }
 
     task_t *task = task_fork(kCPU.running, keep, envs);
+
+    inode_t *stdio[3];
+    stdio[0] = fds[0] < 0 ? pipe_inode() : fds_open(fds[0]);
+    stdio[1] = fds[1] < 0 ? pipe_inode() : fds_open(fds[1]);
+    stdio[2] = fds[2] < 0 ? stdio[1] : fds_open(fds[2]);
+
+    resx_set(task->resx, stdio[0]);
+    resx_set(task->resx, stdio[1]);
+    resx_set(task->resx, stdio[2]);
+
+    vfs_close(stdio[0]);
+    vfs_close(stdio[1]);
+    vfs_close(stdio[2]);
+
     return fork(task, path, args, fds);
 }
 
@@ -113,7 +138,7 @@ long sys_tfork(int keep, void *func, void *args, int sz, const char **envs)
         return -1;
     }
 
-    task_t *fork = task_fork(kCPU.running, keep | KEEP_VM, envs);
+    task_t *fork = task_fork(kCPU.running, keep | KEEP_VM | KEEP_FILES | KEEP_FS, envs);
 
     task_start_t *thrdinfo = kalloc(sizeof(task_start_t));
     thrdinfo->func = func;
@@ -398,6 +423,7 @@ int sys_pipe(int *fds, int flags)
     sin->flags = R_OK;
     fds[0] = sin->node.value_;
     fds[1] = sout->node.value_;
+    kprintf(-1, "Pipe <%d/%d>\n", sin->node.value_, sout->node.value_);
     errno = 0;
     return 0;
 }
