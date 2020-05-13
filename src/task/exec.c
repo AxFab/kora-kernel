@@ -77,9 +77,9 @@ void exec_init()
     inode_t *out_tty = pipe_inode();
     // inode_t *std_tty = tty_inode(tty);
     // stream_t *std_in =
-    resx_set(task->resx, in_tty);
-    resx_set(task->resx, out_tty);
-    resx_set(task->resx, out_tty);
+    resx_set(task->resx, in_tty, R_OK);
+    resx_set(task->resx, out_tty, W_OK);
+    resx_set(task->resx, out_tty, W_OK);
 
 
     void *start = dlib_exec_entry(proc);
@@ -143,9 +143,9 @@ void exec_process(proc_start_t *info)
     inode_t *out_tty = pipe_inode();
     // inode_t *std_tty = tty_inode(tty);
     // stream_t *std_in =
-    resx_set(task->resx, in_tty);
-    resx_set(task->resx, out_tty);
-    resx_set(task->resx, out_tty);
+    resx_set(task->resx, in_tty, R_OK);
+    resx_set(task->resx, out_tty, W_OK);
+    resx_set(task->resx, out_tty, W_OK);
 
 
     void *start = dlib_exec_entry(proc);

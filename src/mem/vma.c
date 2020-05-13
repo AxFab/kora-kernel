@@ -72,10 +72,10 @@ char *vma_print(char *buf, int len, vma_t *vma)
 /* - */
 static void vma_log(CSTR prefix, vma_t *vma)
 {
-    int len = 4096;
-    char *buf = kalloc(len);
-    kprintf(KLOG_MEM, "%s%s\n", prefix, vma_print(buf, len, vma));
-    kfree(buf);
+    // int len = 4096;
+    // char *buf = kalloc(len);
+    // kprintf(KLOG_MEM, "%s%s\n", prefix, vma_print(buf, len, vma));
+    // kfree(buf);
 }
 
 /* - */
@@ -86,7 +86,7 @@ vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
     vma->mspace = mspace;
     vma->node.value_ = address;
     vma->length = length;
-    vma->ino = vfs_open(ino);
+    vma->ino = vfs_open(ino, X_OK);
     vma->offset = offset;
     vma->flags = flags;
     bbtree_insert(&mspace->tree, &vma->node);
@@ -103,7 +103,7 @@ vma_t *vma_clone(mspace_t *mspace, vma_t *model)
     vma->mspace = mspace;
     vma->node.value_ = model->node.value_;
     vma->length = model->length;
-    vma->ino = vfs_open(model->ino);
+    vma->ino = vfs_open(model->ino, X_OK);
     vma->offset = model->offset;
     vma->flags = model->flags;
     bbtree_insert(&mspace->tree, &vma->node);
@@ -136,7 +136,7 @@ vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length)
     vma->mspace = mspace;
     vma->node.value_ = area->node.value_ + length;
     vma->length = area->length - length;
-    vma->ino = area->ino ? vfs_open(area->ino) : NULL;
+    vma->ino = area->ino ? vfs_open(area->ino, X_OK) : NULL;
     vma->offset = area->offset + length;
     vma->flags = area->flags;
 
@@ -178,7 +178,7 @@ int vma_close(mspace_t *mspace, vma_t *vma, int arg)
     }
 
     if (vma->ino)
-        vfs_close(vma->ino);
+        vfs_close(vma->ino, X_OK);
     bbtree_remove(&mspace->tree, vma->node.value_);
 
     vma_log(MSP_NAME(" ", mspace, " DEL :: "), vma);

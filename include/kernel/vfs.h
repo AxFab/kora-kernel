@@ -85,6 +85,8 @@ struct ino_ops {
     // All
     int(*fcntl)(inode_t *ino, int cmd, void *params);
     int(*close)(inode_t *ino);
+    void (*zero_reader)(inode_t*ino);
+    void (*zero_writer)(inode_t*ino);
     // Mapping
     page_t(*fetch)(inode_t *ino, off_t off);
     void(*sync)(inode_t *ino, off_t off, page_t pg);
@@ -122,6 +124,9 @@ struct inode {
     atomic_int links;
     llhead_t dlist; // List of dirent_t;
     bbnode_t bnode;
+
+    atomic_int count_rd;
+    atomic_int count_wr;
 
     void *info; // Place holder for driver info
     ino_ops_t *ops;
@@ -177,9 +182,9 @@ int vfs_read(inode_t *ino, char *buf, size_t size, off_t offset, int flags);
 int vfs_write(inode_t *ino, const char *buf, size_t size, off_t offset, int flags);
 
 /* Open an inode - increment usage as concerned to RCU mechanism. */
-inode_t *vfs_open(inode_t *ino);
+inode_t *vfs_open(inode_t *ino, int access);
 /* Close an inode - decrement usage as concerned to RCU mechanism. */
-void vfs_close(inode_t *ino);
+void vfs_close(inode_t *ino, int access);
 
 /* Create a context to enumerate directory entries */
 void *vfs_opendir(inode_t *dir, acl_t *acl);

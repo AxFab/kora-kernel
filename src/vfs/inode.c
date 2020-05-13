@@ -42,7 +42,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
         if (inode != NULL) {
             assert(inode->no == no);
             assert(inode->type == type);
-            return vfs_open(inode);
+            return vfs_open(inode, X_OK);
         }
     }
     inode = (inode_t *)kalloc(sizeof(inode_t));
@@ -72,13 +72,21 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *volume)
 }
 
 /* Open an inode - increment usage as concerned to RCU mechanism. */
-inode_t *vfs_open(inode_t *ino)
+inode_t *vfs_open(inode_t *ino, int access)
 {
     if (ino) {
         // kprintf(-1, "Open inode %02d-%04d-%c (%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], ino->rcu + 1);
         // kprintf(KLOG_INO, "OPN %3x.%08x (%d)\n", ino->no, ino->dev, ino->rcu + 1);
         atomic_inc(&ino->rcu);
     }
+
+    if (access & R_OK)
+        atomic_inc(&ino->count_rd);
+    if (access & W_OK)
+        atomic_inc(&ino->count_wr);
+    // if (access & X_OK)
+    //     atomic_inc(&ino->count_ex);
+
     return ino;
 }
 
@@ -86,11 +94,18 @@ inode_t *vfs_open(inode_t *ino)
 * If usage reach zero, the inode is freed.
 * If usage is equals to number of dirent links, they are all pushed to LRU.
 */
-void vfs_close(inode_t *ino)
+void vfs_close(inode_t *ino, int access)
 {
     if (ino == NULL)
         return;
     unsigned int cnt = atomic_fetch_sub(&ino->rcu, 1);
+
+    if (access & R_OK && atomic_fetch_sub(&ino->count_rd, 1) <= 1 && ino->ops->zero_reader)
+        ino->ops->zero_reader(ino);
+    if (access & W_OK && atomic_fetch_sub(&ino->count_wr, 1) <= 1 && ino->ops->zero_writer)
+        ino->ops->zero_writer(ino);
+    // if (access & X_OK && atomic_fetch_sub(&ino->count_ex, 1) <= 1)
+    //     ino->ops->zero_process(ino);
 
     // kprintf(-1, "Close inode %02d-%04d-%c (%d)\n", ino->dev->no, ino->no, ftype_char[ino->type], cnt - 1);
     // kprintf(KLOG_INO, "CLS %3x.%08x (%d)\n", ino->no, ino->dev, cnt - 1);
@@ -115,7 +130,7 @@ void vfs_close(inode_t *ino)
             while (it) {
                 dirent_t *en = it;
                 it = ll_next(&it->lru, dirent_t, lru);
-                vfs_close(en->ino);
+                vfs_close(en->ino, X_OK);
                 ll_remove(&ino->dev->lru, &en->lru);
 
                 hmp_remove(&en->parent->dev->hmap, en->key, en->lg);
@@ -134,7 +149,7 @@ void vfs_close(inode_t *ino)
                 kfree(ino->dev->model);
 
             if (ino->dev->underlying)
-                vfs_close(ino->dev->underlying);
+                vfs_close(ino->dev->underlying, X_OK);
 
             // TODO -- Ensure cache is empty
             hmp_destroy(&ino->dev->hmap, 0);

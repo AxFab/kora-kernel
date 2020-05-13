@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/syscalls.h>
+#include <kora/syscalls.h>
 #include <kernel/memory.h>
 #include <kernel/vfs.h>
 #include <kernel/files.h>
@@ -66,7 +67,7 @@ static inode_t *fds_open(int fd)
         errno = EBADF;
         return NULL;
     }
-    return vfs_open(stream->ino);
+    return vfs_open(stream->ino, X_OK);
 }
 
 static long fork(task_t *fork, const char *path, const char **args, int *fds)
@@ -82,7 +83,7 @@ static long fork(task_t *fork, const char *path, const char **args, int *fds)
 
     // for (i = 0; i < 3; ++i) {
     //     stream_t *strm = fds[i] >= 3 ? resx_get(kCPU.running->resx, fds[i]) : resx_get(kCPU.running->resx, i);
-    //     procinfo->stdout[i] = vfs_open(strm->ino);
+    //     procinfo->stdout[i] = vfs_open(strm->ino, X_OK);
     // }
 
     task_setup(fork, exec_process, procinfo);
@@ -118,13 +119,13 @@ long sys_pfork(int keep, const char *path, const char **args, const char **envs,
     stdio[1] = fds[1] < 0 ? pipe_inode() : fds_open(fds[1]);
     stdio[2] = fds[2] < 0 ? stdio[1] : fds_open(fds[2]);
 
-    resx_set(task->resx, stdio[0]);
-    resx_set(task->resx, stdio[1]);
-    resx_set(task->resx, stdio[2]);
+    resx_set(task->resx, stdio[0], R_OK);
+    resx_set(task->resx, stdio[1], W_OK);
+    resx_set(task->resx, stdio[2], W_OK);
 
-    vfs_close(stdio[0]);
-    vfs_close(stdio[1]);
-    vfs_close(stdio[2]);
+    vfs_close(stdio[0], X_OK);
+    vfs_close(stdio[1], X_OK);
+    vfs_close(stdio[2], X_OK);
 
     return fork(task, path, args, fds);
 }
@@ -277,19 +278,19 @@ long sys_access(int fd, CSTR path, int flags)
             errno = EBADF;
             return -1;
         }
-        vfs_close(dir);
-        dir = vfs_open(stream->ino);
+        vfs_close(dir, X_OK);
+        dir = vfs_open(stream->ino, X_OK);
     }
     inode_t *root = resx_fs_root(kCPU.running->resx_fs);
     inode_t *ino = vfs_search(root, dir, path, NULL);
-    vfs_close(root);
-    vfs_close(dir);
+    vfs_close(root, X_OK);
+    vfs_close(dir, X_OK);
     if (ino == NULL) {
         assert(errno != 0);
         return -1;
     }
     errno = 0;
-    vfs_close(ino);
+    vfs_close(ino, X_OK);
     return 0;
 }
 
@@ -305,21 +306,21 @@ long sys_open(int fd, CSTR path, int flags)
             errno = EBADF;
             return -1;
         }
-        vfs_close(dir);
-        dir = vfs_open(stream->ino);
+        vfs_close(dir, X_OK);
+        dir = vfs_open(stream->ino, stream->flags & 7);
     }
     inode_t *root = resx_fs_root(kCPU.running->resx_fs);
     inode_t *ino = vfs_search(root, dir, path, NULL);
-    vfs_close(root);
-    vfs_close(dir);
+    vfs_close(root, X_OK);
+    vfs_close(dir, X_OK);
     if (ino == NULL) {
         assert(errno != 0);
         return -1;
     }
     errno = 0;
     // TODO -- truncate, append!
-    stream_t *stream = resx_set(resx, ino);
-    vfs_close(ino);
+    stream_t *stream = resx_set(resx, ino, flags & 7);
+    vfs_close(ino, X_OK);
     if (stream == NULL)
         return 0;
     return stream->node.value_;
@@ -417,10 +418,10 @@ int sys_pipe(int *fds, int flags)
     inode_t *ino = pipe_inode();
     if (ino == NULL)
         return -1;
-    stream_t *sout = resx_set(resx, ino);
-    sout->flags = W_OK;
-    stream_t *sin = resx_set(resx, ino);
-    sin->flags = R_OK;
+    stream_t *sout = resx_set(resx, ino, W_OK);
+    // sout->flags = W_OK;
+    stream_t *sin = resx_set(resx, ino, R_OK);
+    // sin->flags = R_OK;
     fds[0] = sin->node.value_;
     fds[1] = sout->node.value_;
     kprintf(-1, "Pipe <%d/%d>\n", sin->node.value_, sout->node.value_);
@@ -437,7 +438,7 @@ int sys_window(int ctx, int width, int height, unsigned flags)
     if (ino == NULL)
         return -1;
 
-    stream_t *stream = resx_set(resx, ino);
+    stream_t *stream = resx_set(resx, ino, R_OK | W_OK);
     errno = 0;
     return stream->node.value_;
 }
@@ -475,8 +476,49 @@ int sys_socket(int protocol, const char *address, int port)
     errno = EINVAL;
     if (ino == NULL)
         return -1;
-    stream_t *stream = resx_set(resx, ino);
+    stream_t *stream = resx_set(resx, ino, R_OK | W_OK);
     return stream->node.value_;
+}
+
+
+int sys_fstat(int fd, const char *path, filemeta_t *meta, int flags)
+{
+    if (check_buffer(meta, sizeof(*meta)) || check_strings(path)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    resx_t *resx = kCPU.running->resx;
+    inode_t *dir = resx_fs_pwd(kCPU.running->resx_fs);
+    if (fd != -1) {
+        stream_t *stream = resx_get(resx, fd);
+        if (stream == NULL) {
+            errno = EBADF;
+            return -1;
+        }
+        vfs_close(dir, X_OK);
+        dir = vfs_open(stream->ino, stream->flags & 7);
+    }
+    inode_t *root = resx_fs_root(kCPU.running->resx_fs);
+    inode_t *ino = vfs_search(root, dir, path, NULL);
+    vfs_close(root, X_OK);
+    vfs_close(dir, X_OK);
+    if (ino == NULL) {
+        assert(errno != 0);
+        return -1;
+    }
+
+    meta->ino = ino->no;
+    meta->ftype = ino->type;
+    meta->size = ino->length;
+    meta->ctime = ino->ctime;
+    meta->mtime = ino->mtime;
+    meta->atime = ino->atime;
+    meta->btime = ino->btime;
+
+    vfs_close(ino, X_OK);
+    errno = 0;
+    return 0;
 }
 
 // socket

@@ -144,21 +144,22 @@ void task_setup(task_t *task, void *entry, void *param)
 void task_close(task_t *task)
 {
     kprintf(-1, "Task close <%d>\n", task->pid);
-    if (atomic_fetch_sub(&task->rcu, 1) != 1)
-        return;
+    // if (atomic_fetch_sub(&task->rcu, 1) != 1)
+    //     return;
 
     // kprintf(-1, "TASK DESTROY %s\n", task->name);
     assert(task->status == TS_ZOMBIE);
-    splock_lock(&task->lock);
+    // splock_lock(&task->lock);
 
-    if (task->usmem)
-        mspace_close(task->usmem);
+    // if (task->usmem)
+    //     mspace_close(task->usmem);
     resx_close(task->resx);
     resx_fs_close(task->resx_fs);
 
-    kunmap(task->kstack, task->kstack_len);
+    return;
 
     bbtree_remove(&pid_tree, task->pid);
+    kunmap(task->kstack, task->kstack_len);
     splock_unlock(&task->lock);
     kfree(task->name);
     kfree(task);

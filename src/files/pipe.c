@@ -32,6 +32,7 @@ struct pipe {
     size_t size;
     size_t max_size;
     size_t avail;
+    bool hangup;
 
     mtx_t mutex;
     cnd_t rd_cond;
@@ -138,8 +139,18 @@ int pipe_reset(pipe_t *pipe)
 }
 
 
+void pipe_hangup(pipe_t* pipe)
+{
+    pipe->hangup = true;
+    cnd_broadcast(&pipe->rd_cond);
+}
+
 int pipe_write(pipe_t *pipe, const char *buf, size_t len, int flags)
 {
+    if (pipe->hangup) {
+        errno = EPIPE;
+        return -1;
+    }
     int bytes = 0;
     mtx_lock(&pipe->mutex);
     if (flags & IO_NO_BLOCK && len > pipe->size - pipe->avail) {
@@ -217,9 +228,11 @@ int pipe_read(pipe_t *pipe, char *buf, size_t len, int flags)
             if (bytes > 0) // TODO -- flags !?
                 break;
             // cnd_signal(&pipe->wr_cond);
-            cnd_broadcast(&pipe->wr_cond);
+            if (pipe->hangup && pipe->avail == 0)
+                break;
             if (flags & IO_NO_BLOCK)
                 break;
+            cnd_broadcast(&pipe->wr_cond);
             cnd_wait(&pipe->rd_cond, &pipe->mutex);
             continue;
         }

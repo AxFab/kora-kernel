@@ -38,7 +38,7 @@ void krn_ls(tty_t *tty, inode_t *dir)
     while ((ino = vfs_readdir(dir, name, dir_ctx)) != NULL) {
         snprintf(buf, 256, "  /%s%s   ", name, ino->type == FL_DIR ? "/" : "");
         tty_puts(tty, buf);
-        vfs_close(ino);
+        vfs_close(ino, X_OK);
     }
     tty_puts(tty, "\n");
     vfs_closedir(dir, dir_ctx);
@@ -132,9 +132,9 @@ void exec_task(const char **exec_args)
 
     inode_t *std_tty = tty_inode(tty);
     // stream_t *std_in =
-    resx_set(kCPU.running->resx, std_tty);
-    resx_set(kCPU.running->resx, std_tty);
-    resx_set(kCPU.running->resx, std_tty);
+    resx_set(kCPU.running->resx, std_tty, R_OK);
+    resx_set(kCPU.running->resx, std_tty, W_OK);
+    resx_set(kCPU.running->resx, std_tty, W_OK);
 
     void *start = dlib_exec_entry(proc);
     void *stack = mspace_map(mspace, 0, _Mib_, NULL, 0, VMA_STACK_RW);
@@ -171,7 +171,7 @@ void list_dir(inode_t *dir)
     // kprintf(-1, "Root readdir:");
     while ((ino = vfs_readdir(dir, name, dir_ctx)) != NULL) {
         kprintf(-1, " - %s%s\n", name, VFS_ISDIR(ino) ? "/" : "");
-        vfs_close(ino);
+        vfs_close(ino, X_OK);
     }
     vfs_closedir(dir, dir_ctx);
 }
@@ -243,9 +243,9 @@ void exec_proc(const char **exec_args)
     inode_t *out_tty = pipe_inode();
     // inode_t *std_tty = tty_inode(tty);
     // stream_t *std_in =
-    resx_set(kCPU.running->resx, in_tty);
-    resx_set(kCPU.running->resx, out_tty);
-    resx_set(kCPU.running->resx, out_tty);
+    resx_set(kCPU.running->resx, in_tty, R_OK);
+    resx_set(kCPU.running->resx, out_tty, W_OK);
+    resx_set(kCPU.running->resx, out_tty, W_OK);
 
 
     void *start = dlib_exec_entry(proc);

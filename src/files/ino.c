@@ -43,17 +43,27 @@ int pipe_write_ino(inode_t *ino, const char *buf, size_t len, int flags)
     return pipe_write((pipe_t *) ino->info, buf, len, flags);
 }
 
+void pipe_zero_writer(inode_t* ino)
+{
+    pipe_t *pipe = ino->info;
+    pipe_hangup(pipe);
+    kprintf(-1, "No more Writer on pipe %d\n", ino->no);
+}
+
 
 ino_ops_t pipe_ops = {
     .fcntl = pipe_fcntl,
     .close = pipe_close,
     .read = (void *)pipe_read_ino,
     .write = (void *)pipe_write_ino,
+    .zero_writer = pipe_zero_writer,
 };
+
+atomic_int pipe_no = 1;
 
 inode_t *pipe_inode()
 {
-    inode_t *ino = vfs_inode(1, FL_PIPE, NULL);
+    inode_t *ino = vfs_inode(atomic_fetch_add(&pipe_no, 1), FL_PIPE, NULL);
     ino->info = pipe_create();
     ino->ops = &pipe_ops;
     // TODO, vfs_config

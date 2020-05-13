@@ -126,7 +126,7 @@ extern ino_ops_t devfs_dir_ops;
 static inode_t *devfs_inode(dfs_info_t *info)
 {
     if (info->dev)
-        return vfs_open(info->dev);
+        return vfs_open(info->dev, X_OK);
     inode_t *ino = vfs_inode(info->ino, FL_DIR, kSYS.dev_ino->dev);
     ino->ops = &devfs_dir_ops;
     // TODO -- fill !
@@ -329,7 +329,7 @@ void devfs_register(inode_t *ino, inode_t *dir, const char *name)
     }
 
     kprintf(-1, "Device %s\n", vfs_inokey(ino, tmp));
-    info->dev = vfs_open(ino);
+    info->dev = vfs_open(ino, X_OK);
     strncpy(info->name, name, 32);
     info->flags = 2;
 }
@@ -379,7 +379,7 @@ void vfs_sweep()
             dfs_info_t *info = &table->entries[i];
             if (info->flags == 0)
                 continue;
-            vfs_close(info->dev);
+            vfs_close(info->dev, X_OK);
         }
 
         dfs_table_t *p = table;
