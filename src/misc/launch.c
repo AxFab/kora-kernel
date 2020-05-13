@@ -94,7 +94,7 @@ void kernel_master()
 
     resx_fs_chroot(kCPU.running->resx_fs, root);
     resx_fs_chpwd(kCPU.running->resx_fs, root);
-    vfs_close(root);
+    vfs_close(root, X_OK);
 
     task_create(wmgr_main, NULL, "Local display");
 

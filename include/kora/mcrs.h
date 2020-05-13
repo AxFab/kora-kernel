@@ -50,6 +50,7 @@
 #define MSEC_TO_USEC(s)  ((s)*1000LL)
 #define TMSPEC_TO_USEC(t)  ((t).tv_sec*1000000LL+(t).tv_nsec/1000L)
 #define USEC_TO_SEC(s)  ((s)/1000000LL)
+#define NSEC_OF_USEC(s)  (((s) % 1000000LL) * 1000)
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)

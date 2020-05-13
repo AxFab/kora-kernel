@@ -71,12 +71,12 @@ inode_t *dlib_lookfor_all(proc_t *proc, inode_t *pwddir, CSTR libname, CSTR xpat
             if (dir == NULL)
                 continue;
             else if (vfs_access(dir, X_OK, proc->acl) != 0) {
-                vfs_close(dir);
+                vfs_close(dir, X_OK);
                 continue;
             }
 
             inode_t *ino = vfs_lookup(dir, libname);
-            vfs_close(dir);
+            vfs_close(dir, X_OK);
             if (ino != NULL) {
                 free(path);
                 return ino;

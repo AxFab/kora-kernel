@@ -22,17 +22,17 @@ struct stream_pool {
     atomic_int rcu;
 };
 
-struct stream_t {
-    inode_t *ino;
-    unsigned flags;
-    size_t pos;
-};
+// struct stream_t {
+//     inode_t *ino;
+//     unsigned flags;
+//     size_t pos;
+// };
 
 int resx_rm(resx_t *resx, int fd);
 resx_t *resx_create();
 resx_t *resx_open(resx_t *resx);
 stream_t *resx_get(resx_t *resx, int fd);
-stream_t *resx_set(resx_t *resx, inode_t *ino);
+stream_t *resx_set(resx_t *resx, inode_t *ino, int access);
 void resx_close(resx_t *resx);
 
 

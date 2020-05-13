@@ -20,6 +20,7 @@
 #include <kernel/core.h>
 
 
+typedef struct filemeta filemeta_t;
 /* --------
   Tasks, Process & Sessions
 --------- */
@@ -73,6 +74,7 @@ long sys_readdir(int fd, char *buf, int len);
   File system
 --------- */
 
+int sys_fstat(int fd, const char *path, filemeta_t *meta, int flags);
 // stat (at)
 // chmod
 // chown
@@ -154,6 +156,7 @@ long txt_write(const char *);
 long txt_readdir(const char *);
 long txt_mmap(const char *);
 long txt_munmap(const char *);
+long txt_pipe(const char *);
 long txt_exit(const char *);
 long txt_fcntl(const char *);
 long txt_window(const char *);

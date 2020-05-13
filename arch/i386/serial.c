@@ -154,7 +154,7 @@ void com_teardown()
     irq_unregister(3, (irq_handler_t)com_irq, (void *)1);
     irq_unregister(4, (irq_handler_t)com_irq, (void *)0);
     for (i = 0; i < 4; ++i)
-        vfs_close(serial_inos[i]);
+        vfs_close(serial_inos[i], X_OK);
 }
 
 MODULE(serial, com_setup, com_teardown);

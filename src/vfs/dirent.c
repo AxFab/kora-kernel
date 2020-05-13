@@ -87,7 +87,7 @@ void vfs_set_dirent_(dirent_t *ent, inode_t *ino)
     assert(ent != NULL);
     assert(ino != NULL);
 
-    ent->ino = vfs_open(ino);
+    ent->ino = vfs_open(ino, X_OK);
     atomic_inc(&ino->links);
     ll_append(&ino->dlist, &ent->node);
     // mountfs_t *fs = ent->parent->fs;
@@ -108,7 +108,7 @@ void vfs_rm_dirent_(dirent_t *ent)
     // TODO -- Wake up other !
     rwlock_wrlock(&ent->lock);
     if (ent->ino != NULL) {
-        vfs_close(ent->ino);
+        vfs_close(ent->ino, X_OK);
         ent->ino = NULL;
     }
     // kprintf(KLOG_INO, "Freeing %p\n", ent);
@@ -142,7 +142,7 @@ void vfs_scavenge(device_t *fs, int max)
         hmp_remove(&fs->hmap, rm->key, rm->lg);
         atomic_dec(&rm->ino->links);
         ll_remove(&fs->lru, &rm->lru);
-        vfs_close(rm->ino);
+        vfs_close(rm->ino, X_OK);
         kfree(rm);
         --max;
     }
@@ -188,7 +188,7 @@ dirent_t *vfs_lookup_(inode_t *dir, CSTR name)
 
         vfs_record_(dir, ino);
         vfs_set_dirent_(ent, ino);
-        vfs_close(ino);
+        vfs_close(ino, X_OK);
     }
     errno = 0;
     return ent;
@@ -202,7 +202,7 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
     char *rent;
     char *path_cpy = strdup(path);
     char *fname = strtok_r(path_cpy, "/\\", &rent);
-    ino = vfs_open(ino);
+    ino = vfs_open(ino, X_OK);
     while (fname != NULL) {
         if (strcmp(fname, ".") == 0) {
             fname = strtok_r(NULL, "/\\", &rent);
@@ -214,31 +214,31 @@ inode_t *vfs_search_(inode_t *ino, CSTR path, acl_t *acl, int *links)
         } else if (ino->type == FL_LNK) {
             // TODO -- Follow symbolic link
             (*links)++;
-            vfs_close(ino);
+            vfs_close(ino, X_OK);
             kfree(path_cpy);
             errno = ENOSYS;
             return NULL;
         } else if (!VFS_ISDIR(ino)) {
-            vfs_close(ino);
+            vfs_close(ino, X_OK);
             kfree(path_cpy);
             errno = ENOTDIR;
             return NULL;
         } else if (vfs_access(ino, X_OK, acl) != 0) {
-            vfs_close(ino);
+            vfs_close(ino, X_OK);
             kfree(path_cpy);
             errno = EACCES;
             return NULL;
         }
         dirent_t *ent = vfs_lookup_(ino, fname);
         if (ent == NULL) {
-            vfs_close(ino);
+            vfs_close(ino, X_OK);
             kfree(path_cpy);
             errno = ENOENT;
             // assert(errno != 0);
             return NULL;
         }
-        vfs_open(ent->ino);
-        vfs_close(ino);
+        vfs_open(ent->ino, X_OK);
+        vfs_close(ino, X_OK);
         ino = ent->ino;
         rwlock_rdunlock(&ent->lock);
         fname = strtok_r(NULL, "/\\", &rent);
@@ -258,5 +258,5 @@ inode_t *vfs_lookup(inode_t *dir, CSTR name)
     }
     inode_t *ino = ent->ino;
     rwlock_rdunlock(&ent->lock);
-    return vfs_open(ino);
+    return vfs_open(ino, X_OK);
 }

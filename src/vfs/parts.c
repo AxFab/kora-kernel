@@ -139,7 +139,7 @@ int vfs_parts(CSTR dname)
             sdev->write = (fs_write)vfs_mbr_write;
             sdev->release = (fs_release_dev)vfs_mbr_release;
             vfs_mkdev(buf, sdev, &ino->ino);
-            vfs_close((inode_t *)ino);
+            vfs_close((inode_t *)ino, X_OK);
         }
     }
 

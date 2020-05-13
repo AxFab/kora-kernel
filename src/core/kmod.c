@@ -54,7 +54,7 @@ void kmod_mount(inode_t *root)
 {
     kmnt_t *mnt;
     mnt = kalloc(sizeof(kmnt_t));
-    mnt->root = vfs_open(root);
+    mnt->root = vfs_open(root, X_OK);
     ll_enqueue(&kmod_mounted, &mnt->node);
 }
 

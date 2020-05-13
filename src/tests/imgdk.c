@@ -226,7 +226,7 @@ int imgdk_open(const char *path, const char *name)
             info->cache = blk_create(ino, vhd_read, vhd_write);
             ino->ops = &vhd_ino_ops;
         } else {
-            vfs_close(ino);
+            vfs_close(ino, X_OK);
             close(fd);
             return -1;
         }
@@ -245,7 +245,7 @@ int imgdk_open(const char *path, const char *name)
         ino->info = blk_create(ino, imgdk_read, imgdk_write);
 
     vfs_mkdev(ino, name);
-    vfs_close(ino);
+    vfs_close(ino, X_OK);
     return 0;
 }
 

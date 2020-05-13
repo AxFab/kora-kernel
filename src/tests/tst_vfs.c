@@ -28,18 +28,18 @@ TEST_CASE(tst_devfs_01)
     ck_ok(zero == vfs_search(kSYS.dev_ino, kSYS.dev_ino, "zero", NULL));
     ck_ok(10 == vfs_read(zero, buf, 10, 0, 0));
     ck_ok(((int *)buf)[0] == 0 && ((int *)buf)[1] == 0);
-    vfs_close(zero);
-    vfs_close(zero);
+    vfs_close(zero, X_OK);
+    vfs_close(zero, X_OK);
 
     inode_t *null = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "null", NULL);
     ck_ok(null != NULL);
     ck_ok(null == vfs_search(kSYS.dev_ino, kSYS.dev_ino, "null", NULL));
     for (i = 0; i < 5000; ++i)
         ck_ok(10 == vfs_write(null, buf, 10, 0, 0));
-    vfs_close(null);
+    vfs_close(null, X_OK);
     ck_ok(0 == vfs_read(null, buf, 10, 0, VFS_NOBLOCK));
     ck_ok(errno == EWOULDBLOCK);
-    vfs_close(null);
+    vfs_close(null, X_OK);
 
     inode_t *rand = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "rand", NULL);
     ck_ok(rand != NULL);
@@ -102,7 +102,7 @@ TEST_CASE(tst_vfs_01)
 
     // Lookup
     ck_ok(file1 == vfs_lookup(dir, "text"));
-    vfs_close(file1);
+    vfs_close(file1, X_OK);
     ck_ok(NULL == vfs_create(dir, "text", FL_REG, NULL, VFS_CREAT));
 
 

@@ -138,7 +138,7 @@ int hostfs_setup()
 
     vfs_mkdev(ino, "boot");
 
-    vfs_close(ino);
+    vfs_close(ino, X_OK);
     return 0;
 }
 

@@ -157,7 +157,7 @@ void mboot_load_modules()
             inode_t *root = tar_mount(mods->start, mods->end, mods->string);
             vfs_mkdev(root, "boot");
             kmod_mount(root);
-            vfs_close(root);
+            vfs_close(root, X_OK);
         }
     }
 }

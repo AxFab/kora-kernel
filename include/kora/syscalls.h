@@ -21,6 +21,7 @@
 #define _KORA_SYSCALLS_H 1
 
 #include <stddef.h>
+#include <stdint.h>
 
 #define SYS_POWER  12
 #define SYS_SCALL  13
@@ -53,6 +54,7 @@
 #define SYS_WINDOW  18
 #define SYS_PIPE  19
 #define SYS_FCNTL  20
+#define SYS_FSTAT  24
 
 #define SYS_FUTEX_WAIT 22
 #define SYS_FUTEX_REQUEUE 23
@@ -66,6 +68,8 @@
 #define SYS_PFORK 28
 #define SYS_TFORK 29
 
+
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 //struct iovec {
@@ -75,6 +79,22 @@
 
 struct image {
     int width, height, pitch, format;
+};
+
+
+struct filemeta {
+    int ino;
+    int dev;
+    int block;
+    int ftype;
+
+    int64_t size;
+    int64_t rsize;
+
+    uint64_t ctime;
+    uint64_t mtime;
+    uint64_t atime;
+    uint64_t btime;
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

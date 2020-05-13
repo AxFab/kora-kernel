@@ -10,7 +10,7 @@
 
 int read_cmds(FILE* fp);
 
-inode_t *getinode(const char* path) 
+inode_t *getinode(const char* path)
 {
 	return path == NULL ? vfs_open(kSYS.dev_ino) : vfs_search(kSYS.dev_ino, kSYS.dev_ino, path, NULL);
 }
@@ -39,11 +39,11 @@ void do_ls(const char* path)
 
 	while ((ino = vfs_readdir(dir, name, ctx)) != NULL) {
 		printf("    %s (%s)\n", name, vfs_inokey(ino, tmp));
-		vfs_close(ino);
+		vfs_close(ino, X_OK);
 	}
 
 	vfs_closedir(dir, ctx);
-	vfs_close(dir);
+	vfs_close(dir, X_OK);
 }
 
 void do_stat(const char* path)
@@ -159,7 +159,7 @@ void do_disk(const char* path)
 
 	snprintf(tmp, 12, "dsk%d", ++dsk_count);
 	vfs_mkdev(ino, tmp);
-#endif 
+#endif
 
 }
 
@@ -211,7 +211,7 @@ void do_fs(const char* path)
 	    dt[0] = '\0';
 	snprintf(buf, 128, "kmod_info_%s", nm);
 	printf("Open %s.\n", buf);
-	
+
 	kmod_t* mod = dlsym(ctx, buf);
 	if (mod == NULL) {
 		printf("No kernel info structure\n");

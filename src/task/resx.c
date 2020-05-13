@@ -30,8 +30,8 @@ resx_fs_t *resx_fs_create()
         resx->root = resx_fs_root(kCPU.running->resx_fs);
         resx->pwd = resx_fs_pwd(kCPU.running->resx_fs);
     } else {
-        resx->root = vfs_open(kSYS.dev_ino);
-        resx->pwd = vfs_open(kSYS.dev_ino);
+        resx->root = vfs_open(kSYS.dev_ino, X_OK);
+        resx->pwd = vfs_open(kSYS.dev_ino, X_OK);
     }
     resx->umask = 022;
     atomic_inc(&resx->users);
@@ -47,33 +47,33 @@ resx_fs_t *resx_fs_open(resx_fs_t *resx)
 void resx_fs_close(resx_fs_t *resx)
 {
     if (atomic_fetch_sub(&resx->users, 1) == 1) {
-        vfs_close(resx->root);
-        vfs_close(resx->pwd);
+        vfs_close(resx->root, X_OK);
+        vfs_close(resx->pwd, X_OK);
     }
 }
 
 inode_t *resx_fs_root(resx_fs_t *resx)
 {
-    inode_t *ino = vfs_open(resx->root);
+    inode_t *ino = vfs_open(resx->root, X_OK);
     return ino;
 }
 
 inode_t *resx_fs_pwd(resx_fs_t *resx)
 {
-    inode_t *ino = vfs_open(resx->pwd);
+    inode_t *ino = vfs_open(resx->pwd, X_OK);
     return ino;
 }
 
 void resx_fs_chroot(resx_fs_t *resx, inode_t *ino)
 {
-    vfs_close(resx->root);
-    resx->root = vfs_open(ino);
+    vfs_close(resx->root, X_OK);
+    resx->root = vfs_open(ino, X_OK);
 }
 
 void resx_fs_chpwd(resx_fs_t *resx, inode_t *ino)
 {
-    vfs_close(resx->pwd);
-    resx->pwd = vfs_open(ino);
+    vfs_close(resx->pwd, X_OK);
+    resx->pwd = vfs_open(ino, X_OK);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -117,11 +117,12 @@ stream_t *resx_get(resx_t *resx, int fd)
     return stm;
 }
 
-stream_t *resx_set(resx_t *resx, inode_t *ino)
+stream_t *resx_set(resx_t *resx, inode_t *ino, int access)
 {
     rwlock_wrlock(&resx->lock);
     stream_t *stm = (stream_t *)kalloc(sizeof(stream_t));
-    stm->ino = vfs_open(ino);
+    stm->ino = vfs_open(ino, access & 7);
+    stm->flags = access & 7;
     rwlock_init(&stm->lock);
     if (resx->tree.count_ == 0)
         stm->node.value_ = 0;
@@ -154,7 +155,7 @@ int resx_rm(resx_t *resx, int fd)
     rwlock_wrunlock(&resx->lock);
 
     // TODO -- free using RCU
-    vfs_close(stm->ino);
+    vfs_close(stm->ino, stm->flags & 7);
     kfree(stm);
     errno = 0;
     return 0;
@@ -177,8 +178,8 @@ char *env_create(const char **envs)
 rxfs_t *rxfs_create(inode_t *ino)
 {
     rxfs_t *fs = kalloc(sizeof(rxfs_t));
-    fs->root = vfs_open(ino);
-    fs->pwd = vfs_open(ino);
+    fs->root = vfs_open(ino, X_OK);
+    fs->pwd = vfs_open(ino, X_OK);
     fs->umask = 0022;
     atomic_store(&fs->rcu, 1);
     return fs;
@@ -194,8 +195,8 @@ rxfs_t *rxfs_open(rxfs_t *fs)
 rxfs_t *rxfs_clone(rxfs_t *fs)
 {
     rxfs_t *copy = kalloc(sizeof(rxfs_t));
-    copy->root = vfs_open(fs->root);
-    copy->pwd = vfs_open(fs->pwd);
+    copy->root = vfs_open(fs->root, X_OK);
+    copy->pwd = vfs_open(fs->pwd, X_OK);
     copy->umask = fs->umask;
     atomic_store(&copy->rcu, 1);
     return copy;
@@ -205,22 +206,22 @@ void rxfs_close(rxfs_t *fs)
 {
     int val = atomic_fetch_sub(&fs->rcu, 1);
     if (val == 1) {
-        vfs_close(fs->root);
-        vfs_close(fs->pwd);
+        vfs_close(fs->root, X_OK);
+        vfs_close(fs->pwd, X_OK);
         kfree(fs);
     }
 }
 
 void rxfs_chroot(rxfs_t *fs, inode_t *ino)
 {
-    vfs_close(fs->root);
-    fs->root = vfs_open(ino);
+    vfs_close(fs->root, X_OK);
+    fs->root = vfs_open(ino, X_OK);
 }
 
 void rxfs_chdir(rxfs_t *fs, inode_t *ino)
 {
-    vfs_close(fs->pwd);
-    fs->pwd = vfs_open(ino);
+    vfs_close(fs->pwd, X_OK);
+    fs->pwd = vfs_open(ino, X_OK);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

@@ -54,7 +54,7 @@ static void test_mkdir_mode(inode_t *dir, int umask, int rmask, int emask)
     inode_t *ino = vfs_mkdir(dir, name, rmask & ~umask);
     ck_assert(ino != NULL && errno == 0);
     ck_assert(ino->mode == (S_IFDIR | emask));
-    vfs_close(ino);
+    vfs_close(ino, X_OK);
 
     vfs_rmdir(dir, name);
     ck_assert(errno == 0);
@@ -81,7 +81,7 @@ static void test_filename(inode_t *dir, const char *name, int err)
     ck_assert(errno == err);
     if (err == 0) {
         ck_assert(ino != NULL);
-        vfs_close(ino);
+        vfs_close(ino, X_OK);
     } else
         ck_assert(ino == NULL);
     vfs_rmdir(dir, name);
@@ -91,7 +91,7 @@ static void test_filename(inode_t *dir, const char *name, int err)
     ck_assert(errno == err);
     if (err == 0) {
         ck_assert(ino != NULL);
-        vfs_close(ino);
+        vfs_close(ino, X_OK);
     } else
         ck_assert(ino == NULL);
     vfs_unlink(dir, name);
@@ -128,7 +128,7 @@ START_TEST(test_vfs_001)
     sleep(1);
     ino = vfs_mkdir(dir, "BLAZ", 0755);
     ck_assert(ino != NULL && errno == 0);
-    vfs_close(ino);
+    vfs_close(ino, X_OK);
     ck_assert(p_time < ino->atime.tv_sec);
     ck_assert(p_time < ino->mtime.tv_sec);
     ck_assert(p_time < ino->ctime.tv_sec);
@@ -140,7 +140,7 @@ START_TEST(test_vfs_001)
     // ENOTDIR
     ino = vfs_create(dir, "DRU", 0644);
     ck_assert(errno == 0);
-    vfs_close(ino);
+    vfs_close(ino, X_OK);
     ck_assert(vfs_mkdir(ino, "GNEE", 0755) == NULL && errno == ENOTDIR);
     vfs_unlink(dir, "DRU");
     ck_assert(errno == 0);
@@ -154,7 +154,7 @@ START_TEST(test_vfs_001)
     // vfs_chmod(dir, 0755);
     // ino = vfs_mkdir(dir, "KAH", 0755);
     // ck_assert(ino != NULL && errno == 0);
-    // vfs_close(ino);
+    // vfs_close(ino, X_OK);
     // vfs_rmdir(dir, "KAH");
     // ck_assert(errno == 0);
 
@@ -162,7 +162,7 @@ START_TEST(test_vfs_001)
     // vfs_chmod(dir, 0750);
     // ino = vfs_mkdir(dir, "KAH", 0755);
     // ck_assert(ino != NULL && errno == 0);
-    // vfs_close(ino);
+    // vfs_close(ino, X_OK);
     // vfs_rmdir(dir, "KAH");
     // ck_assert(errno == 0);
 
@@ -170,13 +170,13 @@ START_TEST(test_vfs_001)
 
     // EEXIST
     ino = vfs_mkdir(dir, "ZEE", 0755);
-    vfs_close(ino);
+    vfs_close(ino, X_OK);
     ck_assert(vfs_mkdir(dir, "ZEE", 0755) == NULL && errno == EEXIST);
     vfs_rmdir(dir, "ZEE");
     ck_assert(errno == 0);
 
     ino = vfs_create(dir, "ZEE", 0644);
-    vfs_close(ino);
+    vfs_close(ino, X_OK);
     ck_assert(vfs_mkdir(dir, "ZEE", 0755) == NULL && errno == EEXIST);
     vfs_unlink(dir, "ZEE");
     ck_assert(errno == 0);
@@ -191,7 +191,7 @@ START_TEST(test_vfs_001)
     vfs_rmdir(dir, "ZEE");
 #endif
 
-    vfs_close(dir);
+    vfs_close(dir, X_OK);
     vfs_rmdir(root, "KAH");
     ck_assert(errno == 0);
     sweep_root(root);

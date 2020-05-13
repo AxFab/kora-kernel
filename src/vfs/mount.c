@@ -70,7 +70,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs, CSTR name)
     }
 
     inode_t *ino = mount(dev);
-    vfs_close(dev);
+    vfs_close(dev, X_OK);
     if (ino == NULL) {
         assert(errno != 0);
         return NULL;
@@ -98,7 +98,7 @@ inode_t *vfs_mount(CSTR devname, CSTR fs, CSTR name)
 //         kprintf(KLOG_INO, "Need rmlink of %3x\n", file->no);
 
 
-//     // vfs_close(ino);
+//     // vfs_close(ino, X_OK);
 //     return 0;
 // }
 
