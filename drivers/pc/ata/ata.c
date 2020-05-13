@@ -562,7 +562,7 @@ void ATA_setup()
             blk->ops = &ata_ino_ops;
             blk->info = blk_create(blk, ATA_read, ATA_write);
             vfs_mkdev(blk, sdNames[i]);
-            vfs_close(blk);
+            vfs_close(blk, X_OK);
         }
     }
 }

@@ -98,7 +98,7 @@ void PS2_setup()
     kdb_ino->dev->devclass = (char *)"PS/2 Keyboard";
     kdb_ino->info = pipe_create();
     vfs_mkdev(kdb_ino, "kdb");
-    vfs_close(kdb_ino);
+    vfs_close(kdb_ino, X_OK);
 
     itimer_create(kdb_ino->info, MSEC_TO_KTIME(100), MSEC_TO_KTIME(40));
 
@@ -110,7 +110,7 @@ void PS2_setup()
     mouse_ino->dev->devclass = (char *)"PS/2 Mouse";
     mouse_ino->info = pipe_create();
     vfs_mkdev(mouse_ino, "mouse");
-    vfs_close(mouse_ino);
+    vfs_close(mouse_ino, X_OK);
 
 }
 
