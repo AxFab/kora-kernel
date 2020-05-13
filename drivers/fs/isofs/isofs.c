@@ -327,7 +327,7 @@ inode_t *isofs_mount(inode_t *dev)
     ino->dev->flags = VFS_RDONLY;
     ino->dev->devclass = "isofs";
     ino->dev->devname = strdup(info->name);
-    ino->dev->underlying = vfs_open(dev);
+    ino->dev->underlying = vfs_open(dev, R_OK);
     ino->dev->info = info;
     ino->dev->fsops = &isofs_ops;
     ino->ops = &iso_dir_ops;

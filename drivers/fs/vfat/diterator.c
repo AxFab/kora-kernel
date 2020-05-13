@@ -182,7 +182,7 @@ int fatfs_unlink(inode_t *dir, CSTR name)
             FAT_diterator_t *ino_it = fatfs_diterator_open(ino, false);
             struct FAT_ShortEntry *ino_en = fatfs_diterator_next(ino_it);
             fatfs_diterator_close(ino_it);
-            vfs_close(ino);
+            vfs_close(ino, X_OK);
             if (ino_en != NULL) {
                 fatfs_diterator_close(it);
                 errno = ENOTEMPTY;
