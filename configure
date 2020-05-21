@@ -25,14 +25,14 @@ Usage: configure [OPTIONS]
 with options:
     --target=TARGET     Triplet of the destination platform
     --prefix=PREFIX     Destination of final delivery
-    --sysdir=SYSDIR     Destination of final delivery
+    --sysdir=SYSDIR     Repository of installed tools dependencies
 EOF
 }
 
 TOPDIR=$(readlink -f `dirname ${BASH_SOURCE[0]}`)
 GENDIR=`pwd`
 PREFIX='/usr/local'
-SYSDIR='/usr'
+SYSDIR=''
 TARGET=`$TOPDIR/make/host.sh`
 if [ "$TOPDIR" == "$GENDIR" ]; then
     echo "This script doesn't allow to persist build parameters on source folder" >&2
@@ -79,7 +79,18 @@ if [ "$TARGET" != "`$TOPDIR/make/host.sh`" ]; then
     done
 fi
 
+
 cat > Makefile << EOF
+# Configure script for $TOPDIR
+EOF
+
+# Resolve dependencies
+if [ -n "$SYSDIR" ]; then
+    echo "pkgdir:=$SYSDIR" >> Makefile
+    cat "$TOPDIR/Makefile" | grep 'ifneq ($(.*_HOME),)' | sed 's/ifneq ($(\(.*_HOME\)),)/\1:=${pkgdir}/' >> Makefile
+fi
+
+cat >> Makefile << EOF
 topdir:=$TOPDIR
 gendir:=$GENDIR
 prefix:=$PREFIX
