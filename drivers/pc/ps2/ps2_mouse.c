@@ -109,21 +109,36 @@ void PS2_mouse_handler()
                 mouse_x = mouse_y = 0; // Overflow
             if (mouse_x != 0 || mouse_y != 0) {
                 mouse_y = -mouse_y;
-                mseX = MIN(1280, MAX(0, mseX + mouse_x));
-                mseY = MIN(780, MAX(0, mseY + mouse_y));
-                msg.param1 = mouse_x;
-                msg.param2 = mouse_y;
+                mseX = MIN(1280, MAX(0, mseX + mouse_x / 2));
+                mseY = MIN(780, MAX(0, mseY + mouse_y / 2));
+
+                msg.param1 = mseX | (mseY << 16); //mouse_x;
+                // msg.param2 = mouse_y;
                 msg.message = GFX_EV_MOUSEMOVE;
+                // kprintf(-1, "Mouse pos {%d, %d} - %02x %02x %02x\n", mseX, mseY, mouse_byte[0], mouse_byte[1], mouse_byte[2]);
                 pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
 
             }
             if (mouse_btn != (mouse_byte[0] & 7)) {
                 int diff = mouse_btn ^ mouse_byte[0] & 7;
                 mouse_btn = mouse_byte[0] & 7;
-                // msg.param1 = diff;
-                // msg.param2 = mouse_btn;
-                // msg.message = GFX_EV_MOUSEBTN;
-                // pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
+
+                msg.param2 = mouse_btn;
+                if (diff & 1) {
+                    msg.param1 = 1;
+                    msg.message = mouse_btn & 1 ? GFX_EV_BTNDOWN : GFX_EV_BTNUP;
+                    pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
+                }
+                if (diff & 2) {
+                    msg.param1 = 2;
+                    msg.message = mouse_btn & 2 ? GFX_EV_BTNDOWN : GFX_EV_BTNUP;
+                    pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
+                }
+                if (diff & 4) {
+                    msg.param1 = 4;
+                    msg.message = mouse_btn & 4 ? GFX_EV_BTNDOWN : GFX_EV_BTNUP;
+                    pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
+                }
             }
 
             return;

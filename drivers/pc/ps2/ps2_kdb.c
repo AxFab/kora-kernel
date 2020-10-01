@@ -44,9 +44,8 @@ static void PS2_kbd_led(uint8_t status)
 
 void PS2_kdb_setup()
 {
-    while ((inb(0x64) & 0x01)) {
+    while ((inb(0x64) & 0x01))
         inb(0x60);
-    }
 
     outb(0x64, 0xAE);
 }
@@ -58,35 +57,34 @@ void PS2_kdb_handler()
     pipe_t *kdb_buffer = (pipe_t *)kdb_ino->info;
     char c = 0;
 
-    if (!(inb(0x64) & 0x01)) {
+    if (!(inb(0x64) & 0x01))
         return;
-    }
 
     c = inb(0x60);
     if (c > 0) {
         if (c == KEY_CAPS_LOCK) {
-            kdb_status ^= KDB_CAPS_LOCK;
+            kdb_status ^= KMOD_CAPS;
             PS2_kbd_led(kdb_status);
         } else if (c == KEY_NUM_LOCK) {
             kdb_status ^= KDB_NUM_LOCK;
             PS2_kbd_led(kdb_status);
         } else if (c == KEY_SCROLL_LOCK) {
-            kdb_status ^= KDB_SCROLL_LOCK;
+            kdb_status ^= KMOD_SCROLL;
             PS2_kbd_led(kdb_status);
-        } else if (c == KEY_SHIFT_L || c == KEY_SHIFT_R)
-            kdb_status |= KDB_SHIFT;
-
-        else if (c == KEY_CTRL_L || c == KEY_CTRL_R)
-            kdb_status |= KDB_CTRL;
-
+        } else if (c == KEY_SHIFT_L)
+            kdb_status |= KMOD_LSHIFT;
+        else if (c == KEY_SHIFT_R)
+            kdb_status |= KMOD_RSHIFT;
+        else if (c == KEY_CTRL_L)
+            kdb_status |= KMOD_LCTRL;
+        else if (c == KEY_CTRL_R)
+            kdb_status |= KMOD_RCTRL;
         else if (c == KEY_ALT)
-            kdb_status |= KDB_ALT;
-
+            kdb_status |= KMOD_LALT;
         else if (c == KEY_ALTGR)
-            kdb_status |= KDB_ALTGR;
-
+            kdb_status |= KMOD_ALTGR;
         else if (c == KEY_HOST)
-            kdb_status |= KDB_HOST;
+            kdb_status |= KMOD_HOST;
 
         msg.param1 = (kdb_status << 16) | c;
         msg.param2 = (kdb_status << 16) | c;
@@ -97,20 +95,26 @@ void PS2_kdb_handler()
 
     } else {
         c &= 0x7F;
-        if (c == KEY_SHIFT_L || c == KEY_SHIFT_R)
-            kdb_status &= ~KDB_SHIFT;
+        if (c == KEY_SHIFT_L)
+            kdb_status &= ~KMOD_LSHIFT;
 
-        else if (c == KEY_CTRL_L || c == KEY_CTRL_R)
-            kdb_status &= ~KDB_CTRL;
+        else if (c == KEY_SHIFT_R)
+            kdb_status &= ~KMOD_RSHIFT;
+
+        else if (c == KEY_CTRL_L)
+            kdb_status &= ~KMOD_LCTRL;
+
+        else if (c == KEY_CTRL_R)
+            kdb_status &= ~KMOD_RCTRL;
 
         else if (c == KEY_ALT)
-            kdb_status &= ~KDB_ALT;
+            kdb_status &= ~KMOD_LALT;
 
         else if (c == KEY_ALTGR)
-            kdb_status &= ~KDB_ALTGR;
+            kdb_status &= ~KMOD_ALTGR;
 
         else if (c == KEY_HOST)
-            kdb_status &= ~KDB_HOST;
+            kdb_status &= ~KMOD_HOST;
 
         msg.param1 = (kdb_status << 16) | c;
         msg.param2 = (kdb_status << 16) | c;
