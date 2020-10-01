@@ -23,8 +23,6 @@
 #include <string.h>
 #include <errno.h>
 
-int blk_read(inode_t *ino, char *buf, size_t len, int flags, off_t off);
-int blk_write(inode_t *ino, const char *buf, size_t len, int flags, off_t off);
 
 
 int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)

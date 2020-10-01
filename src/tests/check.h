@@ -42,12 +42,12 @@
 #endif
 
 
-void* calloc(size_t len, size_t cnt);
+void *calloc(size_t len, size_t cnt);
 void free();
-void* valloc(size_t len);
+void *valloc(size_t len);
 
-int printf(const char* msg, ...);
-int vprintf(const char* msg, va_list ap);
+int printf(const char *msg, ...);
+int vprintf(const char *msg, va_list ap);
 
 int usleep(__useconds_t usecs);
 

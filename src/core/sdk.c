@@ -126,6 +126,8 @@ kdk_api_t base_kapi[] = {
     KAPI(blk_sync),
     KAPI(blk_release),
     KAPI(blk_destroy),
+    KAPI(blk_read),
+    KAPI(blk_write),
     KAPI(gfx_create),
     KAPI(gfx_clear),
     KAPI(bio_create),

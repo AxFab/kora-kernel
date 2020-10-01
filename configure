@@ -33,6 +33,7 @@ TOPDIR=$(readlink -f `dirname ${BASH_SOURCE[0]}`)
 GENDIR=`pwd`
 PREFIX='/usr/local'
 SYSDIR=''
+PREFACE=''
 TARGET=`$TOPDIR/make/host.sh`
 if [ "$TOPDIR" == "$GENDIR" ]; then
     echo "This script doesn't allow to persist build parameters on source folder" >&2
@@ -46,6 +47,7 @@ while (( $# > 0 )); do
         --target=*) TARGET=`$TOPDIR/make/host.sh ${1:9}` ;;
         --prefix=*) PREFIX=`readlink -f ${1:9}` ;;
         --sysdir=*) SYSDIR=`readlink -f ${1:9}` ;;
+        --preface=*) PREFACE=${1:10} ;;
         *) HELP; exit 1 ;;
     esac
     shift
@@ -82,12 +84,12 @@ fi
 
 cat > Makefile << EOF
 # Configure script for $TOPDIR
+# ------------------
 EOF
 
-# Resolve dependencies
-if [ -n "$SYSDIR" ]; then
-    echo "pkgdir:=$SYSDIR" >> Makefile
-    cat "$TOPDIR/Makefile" | grep 'ifneq ($(.*_HOME),)' | sed 's/ifneq ($(\(.*_HOME\)),)/\1:=${pkgdir}/' >> Makefile
+if [ -f "$PREFACE" ]; then
+    cat "$PREFACE" >> Makefile
+    echo "# ------------------" >> Makefile
 fi
 
 cat >> Makefile << EOF
@@ -95,10 +97,9 @@ topdir:=$TOPDIR
 gendir:=$GENDIR
 prefix:=$PREFIX
 target:=$TARGET
-hstdir:=$SYSDIR
 CROSS:=$CROSS
 CC:=$CROSS$CC
 LD:=$CROSS$LD
 LDC:=$CROSS$CC
-include $TOPDIR/Makefile
+include \${topdir}/Makefile
 EOF

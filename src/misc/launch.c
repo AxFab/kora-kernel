@@ -62,54 +62,6 @@ extern tty_t *slog;
 void wmgr_main();
 
 
-void kernel_master()
-{
-    // Read kernel command, load modules and mount correct device
-    inode_t *dev;
-    for (;;) {
-        dev = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "sdC", NULL);
-        if (dev != NULL)
-            break;
-        kprintf(-1, "Looking for 'sdC' !\n");
-        sys_sleep(MSEC_TO_KTIME(1000));
-    }
-
-    // vfs_mount(root, "dev", NULL, "devfs");
-    // vfs_mount(root, "tmp", NULL, "tmpfs");
-
-    // Look for home file system
-    inode_t *root;
-    for (;;) {
-        root = vfs_mount("sdC", "isofs", "cdrom");
-        if (root != NULL)
-            break;
-        kprintf(-1, "Waiting for 'sdC' volume !\n");
-        sys_sleep(MSEC_TO_KTIME(1000));
-    }
-
-    if (root == NULL) {
-        kprintf(-1, "Expected mount point over 'sdC' !\n");
-        sys_exit(0, 0);
-    }
-
-    resx_fs_chroot(kCPU.running->resx_fs, root);
-    resx_fs_chpwd(kCPU.running->resx_fs, root);
-    vfs_close(root, X_OK);
-
-    task_create(wmgr_main, NULL, "Local display");
-
-    sys_sleep(10000);
-    task_show_all();
-    kmod_dump();
-    memory_info();
-
-    // sys_sleep(1000000);
-    // mspace_display(kMMU.kspace);
-
-    for (;;)
-        sys_sleep(SEC_TO_KTIME(60));
-}
-
 void kmod_loader();
 void futex_init();
 void itimer_init();
@@ -117,10 +69,6 @@ void itimer_init();
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void exec_proc(const char **exec_args);
-
-char *init_args[3] = {
-    "krish", "-x", "-s"
-};
 
 
 /* Kernel entry point, must be reach by a single CPU */
@@ -140,7 +88,7 @@ void kernel_start()
     assert(kCPU.irq_semaphore == 1);
 
     kprintf(KLOG_MSG, "\n");
-    slog = tty_create(1024);
+    // slog = tty_create(1024);
     kprintf(KLOG_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
 
     // kprintf(KLOG_IRQ, "Kernel start, on CPU%d, stack %p.\n", cpu_no(), ALIGN_UP((size_t)&i, PAGE_SIZE));
@@ -155,9 +103,8 @@ void kernel_start()
     kSYS.init_fs = rxfs_create(kSYS.dev_ino);
     task_create(kmod_loader, NULL, "Kernel loader #1");
     // task_create(kmod_loader, NULL, "Kernel loader #2");
-    // task_create(kernel_master, NULL, "Master");
 
-    task_create(exec_init, init_args, "Init");
+    task_create(exec_init, NULL, "Init");
 
     clock_init();
     assert(kCPU.irq_semaphore == 1);
@@ -176,6 +123,7 @@ void kernel_ready()
     assert(kCPU.irq_semaphore == 1);
     */
     //PIT_set_interval(CLOCK_HZ);
+    kprintf(KLOG_MSG, "\033[32mCpu %d is waiting...\033[0m\n", cpu_no());
     for (;;);
     irq_reset(false);
 }

@@ -85,8 +85,8 @@ struct ino_ops {
     // All
     int(*fcntl)(inode_t *ino, int cmd, void *params);
     int(*close)(inode_t *ino);
-    void (*zero_reader)(inode_t*ino);
-    void (*zero_writer)(inode_t*ino);
+    void (*zero_reader)(inode_t *ino);
+    void (*zero_writer)(inode_t *ino);
     // Mapping
     page_t(*fetch)(inode_t *ino, off_t off);
     void(*sync)(inode_t *ino, off_t off, page_t pg);

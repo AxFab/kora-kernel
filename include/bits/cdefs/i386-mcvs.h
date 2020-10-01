@@ -25,7 +25,7 @@
 #define thread_local __declspec(thread)
 #define unlikely(c) c
 #define likely(c) c
-#define restrict 
+#define restrict
 
 #define PAGE_SIZE  4096
 #define WORDSIZE 32

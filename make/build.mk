@@ -16,6 +16,8 @@
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #  This makefile is generic.
 #
+all: deliveries
+
 define fn_objs
 	$(patsubst $(topdir)/%.c,$(outdir)/%.o,$(patsubst $(topdir)/%.$(ASM_EXT),$(outdir)/%.o,$($(1))))
 endef
@@ -75,5 +77,5 @@ $(prefix)/bin/%: $(bindir)/%
 	$(V) $(INSTALL) $< $@
 
 
-.PHONY: clean
 
+.PHONY: all clean deliveries

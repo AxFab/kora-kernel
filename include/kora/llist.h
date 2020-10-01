@@ -71,8 +71,8 @@ struct llnode {
 /* Push an element at the front of a linked list */
 static inline void ll_push_front(llhead_t *list, llnode_t *node)
 {
-    assert(node->prev_ == NULL);
-    assert(node->next_ == NULL);
+    // assert(node->prev_ == NULL);
+    // assert(node->next_ == NULL);
 
     node->next_ = list->first_;
     if (list->first_ != NULL)
@@ -89,8 +89,8 @@ static inline void ll_push_front(llhead_t *list, llnode_t *node)
 /* Push an element at the end of a linked list */
 static inline void ll_push_back(llhead_t *list, llnode_t *node)
 {
-    assert(node->prev_ == NULL);
-    assert(node->next_ == NULL);
+    // assert(node->prev_ == NULL);
+    // assert(node->next_ == NULL);
 
     node->prev_ = list->last_;
     if (list->last_ != NULL)

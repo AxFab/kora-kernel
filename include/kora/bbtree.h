@@ -52,7 +52,7 @@ struct bbnode {
     int level_;
 };
 
-LIBAPI void bbtree_init(bbtree_t* tree);
+LIBAPI void bbtree_init(bbtree_t *tree);
 LIBAPI int bbtree_check(bbnode_t *node);
 LIBAPI int bbtree_insert(bbtree_t *tree, bbnode_t *node);
 LIBAPI int bbtree_remove(bbtree_t *tree, size_t value);

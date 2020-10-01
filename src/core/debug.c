@@ -122,11 +122,16 @@ void kdump(const void *buf, int len)
 
 
 /* Store in a temporary buffer a size in bytes in a human-friendly format. */
-char *sztoa_r(size_t number, char *sz_format)
+char *sztoa_r(__int64_t number, char *sz_format)
 {
     static const char *prefix[] = { "bs", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb" };
     int k = 0;
     int rest = 0;
+
+    if (number < 0) {
+        snprintf(sz_format, 20, "Error");
+        return sz_format;
+    }
 
     while (number > 1024) {
         k++;
@@ -158,7 +163,7 @@ char *sztoa_r(size_t number, char *sz_format)
 }
 
 /* Store in a temporary buffer a size in bytes in a human-friendly format. */
-char *sztoa(size_t number)
+char *sztoa(__int64_t number)
 {
     static char sz_format[20];
     return sztoa_r(number, sz_format);
