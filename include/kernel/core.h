@@ -40,8 +40,8 @@ typedef const char *CSTR;
 void *kalloc(size_t size);
 void kfree(void *ptr);
 void kprintf(int log, const char *msg, ...);
-char *sztoa(size_t lg);
-char *sztoa_r(size_t number, char *sz_format);
+char *sztoa(__int64_t lg);
+char *sztoa_r(__int64_t number, char *sz_format);
 void *kmap(size_t length, void *ino, size_t offset, unsigned flags);
 void kunmap(void *address, size_t length);
 _Noreturn void kpanic(const char *ms, ...);
@@ -78,8 +78,6 @@ __STDI void free(void *ptr);
 const char *ksymbol(void *eip, char *buf, int lg);
 void stackdump(size_t frame);
 void kdump(const void *buf, int len);
-/* Store in a temporary buffer a size in bytes in a human-friendly format. */
-char *sztoa(size_t number);
 uint32_t crc32(const void *buf, size_t len);
 
 

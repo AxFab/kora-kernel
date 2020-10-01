@@ -172,6 +172,9 @@ long sys_stop(unsigned tid, int status)
 /* Kill all the thread of the current process */
 long sys_exit(int status, int tid)
 {
+    if (status != 0)
+        stackdump(24);
+
     if (tid < 0)
         return sys_stop(0, status);
     else if (tid == 0) {
@@ -242,10 +245,10 @@ long sys_write(int fd, const char *buf, int len)
 {
     if (check_buffer(buf, len))
         return -1;
-    if (fd == 1)
-        kprintf(-1, "USR #%d.1 - %s\n", kCPU.running->pid, buf);
-    else if (fd == 2)
-        kprintf(-1, "USR #%d.2 - %s\n", kCPU.running->pid, buf);
+    // if (fd == 1)
+    //     kprintf(-1, "USR #%d.1 - %s\n", kCPU.running->pid, buf);
+    // else if (fd == 2)
+    //     kprintf(-1, "USR #%d.2 - %s\n", kCPU.running->pid, buf);
     resx_t *resx = kCPU.running->resx;
     stream_t *stream = resx_get(resx, fd);
     if (stream == NULL) {
@@ -371,7 +374,7 @@ long sys_readdir(int fd, char *buf, int len)
         inode_t *ino = vfs_readdir(stream->ino, name, stream->ctx);
         if (ino == NULL)
             break; // TODO -- check for errors !
-        struct dirent *entry = (void*)buf;
+        struct dirent *entry = (void *)buf;
         entry->d_ino = ino->no;
         entry->d_off = stream->off;
         entry->d_reclen = sizeof(struct dirent);
@@ -386,6 +389,34 @@ long sys_readdir(int fd, char *buf, int len)
 
 
 // lseek
+long sys_seek(int fd, off_t offset, int whence)
+{
+    resx_t *resx = kCPU.running->resx;
+    stream_t *stream = resx_get(resx, fd);
+    if (stream == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    if (stream->ino->type != FL_REG) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (whence == 0) {
+        stream->off = offset;
+    } else if (whence == 1) {
+        stream->off += offset;
+    } else if (whence == 2) {
+        stream->off = stream->ino->length - offset;
+    } else {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return stream->off;
+}
+
 // sync
 // umask
 

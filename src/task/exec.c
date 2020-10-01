@@ -16,9 +16,9 @@ void exec_kloader()
 
 void exec_init()
 {
-    char *execname = "krish";
+    char *execname = "winmgr";
     char *exec_args[] = {
-        "krish", "-x", "-s", NULL
+        execname, "-x", "-s", NULL
     };
 
     task_t *task = kCPU.running;
@@ -103,7 +103,7 @@ void exec_init()
     args[2] = (size_t)argv;
     args[3] = 0;
 
-    // kprintf(-1, "%s: start:%p, stack:%p\n", execname, start, stack);
+    kprintf(-1, "Usermode for '%s(%d)', start:%p, stack:%p\n", execname, task->pid, start, stack);
     irq_reset(false);
 
     cpu_tss(task);

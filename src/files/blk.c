@@ -206,7 +206,7 @@ void blk_release(blk_cache_t *cache, off_t off, page_t pg)
 int blk_read(inode_t *ino, char *buf, size_t len, int flags, off_t off)
 {
     if (off >= ino->length && ino->length != 0)
-        return 0;
+        return -1;
     off_t poff = -1;
     char *map = NULL;
     int bytes = 0;
@@ -237,7 +237,7 @@ int blk_read(inode_t *ino, char *buf, size_t len, int flags, off_t off)
 int blk_write(inode_t *ino, const char *buf, size_t len, int flags, off_t off)
 {
     if (off >= ino->length && ino->length != 0)
-        return 0;
+        return -1;
     off_t poff = -1;
     char *map = NULL;
     int bytes = 0;

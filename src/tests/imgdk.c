@@ -67,6 +67,8 @@ ino_ops_t imgdk_ino_ops = {
     .fetch = imgdk_fetch,
     .sync = imgdk_sync,
     .release = imgdk_release,
+    .read = blk_read,
+    .write = blk_write,
 };
 
 ino_ops_t vhd_ino_ops = {
@@ -77,7 +79,7 @@ ino_ops_t vhd_ino_ops = {
 };
 
 dev_ops_t imgdk_dev_ops = {
-    .ioctl = (void*)imgdk_ioctl,
+    .ioctl = (void *)imgdk_ioctl,
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -164,15 +166,16 @@ int imgdk_open(const char *path, const char *name)
     ino->ops = &imgdk_ino_ops;
     ino->dev->ops = &imgdk_dev_ops;
 
-    if (strcmp(strrchr(path, '.'), ".img") == 0) {
+    if (strcmp(strrchr(path, '.'), ".img") == 0)
         ino->dev->block = 512;
-    } else if (strcmp(strrchr(path, '.'), ".iso") == 0) {
+    else if (strcmp(strrchr(path, '.'), ".iso") == 0) {
         ino->dev->block = 2048;
         ino->dev->flags = VFS_RDONLY;
     } else if (strcmp(strrchr(path, '.'), ".vhd") == 0) {
         ino->dev->block = 512;
 
         struct footer_vhd footer;
+        // Might be of size 511 only (like what the fuck !!!)
         size_t pos = lseek(fd, -512, SEEK_END);
         read(fd, &footer, sizeof(footer));
 
@@ -187,7 +190,7 @@ int imgdk_open(const char *path, const char *name)
         footer.cylinders = __swap16(footer.cylinders);
         footer.type = __swap32(footer.type);
         memcpy(ino->dev->id, footer.uuid, 16);
-
+        // if offset == 0xFFFFFFFF => Fixed disk !!!
         // Build Vendor string
         char vname[5];
         memcpy(vname, footer.creator_app, 4);
@@ -198,6 +201,7 @@ int imgdk_open(const char *path, const char *name)
         char vendor[64];
         snprintf(vendor, 64, "%s_%d.%d", vname, footer.creator_vers_maj, footer.creator_vers_min);
         ino->dev->vendor = strdup(vendor);
+        // Check cookie and checksum
 
         if (footer.type == 2) {
             ino->dev->model = strdup("VHD-Fixed");
@@ -211,12 +215,14 @@ int imgdk_open(const char *path, const char *name)
             size_t pos = lseek(fd, footer.offset, SEEK_SET);
             read(fd, &header, sizeof(header));
 
+            // Check cookie and checksum
+
             header.data_off = __swap64(header.data_off);
             header.table_off = __swap64(header.table_off);
             header.vers_maj = __swap16(header.vers_maj);
             header.vers_min = __swap16(header.vers_min);
             header.entries_count = __swap32(header.entries_count);
-            header.block_size = __swap32(header.block_size);
+            header.block_size = __swap32(header.block_size); // Should be 2 Mb !
 
             struct vhd_info *info = malloc(sizeof(struct vhd_info));
             ino->info = info;
@@ -330,9 +336,9 @@ int vhd_read(inode_t *ino, void *data, size_t size, off_t offset)
         lseek(fd, bat_off, SEEK_SET);
         read(fd, &bat_val, 4);
         size_t avail = MIN(size, info->block_size - offset % info->block_size);
-        if (bat_val == ~0) {
+        if (bat_val == ~0)
             memset(data, 0, avail);
-        } else {
+        else {
             size_t dk_off = bat_val * 512 + 512 + offset % info->block_size;
             lseek(fd, dk_off, SEEK_SET);
             read(fd, data, avail);
@@ -413,9 +419,8 @@ void imgdk_create(CSTR name, size_t size)
 uint32_t vhd_checksum(char *buf, int len)
 {
     uint32_t checksum = 0;
-    for (int i = 0; i < len; ++i) {
+    for (int i = 0; i < len; ++i)
         checksum += buf[i];
-    }
     return __swap32(~checksum);
 }
 
@@ -432,7 +437,7 @@ void vhd_create_dyn(CSTR name, size_t size)
     for (i = 0; i < cnt; ++i)
         write(fd, buf, 512);
 
-    struct footer_vhd *footer = (void*)&buf;
+    struct footer_vhd *footer = (void *)&buf;
 
     int sectors = MIN(size / 512, 65535 * 16 * 255);
     memset(buf, 0, 512);
@@ -479,7 +484,7 @@ void vhd_create_dyn(CSTR name, size_t size)
     write(fd, buf, 512);
     lseek(fd, 512, SEEK_SET);
 
-    struct header_vhd *header = (void*)&buf;
+    struct header_vhd *header = (void *)&buf;
 
     memset(buf, 0, 512);
     memcpy(header->cookie, "cxsparse", 8);

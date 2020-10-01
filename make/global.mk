@@ -50,12 +50,14 @@ LDC ?= $(CC)
 LDCX ?= $(CXX)
 NM ?= nm
 INSTALL ?= install
+PKC ?= pkg-config
 
 ASM_EXT := s
 
 DATE := $(shell date '+%Y-%m-%d')
 GIT_H := $(shell git --git-dir=$(topdir)/.git rev-parse --short HEAD 2> /dev/null)$(shell if [ -n "$(git --git-dir=$(topdir)/.git status -suno)"]; then echo '+'; fi)
 GIT_V := $(shell git --git-dir=$(topdir)/.git describe 2> /dev/null)
+VERSION ?= $(GIT_V:v=)
 
 # A V O I D   D E P E N D E N C Y -=-=-=-=-=-=-=-=-=-=-=-
 ifeq ($(shell [ -d $(outdir) ] || echo N ),N)

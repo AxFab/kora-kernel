@@ -25,14 +25,37 @@
 /*
  * Keyboard state flags
  */
-#define KDB_SCROLL_LOCK   (1 << 0)
-#define KDB_NUM_LOCK      (1 << 1)
-#define KDB_CAPS_LOCK     (1 << 2)
-#define KDB_SHIFT         (1 << 3)
-#define KDB_ALTGR         (1 << 4)
-#define KDB_ALT           (1 << 5)
-#define KDB_CTRL          (1 << 6)
-#define KDB_HOST          (1 << 7)
+typedef enum {
+    KMOD_NONE = 0x000,
+    KMOD_LSHIFT = 0x001,
+    KMOD_RSHIFT = 0x002,
+    KMOD_LCTRL = 0x004,
+    KMOD_RCTRL = 0x008,
+    KMOD_LALT = 0x010,
+    KMOD_RALT = 0x020,
+    KMOD_ALTGR = KMOD_RALT,
+    KMOD_LGUI = 0x040,
+    KMOD_RGUI = 0x080,
+    KMOD_NUM = 0x100,
+    KMOD_CAPS = 0x200,
+    KMOD_HOST = KMOD_LGUI,
+    KMOD_SCROLL = 0x1000,
+} keymod_t;
+
+#define KMOD_CTRL   (KMOD_LCTRL|KMOD_RCTRL)
+#define KMOD_SHIFT  (KMOD_LSHIFT|KMOD_RSHIFT)
+#define KMOD_ALT    (KMOD_LALT|KMOD_RALT)
+#define KMOD_GUI    (KMOD_LGUI|KMOD_RGUI)
+
+
+#define KDB_SCROLL_LOCK   KMOD_SCROLL
+#define KDB_NUM_LOCK      KMOD_NUM
+#define KDB_CAPS_LOCK     KMOD_CAPS
+#define KDB_SHIFT         KMOD_SHIFT
+#define KDB_ALTGR         KMOD_RALT
+#define KDB_ALT           KMOD_LALT
+#define KDB_CTRL          KMOD_CTRL
+#define KDB_HOST          KMOD_HOST
 
 
 /*
@@ -45,12 +68,12 @@ enum gfx_event {
     GFX_EV_BTNDOWN,
     GFX_EV_KEYUP,
     GFX_EV_KEYDOWN,
+    GFX_EV_KEYPRESS,
     GFX_EV_MOUSEWHEEL,
     GFX_EV_TIMER,
     GFX_EV_RESIZE,
     GFX_EV_PAINT,
-    GFX_EV_UNICODE,
-    GFX_EV_DELAY = 128,
+    GFX_EV_DELAY = 127,
 };
 
 typedef struct event evmsg_t;

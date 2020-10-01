@@ -135,6 +135,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
     for ll_each(&dlib->depends, dep, dyndep_t, node) {
         inode_t *ino = dlib_lookfor(proc, proc->pwd, dep->name, "LD_LIBRARY_PATH", "/usr/lib:/lib");
         if (ino == NULL) {
+            kprintf(-1, "\033[31mMissing library %s\033[0m\n", dep->name);
             // TODO - Missing library!
             errno = ENOENT;
             return -1;

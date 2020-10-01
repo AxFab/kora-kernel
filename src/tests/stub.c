@@ -12,6 +12,11 @@ struct kSys kSYS;
 thread_local int __cpu_no = 0;
 atomic_int __cpu_inc = 1;
 
+void cpu_init()
+{
+    kSYS.cpus = kalloc(sizeof(struct kCpu) * 12);
+}
+
 void cpu_setup()
 {
     __cpu_no = atomic_fetch_add(&__cpu_inc, 1);
@@ -31,7 +36,7 @@ int cpu_no()
 
 int *__errno_location()
 {
-    return &kCPU.err_no;
+    return &errno;
 }
 
 const char *ksymbol(void *ip, char *buf, int lg)
@@ -100,9 +105,9 @@ void *kmap(size_t len, void *ino, size_t off, unsigned flags)
     void *ptr = _valloc(len);
     char *buf = ptr;
     while (len > 0) {
-        page_t pg = ((inode_t*)ino)->ops->fetch(ino, off);
-        memcpy(buf, (void*)pg, PAGE_SIZE);
-        ((inode_t*)ino)->ops->release(ino, off, pg);
+        page_t pg = ((inode_t *)ino)->ops->fetch(ino, off);
+        memcpy(buf, (void *)pg, PAGE_SIZE);
+        ((inode_t *)ino)->ops->release(ino, off, pg);
         len -= PAGE_SIZE;
         buf += PAGE_SIZE;
         off += PAGE_SIZE;
@@ -131,7 +136,6 @@ void kprintf(int log, const char *msg, ...)
 
 void futex_tick() {}
 void futex_init() {}
-
 
 
 // page_t mmu_read(size_t address)

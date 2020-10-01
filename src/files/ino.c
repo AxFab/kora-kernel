@@ -43,7 +43,7 @@ int pipe_write_ino(inode_t *ino, const char *buf, size_t len, int flags)
     return pipe_write((pipe_t *) ino->info, buf, len, flags);
 }
 
-void pipe_zero_writer(inode_t* ino)
+void pipe_zero_writer(inode_t *ino)
 {
     pipe_t *pipe = ino->info;
     pipe_hangup(pipe);

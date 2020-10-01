@@ -106,6 +106,8 @@ pipe_t *pipe_create()
     pipe->wpen = pipe->base;
     pipe->end = pipe->base + pipe->size;
     mtx_init(&pipe->mutex, mtx_plain);
+    cnd_init(&pipe->wr_cond);
+    cnd_init(&pipe->rd_cond);
     return pipe;
 }
 
@@ -139,7 +141,7 @@ int pipe_reset(pipe_t *pipe)
 }
 
 
-void pipe_hangup(pipe_t* pipe)
+void pipe_hangup(pipe_t *pipe)
 {
     pipe->hangup = true;
     cnd_broadcast(&pipe->rd_cond);
