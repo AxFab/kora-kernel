@@ -37,6 +37,7 @@
 
 typedef struct ISOFS_entry ISOFS_entry_t;
 typedef struct ISOFS_descriptor ISOFS_descriptor_t;
+typedef struct ISOFS_entry_extra ISOFS_entry_extra_t;
 
 #define ISOFS_nextEntry(e)  ((ISOFS_entry_t*)&(((char*)(e))[(e)->lengthRecord]));
 
@@ -62,6 +63,25 @@ PACK(struct ISOFS_entry {
     short volSeqNumBE;
     char lengthFileId;
     char fileId[1];
+});
+
+// Can't find on the spec, only way to get the filename !
+PACK(struct ISOFS_entry_extra {
+    uint16_t pm; // 50 58  (PX)
+    uint16_t r[21]; //
+    // __ __ 24 01 6D 81 00 00 00 00 81 6D 01 00 00 00
+    // 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00
+    // 00 00 00 00 54 46 1A 01 0E 78 09 01
+    uint16_t v[2]; // Changing...
+    // 16 17 01 00
+    // 16 32 19 00
+
+    uint32_t r2[4];
+    // 78 09 01 16 33 2E 00 78 09 01 16 33 2E 00 4E 4D
+    uint8_t r3[3]; // Changing...
+    // 13 01 00
+    // 0E 01 00
+    uint8_t filename[1];
 });
 
 

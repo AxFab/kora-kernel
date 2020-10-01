@@ -165,8 +165,8 @@ typedef struct FAT_diterator  FAT_diterator_t;
 void fatfs_umount(device_t *vol);
 
 int fatfs_truncate(inode_t *ino, off_t length);
-int fatfs_read (inode_t *ino, void *buffer, size_t length, off_t offset);
-int fatfs_write (inode_t *ino, const void *buffer, size_t length, off_t offset) ;
+int fatfs_read(inode_t *ino, void *buffer, size_t length, off_t offset);
+int fatfs_write(inode_t *ino, const void *buffer, size_t length, off_t offset) ;
 page_t fatfs_fetch(inode_t *ino, off_t off) ;
 void fatfs_sync(inode_t *ino, off_t off, page_t pg) ;
 void fatfs_release(inode_t *ino, off_t off, page_t pg);

@@ -41,6 +41,8 @@ ino_ops_t iso_reg_ops = {
     .close = isofs_close,
     .fetch = isofs_fetch,
     .release = isofs_release,
+    .read = blk_read,
+    .write = blk_write,
 };
 
 ino_ops_t iso_dir_ops = {
@@ -49,7 +51,6 @@ ino_ops_t iso_dir_ops = {
     .readdir = (void *)isofs_readdir,
     .closedir = (void *)isofs_closedir,
 };
-
 
 
 /* Copy the filename read from a directory entry */
@@ -63,6 +64,18 @@ static void isofs_filename(ISOFS_entry_t *entry, char *name)
 
         else
             name[entry->lengthFileId - 2] = '\0';
+    }
+
+    // Freaky wierd filename read, retro-enginered, not described on specs.
+    ISOFS_entry_extra_t *ex = (void *)ALIGN_UP((size_t)entry->fileId + entry->lengthFileId, 2);
+    if (ex->pm == 0x5850) {
+        int mlen = entry->lengthRecord - sizeof(ISOFS_entry_t) + 1 - entry->lengthFileId - sizeof(ISOFS_entry_extra_t) + 1;
+        if (mlen > 0) {
+            if ((entry->lengthFileId % 2) == 0)
+                mlen--;
+            memcpy(name, ex->filename, mlen);
+            name[mlen] = '\0';
+        }
     }
 }
 
@@ -80,7 +93,7 @@ static inode_t *isofs_inode(device_t *volume, ISOFS_entry_t *entry)
     tm.tm_hour = entry->recordHour;
     tm.tm_min = entry->recordMinute;
     tm.tm_sec = entry->recordSecond;
-    ino->ctime = mktime(&tm) * _PwNano_;
+    ino->ctime = SEC_TO_USEC(mktime(&tm));
     ino->btime = ino->ctime;
     ino->atime = ino->ctime;
     ino->mtime = ino->ctime;
@@ -109,6 +122,7 @@ int isofs_close(inode_t *ino)
 ISO_dirctx_t *isofs_opendir(inode_t *dir)
 {
     ISO_dirctx_t *ctx = (ISO_dirctx_t *)kalloc(sizeof(ISO_dirctx_t));
+    ctx->lba = dir->lba;
     errno = 0;
     return ctx;
 }
@@ -134,51 +148,49 @@ inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
         return NULL;
     }
 
+    char *filename = kalloc(256);
+    int maxlba = dir->lba + dir->length / ISOFS_SECTOR_SIZE;
     int lba = dir->lba;
     struct ISO_info *info = (struct ISO_info *)dir->dev->info;
-    uint8_t *address = bio_access(info->io, lba);
-    // kmap(8192, dir->dev->underlying, lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
 
-    /* Skip the first two entries */
-    ISOFS_entry_t *entry = (ISOFS_entry_t *)address;
-    entry = ISOFS_nextEntry(entry); /* Directory '.' */
-    entry = ISOFS_nextEntry(entry); /* Directory '..' */
-
-    char *filename = (char *)kalloc(FILENAME_MAX);
-    while (entry->lengthRecord) {
-
-        /* Copy and fix filename */
-        isofs_filename(entry, filename);
-
-        /* Compare filenames */
-        if (strcmp(name, filename) == 0) {
-            inode_t *ino = isofs_inode(dir->dev, entry);
-            bio_clean(info->io, lba);
-            // kunmap(address, 8192);
-            kfree(filename);
-            errno = 0;
-            return ino;
-        }
-
-        /* Move pointer to next entry, eventualy continue directory mapping. */
-        entry = ISOFS_nextEntry(entry);
-        bool remap = (size_t)entry >= (size_t)address + PAGE_SIZE;
-        if (!remap)
-            remap = (size_t)entry + entry->lengthRecord > (size_t)address + 2 * ISOFS_SECTOR_SIZE;
-
-        if (remap) {
-            size_t off = (size_t)entry - (size_t)address - ISOFS_SECTOR_SIZE;
-            bio_clean(info->io, lba);
-            lba += 2;
-            // kunmap(address, 8192);
+    size_t off = 0;
+    uint8_t* address = NULL;
+    while (lba < maxlba) {
+        if (address == NULL)
             address = bio_access(info->io, lba);
-            // address = kmap(8192, dir->dev->dev, lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO);
-            entry = (ISOFS_entry_t *)((size_t)address + off);
+        ISOFS_entry_t* entry = (ISOFS_entry_t*)(&address[off]);
+        while (entry->lengthRecord) {
+            isofs_filename(entry, filename);
+
+            if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0 || filename[0] < 0x20) {
+                entry = ISOFS_nextEntry(entry);
+                off = (size_t)entry - (size_t)address;
+                continue;
+            }
+
+            /* Compare filenames */
+            if (strcmp(name, filename) == 0) {
+                inode_t *ino = isofs_inode(dir->dev, entry);
+                bio_clean(info->io, lba);
+                kfree(filename);
+                errno = 0;
+                return ino;
+            }
+
+            /* Move pointer to next entry, eventualy continue directory mapping. */
+            entry = ISOFS_nextEntry(entry);
+            off = (size_t)entry - (size_t)address;
+            if (off > ISOFS_SECTOR_SIZE) {
+                break;
+            }
         }
+
+        bio_clean(info->io, lba);
+        off = 0;
+        lba++;
+        address = NULL;
     }
 
-    bio_clean(info->io, lba);
-    // kunmap(address, 8192);
     kfree(filename);
 
     if (flags & VFS_CREAT) {
@@ -193,39 +205,40 @@ inode_t *isofs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags
 inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx)
 {
     struct ISO_info *info = (struct ISO_info *)dir->dev->info;
-    if (ctx->lba == 0)
-        ctx->lba = dir->lba;
-    if (ctx->base == NULL)
-        ctx->base = bio_access(info->io, ctx->lba);
-    // ctx->base = kmap(8192, dir->dev->dev, ctx->lba * ISOFS_SECTOR_SIZE, VMA_FILE_RO); // TODO - NOT ALIGNED !!
+    int maxlba = dir->lba + dir->length / ISOFS_SECTOR_SIZE;
 
-    /* Skip the first two entries */
-    ISOFS_entry_t *entry = (ISOFS_entry_t *)(&ctx->base[ctx->off]);
-    while (entry->lengthRecord) {
-        isofs_filename(entry, name);
-        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0 || name[0] < 0x20) {
+    while (ctx->lba < maxlba) {
+        if (ctx->base == NULL)
+            ctx->base = bio_access(info->io, ctx->lba);
+        ISOFS_entry_t *entry = (ISOFS_entry_t *)(&ctx->base[ctx->off]);
+        while (entry->lengthRecord) {
+            isofs_filename(entry, name);
+
+            if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0 || name[0] < 0x20) {
+                entry = ISOFS_nextEntry(entry);
+                ctx->off += (size_t)entry - (size_t)ctx->base;
+                continue;
+            }
+            inode_t* ino = isofs_inode(dir->dev, entry);
+
+            /* Move pointer to next entry, eventualy continue directory mapping. */
             entry = ISOFS_nextEntry(entry);
-            continue;
-        }
-        inode_t *ino = isofs_inode(dir->dev, entry);
+            ctx->off = (size_t)entry - (size_t)ctx->base;
+            if (ctx->off > ISOFS_SECTOR_SIZE) {
+                bio_clean(info->io, ctx->lba);
+                ctx->off = 0;
+                ctx->lba++;
+                ctx->base = NULL;
+            }
 
-        /* Move pointer to next entry, eventualy continue directory mapping. */
-        entry = ISOFS_nextEntry(entry);
-        bool remap = (size_t)entry >= (size_t)ctx->base + 2 * ISOFS_SECTOR_SIZE;
-        if (!remap)
-            remap = (size_t)entry + entry->lengthRecord > (size_t)ctx->base + 2 * ISOFS_SECTOR_SIZE;
-
-        ctx->off = (size_t)entry - (size_t)ctx->base;
-        if (remap) {
-            ctx->off -= ISOFS_SECTOR_SIZE;
-            bio_clean(info->io, ctx->lba);
-            // kunmap(ctx->base, 8192);
-            ctx->lba ++;
-            ctx->base = NULL;
+            errno = 0;
+            return ino;
         }
 
-        errno = 0;
-        return ino;
+        bio_clean(info->io, ctx->lba);
+        ctx->off = 0;
+        ctx->lba++;
+        ctx->base = NULL;
     }
 
     errno = 0;
@@ -345,11 +358,13 @@ int isofs_umount(inode_t *ino)
 void isofs_setup()
 {
     register_fs("isofs", (fs_mount)isofs_mount);
+    register_fs("iso", (fs_mount)isofs_mount);
 }
 
 void isofs_teardown()
 {
     unregister_fs("isofs");
+    unregister_fs("iso");
 }
 
 MODULE(isofs, isofs_setup, isofs_teardown);
