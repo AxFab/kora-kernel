@@ -17,9 +17,9 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include "mspace.h"
-#include <kernel/cpu.h>
-#include <kernel/vfs.h>
+#include <kernel/memory.h>
+// #include <kernel/cpu.h>
+// #include <kernel/vfs.h>
 #include <kora/mcrs.h>
 #include <assert.h>
 #include <errno.h>
@@ -44,6 +44,9 @@ void memory_initialize()
 
     /* Enable MMU */
     mmu_enable();
+
+    char tmp[20];
+    kprintf(KL_MSG, "Memory available %s\n", sztoa_r(kMMU.pages_amount * PAGE_SIZE, tmp));
 }
 
 void memory_sweep()
@@ -54,11 +57,11 @@ void memory_sweep()
 
 void memory_info()
 {
-    kprintf(KLOG_DBG, "MemTotal:      %s\n", sztoa(kMMU.upper_physical_page * PAGE_SIZE));
-    kprintf(KLOG_DBG, "MemFree:       %s\n", sztoa(kMMU.free_pages * PAGE_SIZE));
-    kprintf(KLOG_DBG, "MemAvailable:  %s\n", sztoa(kMMU.pages_amount * PAGE_SIZE));
-    kprintf(KLOG_DBG, "MemDetected:   %s\n", sztoa(kMMU.upper_physical_page * PAGE_SIZE));
-    kprintf(KLOG_DBG, "MemUsed:       %s\n", sztoa((kMMU.pages_amount - kMMU.free_pages) * PAGE_SIZE));
+    kprintf(KL_DBG, "MemTotal:      %9s\n", sztoa(kMMU.upper_physical_page * PAGE_SIZE));
+    kprintf(KL_DBG, "MemFree:       %9s\n", sztoa(kMMU.free_pages * PAGE_SIZE));
+    kprintf(KL_DBG, "MemAvailable:  %9s\n", sztoa(kMMU.pages_amount * PAGE_SIZE));
+    kprintf(KL_DBG, "MemDetected:   %9s\n", sztoa(kMMU.upper_physical_page * PAGE_SIZE));
+    kprintf(KL_DBG, "MemUsed:       %9s\n", sztoa((kMMU.pages_amount - kMMU.free_pages) * PAGE_SIZE));
 }
 
 // Buffers:           53664 kB

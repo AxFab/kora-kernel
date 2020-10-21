@@ -20,11 +20,18 @@
 #ifndef _KERNEL_DLIB_H
 #define _KERNEL_DLIB_H 1
 
-#include <kernel/core.h>
 #include <stddef.h>
 #include <kora/mcrs.h>
 #include <kora/hmap.h>
-#include <kernel/task.h>
+#include <kora/llist.h>
+#include <kernel/vfs.h>
+#include <kernel/memory.h>
+
+typedef struct dynsym dynsym_t;
+typedef struct dynlib dynlib_t;
+typedef struct dyndep dyndep_t;
+typedef struct dynsec dynsec_t;
+typedef struct dynrel dynrel_t;
 
 #define R_386_32 1
 #define R_386_PC32 2
@@ -88,32 +95,32 @@ struct dynlib {
 
 
 typedef struct process process_t;
+typedef struct proc proc_t;
 struct process {
     llhead_t stage1;
     llhead_t stage2;
     llhead_t stage3;
     llhead_t libraries;
-    inode_t **paths;
+    fsnode_t **paths;
     int path_sz;
-    HMP_map symbols;
+    hmap_t symbols;
 };
 
 struct proc {
     dynlib_t exec;
-    HMP_map symbols;
-    HMP_map libs_map;
+    hmap_t symbols;
+    hmap_t libs_map;
     llhead_t queue;
     llhead_t libraries;
     mspace_t *mspace;
     char *execname;
-    inode_t *root;
-    inode_t *pwd;
-    acl_t *acl;
+    vfs_t *fs;
+    void *acl;
     char *env;
     bool req_set_uid;
 };
 
-proc_t *dlib_process(resx_fs_t *fs, mspace_t *mspace);
+proc_t *dlib_process(vfs_t *fs, mspace_t *mspace);
 bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib);
 void dlib_destroy(dynlib_t *lib);
 void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib);

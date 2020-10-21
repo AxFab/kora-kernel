@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
 #include "acpi.h"
 #include "hpet.h"
 
@@ -32,19 +32,19 @@ int hpet_setup()
     if (hpet_mmio == 0)
         return -1;
 
-    kprintf(KLOG_ERR, "HPET mmio at %x\n", hpet_mmio);
+    kprintf(KL_ERR, "HPET mmio at %x\n", hpet_mmio);
     // kdump(rstb, rstb->length);
-    hpet_regs_t *regs = kmap(PAGE_SIZE, NULL, hpet_mmio, VMA_PHYSIQ);
+    hpet_regs_t *regs = kmap(PAGE_SIZE, NULL, hpet_mmio, VM_PHYSIQ);
     uint32_t period = regs->capacities >> 32;
     if (period == 0 || period > 0x5F5E100)
         return -1;
 
     // reset
-    kprintf(KLOG_ERR, "HPET, period of %d ns\n", period / 1000);
+    kprintf(KL_ERR, "HPET, period of %d ns\n", period / 1000);
     regs->config = 0;
     regs->counter = 0;
     int timers = (regs->capacities >> 8) & 0x1F;
-    kprintf(KLOG_ERR, "HPET, found %d timers\n", timers);
+    kprintf(KL_ERR, "HPET, found %d timers\n", timers);
     // Search a timer that supports periodic mode
     int i, idx = -1;
     for (i = 0; i < timers; ++i) {

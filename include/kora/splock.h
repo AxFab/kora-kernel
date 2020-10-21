@@ -47,12 +47,12 @@ static inline void splock_init(splock_t *lock)
 /* Block the cpu until the lock might be taken */
 static inline void splock_lock(splock_t *lock)
 {
-    THROW_OFF;
+    irq_disable();
     for (;;) {
         if (atomic_exchange(lock, 1) == 0)
             return;
         while (*lock != 0)
-            RELAX;
+            __asm_pause_;
     }
 }
 
@@ -60,16 +60,16 @@ static inline void splock_lock(splock_t *lock)
 static inline void splock_unlock(splock_t *lock)
 {
     atomic_store(lock, 0);
-    THROW_ON;
+    irq_enable();
 }
 
 /* Try to grab the lock but without blocking. */
 static inline bool splock_trylock(splock_t *lock)
 {
-    THROW_OFF;
+    irq_disable();
     if (atomic_exchange(lock, 1) == 0)
         return true;
-    THROW_ON;
+    irq_enable();
     return false;
 }
 

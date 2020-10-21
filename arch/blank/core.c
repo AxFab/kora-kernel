@@ -105,10 +105,10 @@ void irq_reset(bool enable)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-#define KLOG_ERR  0
+#define KL_ERR  0
 #define KLOG_WRN  1
 #define KLOG_NFO  2
-#define KLOG_DBG  3
+#define KL_DBG  3
 
 int kprintf(int log, const char *msg, ...)
 {

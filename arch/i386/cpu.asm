@@ -27,6 +27,11 @@ extern apic_regs, cpu_table
 %define UDS 0x2B
 %define USS 0x33
 
+%define TSS_BASE 0x1000
+%define TSS_SIZE 128
+%define TSS_SHIFT 7
+%define TSS_ESP0 4
+
 cpu_no:
     mov eax, [apic_regs]
     test eax, eax
@@ -53,8 +58,14 @@ cpu_save:
 
 cpu_restore:
     mov edx, [esp + 4] ; Get buffer
-    xor eax, eax
-    inc eax
+    call cpu_no
+    mov ecx, eax
+    ; Set TSS
+    shl ecx, TSS_SHIFT
+    add ecx, TSS_BASE + TSS_ESP0
+    mov eax, [edx + 24]
+    mov [ecx], eax
+
     mov ebx, [edx] ; Restore EBX
     mov esi, [edx + 4] ; Restore ESI
     mov edi, [edx + 8] ; Restore EDI
@@ -62,6 +73,9 @@ cpu_restore:
     mov ecx, [edx + 16] ; Restore ESP
     mov esp, ecx
     mov ecx, [edx + 20] ; Restore EIP
+
+    xor eax, eax
+    inc eax
     sti
     jmp ecx
 

@@ -17,9 +17,11 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/vfs.h>
+#include <kernel/memory.h>
+// #include <kernel/vfs.h>
 #include <kora/mcrs.h>
-#include "mspace.h"
+#include <kora/mcrs.h>
+// #include "mspace.h"
 #include <assert.h>
 #include <errno.h>
 
@@ -70,49 +72,65 @@ static size_t mspace_find_free(mspace_t *mspace, size_t length)
 /** Check and transfrom the flags before assign to a new VMA. */
 static int mspace_set_flags(int flags, bool is_kernel)
 {
-    int caps = (flags >> 4) & VMA_RIGHTS;
+    int caps = flags & VM_RWX;
     /* Check capabilities are set correcly */
-    if ((flags & caps) != (flags & VMA_RIGHTS))
+    if ((flags & caps) != (flags & VM_RWX))
         return 0;
     /* Forbid a map write and execute */
     // if (caps & VMA_WRITE && caps & VMA_EXEC)
     //     return 0;
     /* Flags forbidden, intern code only */
-    if (flags & VMA_COPY_ON_WRITE)
+    if (flags & VMA_COW)
         return 0;
 
-    switch (flags & VMA_TYPE) {
+    int mask = VM_RESOLVE;
+    int type = flags & VMA_TYPE;
+    if (type == 0) {
+        type = (is_kernel && flags & VM_PHYSIQ) ? VMA_PHYS : VMA_ANON;
+    }
+
+    switch (type) {
     case VMA_HEAP:
         /* Heaps are always private and RW */
-        if (caps != (VMA_READ | VMA_WRITE) || flags & VMA_SHARED)
+        if (caps != VM_RW || flags & VMA_SHARED)
             return 0;
         break;
     case VMA_STACK:
         /* Stacks are always private and RW */
-        if (caps != (VMA_READ | VMA_WRITE) || flags & VMA_SHARED)
+        if (caps != VM_RW || flags & VMA_SHARED)
             return 0;
         break;
     case VMA_PIPE:
         /* Pipes are always on kernel and RW */
-        if (caps != (VMA_READ | VMA_WRITE) || flags & VMA_SHARED || !is_kernel)
+        if (caps != VM_RW || flags & VMA_SHARED || !is_kernel)
             return 0;
         break;
     case VMA_PHYS:
         /* Physical mapping is always on kernel, can't be executed */
-        if (flags & VMA_SHARED || !is_kernel || caps & VMA_EXEC)
+        if (flags & VMA_SHARED || !is_kernel || caps & VM_EX)
             return 0;
+        mask |= VM_PHYSIQ & VM_UNCACHABLE;
         break;
     case VMA_ANON:
-        if (flags & VMA_SHARED)
+        if (flags & VMA_SHARED || caps & VM_EX)
             return 0;
         break;
     case VMA_FILE:
+        if (caps & VM_EX)
+            return 0;
         break;
+    case VMA_EXEC:
+        break; // TODO - put RWX but only RX on capability !
     default:
         return 0;
     }
 
-    return flags & 0x0FFF;
+    int nflags = (caps << 3) | caps | type | (flags & mask);
+
+    if (flags & VMA_SHARED)
+        nflags |= VMA_SHARED;
+
+    return nflags;
 }
 
 /** Utility method used to apply a change on a address interval.
@@ -121,8 +139,7 @@ static int mspace_set_flags(int flags, bool is_kernel)
  * the interval. Note that every addresses on the interval need to be
  * accessible or the function will stoy mid-way and return an error.
  */
-static int mspace_interval(mspace_t *mspace, size_t address, size_t length,
-                           int(*action)(mspace_t *, vma_t *, int), int arg)
+static int mspace_interval(mspace_t *mspace, size_t address, size_t length, int(*action)(mspace_t *, vma_t *, int), int arg)
 {
     vma_t *vma;
     assert(address >= mspace->lower_bound
@@ -175,8 +192,7 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length,
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Map a memory area inside the provided address space. */
-void *mspace_map(mspace_t *mspace, size_t address, size_t length,
-                 inode_t *ino, off_t offset, int flags)
+void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, xoff_t offset, int flags)
 {
     assert((address & (PAGE_SIZE - 1)) == 0);
     assert((length & (PAGE_SIZE - 1)) == 0);
@@ -194,7 +210,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
     /* If we have an address, check availability */
     if (address != 0) {
         if (!mspace_is_available(mspace, address, length)) {
-            if (flags & VMA_MAP_FIXED) {
+            if (flags & VMA_FIXED) {
                 splock_unlock(&mspace->lock);
                 errno = ERANGE;
                 return NULL;
@@ -215,7 +231,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length,
 
     /* Create the VMA */
     vma_t *vma = vma_create(mspace, address, length, ino, offset, vflags);
-    if (flags & VMA_RESOLVE)
+    if (flags & VM_RESOLVE)
         vma_resolve(vma, address, length);
     errno = 0;
     splock_unlock(&mspace->lock);
@@ -326,19 +342,58 @@ vma_t *mspace_search_vma(mspace_t *mspace, size_t address)
 void mspace_display(mspace_t *mspace)
 {
     splock_lock(&mspace->lock);
-    kprintf(KLOG_DBG,
+    kprintf(KL_DBG,
             "%p-%p mapped: %d KB   physical: %d KB   shared: %d KB   used: %d KB\n",
             mspace->lower_bound, mspace->upper_bound,
             mspace->v_size / 1024, mspace->p_size * 4/* / 1024*/,
             mspace->s_size / 1024, mspace->a_size / 1024);
-    kprintf(KLOG_DBG, "------------------------------------------------\n");
-    char *buf = malloc(4096);
+    kprintf(KL_DBG, "------------------------------------------------\n");
+    char *buf = kalloc(4096);
     vma_t *vma = bbtree_first(&mspace->tree, vma_t, node);
     while (vma) {
         vma_print(buf, 4096, vma);
-        kprintf(KLOG_DBG, "%s\n", buf);
+        kprintf(KL_DBG, "%s\n", buf);
         vma = bbtree_next(&vma->node, vma_t, node);
     }
     kfree(buf);
     splock_unlock(&mspace->lock);
+}
+
+
+int mspace_check(mspace_t *mspace, const void *ptr, size_t len, int flags)
+{
+    vma_t *vma = mspace_search_vma(mspace, (size_t)ptr);
+    if (vma == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (vma->node.value_ + vma->length <= (size_t)ptr + len) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if ((flags & VM_WR) && !(vma->flags & VM_WR)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return 0;
+}
+
+int mspace_check_str(mspace_t *mspace, const char *str, size_t max)
+{
+    vma_t *vma = mspace_search_vma(mspace, (size_t)str);
+    if (vma == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    max = MIN(max, vma->node.value_ + vma->length - (size_t)str);
+    if (strnlen(str, max) >= max) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return 0;
 }

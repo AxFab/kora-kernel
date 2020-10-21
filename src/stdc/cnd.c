@@ -2,7 +2,8 @@
 #include <limits.h>
 #include <stdint.h>
 #include <errno.h>
-#include <kernel/futex.h>
+#include <kernel/stdc.h>
+#include <kora/mcrs.h>
 
 /* creates a condition variable */
 int cnd_init(cnd_t *cond)
@@ -58,9 +59,9 @@ int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mutex, const struct time
             return EINVAL;
     }
 
-    utime_t start;
+    xtime_t start;
     if (time_point->tv_sec >= 0)
-        start = cpu_clock(CLOCK_MONOTONIC);
+        start = xtime_read(XTIME_CLOCK);
 
     mtx_unlock(mutex);
     futex_wait((int *)&cond->seq, seq, timeout, cond->flags);
@@ -68,8 +69,8 @@ int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mutex, const struct time
         futex_wait((int *)&mutex->value, 2, timeout, mutex->flags);
 
         if (time_point->tv_sec >= 0) {
-            utime_t now = cpu_clock(CLOCK_MONOTONIC);
-            utime_t elapsed = now - start;
+            xtime_t now = xtime_read(XTIME_CLOCK);
+            xtime_t elapsed = now - start;
             start = now;
             timeout -= (long)elapsed;
             if (timeout <= 0 || elapsed >= LONG_MAX)

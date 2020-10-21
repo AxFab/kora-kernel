@@ -25,23 +25,23 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct HMP_map HMP_map;
-typedef struct HMP_entry HMP_entry;
+typedef struct hmap hmap_t;
+typedef struct hnode hnode_t;
 
-struct HMP_map {
-    HMP_entry **hashes_;
-    uint32_t mask_;
-    uint32_t seed_;
-    uint32_t count_;
+struct hmap {
+    hnode_t **hashes;
+    uint32_t mask;
+    uint32_t seed;
+    uint32_t count;
 };
 
 int murmur3_32(const void *key, int bytes, uint32_t seed);
 
-void hmp_init(HMP_map *map, int lg);
-void hmp_destroy(HMP_map *map, int all);
+void hmp_init(hmap_t *map, int lg);
+void hmp_destroy(hmap_t *map);
 
-void hmp_put(HMP_map *map, const char *key, int lg, void *value);
-void *hmp_get(HMP_map *map, const char *key, int lg);
-void hmp_remove(HMP_map *map, const char *key, int lg);
+void hmp_put(hmap_t *map, const char *key, int lg, void *value);
+void *hmp_get(hmap_t *map, const char *key, int lg);
+void hmp_remove(hmap_t *map, const char *key, int lg);
 
 #endif  /* _KORA_HMAP_H */

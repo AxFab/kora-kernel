@@ -20,8 +20,8 @@
 #ifndef __KERNEL_DRV_PCI_H
 #define __KERNEL_DRV_PCI_H 1
 
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
 
 struct PCI_device {
     uint8_t bus;

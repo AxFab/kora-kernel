@@ -21,6 +21,7 @@
 #define __KERNEL_ARCH_H 1
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef size_t page_t;
 
@@ -91,7 +92,7 @@ void mboot_memory();
   0x..180000   1536 Kb    512 Kb     Initial Heap Area
  */
 
-
+typedef struct regs regs_t;
 struct regs {
     uint16_t gs, unused_g;
     uint16_t fs, unused_f;
@@ -117,6 +118,7 @@ struct regs {
 
 void x86_enable_mmu();
 void x86_set_cr3(page_t dir);
+page_t x86_get_cr3();
 void x86_set_tss(int no);
 void x86_delay(int cns);
 void x86_cpuid(int, int, int *);

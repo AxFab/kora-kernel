@@ -17,8 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-
+#include <kernel/stdc.h>
 
 typedef struct filemeta filemeta_t;
 /* --------
@@ -57,10 +56,10 @@ int sys_futex_requeue(int *addr, int val, int val2, int *addr2, int flags);
 
 long sys_read(int fd, char *buf, int len);
 long sys_write(int fd, const char *buf, int len);
-long sys_access(int fd, CSTR path, int flags);
-long sys_open(int fd, CSTR path, int flags);
+long sys_access(int fd, const char *path, int flags);
+long sys_open(int fd, const char *path, int flags);
 long sys_seek(int fd, off_t offset, int whence);
-// long sys_open(int fd, CSTR path, int flags, ftype_t type, int mode);
+// long sys_open(int fd, const char * path, int flags, ftype_t type, int mode);
 long sys_close(int fd);
 long sys_readdir(int fd, char *buf, int len);
 // lseek
@@ -141,7 +140,7 @@ long sys_mprotect(void *address, size_t length, unsigned flags);
 
 long sys_ginfo(unsigned info, void *buf, int len);
 long sys_sinfo(unsigned info, const void *buf, int len);
-long sys_log(CSTR msg);
+long sys_log(const char *msg);
 long sys_sysctl(int cmd, void *args);
 long sys_copy(int out, int in, size_t size, int count);
 

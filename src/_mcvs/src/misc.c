@@ -1,26 +1,25 @@
-#include <kernel/core.h>
-#include <windows.h>
-#include <kernel/utils.h>
-#include <Windows.h>
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
+#include <kernel/stdc.h>
+#include <time.h>
 
-void clock_gettime(int no, struct timespec *sp)
-{
-}
-
-void usleep(__useconds_t usecs)
-{
-    Sleep(usecs / 1000);
-}
-
-void rand_r() {}
-
-utime_t cpu_clock(int no)
-{
-    FILETIME tm;
-    GetSystemTimePreciseAsFileTime(&tm);
-    uint64_t cl = (uint64_t)tm.dwHighDateTime << 32 | tm.dwLowDateTime;
-    return cl / 10LL - SEC_TO_USEC(11644473600LL);
-}
 
 /* Searches the first len bytes of array str for character c. */
 void *memrchr(const void *str, int c, size_t len)
@@ -97,12 +96,13 @@ cont:
 
 struct tm *gmtime_r(const time_t *time, struct tm *spec)
 {
-    return spec;
+    int ret = gmtime_s(spec, time);
+    return ret == 0 ? spec : NULL;
 }
 
 char *strndup(const char *str)
 {
-    char *ptr = malloc(strlen(str) + 1);
+    char *ptr = kalloc(strlen(str) + 1);
     strcpy(ptr, str);
     return ptr;
 }

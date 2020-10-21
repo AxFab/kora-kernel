@@ -25,7 +25,6 @@
 #define thread_local __declspec(thread)
 #define unlikely(c) c
 #define likely(c) c
-#define restrict
 
 #define PAGE_SIZE  4096
 #define WORDSIZE 32
@@ -33,8 +32,8 @@
 #define __ILP32
 #define __ILPx
 
-#define RELAX ((void)0)
-#define BARRIER ((void)0)
+#define RELAX asm volatile("pause")
+#define BARRIER asm volatile("")
 #if defined KORA_KRN
 #  define THROW_ON irq_enable()
 #  define THROW_OFF irq_disable()

@@ -1,14 +1,45 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
+#include <kernel/stdc.h>
 #include <kernel/vfs.h>
-#include <kernel/futex.h>
-#include <kernel/device.h>
+#include <threads.h>
 #include <errno.h>
+#include <assert.h>
 
-typedef struct dfs_table dfs_table_t;
+/*
+  The devfs is an mandatory embed file system that keep a trace of every registered
+  devices.
+ */
+
 typedef struct dfs_info dfs_info_t;
-
-void sleep_timer(long);
+typedef struct dfs_table dfs_table_t;
+typedef struct dfs_entry dfs_entry_t;
+typedef struct dfs_iterator dfs_iterator_t;
 
 struct dfs_info {
+    inode_t *root;
+    dfs_table_t *table;
+    xtime_t ctime;
+};
+
+struct dfs_entry {
     int ino;
     int flags;
     char uuid[16];
@@ -23,7 +54,12 @@ struct dfs_table {
     dfs_table_t *next;
     int length;
     int free;
-    dfs_info_t entries[0];
+    dfs_entry_t entries[0];
+};
+
+struct dfs_iterator {
+    dfs_entry_t *entry;
+    int idx;
 };
 
 enum {
@@ -48,14 +84,23 @@ enum {
     DF_CSTM8 = (1 << 18),
 };
 
+enum dfs_flags {
+    DF_FREE = 0,
+    DF_BUSY = 1,
+    DF_USED = 2,
+};
 
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* Gets and sets file entries */
+
+/* Extends the devfs caching table from one memory page */
 static dfs_table_t *devfs_extends(int first)
 {
     int i;
-    dfs_table_t *table;
-    table = kmap(PAGE_SIZE, NULL, 0, VMA_ANON_RW);
+    dfs_table_t *table = kmap(PAGE_SIZE, NULL, 0, VM_RW);
     memset(table, 0, PAGE_SIZE);
-    int sz = (PAGE_SIZE - sizeof(dfs_table_t)) / sizeof(dfs_info_t);
+    int sz = (PAGE_SIZE - sizeof(dfs_table_t)) / sizeof(dfs_entry_t);
     table->length = sz;
     table->free = sz;
     for (i = 0; i < table->length; ++i)
@@ -63,11 +108,11 @@ static dfs_table_t *devfs_extends(int first)
     return table;
 }
 
-
-static dfs_info_t *devfs_fetch_new()
+/* Get access to free entry from the devfs caching table */
+static dfs_entry_t *devfs_fetch_new(dfs_info_t *info)
 {
     int idx;
-    dfs_table_t *table = kSYS.dev_table;
+    dfs_table_t *table = info->table;
     for (idx = 0; ; ++idx) {
         if (table->free == 0 || idx >= table->length) {
             if (table->next == NULL)
@@ -75,114 +120,75 @@ static dfs_info_t *devfs_fetch_new()
             table = table->next;
             idx = 0;
         }
-        if (table->entries[idx].flags == 0) {
-            table->entries[idx].flags = 1;
+        if (table->entries[idx].flags == DF_FREE) {
+            table->entries[idx].flags = DF_BUSY;
             return &table->entries[idx];
         }
     }
 }
 
-static dfs_info_t *devfs_fetch(int no)
+/* Get access to a known entry of the devfs caching table */
+static dfs_entry_t *devfs_fetch(dfs_info_t *info, int no)
 {
-    dfs_table_t *table = kSYS.dev_table;
+    dfs_table_t *table = info->table;
     while (no > table->length) {
         no -= table->length;
         table = table->next;
     }
+
+    assert(table->entries[no - 1].flags == DF_USED);
     return &table->entries[no - 1];
 }
 
-static int devfs_dir(const char *name, int prt, int filter, int show)
+/* Use a new entry to create a new directory */
+static int devfs_dir(dfs_info_t *info, const char *name, int parent, int filter, int show)
 {
-    dfs_info_t *info = devfs_fetch_new();
-    // info->prt = prt;
-    (void)prt;
-    info->show = show;
-    info->filter = filter;
-    strncpy(info->name, name, 32);
-    info->flags = 2;
-    return info->ino;
+    dfs_entry_t *entry = devfs_fetch_new(info);
+    // entry->prt = prt;
+    (void)parent;
+    entry->show = show;
+    entry->filter = filter;
+    strncpy(entry->name, name, 32);
+    entry->flags = DF_USED;
+    return entry->ino;
 }
 
-static inode_t *devfs_dev(const char *name, int type, int show, ino_ops_t *ops)
-{
-    dfs_info_t *info = devfs_fetch_new();
-    inode_t *ino = vfs_inode(info->ino, type, NULL);
-    ino->ops = ops;
-    // info->dev->devname = strdup(name);
-    ino->dev->devclass = strdup("Bytes device");
-    info->show = show;
-    info->dev = ino;
-    strncpy(info->name, name, 32);
-    info->flags = 2;
-    kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
-            ino->dev->model ? ino->dev->model : "", name);
-
-    return ino;
-}
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* Directories of devfs */
 
 extern ino_ops_t devfs_dir_ops;
 
-static inode_t *devfs_inode(dfs_info_t *info)
+/* Access or create the inode of a file entry */
+static inode_t *devfs_inode(dfs_info_t *info, dfs_entry_t *entry)
 {
-    if (info->dev)
-        return vfs_open(info->dev, X_OK);
-    inode_t *ino = vfs_inode(info->ino, FL_DIR, kSYS.dev_ino->dev);
-    ino->ops = &devfs_dir_ops;
-    // TODO -- fill !
+    inode_t *ino;
+    if (entry->dev) {
+        ino = vfs_open_inode(entry->dev);
+        ino->atime = xtime_read(XTIME_CLOCK);
+        return ino;
+    }
+    ino = vfs_inode(entry->ino, FL_DIR, info->root->dev, &devfs_dir_ops);
+    ino->drv_data = info;
+    ino->ctime = info->ctime;
+    ino->atime = info->ctime;
+    ino->mtime = info->ctime;
+    ino->btime = info->ctime;
     return ino;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-int null_read(inode_t *ino, char *buf, size_t len, int flags)
+/* Look for entry visible on a directory */
+inode_t *devfs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
 {
-    int s = 0;
-    if (flags & VFS_NOBLOCK) {
-        errno = EWOULDBLOCK;
-        return 0;
-    }
-    for (;;)
-        sleep_timer(MIN_TO_USEC(15));
-}
-
-int null_write(inode_t *ino, const char *buf, size_t len, int flags)
-{
-    errno = 0;
-    return len;
-}
-
-int zero_read(inode_t *ino, char *buf, size_t len, int flags)
-{
-    memset(buf, 0, len);
-    errno = 0;
-    return len;
-}
-
-int rand_read(inode_t *ino, char *buf, size_t len, int flags)
-{
-    size_t i;
-    for (i = 0; i < len; ++i)
-        buf[i] = rand8();
-    errno = 0;
-    return len;
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-inode_t *devfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int flags)
-{
-    if ((flags & (VFS_OPEN | VFS_CREAT)) == VFS_CREAT) {
+    dfs_info_t *info = dir->drv_data;
+    if ((flags & (IO_OPEN | IO_CREAT)) == IO_CREAT) {
         errno = EROFS;
         return NULL;
     }
-    dfs_info_t *info = devfs_fetch(dir->no);
-    assert(info != NULL && info->flags == 2);
+    dfs_entry_t *entry = devfs_fetch(info, dir->no);
 
-    // Look on name / label or uuid ?
+    // TODO Look on name / label or uuid ?
     int idx;
-    dfs_table_t *table = kSYS.dev_table;
+    dfs_table_t *table = info->table;
     for (idx = 0; ; ++idx) {
         if (idx >= table->length) {
             idx = 0;
@@ -193,42 +199,34 @@ inode_t *devfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int fl
             }
         }
 
-        dfs_info_t *en = &table->entries[idx];
-        if ((en->show & info->filter) == 0)
+        dfs_entry_t *en = &table->entries[idx];
+        if ((en->show & entry->filter) == 0)
             continue;
 
         int k = strcmp(en->name, name);
         if (k == 0)
-            return devfs_inode(en);
+            return devfs_inode(info, en);
     }
     return NULL;
 }
 
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-typedef struct devfs_dir_it {
-    dfs_info_t *info;
-    int idx;
-} devfs_dir_it_t;
-
-
-devfs_dir_it_t *devfs_opendir(inode_t *dir, acl_t *acl)
+/* Start an iterator to walk on a directory */
+dfs_iterator_t *devfs_opendir(inode_t *dir)
 {
-    dfs_info_t *info = devfs_fetch(dir->no);
-    assert(info != NULL && info->flags == 2);
+    dfs_info_t *info = dir->drv_data;
+    dfs_entry_t *entry = devfs_fetch(info, dir->no);
 
-    devfs_dir_it_t *it = kalloc(sizeof(devfs_dir_it_t));
-    it->info = info;
+    dfs_iterator_t *it = kalloc(sizeof(dfs_iterator_t));
+    it->entry = entry;
     it->idx = 0;
     return it;
 }
 
-inode_t *devfs_readdir(inode_t *dir, char *name, devfs_dir_it_t *ctx)
+/* Start iterate on a directory */
+inode_t *devfs_readdir(inode_t *dir, char *name, dfs_iterator_t *ctx)
 {
-    (void)dir;
-    dfs_table_t *table = kSYS.dev_table;
+    dfs_info_t *info = dir->drv_data;
+    dfs_table_t *table = info->table;
     int no = ctx->idx;
     while (no > table->length) {
         no -= table->length;
@@ -246,159 +244,222 @@ inode_t *devfs_readdir(inode_t *dir, char *name, devfs_dir_it_t *ctx)
         }
         ctx->idx++;
 
-        dfs_info_t *en = &table->entries[no];
-        if (en->flags != 2)
+        dfs_entry_t *entry = &table->entries[no];
+        if (entry->flags != DF_USED)
             continue;
-        if ((en->show & ctx->info->filter) == 0)
+        if ((entry->show & ctx->entry->filter) == 0)
             continue;
 
-        strcpy(name, en->name);
-        return devfs_inode(en);
+        // TODO Look on name / label or uuid ?
+        strcpy(name, entry->name);
+        return devfs_inode(info, entry);
     }
 }
 
-void devfs_closedir(inode_t *dir, devfs_dir_it_t *ctx)
+/* Close directory iterator */
+void devfs_closedir(inode_t *dir, dfs_iterator_t *ctx)
 {
     (void)dir;
     kfree(ctx);
 }
 
-dev_ops_t dev_ops = {
-    .ioctl = NULL,
-};
-
-fs_ops_t devfs_fs_ops = {
-    .open = (void *)devfs_open,
-};
 
 ino_ops_t devfs_dir_ops = {
+    .open = devfs_open,
     .opendir = (void *)devfs_opendir,
     .readdir = (void *)devfs_readdir,
     .closedir = (void *)devfs_closedir,
 };
 
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* Bytes devices */
+
+/* Read opertion of '/dev/null */
+int null_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
+{
+    (void)ino;
+    (void)off;
+    if (flags & IO_NOBLOCK) {
+        errno = EWOULDBLOCK;
+        return 0;
+    }
+
+    mtx_t mtx;
+    mtx_init(&mtx, mtx_plain);
+    for (;;)
+        mtx_lock(&mtx);
+}
+
+/* Write opertion of '/dev/null */
+int null_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags)
+{
+    (void)ino;
+    (void)buf;
+    (void)off;
+    (void)flags;
+    errno = 0;
+    return len;
+}
+
+/* Read opertion of '/dev/zero */
+int zero_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
+{
+    (void)ino;
+    (void)off;
+    memset(buf, 0, len);
+    errno = 0;
+    return len;
+}
+
+/* Write opertion of '/dev/random */
+int rand_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
+{
+    (void)ino;
+    (void)off;
+    size_t i;
+    for (i = 0; i < len; ++i)
+        buf[i] = rand8();
+    errno = 0;
+    return len;
+}
+
 ino_ops_t devfs_zero_ops = {
-    .read = (void *)zero_read,
+    .read = zero_read,
 };
 
 ino_ops_t devfs_null_ops = {
-    .read = (void *)null_read,
-    .write = (void *)null_write,
+    .read = null_read,
+    .write = null_write,
 };
 
 ino_ops_t devfs_rand_ops = {
-    .read = (void *)rand_read,
+    .read = rand_read,
 };
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void devfs_register(inode_t *ino, inode_t *dir, const char *name)
+inode_t *DEV_INO;
+
+static inode_t *devfs_dev(dfs_info_t *info, const char *name, int type, int show, ino_ops_t *ops)
 {
-    char tmp[12];
-    dfs_info_t *info = devfs_fetch_new();
+    dfs_entry_t *entry = devfs_fetch_new(info);
+    inode_t *ino = vfs_inode(entry->ino, type, NULL, ops);
+    // info->dev->devname = strdup(name);
+    ino->dev->devclass = strdup("Bytes device");
+    entry->show = show;
+    entry->dev = ino;
+    strncpy(entry->name, name, 32);
+    entry->flags = DF_USED;
+    kprintf(KL_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+            ino->dev->model ? ino->dev->model : "", name);
+
+    return ino;
+}
+
+void devfs_register(inode_t *ino, const char *name)
+{
+    // char tmp[12];
+    dfs_info_t *info = DEV_INO->drv_data;
+    dfs_entry_t *entry = devfs_fetch_new(info);
     switch (ino->type) {
     case FL_DIR:
-    case FL_VOL:
-        info->show = DF_MOUNT;
-        if (ino->dev->id[0] != '0')
-            info->show |= DF_MOUNT1;
+        entry->show = DF_MOUNT;
+        if (ino->dev->uuid[0] != '0')
+            entry->show |= DF_MOUNT1;
         if (ino->dev->devname != NULL)
-            info->show |= DF_MOUNT2;
-        // kprintf(KLOG_MSG, "Mount %s as \033[35m%s\033[0m (%s)\n", devname, ino->dev->devname, ino->dev->devclass);
-        kprintf(KLOG_MSG, "Mount drive as \033[35m%s\033[0m (%s)\n", ino->dev->devname, ino->dev->devclass);
+            entry->show |= DF_MOUNT2;
+        kprintf(KL_MSG, "Mount drive as \033[35m%s\033[0m (%s)\n", ino->dev->devname, ino->dev->devclass);
         break;
     case FL_BLK:
-        info->show = DF_DISK | DF_ROOT;
-        if (ino->dev->id[0] != '0')
-            info->show |= DF_DISK1;
+        entry->show = DF_DISK | DF_ROOT;
+        if (ino->dev->uuid[0] != '0')
+            entry->show |= DF_DISK1;
         if (ino->dev->devname != NULL)
-            info->show |= DF_DISK2;
+            entry->show |= DF_DISK2;
         if (ino->length)
-            kprintf(KLOG_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+            kprintf(KL_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
                     ino->dev->model ? ino->dev->model : "", sztoa(ino->length), name);
         else
-            kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+            kprintf(KL_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
                     ino->dev->model ? ino->dev->model : "", name);
         break;
     default:
-        info->show = DF_ROOT;
-        kprintf(KLOG_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+        entry->show = DF_ROOT;
+        kprintf(KL_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
                 ino->dev->model ? ino->dev->model : "", name);
         break;
     }
 
-    kprintf(-1, "Device %s\n", vfs_inokey(ino, tmp));
-    info->dev = vfs_open(ino, X_OK);
-    strncpy(info->name, name, 32);
-    info->flags = 2;
+    // kprintf(-1, "Device %s\n", vfs_inokey(ino, tmp));
+    entry->dev = vfs_open_inode(ino);
+    strncpy(entry->name, name, 32);
+    entry->flags = DF_USED;
 }
 
-void vfs_init()
+inode_t *devfs_setup()
 {
-    kSYS.dev_table = devfs_extends(1);
-    dfs_info_t *info = devfs_fetch_new();
-    assert(info->ino == 1);
-    kSYS.dev_ino = vfs_inode(1, FL_DIR, NULL);
-    kSYS.dev_ino->ops = &devfs_dir_ops;
-    kSYS.dev_ino->dev->fsops = &devfs_fs_ops;
-    info->dev = kSYS.dev_ino;
-    info->filter = DF_ROOT;
-    info->flags = 2;
+    dfs_info_t *info = kalloc(sizeof(dfs_info_t));
+    info->ctime = xtime_read(XTIME_CLOCK);
+    info->table = devfs_extends(1);
 
-    int bus = devfs_dir("bus", 1, DF_BUS, DF_ROOT);
-    int dsk = devfs_dir("disk", 1, DF_DISK, DF_ROOT);
-    devfs_dir("input", 1, DF_INPUT, DF_ROOT);
-    int mnt = devfs_dir("mnt", 1, DF_MOUNT, DF_ROOT);
-    devfs_dir("net", 1, DF_NET, DF_ROOT);
-    devfs_dir("shm", 1, DF_SHM, DF_ROOT);
+    DEV_INO = vfs_inode(1, FL_DIR, NULL, &devfs_dir_ops);
+    DEV_INO->drv_data = info;
+    info->root = DEV_INO;
 
-    devfs_dir("by-uuid", dsk, DF_DISK1, DF_DISK);
-    devfs_dir("by-label", dsk, DF_DISK2, DF_DISK);
 
-    devfs_dir("by-uuid", mnt, DF_MOUNT1, DF_MOUNT);
-    devfs_dir("by-label", mnt, DF_MOUNT2, DF_MOUNT);
+    dfs_entry_t *entry = devfs_fetch_new(info);
+    entry->dev = DEV_INO;
+    entry->filter = DF_ROOT;
+    entry->flags = DF_USED;
 
-    devfs_dir("pci", bus, DF_CSTM1, DF_BUS);
-    devfs_dir("usb", bus, DF_CSTM2, DF_BUS);
+    int bus = devfs_dir(info, "bus", 1, DF_BUS, DF_ROOT);
+    int dsk = devfs_dir(info, "disk", 1, DF_DISK, DF_ROOT);
+    devfs_dir(info, "input", 1, DF_INPUT, DF_ROOT);
+    int mnt = devfs_dir(info, "mnt", 1, DF_MOUNT, DF_ROOT);
+    devfs_dir(info, "net", 1, DF_NET, DF_ROOT);
+    devfs_dir(info, "shm", 1, DF_SHM, DF_ROOT);
 
-    devfs_dev("zero", FL_CHR, DF_ROOT, &devfs_zero_ops);
-    devfs_dev("null", FL_CHR, DF_ROOT, &devfs_null_ops);
-    devfs_dev("rand", FL_CHR, DF_ROOT, &devfs_rand_ops);
+    devfs_dir(info, "by-uuid", dsk, DF_DISK1, DF_DISK);
+    devfs_dir(info, "by-label", dsk, DF_DISK2, DF_DISK);
 
-    // TODO -- FS drivers list
+    devfs_dir(info, "by-uuid", mnt, DF_MOUNT1, DF_MOUNT);
+    devfs_dir(info, "by-label", mnt, DF_MOUNT2, DF_MOUNT);
+
+    devfs_dir(info, "pci", bus, DF_CSTM1, DF_BUS);
+    devfs_dir(info, "usb", bus, DF_CSTM2, DF_BUS);
+
+    devfs_dev(info, "zero", FL_CHR, DF_ROOT, &devfs_zero_ops);
+    devfs_dev(info, "null", FL_CHR, DF_ROOT, &devfs_null_ops);
+    devfs_dev(info, "random", FL_CHR, DF_ROOT, &devfs_rand_ops);
+
+    return vfs_open_inode(DEV_INO);
 }
 
-
-void vfs_sweep()
+void devfs_sweep(inode_t *ino)
 {
     int i;
-    dfs_table_t *table = kSYS.dev_table;
+    dfs_info_t *info = ino->drv_data;
+    dfs_table_t *table = info->table;
     while (table) {
         for (i = 0; i < table->length; ++i) {
-            dfs_info_t *info = &table->entries[i];
-            if (info->flags == 0)
+            dfs_entry_t *entry = &table->entries[i];
+            if (entry->flags == 0)
                 continue;
-            vfs_close(info->dev, X_OK);
+            vfs_close_inode(entry->dev);
         }
 
         dfs_table_t *p = table;
         table = table->next;
         kunmap(p, PAGE_SIZE);
     }
-    kSYS.dev_table = NULL;
-    // Clean inode cache
+    info->table = NULL;
 }
 
-int vfs_mkdev(inode_t *ino, CSTR name)
-{
-    devfs_register(ino, NULL, name);
-    return 0;
-}
 
-void vfs_rmdev(CSTR name)
-{
-}
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+// Currently in testing
 
 unsigned entrop_k = 0;
 unsigned entrop_arr[2];

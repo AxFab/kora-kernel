@@ -114,7 +114,7 @@ START_TEST(test_01)
 
     memory_sweep();
     ck_assert(kMMU.free_pages == __um_pages_available);
-    vfs_close(ino);
+    vfs_close_inode(ino);
 }
 END_TEST
 

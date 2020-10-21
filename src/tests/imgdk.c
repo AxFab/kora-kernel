@@ -17,12 +17,13 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/device.h>
-#include <kernel/files.h>
+#include <kernel/vfs.h>
 #include <kora/mcrs.h>
 #include <kora/splock.h>
+#include <sys/types.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 #include <fcntl.h>
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -31,7 +32,7 @@
 #define SEEK_END 2 /* Seek from end of file.  */
 
 #if defined _WIN32
-int open(const char *name, int flags);
+int open(const char *name, int flags, ...);
 #else
 #define O_BINARY 0
 #endif
@@ -47,40 +48,28 @@ const char *exts[] = { "img", "iso", };
 const char *clazz[] = { "IDE ATA", "IDE ATAPI", };
 const int sdSize[] = { 512, 2048, };
 
-int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset);
-int imgdk_write(inode_t *ino, const void *data, size_t size, off_t offset);
-page_t imgdk_fetch(inode_t *ino, off_t off);
-void imgdk_sync(inode_t *ino, off_t off, page_t pg);
-void imgdk_release(inode_t *ino, off_t off, page_t pg);
+int imgdk_read(inode_t *ino, void *data, size_t size, xoff_t offset);
+int imgdk_write(inode_t *ino, const void *data, size_t size, xoff_t offset);
 int imgdk_ioctl(inode_t *ino, int cmd, long *params);
 int imgdk_close(inode_t *ino);
 
-int vhd_read(inode_t *ino, void *data, size_t size, off_t offset);
-int vhd_write(inode_t *ino, const void *data, size_t size, off_t offset);
-page_t vhd_fetch(inode_t *ino, off_t off);
-void vhd_sync(inode_t *ino, off_t off, page_t pg);
-void vhd_release(inode_t *ino, off_t off, page_t pg);
-
+int vhd_read(inode_t *ino, void *data, size_t size, xoff_t offset);
+int vhd_write(inode_t *ino, const void *data, size_t size, xoff_t offset);
 
 ino_ops_t imgdk_ino_ops = {
     .close = imgdk_close,
-    .fetch = imgdk_fetch,
-    .sync = imgdk_sync,
-    .release = imgdk_release,
-    .read = blk_read,
-    .write = blk_write,
+    .read = imgdk_read,
+    .write = imgdk_write,
+    .ioctl = imgdk_ioctl,
 };
 
 ino_ops_t vhd_ino_ops = {
     .close = imgdk_close,
-    .fetch = vhd_fetch,
-    .sync = vhd_sync,
-    .release = vhd_release,
+    .read = vhd_read,
+    .write = vhd_write,
+    .ioctl = imgdk_ioctl,
 };
 
-dev_ops_t imgdk_dev_ops = {
-    .ioctl = (void *)imgdk_ioctl,
-};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -154,24 +143,18 @@ int imgdk_open(const char *path, const char *name)
     if (fd == -1)
         return -1;
 
-    inode_t *ino = vfs_inode(fd, FL_BLK, NULL);
-    ino->length = lseek(fd, 0, SEEK_END); // Optional
-    // ino->lba = fd;
-
-    ino->btime = cpu_clock(0);
-    ino->ctime = ino->btime;
-    ino->mtime = ino->btime;
-    ino->atime = ino->btime;
-
-    ino->ops = &imgdk_ino_ops;
-    ino->dev->ops = &imgdk_dev_ops;
-
-    if (strcmp(strrchr(path, '.'), ".img") == 0)
+    inode_t *ino = NULL;
+    if (strcmp(strrchr(path, '.'), ".img") == 0) {
+        ino = vfs_inode(fd, FL_BLK, NULL, &imgdk_ino_ops);
+        ino->length = lseek(fd, 0, SEEK_END);
         ino->dev->block = 512;
-    else if (strcmp(strrchr(path, '.'), ".iso") == 0) {
+    } else if (strcmp(strrchr(path, '.'), ".iso") == 0) {
+        ino = vfs_inode(fd, FL_BLK, NULL, &imgdk_ino_ops);
+        ino->length = lseek(fd, 0, SEEK_END);
         ino->dev->block = 2048;
-        ino->dev->flags = VFS_RDONLY;
+        ino->dev->flags = FD_RDONLY;
     } else if (strcmp(strrchr(path, '.'), ".vhd") == 0) {
+        ino = vfs_inode(fd, FL_BLK, NULL, &vhd_ino_ops);
         ino->dev->block = 512;
 
         struct footer_vhd footer;
@@ -189,7 +172,7 @@ int imgdk_open(const char *path, const char *name)
         footer.actual_size = __swap64(footer.actual_size);
         footer.cylinders = __swap16(footer.cylinders);
         footer.type = __swap32(footer.type);
-        memcpy(ino->dev->id, footer.uuid, 16);
+        memcpy(ino->dev->uuid, footer.uuid, 16);
         // if offset == 0xFFFFFFFF => Fixed disk !!!
         // Build Vendor string
         char vname[5];
@@ -225,54 +208,47 @@ int imgdk_open(const char *path, const char *name)
             header.block_size = __swap32(header.block_size); // Should be 2 Mb !
 
             struct vhd_info *info = malloc(sizeof(struct vhd_info));
-            ino->info = info;
+            ino->drv_data = info;
             info->data_off = header.data_off;
             info->table_off = header.table_off;
             info->block_size = header.block_size;
-            info->cache = blk_create(ino, vhd_read, vhd_write);
-            ino->ops = &vhd_ino_ops;
         } else {
-            vfs_close(ino, X_OK);
+            vfs_close_inode(ino);
             close(fd);
             return -1;
         }
     }
 
-    ino->dev->devclass = strdup("Image disk"); // Mandatory
+    if (ino == NULL) {
+        close(fd);
+        return -1;
+    }
 
-    char *dname = strchr(path, '/');
+    ino->btime = xtime_read(XTIME_CLOCK);
+    ino->ctime = ino->btime;
+    ino->mtime = ino->btime;
+    ino->atime = ino->btime;
+    ino->dev->devclass = strdup("Image disk");
+
+    const char *dname = strchr(path, '/');
     dname = dname == NULL ? path : dname + 1;
     ino->dev->devname = strdup(dname);
     // O ino->dev->devname
     // O ino->dev->model
     // O ino->dev->vendor
 
-    if (ino->ops == &imgdk_ino_ops)
-        ino->info = blk_create(ino, imgdk_read, imgdk_write);
-
     vfs_mkdev(ino, name);
-    vfs_close(ino, X_OK);
+    vfs_close_inode(ino);
     return 0;
-}
-
-static void imgdk_tryopen(int i)
-{
-    int e;
-    char fname[16];
-    for (e = 0; e < 2; ++e) {
-        snprintf(fname, 16, "sd%c.%s", 'A' + i, exts[e]);
-        if (imgdk_open(fname, sdNames[i]) == 0)
-            return;
-    }
 }
 
 int imgdk_close(inode_t *ino)
 {
-    blk_destroy(ino->info);
     close(ino->no);
+    return 0;
 }
 
-int imgdk_ioctl(inode_t *ino, int cmd, long *params)
+int imgdk_ioctl(inode_t *ino, int cmd, void **params)
 {
     errno = 0;
     return 0;
@@ -280,7 +256,7 @@ int imgdk_ioctl(inode_t *ino, int cmd, long *params)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset)
+int imgdk_read(inode_t *ino, void *data, size_t size, xoff_t offset)
 {
     int fd = ino->no;
     errno = 0;
@@ -288,46 +264,32 @@ int imgdk_read(inode_t *ino, void *data, size_t size, off_t offset)
     lseek(fd, offset, SEEK_SET);
     int r = read(fd, data, size);
     if (errno != 0 || r != (int)size)
-        kprintf(KLOG_ERR, "[IMG ] Read err: %s\n", strerror(errno));
+        kprintf(KL_ERR, "[IMG ] Read err: %s\n", strerror(errno));
     splock_unlock(&ino->lock);
     return 0;
 }
 
-int imgdk_write(inode_t *ino, const void *data, size_t size, off_t offset)
+int imgdk_write(inode_t *ino, const void *data, size_t size, xoff_t offset)
 {
+    assert(ino->dev->block != 2048);
+    assert((ino->dev->flags & FD_RDONLY) == 0);
     int fd = ino->no;
-    assert((ino->flags & VFS_RDONLY) == 0);
     errno = 0;
     splock_lock(&ino->lock);
     lseek(fd, offset, SEEK_SET);
     int r = write(fd, data, size);
     if (errno != 0 || r != (int)size)
-        kprintf(KLOG_ERR, "[IMG ] Write err: %s\n", strerror(errno));
+        kprintf(KL_ERR, "[IMG ] Write err: %s\n", strerror(errno));
     splock_unlock(&ino->lock);
     return 0;
 }
 
-page_t imgdk_fetch(inode_t *ino, off_t off)
-{
-    return blk_fetch(ino->info, off);
-}
-
-void imgdk_sync(inode_t *ino, off_t off, page_t pg)
-{
-    blk_sync(ino->info, off, pg);
-}
-
-void imgdk_release(inode_t *ino, off_t off, page_t pg)
-{
-    blk_release(ino->info, off, pg);
-}
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int vhd_read(inode_t *ino, void *data, size_t size, off_t offset)
+int vhd_read(inode_t *ino, void *data, size_t size, xoff_t offset)
 {
     int fd = ino->no;
-    struct vhd_info *info = ino->info;
+    struct vhd_info *info = ino->drv_data;
     splock_lock(&ino->lock);
     while (size > 0) {
         size_t idx = offset / info->block_size;
@@ -351,11 +313,10 @@ int vhd_read(inode_t *ino, void *data, size_t size, off_t offset)
     return 0;
 }
 
-int vhd_write(inode_t *ino, const void *data, size_t size, off_t offset)
+int vhd_write(inode_t *ino, const void *data, size_t size, xoff_t offset)
 {
     int fd = ino->no;
-    struct vhd_info *info = ino->info;
-    assert((ino->flags & VFS_RDONLY) == 0);
+    struct vhd_info *info = ino->drv_data;
     splock_lock(&ino->lock);
     while (size > 0) {
         size_t idx = offset / info->block_size;
@@ -385,26 +346,9 @@ int vhd_write(inode_t *ino, const void *data, size_t size, off_t offset)
     return 0;
 }
 
-page_t vhd_fetch(inode_t *ino, off_t off)
-{
-    struct vhd_info *info = ino->info;
-    return blk_fetch(info->cache, off);
-}
-
-void vhd_sync(inode_t *ino, off_t off, page_t pg)
-{
-    struct vhd_info *info = ino->info;
-    blk_sync(info->cache, off, pg);
-}
-
-void vhd_release(inode_t *ino, off_t off, page_t pg)
-{
-    struct vhd_info *info = ino->info;
-    blk_release(info->cache, off, pg);
-}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-void imgdk_create(CSTR name, size_t size)
+void imgdk_create(const char *name, size_t size)
 {
     int zero = 0;
     int fd = open(name, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, 0644);
@@ -424,7 +368,7 @@ uint32_t vhd_checksum(char *buf, int len)
     return __swap32(~checksum);
 }
 
-void vhd_create_dyn(CSTR name, size_t size)
+void vhd_create_dyn(const char *name, size_t size)
 {
     int i;
     char buf[512];
@@ -504,20 +448,3 @@ void vhd_create_dyn(CSTR name, size_t size)
     close(fd);
 }
 
-void imgdk_setup()
-{
-    imgdk_create("sdA.img", 16 * _Mib_);
-    int i;
-    for (i = 0; i < 4; ++i)
-        imgdk_tryopen(i);
-}
-
-void imgdk_teardown()
-{
-    int i;
-    for (i = 0; i < 4; ++i)
-        vfs_rmdev(sdNames[i]);
-
-}
-
-MODULE(imgdk, imgdk_setup, imgdk_teardown);

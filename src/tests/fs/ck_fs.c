@@ -26,7 +26,7 @@
 void imgdk_setup();
 void imgdk_teardown();
 
-inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
+inode_t *test_fs_setup(const char *dev, kmod_t *fsmod, int(*format)(inode_t *))
 {
     vfs_init();
     imgdk_setup();
@@ -39,7 +39,7 @@ inode_t *test_fs_setup(CSTR dev, kmod_t *fsmod, int(*format)(inode_t *))
     inode_t *root = vfs_mount(dev, fsmod->name);
     ck_ok(root != NULL  && errno == 0, "Mount newly formed disk");
 
-    vfs_close(disk);
+    vfs_close_inode(disk);
     vfs_show_devices();
     return root;
 }
@@ -49,7 +49,7 @@ void test_fs_teardown(inode_t *root, kmod_t *fsmod)
     vfs_show_devices();
     // TODO - Release all links !?
     // int res = vfs_umount(root);
-    vfs_close(root);
+    vfs_close_inode(root);
     // ck_ok(res == 0 && errno == 0, "Unmount file system");
     fsmod->teardown();
     // TODO - rmdev
@@ -71,8 +71,8 @@ void test_fs_mknod(inode_t *root)
     inode_t *ino3 = vfs_lookup(root, "EMPTY.TXT");
     ck_ok(ino3 != NULL && errno == 0, "");
     ck_ok(ino2 == ino3, "");
-    vfs_close(ino2);
-    vfs_close(ino3);
+    vfs_close_inode(ino2);
+    vfs_close_inode(ino3);
 
     // Create and open directory
     inode_t *ino4 = vfs_create(root, "FOLDER", FL_DIR, NULL, 0);
@@ -84,8 +84,8 @@ void test_fs_mknod(inode_t *root)
     inode_t *ino6 = vfs_search(root, root, "FOLDER/FILE.O", NULL);
     ck_ok(ino6 != NULL && errno == 0, "");
     ck_ok(ino6 == ino5, "");
-    vfs_close(ino5);
-    vfs_close(ino6);
+    vfs_close_inode(ino5);
+    vfs_close_inode(ino6);
 
     // Browse directory
     inode_t *ino7;
@@ -96,7 +96,7 @@ void test_fs_mknod(inode_t *root)
         ck_ok(ino7 != NULL && errno == 0, "");
         ck_ok(ino7 == ino5, "");
         ino5 = NULL;
-        vfs_close(ino7);
+        vfs_close_inode(ino7);
     }
     vfs_closedir(ino4, ctx);
     ck_ok(errno == 0, "");
@@ -105,7 +105,7 @@ void test_fs_mknod(inode_t *root)
     ret = vfs_unlink(root, "FOLDER");
     ck_ok(ret == -1 && errno == ENOTEMPTY, "");
 
-    vfs_close(ino4);
+    vfs_close_inode(ino4);
     ino4 = vfs_lookup(root, "FOLDER");
     ck_ok(ino4 != NULL && errno == 0, "");
 
@@ -118,7 +118,7 @@ void test_fs_mknod(inode_t *root)
     ck_ok(ret == 0 && errno == 0, "");
     inode_t *ino9 = vfs_lookup(root, "FOLDER");
     ck_ok(ino9 == NULL && errno == ENOENT, "");
-    vfs_close(ino4);
+    vfs_close_inode(ino4);
 
     // ROOT & FOLDER are on inode cache, but not used anymore.
 }
@@ -164,9 +164,9 @@ void test_fs_truncate(inode_t *root)
     ret = vfs_truncate(ino3, 2000 * _Mib_); // Much larger file
     ck_ok(ret != 0 && errno == ENOSPC, "");
 
-    vfs_close(ino1);
-    vfs_close(ino2);
-    vfs_close(ino3);
+    vfs_close_inode(ino1);
+    vfs_close_inode(ino2);
+    vfs_close_inode(ino3);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

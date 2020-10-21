@@ -17,5 +17,5 @@
 
 $(outdir)/%.o: $(topdir)/%.asm
 	$(S) mkdir -p $(dir $@)
-	$(Q) echo "    ASM "$@
+	$(Q) echo "    ASM "$^
 	$(V) nasm -f elf32 -o $@ $^

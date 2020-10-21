@@ -17,117 +17,59 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
+#include <kernel/stdc.h>
 #include <kernel/memory.h>
-#include <kernel/task.h>
-#include <kora/mcrs.h>
-// #include <kora/iofile.h>
-#include <kora/splock.h>
-// #include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
+#include <kernel/tasks.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-struct kSys kSYS;
-
-void __perror_fail(int err, const char *file, int line, const char *msg)
+_Noreturn void __assert_fail(const char *expr, const char *file, unsigned line, const char *func)
 {
-    kprintf(KLOG_ERR, "ERROR] Process fails (%d) at %s:%d -- %s\n", err, file, line, msg);
-}
-
-/**
- * Routine that handle the case when an assertion failed. This method is never
- * called directly but is part of the `assert()' macro.
- *
- * @expr  The literal expression that failed
- * @file  The name of the source file which contains the assertion
- * @line  The line number where is the assertion on the source file
- */
-void __assert_fail(const char *expr, const char *file, int line)
-{
-    kprintf(KLOG_ERR, "Assertion failed CPU%d (%s) at %s:%d -- %s\n",        cpu_no(), expr, file, line);
-    task_t *task = kCPU.running;
-    if (task)
-        task_core(task);
-    kpanic("Assertion\n");
-}
-
-#ifdef KORA_KRN
-
-int *__errno_location()
-{
-    if (kCPU.running)
-        return &kCPU.running->err_no;
-    return &kCPU.err_no;
-}
-
-#endif
-
-// clock64_t kclock()
-// {
-//     return kSYS.clock_us + kSYS.clock_adj;
-// }
-
-int isspace(char a)
-{
-    return a > 0 && a <= 0x20;
-}
-
-int isdigit(char a)
-{
-    return a >= '0' && a <= '9';
-}
-
-int abs(int val)
-{
-    return val >= 0 ? val : -val;
-}
-
-void *heap_map(size_t length)
-{
-    return kmap(length, NULL, 0, VMA_HEAP_RW);
-}
-
-void heap_unmap(void *address, size_t length)
-{
-    kunmap(address, length);
-}
-
-_Noreturn void abort()
-{
+    kprintf(KL_ERR, "Assertion failed CPU%d (%s) at %s:%d -- %s\n", cpu_no(), expr, file, line);
     for (;;);
 }
 
 
+int __errno = 0;
+
+int *__errno_location()
+{
+    if (__current != NULL)
+        return &__current->err_no;
+    return &__errno;
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-splock_t klog_lock;
-
-int no_dbg = 1;
-void kwrite(const char *buf, int len);
-
-char buf[1024];
-splock_t bf_lock;
-void kprintf(int log, const char *msg, ...)
+void *kmap(size_t length, void *ino, xoff_t offset, int flags)
 {
-    if (/*(log == KLOG_DBG && no_dbg) || */log == KLOG_MEM || log == KLOG_INO)
-        return;
-    va_list ap;
-    va_start(ap, msg);
-    splock_lock(&bf_lock);
-    // char *buf = kalloc(256);
-    int len = vsnprintf(buf, 1024, msg, ap);
-    va_end(ap);
-    splock_lock(&klog_lock);
-    kwrite(buf, len);
-    splock_unlock(&klog_lock);
-    // kfree(buf);
-    splock_unlock(&bf_lock);
+    length = ALIGN_UP(length, PAGE_SIZE);
+    void *ptr = mspace_map(kMMU.kspace, 0, length, (inode_t *)ino, offset, flags);
+    if (ptr == NULL) {
+        kprintf(KL_ERR, "Unable to map memory on the kernel\n");
+        for (;;);
+    }
+    return ptr;
 }
+
+void kunmap(void *address, size_t length)
+{
+    mspace_unmap(kMMU.kspace, (size_t)address, length);
+}
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+void *malloc(size_t size);
+void free(void *ptr);
+
 
 void *kalloc(size_t size)
 {
+    if (size > PAGE_SIZE) {
+        kprintf(-1, "Page is size %x\n", size);
+        stackdump(12);
+    }
+    assert(size <= PAGE_SIZE);
     void *ptr = malloc(size);
     memset(ptr, 0, size);
     return ptr;
@@ -140,26 +82,51 @@ void kfree(void *ptr)
     free(ptr);
 }
 
-void *kmap(size_t length, void *ino, size_t offset, unsigned flags)
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+char __buf[1024];
+splock_t __bf_lock;
+unsigned __log_filter = 0;
+
+void kprintf(klog_t log, const char *msg, ...)
 {
-    length = ALIGN_UP(length, PAGE_SIZE);
-    flags &= ~(VMA_RIGHTS << 4);
-    flags |= (flags & VMA_RIGHTS) << 4;
-    void *ptr = mspace_map(kMMU.kspace, 0, length, (inode_t *)ino, offset, flags);
-    return ptr;
+    if (__log_filter & (1 << log))
+        return;
+    va_list ap;
+    va_start(ap, msg);
+    splock_lock(&__bf_lock);
+    int len = vsnprintf(__buf, 1024, msg, ap);
+    va_end(ap);
+    kwrite(__buf, len);
+    splock_unlock(&__bf_lock);
 }
 
-void kunmap(void *address, size_t length)
+xtime_t xtime_read(xtime_name_t name)
 {
-    mspace_unmap(kMMU.kspace, (size_t)address, length);
+    return clock_read(&__clock, name);
 }
-
-_Noreturn void kpanic(const char *msg, ...)
-{
-    kprintf(KLOG_ERR, "\033[31mKernel panic: %s \033[0m\n", msg);
-    stackdump(4);
-    abort();
-}
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+unsigned __rseed = 0;
+
+unsigned rand_r(unsigned *);
+
+uint8_t rand8()
+{
+    return rand_r(&__rseed) & 0xff;
+}
+
+uint16_t rand16()
+{
+    return (rand_r(&__rseed) & 0xff) |
+           ((rand_r(&__rseed) & 0xff) << 8);
+}
+
+uint32_t rand32()
+{
+    return (rand_r(&__rseed) & 0xff) |
+           ((rand_r(&__rseed) & 0xff) << 8) |
+           ((rand_r(&__rseed) & 0xff) << 16) |
+           ((rand_r(&__rseed) & 0xff) << 24);
+}

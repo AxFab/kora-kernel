@@ -79,7 +79,7 @@ inode_t *hostfs_open(inode_t *dir, const char *name, int mode, acl_t *acl, int f
     return ino;
 }
 
-int hostfs_unlink(inode_t *dir, CSTR name)
+int hostfs_unlink(inode_t *dir, const char *name)
 {
     char path[256];
     snprintf(path, 256, "%s/%s", dir->info, name);
@@ -138,7 +138,7 @@ int hostfs_setup()
 
     vfs_mkdev(ino, "boot");
 
-    vfs_close(ino, X_OK);
+    vfs_close_inode(ino, X_OK);
     return 0;
 }
 

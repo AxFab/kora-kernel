@@ -17,21 +17,47 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
-#include <kernel/task.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
+#include <kernel/tasks.h>
 #include <errno.h>
+
+
+// void cpu_jmpbuf(cpu_state_t jbuf, void *stack, void* entry, void *arg)
+// {
+//     size_t *sptr = (size_t*)stack + (4096 / sizeof(size_t));
+//     memset(jbuf, 0, sizeof(jbuf));
+//     jbuf[5] = entry;
+//     jbuf[3] = (size_t)sptr;
+//     sptr--;
+//     *sptr = arg;
+//     jbuf[4] = (size_t)stack;
+// }
+
+void cpu_setjmp(cpu_state_t *jmpbuf, void *stack, void *entry, void *param)
+{
+    size_t *sptr = stack + (PAGE_SIZE / sizeof(size_t));
+    (*jmpbuf)[5] = (size_t)entry;
+    (*jmpbuf)[3] = (size_t)sptr;
+    (*jmpbuf)[6] = (size_t)sptr;
+
+    sptr--;
+    *sptr = (size_t)param;
+    sptr--;
+    (*jmpbuf)[4] = (size_t)sptr;
+}
 
 void cpu_stack(task_t *task, size_t entry, size_t param)
 {
-    size_t *stack = task->kstack + (task->kstack_len / sizeof(size_t));
-    task->state[5] = entry;
-    task->state[3] = (size_t)stack;
+    size_t *sptr = task->stack + (PAGE_SIZE / sizeof(size_t));
+    task->jmpbuf[5] = entry;
+    task->jmpbuf[3] = (size_t)sptr;
+    task->jmpbuf[6] = (size_t)sptr;
 
-    stack--;
-    *stack = param;
-    stack--;
-    task->state[4] = (size_t)stack;
+    sptr--;
+    *sptr = param;
+    sptr--;
+    task->jmpbuf[4] = (size_t)sptr;
 }
 
 void cpu_shutdown(int cmd) // REBOOT, POWER_OFF, SLEEP, DEEP_SLEEP, HALT

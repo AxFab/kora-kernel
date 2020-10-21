@@ -17,25 +17,34 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
 #include <kernel/bus/pci.h>
-#include <kernel/sdk.h>
+#include <kora/splock.h>
+#include <kernel/mods.h>
 
 
 #define PCI_IO_CFG_ADDRESS 0xCF8
 #define PCI_IO_CFG_DATA 0xCFC
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+#define PCI_OFF_VENDOR_ID 0x00 // 16bits
+#define PCI_OFF_DEVICE_ID 0x02 // 16bits
+#define PCI_OFF_COMMAND 0x04 // 16bits
+#define PCI_OFF_STATUS 0x06 // 16bits
+#define PCI_OFF_CLASS 0x08 // 32bits
+#define PCI_OFF_CACHE_LINE_SIZE 0x0c // 8bits
+#define PCI_OFF_LATENCY_TIMER 0x0d // 8bits
+#define PCI_OFF_HEADER_TYPE 0x0e // 8bits
+#define PCI_OFF_BIST 0x0f // 8bits
+#define PCI_OFF_BAR0 0x10 // 32bits
+#define PCI_OFF_BAR1 0x14 // 32bits
+#define PCI_OFF_BAR2 0x18 // 32bits
+#define PCI_OFF_BAR3 0x1C // 32bits
+#define PCI_OFF_BAR4 0x20 // 32bits
+#define PCI_OFF_BAR5 0x24 // 32bits
+#define PCI_OFF_INTERRUPT_LINE 0x3C
 
-void __divdi3();
-kdk_api_t x86_kapi[] = {
-    KAPI(pci_search),
-    KAPI(pci_config_write32),
-    KAPI(pci_config_read16),
-    KAPI(__divdi3),
-    { NULL, 0, NULL },
-};
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -200,83 +209,74 @@ int dev_sp = 0;
 
 static void pci_check_bus(uint8_t bus);
 
-static void pci_check_func(uint8_t bus, uint8_t slot, uint8_t func)
+
+static void pci_device(uint8_t bus, uint8_t slot, uint8_t func, uint16_t vendor_id)
 {
-    uint16_t classes;
-    uint8_t secondary;
-
-    classes = pci_config_read16(bus, slot, func, 10);
-    if (classes == 0x0604) {
-        secondary = pci_config_read16(bus, slot, func, 24) >> 8;
-        pci_check_bus(secondary);
-    }
-}
-
-static void pci_check_device(uint8_t bus, uint8_t slot)
-{
-    uint8_t head;
-    uint16_t vendor_id;
-    vendor_id = pci_config_read16(bus, slot, 0, 0);
-    if (vendor_id == 0xffff)
-        return;
-
     /* We found a new PCI device */
     device_stack[dev_sp].bus = bus;
     device_stack[dev_sp].slot = slot;
-    device_stack[dev_sp].irq = pci_config_read16(bus, slot, 0, 60) & 0xFF;
+    device_stack[dev_sp].irq = pci_config_read16(bus, slot, func, PCI_OFF_INTERRUPT_LINE) & 0xFF;
     device_stack[dev_sp].busy = 0;
     device_stack[dev_sp].vendor_id = vendor_id;
-    device_stack[dev_sp].class_id = pci_config_read32(bus, slot, 0, 8) >> 8;
-    device_stack[dev_sp].device_id = pci_config_read16(bus, slot, 0, 2);
+    device_stack[dev_sp].class_id = pci_config_read32(bus, slot, func, PCI_OFF_CLASS) >> 8;
+    device_stack[dev_sp].device_id = pci_config_read16(bus, slot, func, PCI_OFF_DEVICE_ID);
 
     const char *vendor_name = pci_vendor_name(vendor_id);
     const char *class_name = pci_class_name(device_stack[dev_sp].class_id);
 
-    kprintf(KLOG_MSG, "PCI.%02x.%02x ", bus, slot);
+    kprintf(KL_MSG, "PCI.%02x.%02x.%x ", bus, slot, func);
     if (vendor_name != NULL)
-        kprintf(KLOG_MSG, " - %s", vendor_name);
+        kprintf(KL_MSG, " - %s", vendor_name);
     if (class_name != NULL)
-        kprintf(KLOG_MSG, " - %s", class_name);
-    kprintf(KLOG_MSG, " (%04x.%05x.%04x) ", vendor_id,
+        kprintf(KL_MSG, " - %s", class_name);
+    kprintf(KL_MSG, " (%04x.%05x.%04x) ", vendor_id,
             device_stack[dev_sp].class_id, device_stack[dev_sp].device_id);
 
     if (device_stack[dev_sp].irq != 0)
-        kprintf(KLOG_MSG, " IRQ%d", device_stack[dev_sp].irq);
-    kprintf(KLOG_MSG, "\n");
+        kprintf(KL_MSG, " IRQ%d", device_stack[dev_sp].irq);
+    kprintf(KL_MSG, "\n");
 
     int i;
     for (i = 0; i < 4; ++i) {
-        int add = 16 + i * 4;
-        uint32_t bar = pci_config_read32(bus, slot, 0, add);
-        pci_config_write32(bus, slot, 0, add, 0xFFFFFFFF);
-        uint32_t bar_sz = (~pci_config_read32(bus, slot, 0, add)) + 1;
-        pci_config_write32(bus, slot, 0, add, bar);
+        int add = PCI_OFF_BAR0 + i * 4;
+        uint32_t bar = pci_config_read32(bus, slot, func, add);
+        pci_config_write32(bus, slot, func, add, 0xFFFFFFFF);
+        uint32_t bar_sz = (~pci_config_read32(bus, slot, func, add)) + 1;
+        pci_config_write32(bus, slot, func, add, bar);
 
         device_stack[dev_sp].bar[i].base = bar;
         device_stack[dev_sp].bar[i].size = bar_sz;
 
-        // if ((bar & 3) != 0) {
-        //     kprintf(KLOG_DBG, "          IO region #%d: %x..%x \n", i, bar & 0xFFFFFFFC,
-        //             (bar & 0xFFFFFFFC) + bar_sz + 1);
-        // } else if (bar & 8) {
-        //     kprintf(KLOG_DBG, "          MMIO PREFETCH region #%d: %08x..%08x\n", i,
-        //             bar & ~15,
-        //             (bar & ~15) + bar_sz + 8);
-        // } else if (bar_sz != 0) {
-        //     kprintf(KLOG_DBG, "          MMIO region #%d: %08x..%08x\n", i, bar & ~15,
-        //             (bar & ~15) + bar_sz);
-        // }
+        if ((bar & 3) != 0) {
+            kprintf(KL_MSG, "    IO region #%d: %x..%x \n", i, bar & 0xFFFFFFFC,
+                    (bar & 0xFFFFFFFC) + bar_sz + 1);
+        } else if (bar & 8) {
+            kprintf(KL_MSG, "    MMIO PREFETCH region #%d: %08x..%08x\n", i,
+                    bar & ~15,
+                    (bar & ~15) + bar_sz + 8);
+        } else if (bar_sz != 0) {
+            kprintf(KL_MSG, "    MMIO region #%d: %08x..%08x\n", i, bar & ~15,
+                    (bar & ~15) + bar_sz);
+        }
     }
 
     dev_sp++;
+}
 
+static void pci_check_slot(uint8_t bus, uint8_t slot)
+{
+    uint16_t vendor_id;
+    vendor_id = pci_config_read16(bus, slot, 0, PCI_OFF_VENDOR_ID);
+    if (vendor_id == 0xffff)
+        return;
 
-    head = pci_config_read16(bus, slot, 0, 14) & 0xff;
-    pci_check_func(bus, slot, 0);
-    if ((head & 0x80) == 0) {
-        for (head = 1; head < 8; head++) {
-            if (pci_config_read16(bus, slot, 0, 0) != 0xffff)
-                pci_check_func(bus, slot, head);
+    pci_device(bus, slot, 0, vendor_id);
+    uint8_t head = pci_config_read16(bus, slot, 0, PCI_OFF_HEADER_TYPE) & 0xff;
+    if ((head & 0x80) != 0) {
+        for (uint8_t func = 1; func < 8; func++) {
+            vendor_id = pci_config_read16(bus, slot, func, PCI_OFF_VENDOR_ID);
+            if (vendor_id != 0xffff)
+                pci_device(bus, slot, func, vendor_id);
         }
     }
 }
@@ -285,7 +285,7 @@ static void pci_check_bus(uint8_t bus)
 {
     uint8_t slot;
     for (slot = 0; slot < 32; slot++)
-        pci_check_device(bus, slot);
+        pci_check_slot(bus, slot);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -294,17 +294,17 @@ void pci_setup()
 {
     splock_lock(&pci_lock);
     // Check all buses to find devices
-    uint8_t head = pci_config_read16(0, 0, 0, 14) & 0xff;
+    uint8_t head = pci_config_read16(0, 0, 0, PCI_OFF_HEADER_TYPE) & 0xff;
     if ((head & 0x80) == 0) {
         pci_check_bus(0);
         splock_unlock(&pci_lock);
         return;
     }
 
-    for (head = 0; head < 8; head++) {
-        if (pci_config_read16(0, 0, head, 0) != 0xffff)
+    for (uint8_t func = 0; func < 8; func++) {
+        if (pci_config_read16(0, 0, func, PCI_OFF_VENDOR_ID) != 0xffff)
             break;
-        pci_check_bus(head);
+        pci_check_bus(func);
     }
     splock_unlock(&pci_lock);
 }
@@ -330,29 +330,35 @@ struct PCI_device *pci_search(pci_matcher match, int *data)
     return NULL;
 }
 
-void kmod_register(kmod_t *mod);
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+void __muldi3();
+void __divdi3();
+void __moddi3();
+void __udivdi3();
+void __umoddi3();
+
 void mboot_load_modules();
-KMODULE(csl);
-KMODULE(serial);
-KMODULE(ps2);
+void csl_setup();
+void com_setup();
 
-KMODULE(isofs);
-KMODULE(ide_ata);
-KMODULE(fatfs);
-
-
-void platform_setup()
+void platform_start()
 {
-    kmod_symbols(x86_kapi);
-
-    pci_setup();
-
     mboot_load_modules();
+    pci_setup();
+    csl_setup();
+    com_setup();
 
-    kmod_register(&kmod_info_csl);
-    kmod_register(&kmod_info_serial);
+    kernel_export_symbol(pci_search);
+    kernel_export_symbol(pci_config_write32);
+    kernel_export_symbol(pci_config_read32);
+    // kernel_export_symbol(pci_config_write16);
+    kernel_export_symbol(pci_config_read16);
 
-    // kmod_register(&kmod_info_ps2);
-    // kmod_register(&kmod_info_ide_ata);
-    // kmod_register(&kmod_info_isofs);
+    // i386-libgcc
+    kernel_export_symbol(__muldi3);
+    kernel_export_symbol(__divdi3);
+    kernel_export_symbol(__moddi3);
+    kernel_export_symbol(__udivdi3);
+    kernel_export_symbol(__umoddi3);
 }

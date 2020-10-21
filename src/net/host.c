@@ -55,7 +55,7 @@ void host_register(uint8_t *mac, uint8_t *ip, const char *hostname,
     char bufm[18];
     char bufi[16];
     host_t *host = NULL;
-    kprintf(KLOG_DBG, "HOST.%d: %s, %s, %s.%s\n", trust, net_ethstr(bufm, mac),
+    kprintf(KL_DBG, "HOST.%d: %s, %s, %s.%s\n", trust, net_ethstr(bufm, mac),
             net_ip4str(bufi, ip), hostname, domain);
 
     host = (host_t *)kalloc(sizeof(host_t));

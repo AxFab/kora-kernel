@@ -28,26 +28,26 @@ TEST_CASE(tst_devfs_01)
     ck_ok(zero == vfs_search(kSYS.dev_ino, kSYS.dev_ino, "zero", NULL));
     ck_ok(10 == vfs_read(zero, buf, 10, 0, 0));
     ck_ok(((int *)buf)[0] == 0 && ((int *)buf)[1] == 0);
-    vfs_close(zero, X_OK);
-    vfs_close(zero, X_OK);
+    vfs_close_inode(zero, X_OK);
+    vfs_close_inode(zero, X_OK);
 
     inode_t *null = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "null", NULL);
     ck_ok(null != NULL);
     ck_ok(null == vfs_search(kSYS.dev_ino, kSYS.dev_ino, "null", NULL));
     for (i = 0; i < 5000; ++i)
         ck_ok(10 == vfs_write(null, buf, 10, 0, 0));
-    vfs_close(null, X_OK);
+    vfs_close_inode(null, X_OK);
     ck_ok(0 == vfs_read(null, buf, 10, 0, VFS_NOBLOCK));
     ck_ok(errno == EWOULDBLOCK);
-    vfs_close(null, X_OK);
+    vfs_close_inode(null, X_OK);
 
     inode_t *rand = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "rand", NULL);
     ck_ok(rand != NULL);
     ck_ok(rand == vfs_search(kSYS.dev_ino, kSYS.dev_ino, "rand", NULL));
     ck_ok(10 == vfs_read(rand, buf, 10, 0, 0));
     ck_ok(-1 == vfs_write(rand, buf, 10, 0, 0));
-    vfs_close(rand);
-    vfs_close(rand);
+    vfs_close_inode(rand);
+    vfs_close_inode(rand);
 
     vfs_sweep();
 }
@@ -58,7 +58,7 @@ TEST_CASE(tst_devfs_02)
 
     inode_t *zero = vfs_search(kSYS.dev_ino, kSYS.dev_ino, "zero", NULL);
     ck_ok(zero != NULL);
-    vfs_close(zero);
+    vfs_close_inode(zero);
 
     inode_t *dir = kSYS.dev_ino;
     inode_t *ino;
@@ -69,7 +69,7 @@ TEST_CASE(tst_devfs_02)
     while ((ino = vfs_readdir(dir, name, dir_ctx)) != NULL) {
         snprintf(buf, 256, "  /%s%s \n", name, ino->type == FL_DIR ? "/" : "");
         kprintf(-1, buf);
-        vfs_close(ino);
+        vfs_close_inode(ino);
     }
     vfs_closedir(dir, dir_ctx);
 
@@ -102,7 +102,7 @@ TEST_CASE(tst_vfs_01)
 
     // Lookup
     ck_ok(file1 == vfs_lookup(dir, "text"));
-    vfs_close(file1, X_OK);
+    vfs_close_inode(file1, X_OK);
     ck_ok(NULL == vfs_create(dir, "text", FL_REG, NULL, VFS_CREAT));
 
 
@@ -135,7 +135,7 @@ TEST_CASE(tst_vfs_02)
     // Create a file
     inode_t *file1 = vfs_create(dir, "zig", FL_REG, NULL, VFS_CREAT);
     ck_ok(file1 != NULL && errno == 0);
-    vfs_close(file1);
+    vfs_close_inode(file1);
 
     // Lookup
     ck_ok(NULL == vfs_search(dir, dir, "zig/dru", NULL));
@@ -170,7 +170,7 @@ TEST_CASE(tst_tar_01)
     dev->ops = &img_dev_ops;
 
     vfs_mkdev(dev, "img");
-    vfs_close(dev);
+    vfs_close_inode(dev);
 
     // UNMOUND HOSTFS !
     vfs_sweep();

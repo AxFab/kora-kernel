@@ -17,8 +17,9 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <kernel/stdc.h>
+#include <kora/mcrs.h>
 #include <kernel/core.h>
-#include <kernel/files.h>
 
 void csl_early_init();
 void com_early_init();
@@ -79,20 +80,20 @@ int mboot_init(void *table)
     // Those call to kprintf crash under VirtualBox! Why!?
 #if 0
     if (mboot_table->flags & GRUB_BOOT_LOADER)
-        kprintf(KLOG_MSG, "Boot Loader: %s\n", mboot_table->boot_loader);
+        kprintf(KL_MSG, "Boot Loader: %s\n", mboot_table->boot_loader);
 
     if (mboot_table->flags & GRUB_CMDLINE)
-        kprintf(KLOG_MSG, "Command line: %s\n", mboot_table->cmdline);
+        kprintf(KL_MSG, "Command line: %s\n", mboot_table->cmdline);
 
     if (mboot_table->flags & GRUB_BOOT_DEVICE) {
         if (mboot_table->boot_dev == 0x80)   // 1000b
-            kprintf(KLOG_MSG, "Booting device: HDD\n");
+            kprintf(KL_MSG, "Booting device: HDD\n");
 
         else if (mboot_table->boot_dev == 0xe0)   // 1110b
-            kprintf(KLOG_MSG, "Booting device: CD\n");
+            kprintf(KL_MSG, "Booting device: CD\n");
 
         else
-            kprintf(KLOG_MSG, "Booting device: Unknown <%2x>\n", mboot_table->boot_dev);
+            kprintf(KL_MSG, "Booting device: Unknown <%2x>\n", mboot_table->boot_dev);
     }
 
 #endif
@@ -107,7 +108,7 @@ void mboot_memory()
     }
 
     uint32_t *ram = mboot_table->mmap_addr;
-    // kprintf(KLOG_MSG, "Memory Zones: (at %p)\n", ram);
+    // kprintf(KL_MSG, "Memory Zones: (at %p)\n", ram);
 
     for (; *ram == 0x14; ram += 6) {
         int64_t base = (int64_t)ram[1] | ((int64_t)ram[2] << 32);
@@ -125,9 +126,8 @@ void mboot_memory()
 
 #include <kernel/vfs.h>
 #include <kora/llist.h>
-// #include <kernel/bio.h>
 
-inode_t *tar_mount(void *base, void *end, CSTR name);
+
 typedef struct dynlib dynlib_t;
 
 struct dynlib {
@@ -138,7 +138,6 @@ struct dynlib {
     size_t fini;
     size_t base;
     size_t length;
-    bio_t *io;
     llnode_t node;
     llhead_t sections;
     llhead_t depends;
@@ -150,14 +149,16 @@ struct dynlib {
 void mboot_load_modules()
 {
     unsigned i;
+    char tmp [12];
     if (mboot_table->flags & GRUB_MODULES) {
         struct mboot_module *mods = (struct mboot_module *)mboot_table->mods_addr;
         for (i = 0; i < mboot_table->mods_count; ++i) {
-            kprintf(KLOG_MSG, "Module preloaded [%s] %s\n", sztoa(mods->end - mods->start), mods->string);
-            inode_t *root = tar_mount(mods->start, mods->end, mods->string);
-            vfs_mkdev(root, "boot");
-            kmod_mount(root);
-            vfs_close(root, X_OK);
+            kprintf(KL_MSG, "Module preloaded [%s] '%s'\n", sztoa(mods->end - mods->start), mods->string);
+            inode_t *root = tar_mount(mods->start, mods->end - mods->start, mods->string);
+            snprintf(tmp, 12, "boot%d", i);
+            vfs_mkdev(root, tmp);
+            // kmod_mount(root);
+            vfs_close_inode(root);
         }
     }
 }

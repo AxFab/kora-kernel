@@ -17,9 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include "mspace.h"
-#include <kernel/cpu.h>
-#include <kernel/vfs.h>
+#include <kernel/memory.h>
+#include <kernel/tasks.h>
 #include <kora/mcrs.h>
 #include <kora/llist.h>
 #include <kora/splock.h>
@@ -57,16 +56,23 @@ void page_range(long long base, long long length)
 
     kMMU.pages_amount += count;
     kMMU.free_pages += count;
-    int i = start / 8;
-    int j = start % 8;
-    mzone_t *zn = kalloc(sizeof(mzone_t));
-    zn->offset = i * 8;
-    zn->reserved = j;
-    zn->available = count;
-    zn->count = ALIGN_UP(count + j, 8);
-    zn->free = count;
-    ll_append(&lzone, &zn->node);
-    kprintf(-1, "page at %d.%d count %d\n", i, j, count);
+    while (count > 0) {
+        int i = start / 8;
+        int j = start % 8;
+        int pgs = count;
+        if (pgs + j > PAGE_SIZE * 4)
+            pgs = PAGE_SIZE * 4 - j;
+        mzone_t *zn = kalloc(sizeof(mzone_t));
+        zn->offset = i * 8;
+        zn->reserved = j;
+        zn->available = pgs;
+        zn->count = ALIGN_UP(pgs + j, 8);
+        zn->free = pgs;
+        ll_append(&lzone, &zn->node);
+        kprintf(-1, "Found %d pages at %d[%d.%d]\n", pgs, start, i, j);
+        count -= pgs;
+        start = zn->offset + zn->count;
+    }
 }
 
 void page_teardown()
@@ -87,7 +93,7 @@ void page_teardown()
         mz = it;
         it = ll_next(&it->node, mzone_t, node);
         //
-        free(mz);
+        kfree(mz);
     }
 }
 
@@ -174,15 +180,16 @@ page_t page_new()
 
         /* Look for available page */
         long idx = bitschrz(mz->ptr, mz->count);
-        if (idx < 0)
-            kpanic("Memory page bitmap is corrupted!");
+        assert(idx >= 0);
         mz->free--;
         bitsset(mz->ptr, idx, 1);
         idx += mz->offset;
         splock_unlock(&mz->lock);
         return idx * PAGE_SIZE;
     }
-    kpanic("No page available");
+
+    kprintf(KL_ERR, "Error, no more pages available\n");
+    for (;;);
 }
 
 
@@ -204,7 +211,7 @@ void page_release(page_t paddress)
         splock_unlock(&mz->lock);
         return;
     }
-    kpanic("Page is not referenced");
+    kprintf(KL_ERR, "Page '%p' provided to page_release is not referenced.\n", paddress);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -236,14 +243,13 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
     // kprintf(KLOG_PF, "\033[91m#PF\033[31m %p\033[0m\n", address);
     vma_t *vma = mspace_search_vma(mspace, address);
     if (vma == NULL) {
-        kprintf(KLOG_PF, "\033[31mSIGSEGV at %p\033[0m\n", address);
+        kprintf(KL_PF, "\033[31mSIGSEGV at %p\033[0m\n", address);
         task_fatal("No mapping at this address", SIGSEGV);
     }
 
-    if (reason & PGFLT_WRITE && !(vma->flags & VMA_WRITE)
-        && !(vma->flags & VMA_COPY_ON_WRITE)) {
+    if (reason & PGFLT_WRITE && !(vma->flags & VM_WR) && !(vma->flags & VMA_COW)) {
         splock_unlock(&vma->mspace->lock);
-        kprintf(KLOG_PF, "\033[31mSIGSEGV at %p\033[0m\n", address);
+        kprintf(KL_PF, "\033[31mSIGSEGV at %p\033[0m\n", address);
         task_fatal("Can't write on read-only memory", SIGSEGV);
     }
 
@@ -254,13 +260,13 @@ int page_fault(mspace_t *mspace, size_t address, int reason)
     }
     if (ret != 0) {
         splock_unlock(&vma->mspace->lock);
-        kprintf(KLOG_PF, "\033[31mSIGSEGV at %p\033[0m\n", address);
+        kprintf(KL_PF, "\033[31mSIGSEGV at %p\033[0m\n", address);
         task_fatal("Unable to resolve page", SIGSEGV);
     }
-    if (reason & PGFLT_WRITE && (vma->flags & VMA_COPY_ON_WRITE))
+    if (reason & PGFLT_WRITE && (vma->flags & VMA_COW))
         ret = vma_copy_on_write(vma, address, PAGE_SIZE);
     if (ret != 0)
-        kprintf(KLOG_PF, "\033[91m#PF\033[31m Error on copy and write at %p!\033[0m\n",
+        kprintf(KL_PF, "\033[91m#PF\033[31m Error on copy and write at %p!\033[0m\n",
                 address);
     splock_unlock(&vma->mspace->lock);
     return 0;

@@ -17,8 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
 #include "pic.h"
 
 void pic_setup()

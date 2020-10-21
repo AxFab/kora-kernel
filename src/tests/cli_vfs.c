@@ -12,7 +12,7 @@ int read_cmds(FILE *fp);
 
 inode_t *getinode(const char *path)
 {
-    return path == NULL ? vfs_open(kSYS.dev_ino) : vfs_search(kSYS.dev_ino, kSYS.dev_ino, path, NULL);
+    return path == NULL ? vfs_open_inode(kSYS.dev_ino) : vfs_search(kSYS.dev_ino, kSYS.dev_ino, path, NULL);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -39,11 +39,11 @@ void do_ls(const char *path)
 
     while ((ino = vfs_readdir(dir, name, ctx)) != NULL) {
         printf("    %s (%s)\n", name, vfs_inokey(ino, tmp));
-        vfs_close(ino, X_OK);
+        vfs_close_inode(ino, X_OK);
     }
 
     vfs_closedir(dir, ctx);
-    vfs_close(dir, X_OK);
+    vfs_close_inode(dir, X_OK);
 }
 
 void do_stat(const char *path)

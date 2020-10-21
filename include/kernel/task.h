@@ -20,9 +20,10 @@
 #ifndef _KERNEL_TASK_H
 #define _KERNEL_TASK_H 1
 
-#include <kernel/core.h>
+#include <kernel/stdc.h>
 #include <kernel/arch.h>
 #include <kernel/memory.h>
+#include <kernel/vfs.h>
 #include <kora/bbtree.h>
 #include <kora/splock.h>
 #include <kora/rwlock.h>
@@ -34,6 +35,15 @@ typedef struct sig_handler sig_handler_t;
 typedef struct stream stream_t;
 typedef struct resx resx_t;
 typedef struct resx_fs resx_fs_t;
+
+typedef struct task task_t;
+typedef struct event event_t;
+typedef struct advent advent_t;
+typedef struct emitter emitter_t;
+typedef struct ftx ftx_t;
+typedef struct adv adv_t;
+
+
 
 struct user {
     uint8_t id[16];
@@ -61,7 +71,7 @@ enum TS_TaskState {
 
 struct stream {
     inode_t *ino;
-    off_t off;
+    xoff_t off;
     int flags;
     void *ctx;
     bbnode_t node; // TODO -- Is BBTree the best data structure !?
@@ -137,14 +147,14 @@ struct task {
     uint64_t sys_elapsed;  /* Time spend into kernel space code */
     uint64_t other_elapsed;  /* Time spend on other task */
 
-    user_t *user;
+    // user_t *user;
     proc_t *proc;
-    usr_t *usr;
-    rxfs_t *fs;
+    // usr_t *usr;
+    vfs_t *vfs;
     char *envs;
 
     resx_t *resx;  /* Open files */
-    resx_fs_t *resx_fs;  /* File system information */
+    // resx_fs_t *resx_fs;  /* File system information */
     mspace_t *usmem;  /* User space memory */
 
     /* Thread Local Storage */
@@ -180,7 +190,7 @@ void task_close(task_t *task);
 _Noreturn int task_pause(int state);
 void task_signals();
 
-task_t *task_create(void *entry, void *param, CSTR name);
+task_t *task_create(void *entry, void *param, const char *name);
 task_t *task_clone(task_t *model, int clone, int flags);
 
 void task_setup(task_t *task, void *entry, void *param);
@@ -252,13 +262,6 @@ void resx_close(resx_t *resx);
 stream_t *resx_get(resx_t *resx, int fd);
 stream_t *resx_set(resx_t *resx, inode_t *ino, int access);
 int resx_rm(resx_t *resx, int fd);
-
-struct rxfs {
-    inode_t *root;
-    inode_t *pwd;
-    int umask;
-    atomic_int rcu;
-};
 
 
 typedef struct proc_start {

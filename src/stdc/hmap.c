@@ -18,7 +18,6 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kora/hmap.h>
-// #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
@@ -30,32 +29,13 @@ void free(void *);
 
 #define HMAP_FULL_RATIO  3
 
-struct HMP_entry {
-    HMP_entry *next_;
-    int lg_;
-    uint32_t hash_;
-    void *value_;
-    char key_[0];
+struct hnode {
+    hnode_t *next;
+    void *value;
+    uint32_t hash;
+    int lg;
+    char key[0];
 };
-
-static void hmap_grow(HMP_map *map)
-{
-    HMP_entry *entry;
-    int i, lg = (map->mask_ + 1) * 2;
-    map->mask_ = lg - 1;
-    HMP_entry **htable = (HMP_entry **)malloc(sizeof(HMP_entry *) * lg);
-    memset(htable, 0, sizeof(HMP_entry *) * lg);
-    for (i = 0; i < lg / 2; ++i) {
-        while (map->hashes_[i]) {
-            entry = map->hashes_[i];
-            map->hashes_[i] = entry->next_;
-            entry->next_ = htable[entry->hash_ & map->mask_];
-            htable[entry->hash_ & map->mask_] = entry;
-        }
-    }
-    free(map->hashes_);
-    map->hashes_ = htable;
-}
 
 int murmur3_32(const void *key, int bytes, uint32_t seed)
 {
@@ -99,86 +79,107 @@ void *memdup(const void *buf, size_t lg)
     return ptr;
 }
 
-void hmp_init(HMP_map *map, int lg)
+void hmp_init(hmap_t *map, int lg)
 {
     assert(POW2(lg));
-    map->mask_ = lg - 1;
-    map->hashes_ = (HMP_entry **)malloc(sizeof(HMP_entry *) * lg);
-    memset(map->hashes_, 0, sizeof(HMP_entry *) * lg);
-    map->seed_ = 0xa5a5a5a5;
-    map->count_ = 0;
+    map->mask = lg - 1;
+    map->hashes = (hnode_t **)malloc(sizeof(hnode_t *) * lg);
+    memset(map->hashes, 0, sizeof(hnode_t *) * lg);
+    map->seed = 0xa5a5a5a5;
+    map->count = 0;
 }
 
-void hmp_destroy(HMP_map *map, int all)
+void hmp_destroy(hmap_t *map)
 {
-    int lg = all ? map->mask_ + 1 : 0;
+    int lg = map->mask + 1;
     while (lg-- > 0) {
-        while (map->hashes_[lg] != NULL) {
-            HMP_entry *entry = map->hashes_[lg];
-            map->hashes_[lg] = entry->next_;
+        while (map->hashes[lg] != NULL) {
+            hnode_t *entry = map->hashes[lg];
+            map->hashes[lg] = entry->next;
             free(entry);
-            --map->count_;
+            --map->count;
         }
     }
-    free(map->hashes_);
+    free(map->hashes);
     memset(map, 0, sizeof(*map));
 }
 
-void hmp_put(HMP_map *map, const char *key, int lg, void *value)
+static void hmap_grow(hmap_t *map)
 {
-    uint32_t hash = murmur3_32(key, lg, map->seed_);
-    HMP_entry *entry = map->hashes_[hash & map->mask_];
-    while (entry != NULL) {
-        if (entry->lg_ == lg && memcmp(entry->key_, key, lg) == 0) {
-            entry->value_ = value;
-            return;
+    hnode_t *entry;
+    int i, lg = (map->mask + 1) * 2;
+    map->mask = lg - 1;
+    hnode_t **htable = (hnode_t **)malloc(sizeof(hnode_t *) * lg);
+    memset(htable, 0, sizeof(hnode_t *) * lg);
+    for (i = 0; i < lg / 2; ++i) {
+        while (map->hashes[i]) {
+            entry = map->hashes[i];
+            map->hashes[i] = entry->next;
+            entry->next = htable[entry->hash & map->mask];
+            htable[entry->hash & map->mask] = entry;
         }
-        entry = entry->next_;
     }
-    if (map->count_ > HMAP_FULL_RATIO * (map->mask_ + 1))
-        hmap_grow(map);
-    entry = (HMP_entry *)malloc(sizeof(HMP_entry) + lg);
-    memcpy(entry->key_, key, lg);
-    entry->lg_ = lg;
-    entry->hash_ = hash;
-    entry->value_ = value;
-    entry->next_ = map->hashes_[hash & map->mask_];
-    map->hashes_[hash & map->mask_] = entry;
-    ++map->count_;
+    free(map->hashes);
+    map->hashes = htable;
 }
 
-void *hmp_get(HMP_map *map, const char *key, int lg)
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+void hmp_put(hmap_t *map, const char *key, int lg, void *value)
 {
-    uint32_t hash = murmur3_32(key, lg, map->seed_);
-    HMP_entry *entry = map->hashes_[hash & map->mask_];
+    uint32_t hash = murmur3_32(key, lg, map->seed);
+    hnode_t *entry = map->hashes[hash & map->mask];
     while (entry != NULL) {
-        if (entry->lg_ == lg && memcmp(entry->key_, key, lg) == 0)
-            return entry->value_;
-        entry = entry->next_;
+        if (entry->lg == lg && memcmp(entry->key, key, lg) == 0) {
+            entry->value = value;
+            return;
+        }
+        entry = entry->next;
+    }
+    if (map->count > HMAP_FULL_RATIO * (map->mask + 1))
+        hmap_grow(map);
+    entry = (hnode_t *)malloc(sizeof(hnode_t) + lg);
+    memcpy(entry->key, key, lg);
+    entry->lg = lg;
+    entry->hash = hash;
+    entry->value = value;
+    entry->next = map->hashes[hash & map->mask];
+    map->hashes[hash & map->mask] = entry;
+    ++map->count;
+}
+
+void *hmp_get(hmap_t *map, const char *key, int lg)
+{
+    uint32_t hash = murmur3_32(key, lg, map->seed);
+    hnode_t *entry = map->hashes[hash & map->mask];
+    while (entry != NULL) {
+        if (entry->lg == lg && memcmp(entry->key, key, lg) == 0)
+            return entry->value;
+        entry = entry->next;
     }
     return NULL;
 }
 
-void hmp_remove(HMP_map *map, const char *key, int lg)
+void hmp_remove(hmap_t *map, const char *key, int lg)
 {
-    uint32_t hash = murmur3_32(key, lg, map->seed_);
-    HMP_entry *entry = map->hashes_[hash & map->mask_];
+    uint32_t hash = murmur3_32(key, lg, map->seed);
+    hnode_t *entry = map->hashes[hash & map->mask];
     if (entry == NULL)
         return;
-    if (entry->lg_ == lg && memcmp(entry->key_, key, lg) == 0) {
-        map->hashes_[hash & map->mask_] = entry->next_;
-        --map->count_;
+    if (entry->lg == lg && memcmp(entry->key, key, lg) == 0) {
+        map->hashes[hash & map->mask] = entry->next;
+        --map->count;
         free(entry);
         return;
     }
-    while (entry->next_ != NULL) {
-        if (entry->next_->lg_ == lg && memcmp(entry->next_->key_, key, lg) == 0) {
-            HMP_entry *tmp = entry->next_;
-            entry->next_ = entry->next_->next_;
-            --map->count_;
+    while (entry->next != NULL) {
+        if (entry->next->lg == lg && memcmp(entry->next->key, key, lg) == 0) {
+            hnode_t *tmp = entry->next;
+            entry->next = entry->next->next;
+            --map->count;
             free(tmp);
             return;
         }
-        entry = entry->next_;
+        entry = entry->next;
     }
 }

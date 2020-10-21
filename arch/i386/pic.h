@@ -20,8 +20,8 @@
 #ifndef _SRC_PIC_H
 #define _SRC_PIC_H 1
 
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
 
 #define PIC1_CMD 0x20
 #define PIC1_DATA 0x21

@@ -20,7 +20,7 @@
 #ifndef _SRC_HPET_H
 #define _SRC_HPET_H 1
 
-#include <kernel/core.h>
+#include <kernel/stdc.h>
 
 #define HPET_TM_LEVEL 0x2
 #define HPET_TM_ENABLE 0x4

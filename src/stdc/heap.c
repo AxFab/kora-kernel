@@ -17,14 +17,15 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/types.h>
+#include <kernel/stdc.h>
+#include <kernel/memory.h>
 #include <string.h>
 #include <errno.h>
 #include "allocator.h"
 
-void *kmap(size_t, inode_t *, int, int);
-void kunmap(void *, size_t);
-#define mmap(s) kmap(s, NULL, 0, 0x166);
+// void *kmap(size_t, inode_t *, int, int);
+// void kunmap(void *, size_t);
+#define mmap(s) kmap(s, NULL, 0, VMA_HEAP | VM_RW);
 #define unmap(a,s) kunmap(a, s);
 
 

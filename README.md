@@ -13,7 +13,7 @@ This software is still a young pup but I have hope to build a reliable system so
 
 ## Build Instructions
 
-Build a kernel isn't like building a regular application an some extra work might be needed. 
+Build a kernel isn't like building a regular application an some extra work might be needed.
 
 The repository (like other from Kora) contains a close to standard `Makefile`.
 A `configure` script is available but only to build from another directory and is not mandatory.
@@ -110,7 +110,7 @@ long sys_sleep(long timeout);
 --------- */
 long sys_read(int fd, char *buf, int len);
 long sys_write(int fd, const char *buf, int len);
-long sys_open(int fd, CSTR path, int flags);
+long sys_open(int fd, const char * path, int flags);
 long sys_close(int fd);
 
 /* --------
@@ -140,7 +140,7 @@ long sys_mprotect(void *address, size_t length, unsigned flags);
 --------- */
 long sys_ginfo(unsigned info, void *buf, int len);
 long sys_sinfo(unsigned info, const void *buf, int len);
-long sys_log(CSTR msg);
+long sys_log(const char * msg);
 ```
 
 ## Kernel headers

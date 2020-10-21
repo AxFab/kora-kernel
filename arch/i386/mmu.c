@@ -17,10 +17,11 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
 #include <kernel/memory.h>
 #include <string.h>
+#include <assert.h>
 
 void setup_allocator(void *, size_t);
 
@@ -35,13 +36,13 @@ void setup_allocator(void *, size_t);
 static int mmu_flags(size_t vaddr, int flags)
 {
     int pgf = 1;
-    if (flags & VMA_WRITE)
+    if (flags & VM_WR)
         pgf |= 0x2;
     if (vaddr < MMU_KSPACE_LOWER)
         pgf |= 0x4;
     else
         pgf |= 0x8;
-    if (flags & VMA_UNCACHABLE)
+    if (flags & VM_UNCACHABLE)
         pgf |= 0x10;
     return pgf;
 }
@@ -87,7 +88,7 @@ void mmu_leave()
 int mmu_resolve(size_t vaddr, page_t phys, int flags)
 {
     int pages = 0;
-    size_t cr3 = x86_get_cr3();
+    // size_t cr3 = x86_get_cr3();
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if (*dir == 0) {
@@ -137,7 +138,7 @@ page_t mmu_read(size_t vaddr)
 /* Release a virtual page, returns physical one in case release is required */
 page_t mmu_drop(size_t vaddr)
 {
-    size_t cr3 = x86_get_cr3();
+    // size_t cr3 = x86_get_cr3();
     // kprintf(-1, " - %08x\n", vaddr);
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
@@ -174,7 +175,7 @@ void mmu_create_uspace(mspace_t *mspace)
 {
     unsigned i;
     page_t dir_pg = page_new();
-    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VM_PHYSIQ | VM_RW);
     memset(dir, 0,  PAGE_SIZE);
     dir[1023] = dir_pg | MMU_K_RW;
     dir[1022] = (page_t)MMU_KRN_DIR_PG | MMU_K_RW;
@@ -194,7 +195,7 @@ void mmu_destroy_uspace(mspace_t *mspace)
 {
     unsigned i;
     page_t dir_pg = mspace->directory;
-    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VM_PHYSIQ | VM_RW);
 
     for (i = MMU_UTBL_LOW ; i < MMU_UTBL_HIGH; ++i) {
         if (dir[i]) {
@@ -211,7 +212,7 @@ void mmu_context(mspace_t *mspace)
 {
     int i;
     page_t dir_pg = mspace->directory;
-    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYSIQ);
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VM_PHYSIQ | VM_RW);
     // unsigned table = ((unsigned)&mspace) >> 22;
     /* Check the current stack page is present  */
     page_t *krn = (page_t *)0xFFBFF000;
@@ -230,10 +231,10 @@ void mmu_explain(size_t vaddr)
     page_t *dir = MMU_DIR(vaddr);
     page_t *tbl = MMU_TBL(vaddr);
     if (*dir)
-        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p} / {%p:%p}\n", vaddr, cr3, mmu_read((size_t)dir),
-                *dir, mmu_read(tbl), *tbl);
+        kprintf(KL_DBG, " @%p <G:%p> -> {%p:%p} / {%p:%p}\n", vaddr, cr3, mmu_read((size_t)dir),
+                *dir, mmu_read((size_t)tbl), *tbl);
     else
-        kprintf(KLOG_DBG, " @%p <G:%p> -> {%p:%p}\n", vaddr, cr3, mmu_read((size_t)dir), *dir);
+        kprintf(KL_DBG, " @%p <G:%p> -> {%p:%p}\n", vaddr, cr3, mmu_read((size_t)dir), *dir);
 }
 
 

@@ -20,40 +20,29 @@
 #ifndef _KERNEL_VFS_H
 #define _KERNEL_VFS_H 1
 
-#include <kernel/core.h>
-#include <kernel/types.h>
-#include <kora/llist.h>
-#include <kora/bbtree.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
-#include <time.h>
+#include <kernel/stdc.h>
+#include <kora/splock.h>
+#include <kora/bbtree.h>
+#include <kora/llist.h>
+#include <kora/hmap.h>
+#include <stdatomic.h>
+#include <threads.h>
 
-#define VFS_MAXPATH 4096
-#define VFS_MAXNAME 256
-#define VFS_MAXREDIRECT 32
-
-#define VFS_OPEN  0x01
-#define VFS_CREAT  0x02
-#define VFS_NOBLOCK  0x04
-
-#define VFS_RDONLY  0x001
-
-#define INO_ATIME  0x10
-#define INO_MTIME  0x20
-#define INO_CTIME  0x40
-#define INO_BTIME  0x80
-#define INO_SYMLINK  0x00
-#define INO_CANONALIZE  0x01
-#define INO_ABSOLUTE  0x02
-
-#define VFS_ISDIR(ino)  (ino->type == FL_DIR || ino->type == FL_VOL)
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-#define X_OK 1
-#define W_OK 2
-#define R_OK 4
-
+typedef struct vfs vfs_t;
+typedef struct inode inode_t;
+typedef struct device device_t;
+typedef struct fl_ops fl_ops_t;
+typedef struct ino_ops ino_ops_t;
+typedef struct fsnode fsnode_t;
+typedef struct path path_t;
 typedef enum ftype ftype_t;
+
+// typedef struct acl acl_t;
+
+typedef inode_t *(*fsmount_t)(inode_t *dev, const char *options);
 
 enum ftype {
     FL_INVAL = 0,
@@ -64,144 +53,180 @@ enum ftype {
     FL_NET,  /* Network interface */
     FL_SOCK,  /* Network socket */
     FL_LNK,  /* Symbolic link (FS) */
-    FL_INFO,  /* Information file */
-    FL_SFC,  /* Application surface */
-    FL_VDO,  /* Video stream */
+    FL_FRM,  /* Video stream */
     FL_DIR,  /* Directory (FS) */
-    FL_VOL,  /* File system volume */
-    FL_TTY,  /* Terminal (Virtual) */
-    FL_WIN,  /* Window (Virtual) */
+    // FL_INFO,  /* Information file */
+    // FL_SFC,  /* Application surface */
+    // FL_VOL,  /* File system volume */
+    // FL_TTY,  /* Terminal (Virtual) */
+    // FL_WIN,  /* Window (Virtual) */
 };
 
-struct acl {
-    unsigned uid;
-    unsigned gid;
-    unsigned short mode;
-};
+enum {
+    IO_OPEN = (1 << 0), // on open allow to open existing file
+    IO_CREAT = (1 << 1), // on open allow to create the file
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+    IO_NOBLOCK = (1 << 2), // read or write should not block
+    IO_ATOMIC = (1 << 3), // complete operation or nothing
 
-struct ino_ops {
-    // All
-    int(*fcntl)(inode_t *ino, int cmd, void *params);
-    int(*close)(inode_t *ino);
-    void (*zero_reader)(inode_t *ino);
-    void (*zero_writer)(inode_t *ino);
-    // Mapping
-    page_t(*fetch)(inode_t *ino, off_t off);
-    void(*sync)(inode_t *ino, off_t off, page_t pg);
-    void(*release)(inode_t *ino, off_t off, page_t pg);
-    // Read / Write
-    int(*read)(inode_t *ino, char *buf, size_t len, int flags, off_t off);
-    int(*write)(inode_t *ino, const char *buf, size_t len, int flags, off_t off);
-    int(*reset)(inode_t *ino);
-    // Directory
-    void *(*opendir)(inode_t *dir);
-    inode_t *(*readdir)(inode_t *dir, char *name, void *ctx);
-    int(*closedir)(inode_t *dir, void *ctx);
-    // Regular file
-    int(*truncate)(inode_t *ino, off_t length);
-    // Framebuffer
-    void(*flip)(inode_t *ino);
-    void(*resize)(inode_t *ino, int width, int height);
-    void(*copy)(inode_t *dst, inode_t *src, int x, int y, int lf, int tp, int rg, int bt);
+    FD_RDONLY = (1 << 5),
 };
 
 struct inode {
     unsigned no;
-    int flags;
-    size_t lba;
-    off_t length;
     ftype_t type;
-    acl_t *acl;
-    clock64_t btime;
-    clock64_t ctime;
-    clock64_t mtime;
-    clock64_t atime;
-    atomic_int rcu;
-    splock_t lock;
 
-    atomic_int links;
-    llhead_t dlist; // List of dirent_t;
-    bbnode_t bnode;
+    size_t lba;
+    xoff_t length;
+    // User / Group or ACL
+    xtime_t ctime;
+    xtime_t atime;
+    xtime_t mtime;
+    xtime_t btime;
 
-    atomic_int count_rd;
-    atomic_int count_wr;
-
-    void *info; // Place holder for driver info
-    ino_ops_t *ops;
-
+    const ino_ops_t *ops;
+    const fl_ops_t *fops;
     device_t *dev;
-    // FL_BLK, FL_CHR, FL_VDO
-    // union { // Place holder for underlying device info
-    //     device_t *vol; // FL_REG, FL_DIR, FL_LNK, FL_VOL
-    //     // pipe_t *pipe; // FL_PIPE
-    //     // ifnet_t *ifnet; // FL_NET
-    //     socket_t *socket; // FL_SOCK
-    //     // desktop_t *desktop; // FL_WIN, FL_TTY
-    // } und;
+    void *drv_data;
+    void *fl_data;
 
-    llnode_t lnode;
+    splock_t lock;
+    atomic_int rcu;
+    bbnode_t bnode;
 };
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+struct device {
+    int no;
+    int flags;
+    char *devname;
+    char *devclass;
+    char *model;
+    char *vendor;
+    uint8_t uuid[16];
+    hmap_t map;
+    bbtree_t btree;
+    splock_t lock;
+    atomic_int rcu;
+    llhead_t llru;
+    size_t block;
+    inode_t *underlying;
+};
 
-/* Look for an inode recursively */
-inode_t *vfs_search(inode_t *root, inode_t *pwd, CSTR path, acl_t *acl);
-/* Look for an inode on a directory */
-inode_t *vfs_lookup(inode_t *dir, CSTR name);
-/* Create an empty inode (DIR or REG) */
-inode_t *vfs_create(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags);
-/* Link an inode (If supported) */
-int vfs_link(inode_t *dir, CSTR name, inode_t *ino);
-/* Unlink / delete an inode */
-int vfs_unlink(inode_t *dir, CSTR name);
-/* Rename an inode (can use either link, rename or copy depending on fs) */
-int vfs_rename(inode_t *dir, CSTR name, inode_t *ino);
+struct vfs {
+    fsnode_t *root;
+    fsnode_t *pwd;
+    int umask;
+    atomic_int rcu;
+};
 
-/* Create a symlink */
-inode_t *vfs_symlink(inode_t *dir, CSTR name, CSTR path);
-/* Read a link */
-int vfs_readlink(inode_t *ino, char *buf, int len, int flags);
+struct ino_ops {
+    inode_t *(*open)(inode_t *dir, const char *name, ftype_t type, void *acl, int flags);
+    void (*close)(inode_t *dir, inode_t *ino);
+    int (*unlink)(inode_t *dir, const char *name);
 
-/* Update meta-data, owners */
-int vfs_chown(inode_t *ino, acl_t *acl);
-/* Update meta-data, access rights */
-int vfs_chmod(inode_t *ino, int mode);
-/* Update meta-data, times */
-int vfs_chtimes(inode_t *ino, struct timespec *ts, int flags);
-/* Update meta-data, size */
-int vfs_truncate(inode_t *ino, off_t lengtg);
+    int (*read)(inode_t *ino, char *buf, size_t len, xoff_t off, int flags);
+    int (*write)(inode_t *dir, const char *buf, size_t len, xoff_t off, int flags);
 
-/* Check if a user have access to a file */
-int vfs_access(inode_t *ino, int access, acl_t *acl);
+    void *(*opendir)(inode_t *dir);
+    inode_t *(*readdir)(inode_t *dir, char *name, void *iterator);
+    void (*closedir)(inode_t *dir, void *);
 
-/* IO operations - read - only for BLK or REG */
-int vfs_read(inode_t *ino, char *buf, size_t size, off_t offset, int flags);
-/* IO operations - write - only for BLK or REG */
-int vfs_write(inode_t *ino, const char *buf, size_t size, off_t offset, int flags);
+    int(*truncate)(inode_t *ino, xoff_t length);
 
-/* Open an inode - increment usage as concerned to RCU mechanism. */
-inode_t *vfs_open(inode_t *ino, int access);
-/* Close an inode - decrement usage as concerned to RCU mechanism. */
-void vfs_close(inode_t *ino, int access);
+    page_t(*fetch)(inode_t *ino, xoff_t off);
+    void(*release)(inode_t *ino, xoff_t off, page_t pg, bool dirty);
 
-/* Create a context to enumerate directory entries */
-void *vfs_opendir(inode_t *dir, acl_t *acl);
-inode_t *vfs_readdir(inode_t *dir, char *name, void *ctx);
-int vfs_closedir(inode_t *dir, void *ctx);
+    int (*ioctl)(inode_t *ino, int cmd, void **params);
+};
 
-inode_t *vfs_mount(const char *dev, const char *fs, const char *name);
-int vfs_mkdev(inode_t *ino, const char *name);
+struct fl_ops {
+    int (*read)(inode_t *ino, char *buf, size_t len, xoff_t, int flags);
+    int (*write)(inode_t *dir, const char *buf, size_t len, xoff_t, int flags);
+
+    page_t(*fetch)(inode_t *ino, xoff_t off);
+    void(*release)(inode_t *ino, xoff_t off, page_t pg, bool dirty);
+    int (*seek)(inode_t *ino, xoff_t off);
+
+    void(*usage)(inode_t *ino, int flgas, int use);
+    int (*fcntl)(inode_t *ino, int cmd, void **params);
+    void(*destroy)(inode_t *ino);
+};
+
+struct fsnode {
+    fsnode_t *parent;
+    char name[256];
+    inode_t *ino;
+    atomic_int rcu;
+    llnode_t nlru;
+    int mode;
+    mtx_t mtx;
+};
+
+enum {
+    FN_EMPTY = 0,
+    FN_NOENTRY,
+    FN_LRU,
+    FN_OK,
+};
+
+
+
+
+// Generic
+vfs_t *vfs_init();
+vfs_t *vfs_open_vfs(vfs_t *vfs);
+vfs_t *vfs_clone_vfs(vfs_t *vfs);
+void vfs_sweep(vfs_t *vfs);
+inode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *name, const char *options);
+// unmount
 char *vfs_inokey(inode_t *ino, char *buf);
 
-void vfs_init();
-void vfs_fini();
-int vfs_fdisk(CSTR dname, long parts, long *sz);
+// For drivers
+inode_t *vfs_inode(unsigned no, ftype_t type, device_t *dev, const ino_ops_t *ops);
+inode_t *vfs_open_inode(inode_t *ino);
+void vfs_close_inode(inode_t *ino);
 
-static inline int vfs_puts(inode_t *ino, const char *buf)
-{
-    return vfs_write(ino, buf, strlen(buf), 0, 0);
-}
+int vfs_mkdev(inode_t *ino, const char *name);
+void vfs_rmdev(const char *name);
+void vfs_addfs(const char *name, fsmount_t mount);
+void vfs_rmfs(const char *name);
+
+
+
+// For kernel
+fsnode_t *vfs_search(vfs_t *vfs, const char *pathname, void *user, bool resolve);
+fsnode_t *vfs_open_fsnode(fsnode_t *node);
+void vfs_close_fsnode(fsnode_t *node);
+int vfs_chdir(vfs_t *vfs, const char *path, bool root);
+int vfs_readlink(vfs_t *vfs, fsnode_t *node, char *buf, int len, bool relative);
+
+void vfs_usage(fsnode_t *node, int flags, int use);
+
+void *vfs_opendir(fsnode_t *dir, void *acl);
+fsnode_t *vfs_readdir(fsnode_t *dir, void *ctx);
+int vfs_closedir(fsnode_t *dir, void *ctx);
+
+
+int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags);
+int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags);
+
+
+// Internal
+fsnode_t *vfs_fsnode_from(fsnode_t *parent, const char *name);
+
+int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags);
+int block_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags);
+
+int vfs_access(fsnode_t *node, int access);
+
+int vfs_fcntl(inode_t *ino, int cmd, void **args);
+int vfs_seek(inode_t *ino, xoff_t off);
+
+inode_t *tar_mount(void *base, size_t length, const char *name);
+
+
+#define FB_RESIZE 0x8001
+#define FB_FLIP 0x8002
+
 
 #endif /* _KERNEL_VFS_H */
