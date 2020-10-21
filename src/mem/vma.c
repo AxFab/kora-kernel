@@ -17,11 +17,11 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
 #include <kernel/memory.h>
-#include <kernel/files.h>
 #include <kernel/vfs.h>
-#include "mspace.h"
+// #include <kora/bbtree.h>
+// #include <kora/splock.h>
+// #include <stdatomic.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -35,7 +35,7 @@ char *vma_print(char *buf, int len, vma_t *vma)
     static char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"};
     char *nam;
     int i = 0;
-    char sh = vma->flags & VMA_COPY_ON_WRITE ? (vma->flags & VMA_SHARED ? 'W' : 'w')
+    char sh = vma->flags & VMA_COW ? (vma->flags & VMA_SHARED ? 'W' : 'w')
               : (vma->flags & VMA_SHARED ? 'S' : 'p');
     i += snprintf(&buf[i], len - i, "%p-%p %s %s%c  {%04x} <%s> ",
                   (void *)vma->node.value_, (void *)(vma->node.value_ + vma->length),
@@ -52,13 +52,13 @@ char *vma_print(char *buf, int len, vma_t *vma)
         i += snprintf(&buf[i], len - i, "[pipe]");
         break;
     case VMA_PHYS:
-        i += snprintf(&buf[i], len - i, "PHYS=%p", (void *)vma->offset);
+        i += snprintf(&buf[i], len - i, "PHYS=%p", (void *)((size_t)vma->offset));
         break;
     case VMA_ANON:
         break;
     case VMA_FILE:
         nam = kalloc(4096);
-        vfs_readlink(vma->ino, nam, 4096, 0);
+        vfs_inokey(vma->ino, nam);
         i += snprintf(&buf[i], len - i, "%s @%x", nam, vma->offset);
         kfree(nam);
         break;
@@ -70,7 +70,7 @@ char *vma_print(char *buf, int len, vma_t *vma)
 }
 
 /* - */
-static void vma_log(CSTR prefix, vma_t *vma)
+static void vma_log(const char *prefix, vma_t *vma)
 {
     // int len = 4096;
     // char *buf = kalloc(len);
@@ -80,13 +80,13 @@ static void vma_log(CSTR prefix, vma_t *vma)
 
 /* - */
 vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
-                  off_t offset, int flags)
+                  xoff_t offset, int flags)
 {
     vma_t *vma = (vma_t *)kalloc(sizeof(vma_t));
     vma->mspace = mspace;
     vma->node.value_ = address;
     vma->length = length;
-    vma->ino = vfs_open(ino, X_OK);
+    vma->ino = vfs_open_inode(ino);
     vma->offset = offset;
     vma->flags = flags;
     bbtree_insert(&mspace->tree, &vma->node);
@@ -103,7 +103,7 @@ vma_t *vma_clone(mspace_t *mspace, vma_t *model)
     vma->mspace = mspace;
     vma->node.value_ = model->node.value_;
     vma->length = model->length;
-    vma->ino = vfs_open(model->ino, X_OK);
+    vma->ino = vfs_open_inode(model->ino);
     vma->offset = model->offset;
     vma->flags = model->flags;
     bbtree_insert(&mspace->tree, &vma->node);
@@ -112,9 +112,9 @@ vma_t *vma_clone(mspace_t *mspace, vma_t *model)
     if (vma->flags & VMA_SHARED) {
 
     } else {
-        if (vma->flags & VMA_CAN_WRITE) {
-            // Set as READ ONLY / COW !
-        }
+        //if (vma->flags & VMA_CAN_WRITE) {
+        //    // Set as READ ONLY / COW !
+        //}
     }
 
     return NULL;
@@ -136,7 +136,7 @@ vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length)
     vma->mspace = mspace;
     vma->node.value_ = area->node.value_ + length;
     vma->length = area->length - length;
-    vma->ino = area->ino ? vfs_open(area->ino, X_OK) : NULL;
+    vma->ino = area->ino ? vfs_open_inode(area->ino) : NULL;
     vma->offset = area->offset + length;
     vma->flags = area->flags;
 
@@ -168,7 +168,7 @@ int vma_close(mspace_t *mspace, vma_t *vma, int arg)
                 mmu_drop(vma->node.value_ + off);
                 assert(vma->ino && vma->ino->ops);
                 if (vma->ino->ops->release)
-                    vma->ino->ops->release(vma->ino, vma->offset + off, pg);
+                    vma->ino->ops->release(vma->ino, vma->offset + off, pg, false);
             }
         }
         break;
@@ -178,7 +178,7 @@ int vma_close(mspace_t *mspace, vma_t *vma, int arg)
     }
 
     if (vma->ino)
-        vfs_close(vma->ino, X_OK);
+        vfs_close_inode(vma->ino);
     bbtree_remove(&mspace->tree, vma->node.value_);
 
     vma_log(MSP_NAME(" ", mspace, " DEL :: "), vma);
@@ -192,7 +192,7 @@ int vma_protect(mspace_t *mspace, vma_t *vma, int flags)
 {
     assert(splock_locked(&mspace->lock));
     /* Check permission */
-    if ((flags & ((vma->flags >> 4) & VMA_RIGHTS)) != flags) {
+    if ((flags & ((vma->flags >> 4) & VM_RWX)) != flags) {
         errno = EPERM;
         return -1;
     }
@@ -201,7 +201,7 @@ int vma_protect(mspace_t *mspace, vma_t *vma, int flags)
     size_t off;
     for (off = 0; off < vma->length; off += PAGE_SIZE)
         mmu_protect(vma->node.value_ + off, flags);
-    vma->flags &= ~VMA_RIGHTS;
+    vma->flags &= ~VM_RWX;
     vma->flags |= flags;
 
     vma_log(MSP_NAME(" ", mspace, " PRT :: "), vma);
@@ -218,7 +218,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     assert(address + length <= vma->node.value_ + vma->length);
 
     int type = vma->flags & VMA_TYPE;
-    off_t offset = vma->offset + (address - vma->node.value_);
+    xoff_t offset = vma->offset + (address - vma->node.value_);
     switch (type) {
     case VMA_PHYS:
         while (length > 0) {
@@ -232,6 +232,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     case VMA_STACK:
     case VMA_PIPE:
     case VMA_ANON:
+    case VMA_EXEC:
         while (length > 0) {
             vma->mspace->p_size += mmu_resolve(address, 0, vma->flags);
             memset((void *)address, 0, PAGE_SIZE);
@@ -242,12 +243,12 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     case VMA_FILE:
         while (length > 0) {
             inode_t *ino = vma->ino;
-            if (ino->ops->fetch == NULL) {
+            if (ino->fops->fetch == NULL) {
                 errno = ENOSYS;
                 return -1;
             }
             splock_unlock(&vma->mspace->lock);
-            page_t pg = ino->ops->fetch(ino, offset); // CAN SLEEP!
+            page_t pg = ino->fops->fetch(ino, offset); // CAN SLEEP!
             splock_lock(&vma->mspace->lock);
             if (pg == 0)
                 return -1;
@@ -273,10 +274,10 @@ int vma_copy_on_write(vma_t *vma, size_t address, size_t length)
     assert((length & (PAGE_SIZE - 1)) == 0);
     assert(address + length <= vma->node.value_ + vma->length);
 
-    vma->flags &= ~VMA_COPY_ON_WRITE;
-    vma->flags |= VMA_WRITE;
+    vma->flags &= ~VMA_COW;
+    vma->flags |= VM_WR;
 
-    char *buf = kmap(length, NULL, 0, VMA_ANON_RW);
+    char *buf = kmap(length, NULL, 0, VM_RW);
     memcpy(buf, (void *)address, length);
     void *ptr = buf;
     size_t len = length;

@@ -8,8 +8,8 @@
 
 void futex_init();
 
-void vfs_open(inode_t *ino) {}
-void vfs_close(inode_t *ino) {}
+void vfs_open_inode(inode_t *ino) {}
+void vfs_close_inode(inode_t *ino) {}
 void vfs_readlink(inode_t *ino) {}
 
 _Noreturn void kpanic(const char *ms, ...)
@@ -17,7 +17,7 @@ _Noreturn void kpanic(const char *ms, ...)
     abort();
 }
 
-_Noreturn void task_fatal(CSTR error, unsigned signum)
+_Noreturn void task_fatal(const char *error, unsigned signum)
 {
     abort();
 }

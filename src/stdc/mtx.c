@@ -1,6 +1,7 @@
 #include <threads.h>
 #include <limits.h>
-#include <kernel/futex.h>
+#include <kernel/stdc.h>
+#include <kora/mcrs.h>
 
 /* creates a mutex */
 int mtx_init(mtx_t *mutex, int type)
@@ -30,16 +31,16 @@ int mtx_timedlock(mtx_t *restrict mutex, const struct timespec *restrict time_po
         c = atomic_compare_exchange_strong(&mutex->value, &s, 1);
         if (c)
             return 0;
-        RELAX;
+        __asm_pause_;
     }
 
     /* the lock is now contended */
     if (s == 1)
         s = atomic_exchange(&mutex->value, 2);
 
-    utime_t start;
+    xtime_t start;
     if (time_point->tv_sec >= 0)
-        start = cpu_clock(CLOCK_MONOTONIC);
+        start = xtime_read(XTIME_CLOCK);
 
     while (s) {
         /* wait in the kernel */
@@ -47,8 +48,8 @@ int mtx_timedlock(mtx_t *restrict mutex, const struct timespec *restrict time_po
         s = atomic_exchange(&mutex->value, 2);
 
         if (time_point->tv_sec >= 0) {
-            utime_t now = cpu_clock(CLOCK_MONOTONIC);
-            utime_t elapsed = now - start;
+            xtime_t now = xtime_read(XTIME_CLOCK);
+            xtime_t elapsed = now - start;
             start = now;
             timeout -= (long)elapsed;
             if (timeout <= 0 || elapsed >= LONG_MAX)
@@ -68,7 +69,7 @@ int mtx_trylock(mtx_t *mutex)
         c = atomic_compare_exchange_strong(&mutex->value, &s, 1);
         if (c)
             return 0;
-        RELAX;
+        __asm_pause_;
     }
     return thrd_busy;
 }
@@ -92,7 +93,7 @@ int mtx_unlock(mtx_t *mutex)
             if (c)
                 return 0;
         }
-        RELAX;
+        __asm_pause_;
     }
 
     /* we need to wake someone up */

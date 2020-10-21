@@ -20,11 +20,32 @@
 #ifndef _KERNEL_MEMORY_H
 #define _KERNEL_MEMORY_H 1
 
-#include <kernel/types.h>
-#include <kernel/arch.h>
-#include <kernel/vma.h>
+#include <kernel/stdc.h>
+#include <kora/bbtree.h>
+#include <kora/splock.h>
+// #include <kernel/arch.h>
+// #include <kernel/vma.h>
+
+enum {
+
+    VMA_SHARED = 0x10000,
+    VMA_COW = 0x20000,
+    VMA_FIXED = 0x40000,
+
+    VMA_HEAP = 0x1000,
+    VMA_STACK = 0x2000,
+    VMA_FILE = 0x3000,
+    VMA_PIPE = 0x4000,
+    VMA_PHYS = 0x5000,
+    VMA_ANON = 0x6000,
+    VMA_EXEC = 0x7000,
+    VMA_TYPE = 0xF000,
+};
+
+typedef struct inode inode_t;
 
 typedef struct vma vma_t;
+typedef struct mspace mspace_t;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* Create a memory space for a user application */
@@ -37,8 +58,7 @@ void mspace_close(mspace_t *mspace);
 mspace_t *mspace_clone(mspace_t *model);
 
 /* Map a memory area inside the provided address space. */
-void *mspace_map(mspace_t *mspace, size_t address, size_t length,
-                 inode_t *ino, off_t offset, int flags);
+void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, xoff_t offset, int flags);
 /* Change the protection flags of a memory area. */
 int mspace_protect(mspace_t *mspace, size_t address, size_t length, int flags);
 /* Change the flags of a memory area. */
@@ -92,6 +112,10 @@ void memory_info();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+#define PGFLT_MISSING  1
+#define PGFLT_WRITE  2
+#define PGFLT_ERROR  4
+
 
 struct kMmu {
     size_t upper_physical_page;  /* Maximum amount of memory */
@@ -111,6 +135,60 @@ struct kMmu {
 
 /* - */
 extern struct kMmu kMMU;
+
+
+struct mspace {
+    atomic_int users;  /* Usage counter */
+    bbtree_t tree;  /* Binary tree of VMAs sorted by addresses */
+    page_t directory;  /* Page global directory */
+    size_t lower_bound;  /* Lower bound of the address space */
+    size_t upper_bound;  /* Upper bound of the address space */
+    size_t v_size;  /* Virtual allocated page counter */
+    size_t p_size;  /* Physical allocated page counter */
+    size_t a_size;  /* Total allocated page counter */
+    size_t s_size;  /* Shared allocated page counter */
+    size_t phys_pg_count;  /* Physical page used on this address space */
+    splock_t lock;  /* Memory space protection lock */
+};
+
+
+struct vma {
+    bbnode_t node;  /* Binary tree node of VMAs contains the base address */
+    size_t length;  /* The length of this VMA */
+    inode_t *ino;  /* If the VMA is linked to a file, a pointer to the inode */
+    xoff_t offset;  /* An offset to a file or an physical address, depending of type */
+    int flags;  /* VMA flags */
+    mspace_t *mspace;
+};
+
+
+/* Helper to print VMA info into syslogs */
+char *vma_print(char *buf, int len, vma_t *vma);
+/* - */
+vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino, xoff_t offset, int flags);
+/* - */
+vma_t *vma_clone(mspace_t *mspace, vma_t *model);
+/* Split one VMA into two. */
+vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length);
+/* Close a VMA and release private pages. */
+int vma_close(mspace_t *mspace, vma_t *vma, int arg);
+/* Change the flags of a VMA. */
+int vma_protect(mspace_t *mspace, vma_t *vma, int flags);
+
+
+int vma_resolve(vma_t *vma, size_t address, size_t length);
+
+int vma_copy_on_write(vma_t *vma, size_t address, size_t length);
+
+
+
+/* Close all VMAs */
+void mspace_sweep(mspace_t *mspace);
+
+
+int mspace_check(mspace_t *mspace, const void *ptr, size_t len, int flags);
+int mspace_check_str(mspace_t *mspace, const char *str, size_t max);
+
 
 
 #endif /* _KERNEL_MEMORY_H */

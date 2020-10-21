@@ -17,8 +17,9 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
+#include <kora/mcrs.h>
 #include <string.h>
 #include <time.h>
 
@@ -88,7 +89,7 @@ static inline void cmos_fix_tm(struct tm *date)
     date->tm_wday = date->tm_wday % 7;
 }
 
-time_t rtc_time()
+xtime_t rtc_time()
 {
     struct tm date;
     struct tm last;
@@ -104,7 +105,7 @@ time_t rtc_time()
 
     cmos_fix_tm(&date);
     kprintf(0, "RTC clock: %s", asctime(&date));
-    return timegm(&date);
+    return SEC_TO_USEC(timegm(&date));
 }
 
 

@@ -42,9 +42,9 @@
 #endif
 
 
-void *calloc(size_t len, size_t cnt);
-void free();
-void *valloc(size_t len);
+//void *calloc(size_t len, size_t cnt);
+//void free();
+//void *valloc(size_t len);
 
 int printf(const char *msg, ...);
 int vprintf(const char *msg, va_list ap);

@@ -17,13 +17,21 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
-#include <kernel/task.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
+#include <kernel/tasks.h>
+#include <kernel/irq.h>
 #include <errno.h>
 #include <sys/signum.h>
 #include "apic.h"
 #include "pic.h"
+
+typedef struct fault fault_t;
+struct fault {
+    int raise;
+    const char *name;
+    const char *mnemonic;
+};
 
 fault_t x86_exceptions[] = {
     { .name = "Divide by zero", .mnemonic = "#DE", .raise = SIGFPE }, // 0 - FAULT
@@ -47,6 +55,7 @@ fault_t x86_exceptions[] = {
     { .name = "Machine Check", .mnemonic = "#MC", .raise = SIGABRT }, // 18 - ABORT
     { .name = "SIMD Floating-Point Exception", .mnemonic = "#XF", .raise = SIGFPE }, // 19 - FAULT
     { .name = "Virtualization Exception", .mnemonic = "#VE", .raise = SIGABRT }, // 20 - FAULT
+
     { .name = "Security Exception", .mnemonic = "#SX", .raise = SIGFPE }, // 30 - FAULT, ERR_CODE
     { .name = "Reserved", .raise = SIGKILL }, // 31 -
     { .name = "Unknown", .raise = SIGKILL }, // 32 -
@@ -115,39 +124,39 @@ void x86_fault(int no, regs_t *regs)
     kprintf(-1, "  eax:%08x, ecx:%08x, edx:%08x, ebx:%08x, \n", regs->eax, regs->ecx, regs->edx, regs->ebx);
     kprintf(-1, "  ebp:%08x, esp:%08x, esi:%08x, edi:%08x, \n", regs->ebp, regs->esp, regs->esi, regs->edi);
     kprintf(-1, "  cs:%02x, ds:%02x, eip:%08x, eflags:%08x \n", regs->cs, regs->ds, regs->eip, regs->eflags);
-    irq_fault(&x86_exceptions[MIN(0x17, (unsigned)no)]);
+    fault_t *fault = &x86_exceptions[MIN(0x17, (unsigned)no)];
+    irq_fault(fault->name, fault->raise);
 }
 
 void x86_error(int no, int code, regs_t *regs)
 {
-    kprintf(-1, "REGS Error\n");
+    char buf[32];
+    snprintf(buf, 32, "#GP: %d\n", code);
+    kwrite(buf, strlen(buf));
+    kprintf(-1, "REGS Error\n"); // Global protection
     kprintf(-1, "  eax:%08x, ecx:%08x, edx:%08x, ebx:%08x, \n", regs->eax, regs->ecx, regs->edx, regs->ebx);
     kprintf(-1, "  ebp:%08x, esp:%08x, esi:%08x, edi:%08x, \n", regs->ebp, regs->esp, regs->esi, regs->edi);
     kprintf(-1, "  cs:%02x, ds:%02x, eip:%08x, eflags:%08x \n", regs->cs, regs->ds, regs->eip, regs->eflags);
 
-    char buf[64];
-    fault_t fault = x86_exceptions[MIN(0x17, (unsigned)no)];
-    snprintf(buf, 64, fault.name, code);
-    fault.name = buf;
-    irq_fault(&fault);
+    fault_t *fault = &x86_exceptions[MIN(0x17, (unsigned)no)];
+    irq_fault(fault->name, fault->raise);
 }
 
 void x86_pgflt(size_t vaddr, int code, regs_t *regs)
 {
     int reason = 0;
-    task_t *task = kCPU.running;
+    task_t *task = __current; //kCPU.running;
     if ((code & x86_PFEC_PRST) == 0)
         reason |= PGFLT_MISSING;
     if (code & x86_PFEC_WR)
         reason |= PGFLT_WRITE;
-    page_fault(task ? task->usmem : NULL, vaddr, reason);
+    page_fault(task ? task->vm : NULL, vaddr, reason);
 }
 
 void x86_syscall(regs_t *regs)
 {
     int ret = irq_syscall(regs->eax, regs->ecx, regs->edx,
                           regs->ebx, regs->esi, regs->edi);
-
     regs->eax = ret;
     regs->edx = errno;
 }

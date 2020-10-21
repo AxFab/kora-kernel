@@ -18,69 +18,110 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/vfs.h>
-#include <kernel/device.h>
-#include <kernel/files.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
+void *block_create();
+void *pipe_create();
+void *sock_create();
+void *framebuffer_create();
+void *socket_create();
 
+extern fl_ops_t block_ops;
+extern fl_ops_t pipe_ops;
+extern fl_ops_t chr_ops;
+extern fl_ops_t sock_ops;
+extern fl_ops_t framebuffer_ops;
+extern fl_ops_t socket_ops;
 
-int vfs_read(inode_t *ino, char *buf, size_t size, off_t off, int flags)
+void vfs_createfile(inode_t *ino)
 {
-    assert(kCPU.irq_semaphore == 0);
-    assert(ino != NULL);
-    assert(buf != NULL);
-    if (size == 0) {
-        errno = 0;
-        return 0;
-    }
+    switch (ino->type) {
+    case FL_REG:
+    case FL_BLK:
+        ino->fl_data = block_create();
+        ino->fops = &block_ops;
+        break;
+    case FL_PIPE:
+        ino->fl_data = pipe_create();
+        ino->fops = &pipe_ops;
+        break;
+    case FL_CHR:
+        // ino->fl_data = pipe_create();
+        // ino->fops = &chr_ops;
+        break;
+    case FL_SOCK:
+        ino->fl_data = socket_create();
+        ino->fops = &socket_ops;
+        break;
+    case FL_FRM:
+        ino->fl_data = framebuffer_create();
+        ino->fops = &framebuffer_ops;
+        break;
 
-    if (ino->type == FL_DIR || ino->type == FL_VOL || ino->type == FL_NET || ino->type == FL_VDO)
-        assert(ino->ops->read == NULL);
-
-#ifdef KORA_KRN
-    if ((ino->type == FL_REG || ino->type == FL_BLK) && ino->ops->read == NULL) {
-        kprintf(-1, "Unset IO block operations at %p\n", ino->ops);
-        ino->ops->read = blk_read;
-        ino->ops->write = blk_write;
+    case FL_NET:
+    case FL_LNK:
+    case FL_DIR:
+    default:
+        break;
     }
-#endif
-
-    if (ino->ops->read == NULL) {
-        errno = ENOSYS;
-        return -1;
-    }
-    return ino->ops->read(ino, buf, size, flags, off);
 }
 
-int vfs_write(inode_t *ino, const char *buf, size_t size, off_t off, int flags)
+void vfs_cleanfile(inode_t *ino)
 {
-    assert(kCPU.irq_semaphore == 0);
-    assert(ino != NULL);
-    assert(buf != NULL);
-    if (size == 0) {
-        errno = 0;
-        return 0;
-    }
+    if (ino->fops && ino->fops->destroy)
+        ino->fops->destroy(ino);
+}
 
-    if (ino->type == FL_DIR || ino->type == FL_VOL || ino->type == FL_NET || ino->type == FL_VDO || ino->type == FL_WIN)
-        assert(ino->ops->read == NULL);
 
-#ifdef KORA_KRN
-    if ((ino->type == FL_REG || ino->type == FL_BLK) && ino->ops->read == NULL) {
-        kprintf(-1, "Unset IO block operations at %p\n", ino->ops);
-        ino->ops->read = blk_read;
-        ino->ops->write = blk_write;
-    }
-#endif
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-    if (ino->dev->flags & VFS_RDONLY) {
-        errno = EROFS;
-        return -1;
-    } else if (ino->ops->write == NULL) {
+int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags)
+{
+    assert(ino != NULL && buf != NULL);
+    if (ino->fops == NULL || ino->fops->read == NULL) {
         errno = ENOSYS;
         return -1;
     }
-    return ino->ops->write(ino, buf, size, flags, off);
+
+    return ino->fops->read(ino, buf, size, off, flags);
+}
+
+int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags)
+{
+    assert(ino != NULL && buf != NULL);
+    if (ino->fops == NULL || ino->fops->write == NULL) {
+        errno = ENOSYS;
+        return -1;
+    }
+
+    return ino->fops->write(ino, buf, size, off, flags);
+}
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+int vfs_fcntl(inode_t *ino, int cmd, void **args)
+{
+    assert(ino != NULL);
+    if (ino->fops == NULL || ino->fops->fcntl == NULL) {
+        errno = ENOSYS;
+        return -1;
+    }
+
+    return ino->fops->fcntl(ino, cmd, args);
+}
+
+int vfs_seek(inode_t *ino, xoff_t off)
+{
+    assert(ino != NULL);
+    if (ino->fops == NULL || ino->fops->fcntl == NULL) {
+        errno = ENOSYS;
+        return -1;
+    }
+
+    return ino->fops->seek(ino, off);
 }
 

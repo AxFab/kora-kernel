@@ -17,8 +17,9 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
+#include <kernel/tasks.h>
 #include <string.h>
 #include "apic.h"
 
@@ -217,19 +218,9 @@ void cpuid_setup()
     x86_cpuid(0, 0, cpu_name);
     cpu_name[4] = 0;
     cpu_table[cpu_no()].vendor = strdup((char *)&cpu_name[1]);
-    kprintf(KLOG_DBG, "CPU%d :: %s\n", cpu_no(), &cpu_name[1]);
 
     // Get CPU features
     x86_cpuid(1, 0, cpu_table[cpu_no()].features);
-
-    /*
-    if (x86_FEATURES_FPU(*cpu)) {
-        x86_active_FPU();
-    }
-    if (x86_FEATURES_SSE(*cpu)) {
-        x86_enable_SSE();
-    } */
-
     all_features[0] &= cpu_table[cpu_no()].features[0];
     all_features[1] &= cpu_table[cpu_no()].features[1];
     all_features[2] &= cpu_table[cpu_no()].features[2];
@@ -349,14 +340,22 @@ void cpuid_setup()
     if (x86_FEATURES_AVX(all_features))
         strcat(tmp, "AVX, ");
 
-    kprintf(KLOG_DBG, "Features: %s\n", tmp);
+    kprintf(KL_DBG, "CPU(%d) :: %s :: %s\n", cpu_no(), &cpu_name[1], tmp);
     kfree(tmp);
 
+    /*
+    if (x86_FEATURES_FPU(*cpu)) {
+        x86_active_FPU();
+    }
+    if (x86_FEATURES_SSE(*cpu)) {
+        x86_enable_SSE();
+    } */
+
     if (!x86_FEATURES_MSR(cpu_table[cpu_no()].features)) {
-        kprintf(KLOG_MSG, "CPU%d: No MSR capability\n", cpu_no());
+        kprintf(KL_MSG, "CPU%d: No MSR capability\n", cpu_no());
         return;
     } else if (!x86_FEATURES_APIC(cpu_table[cpu_no()].features)) {
-        kprintf(KLOG_MSG, "CPU%d: No APIC capability\n", cpu_no());
+        kprintf(KL_MSG, "CPU%d: No APIC capability\n", cpu_no());
         return;
     }
 
@@ -364,32 +363,32 @@ void cpuid_setup()
         uint32_t regA, regB;
         rdmsr(IA32_APIC_BASE_MSR, &regA, &regB);
         if ((regA & (1 << 11)) == 0) {
-            kprintf(KLOG_MSG, "CPU%d: APIC disabled\n", cpu_no());
+            kprintf(KL_MSG, "CPU%d: APIC disabled\n", cpu_no());
             return;
         } else if ((regA & (1 << 8)) == 0) {
-            kprintf(KLOG_MSG, "CPU%d: Unfound BSP\n", cpu_no());
+            kprintf(KL_MSG, "CPU%d: Unfound BSP\n", cpu_no());
             return;
         }
 
         apic_mmio = regA & ~(PAGE_SIZE - 1);
-        kprintf(KLOG_MSG, "CPU%d: APIC at %p\n", cpu_no(), apic_mmio);
+        kprintf(KL_MSG, "CPU%d: APIC at %p\n", cpu_no(), apic_mmio);
     }
 }
 
-#include <kernel/task.h>
+// #include <kernel/task.h>
 
-void cpu_tss(task_t *task)
-{
-    int i = cpu_no();
-    size_t ptr = (size_t)task->kstack + PAGE_SIZE - 16;
-    TSS_BASE[i].esp0 = ptr;
-    // kprintf(-1, "CPU%d set TSS at %p \n", i, TSS_BASE[i].esp0);
-}
+// void cpu_tss(task_t *task)
+// {
+//     int i = cpu_no();
+//     size_t ptr = (size_t)task->kstack + PAGE_SIZE - 16;
+//     TSS_BASE[i].esp0 = ptr;
+//     // kprintf(-1, "CPU%d set TSS at %p \n", i, TSS_BASE[i].esp0);
+// }
 
 void tss_setup()
 {
     int i = cpu_no();
-    kprintf(-1, "CPU%d - at %p \n", i, &kCPU);
+    // kprintf(-1, "CPU%d - at %p \n", i, &kCPU);
 
     TSS_BASE[i].debug_flag = 0;
     TSS_BASE[i].io_map = 0;
@@ -398,9 +397,7 @@ void tss_setup()
     GDT(i + 7, TSS_CPU(i), 0x67, 0xe9, 0x00); // TSS CPU(i)
     x86_set_tss(i + 7);
 
-    kprintf(-1, "CPU%d TSS at %x using stack %x\n", i, &TSS_BASE[i], TSS_BASE[i].esp0);
-    kprintf(-1, "CPU%d TSS no %d with %x \n", i, i + 7, TSS_CPU(i));
-    kprintf(-1, "CPU%d irq_semaphore=%d \n", i, kCPU.irq_semaphore);
+    kprintf(-1, "CPU(%d) TSS no %d at %x using stack %x\n", i, i + 7, &TSS_BASE[i], TSS_BASE[i].esp0);
 }
 
 // create cpufeatures structs
@@ -413,8 +410,8 @@ void cpu_setup()
     pic_setup();
     // acpi_setup();
     cpuid_setup();
-    time_t now = rtc_time();
-    kprintf(0, "Unix Epoch: %d \n", now);
+    xtime_t now = rtc_time();
+    // kprintf(0, "Unix Epoch: %lld \n", now);
     // apic_setup();
     tss_setup();
     // hpet_setup();
@@ -430,7 +427,7 @@ void cpu_setup()
     // upgrade PIC to APIC
     // activate interval timer
     //  - no irq yet
-    // kprintf(KLOG_ERR, "End of CPU setup.\n");
+    // kprintf(KL_ERR, "End of CPU setup.\n");
     // for (;;);
 }
 

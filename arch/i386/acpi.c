@@ -17,9 +17,10 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
 #include <string.h>
+#include <kora/mcrs.h>
 #include "acpi.h"
 #include "apic.h"
 
@@ -41,14 +42,14 @@ static int acpi_checksum(acpi_head_t *header)
 
 void acpi_fadt_setup(acpi_fadt_t *fadt)
 {
-    kprintf(KLOG_DBG, "FADT Table at %p\n", fadt);
+    kprintf(KL_DBG, "FADT Table at %p\n", fadt);
 }
 
 void acpi_madt_setup(acpi_madt_t *madt)
 {
-    kprintf(KLOG_DBG, "MADT Table at %p\n", madt);
+    kprintf(KL_DBG, "MADT Table at %p\n", madt);
     apic_mmio = madt->local_apic;
-    kprintf(KLOG_DBG, "Local APIC at %p\n", apic_mmio);
+    kprintf(KL_DBG, "Local APIC at %p\n", apic_mmio);
 
     int cpus = 0;
     uint8_t *ptr = madt->records;
@@ -94,22 +95,22 @@ void acpi_setup()
     for (; ptr < (char *)0x100000; ptr += 16) {
         if (memcmp(ptr, "RSD PTR ", 8) != 0)
             continue;
-        kprintf(KLOG_DBG, "Found ACPI at %p\n", ptr);
+        kprintf(KL_DBG, "Found ACPI at %p\n", ptr);
         break;
     }
 
     if (ptr >= (char *)0x100000) {
-        kprintf(KLOG_DBG, "Not found ACPI.\n");
+        kprintf(KL_DBG, "Not found ACPI.\n");
         return;
     }
 
     // Search RSDP and RSDT
     rsdp = (acpi_rsdp_t *)ptr;
     void *rsdt_pg = kmap(PAGE_SIZE, NULL, ALIGN_DW(rsdp->rsdt, PAGE_SIZE),
-                         VMA_PHYSIQ | VMA_UNCACHABLE);
+                         VM_PHYSIQ | VM_UNCACHABLE);
     rsdt = (acpi_rsdt_t *)((size_t)rsdt_pg | (rsdp->rsdt & (PAGE_SIZE - 1)));
     if (acpi_checksum(&rsdt->header) != 0) {
-        kprintf(KLOG_ERR, "Invalid ACPI RSDT checksum.\n");
+        kprintf(KL_ERR, "Invalid ACPI RSDT checksum.\n");
         return;
     }
 
@@ -123,9 +124,9 @@ void acpi_setup()
                                             (PAGE_SIZE - 1)));
 
         // memcpy(C, rstb->signature, 4);
-        // kprintf(KLOG_ERR, "ACPI RSDT entry: %s - %x.\n", C, rstb->length);
+        // kprintf(KL_ERR, "ACPI RSDT entry: %s - %x.\n", C, rstb->length);
         if (acpi_checksum(rstb) != 0) {
-            kprintf(KLOG_ERR, "Invalid ACPI RSDT entry checksum.\n");
+            kprintf(KL_ERR, "Invalid ACPI RSDT entry checksum.\n");
             continue;
         }
 
@@ -140,13 +141,13 @@ void acpi_setup()
             hpet_mmio = ((acpi_hpet_t *)rstb)->base.base;
             break;
         default:
-            kprintf(KLOG_ERR, "ACPI RSDT entry unknown.\n");
+            kprintf(KL_ERR, "ACPI RSDT entry unknown.\n");
             break;
         }
     }
 }
 
-acpi_head_t *acpi_scan(CSTR name, int idx)
+acpi_head_t *acpi_scan(const char *name, int idx)
 {
     int i, j = 0;
     int n = (rsdt->header.length - sizeof(acpi_head_t)) / sizeof(uint32_t);

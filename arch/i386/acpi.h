@@ -20,7 +20,7 @@
 #ifndef _SRC_ACPI_H
 #define _SRC_ACPI_H 1
 
-#include <kernel/core.h>
+#include <kernel/stdc.h>
 
 
 typedef struct acpi_head acpi_head_t;

@@ -23,43 +23,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define SYS_POWER  12
-#define SYS_SCALL  13
-#define SYS_SYSLOG  14
-#define SYS_GINFO  25
-#define SYS_SINFO  26
-
+// Process, task & scheduling
 #define SYS_YIELD  0
 #define SYS_EXIT  1
 #define SYS_WAIT  2
 #define SYS_EXEC  11
 #define SYS_CLONE  21
-
-#define SYS_SIGRAISE  15
-#define SYS_SIGACTION  16
-#define SYS_SIGRETURN  17
-
-#define SYS_MMAP  3
-#define SYS_MUNMAP  4
-#define SYS_MPROTECT  5
-
-#define SYS_ACCESS 33
-#define SYS_OPEN  6
-#define SYS_CLOSE  7
-#define SYS_READ  8
-#define SYS_WRITE  9
-#define SYS_SEEK  10
-#define SYS_READDIR  33
-
-#define SYS_WINDOW  18
-#define SYS_PIPE  19
-#define SYS_FCNTL  20
-#define SYS_FSTAT  24
-
-#define SYS_FUTEX_WAIT 22
-#define SYS_FUTEX_REQUEUE 23
-
-
 #define SYS_START 31
 #define SYS_STOP 32
 
@@ -67,6 +36,40 @@
 #define SYS_SFORK 27
 #define SYS_PFORK 28
 #define SYS_TFORK 29
+
+#define SYS_FUTEX_WAIT 22
+#define SYS_FUTEX_REQUEUE 23
+
+// Memory operations
+#define SYS_MMAP  3
+#define SYS_MUNMAP  4
+#define SYS_MPROTECT  5
+
+// Files system
+#define SYS_OPEN  6
+#define SYS_CLOSE  7
+#define SYS_READ  8
+#define SYS_WRITE  9
+#define SYS_SEEK  10
+#define SYS_ACCESS 33
+#define SYS_READDIR  33
+#define SYS_WINDOW  18
+#define SYS_PIPE  19
+#define SYS_FCNTL  20
+#define SYS_FSTAT  24
+
+// System operations
+#define SYS_POWER  12
+#define SYS_SCALL  13
+#define SYS_SYSLOG  14
+#define SYS_GINFO  25
+#define SYS_SINFO  26
+
+// Signals
+#define SYS_SIGRAISE  15
+#define SYS_SIGACTION  16
+#define SYS_SIGRETURN  17
+
 
 
 

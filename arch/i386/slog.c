@@ -17,32 +17,31 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/files.h>
+#include <kernel/stdc.h>
 
 void csl_early_init();
-int csl_write(inode_t *ino, const char *buf, int len);
+// int csl_write(inode_t *ino, const char *buf, int len);
 
 void com_early_init();
 int com_output(int no, const char *buf, int len);
 
 
-tty_t *slog;
-int tty_write(tty_t *tty, const char *buf, int len);
+// tty_t *slog;
+// int tty_write(tty_t *tty, const char *buf, int len);
 
 void kwrite(const char *buf, int len)
 {
     com_output(0, buf, len);
-    if (slog != NULL)
-        tty_write(slog, buf, len);
+    // if (slog != NULL)
+    //     tty_write(slog, buf, len);
     // else
     //     csl_write(NULL, buf, len);
 }
 
-time_t rtc_time();
+xtime_t rtc_time();
 void pit_interval(int hz);
 
-time_t cpu_time()
+xtime_t cpu_time()
 {
     pit_interval(HZ);
     return rtc_time();

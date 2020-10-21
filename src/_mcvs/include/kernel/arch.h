@@ -21,7 +21,6 @@
 #define _KERNEL_ARCH_H 1
 
 #include <stddef.h>
-#define PAGE_SIZE  4096
 
 typedef size_t cpu_state_t[16];
 

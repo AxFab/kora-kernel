@@ -20,7 +20,7 @@
 #ifndef _SRC_APIC_H
 #define _SRC_APIC_H 1
 
-#include <kernel/core.h>
+#include <kernel/stdc.h>
 
 #define APIC_ID  (0x20 / 4) // Local APIC ID
 #define APIC_VERS  (0x30 / 4) // Local APIC Version
@@ -62,7 +62,7 @@ void cpuid_setup(); // in setup.c
 void pic_mask_off();
 void tss_setup();
 void pic_setup();
-time_t rtc_time();
+xtime_t rtc_time();
 void hpet_setup();
 
 #endif  /* _SRC_APIC_H */

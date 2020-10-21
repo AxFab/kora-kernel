@@ -21,6 +21,7 @@
 #define _KORA_LLIST_H 1
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <assert.h>
 
 #ifndef itemof
@@ -189,6 +190,16 @@ static inline void ll_remove(llhead_t *list, llnode_t *node)
     --list->count_;
 }
 
+static inline bool ll_contains(llhead_t *list, llnode_t *node)
+{
+    if (list->first_ == NULL)
+        return false;
+    struct llnode *w = node;
+    while (w->prev_)
+        w = w->prev_;
+    return w == list->first_;
+}
+
 static inline llnode_t *ll_index_(llhead_t *list, int idx)
 {
     llnode_t *node = list->first_;
@@ -202,8 +213,6 @@ static inline void llist_init(llhead_t *list)
     list->first_ = list->last_ = NULL;
     list->count_ = 0;
 }
-
-#include "stdbool.h"
 
 #define MAX_ELMTS 2000
 

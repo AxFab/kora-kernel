@@ -17,8 +17,10 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
+#include <kernel/memory.h>
+#include <kernel/tasks.h>
 #include "acpi.h"
 #include "apic.h"
 
@@ -30,22 +32,22 @@ cpu_x86_t *cpu_table = NULL;
 
 void lapic_register(madt_lapic_t *info)
 {
-    kprintf(KLOG_ERR, " - lapic: acpi:%d apic:%d, flags %x\n",
+    kprintf(KL_ERR, " - lapic: acpi:%d apic:%d, flags %x\n",
             info->acpi_id, info->apic_id, info->flags);
     cpu_table[info->acpi_id].id = info->apic_id;
     if (info->acpi_id == 0)
         cpu_table[info->acpi_id].stack = 0x4000;
     else
         cpu_table[info->acpi_id].stack = (size_t)kmap(PAGE_SIZE, NULL, 0,
-                                         VMA_STACK_RW | VMA_RESOLVE);
+                                         VMA_STACK | VM_RW | VM_RESOLVE);
 }
 
 void lapic_setup(int cpus)
 {
     cpu_table = (cpu_x86_t *)kalloc(sizeof(cpu_x86_t) * cpus);
-    struct kCpu *cpu0 = kSYS.cpus;
-    kSYS.cpus = (struct kCpu *)kalloc(sizeof(struct kCpu) * cpus);
-    kSYS.cpus[0] = *cpu0;
+    // struct kCpu *cpu0 = kSYS.cpus;
+    // kSYS.cpus = (struct kCpu *)kalloc(sizeof(struct kCpu) * cpus);
+    // kSYS.cpus[0] = *cpu0;
     // TODO - kCPU !
 }
 
@@ -93,12 +95,12 @@ static void ioapic_write_irq(int no, uint8_t *ioapic, int irq, uint64_t flags)
 
 void ioapic_register(madt_ioapic_t *info)
 {
-    uint8_t *ioapic = kmap(PAGE_SIZE, NULL, info->base, VMA_PHYSIQ | VMA_UNCACHABLE);
+    uint8_t *ioapic = kmap(PAGE_SIZE, NULL, info->base, VM_RW | VM_PHYSIQ | VM_UNCACHABLE);
 
     int irq_count = (ioapic_read(info->apic_id, ioapic,
                                  IOAPIC_VERSION) >> 16) & 0xFF;
 
-    kprintf(KLOG_ERR, " - ioapic: apic:%d, base:%x, GSIs:%d, IRQs %d\n",
+    kprintf(KL_ERR, " - ioapic: apic:%d, base:%x, GSIs:%d, IRQs %d\n",
             info->apic_id, info->base, info->gsi, irq_count);
 
     int i;
@@ -116,7 +118,7 @@ void ioapic_register(madt_ioapic_t *info)
 
 void apic_override_register(madt_override_t *info)
 {
-    kprintf(KLOG_ERR, " - override IRQ %d on bus %d, GSIs %d, %s %s.\n",
+    kprintf(KL_ERR, " - override IRQ %d on bus %d, GSIs %d, %s %s.\n",
             info->irq, info->bus, info->gsi,
             (info->flags & 8) ? "level" : "edge",
             (info->flags & 2) ? "low" : "high");
@@ -177,15 +179,15 @@ void apic_setup()
     if (apic_regs != NULL || apic_mmio == 0)
         return;
 
-    kprintf(KLOG_ERR, "Local APIC at %x\n", apic_mmio);
-    apic_regs = kmap(PAGE_SIZE, NULL, apic_mmio, VMA_PHYSIQ | VMA_UNCACHABLE);
+    kprintf(KL_ERR, "Local APIC at %x\n", apic_mmio);
+    apic_regs = kmap(PAGE_SIZE, NULL, apic_mmio, VM_RW | VM_PHYSIQ | VM_UNCACHABLE);
 
-    kprintf(KLOG_DBG, "Send INIT IPI to all APs\n");
+    kprintf(KL_DBG, "Send INIT IPI to all APs\n");
     // INIT IPI to all APs
     apic_regs[APIC_ICR_LOW] = 0x0C4500;
     x86_delay(100/*00*/); // 10-millisecond delay loop.
 
-    kprintf(KLOG_DBG, "Broadcast SIPI IP to APs (x2)\n");
+    kprintf(KL_DBG, "Broadcast SIPI IP to APs (x2)\n");
     // Load ICR encoding for broadcast SIPI IP (x2)
     apic_regs[APIC_ICR_LOW] = 0x000C4600 | ((size_t)ap_start >> 12);
     x86_delay(2); // 200-microsecond delay loop.
@@ -201,15 +203,15 @@ void apic_setup()
 
 void ap_setup()
 {
-    kprintf(KLOG_DBG, "CPU%d is awake !\n", cpu_no());
+    kprintf(KL_DBG, "CPU%d is awake !\n", cpu_no());
     irq_reset(false);
     irq_disable();
-    assert(kCPU.irq_semaphore == 1);
+    // assert(kCPU.irq_semaphore == 1);
     cpuid_setup();
     apic_init();
     tss_setup();
 
-    assert(kCPU.irq_semaphore == 1);
+    // assert(kCPU.irq_semaphore == 1);
     irq_reset(false);
     cpu_halt();
     for (;;);

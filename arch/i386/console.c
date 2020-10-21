@@ -17,9 +17,10 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
-#include <kernel/device.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
+#include <kernel/vfs.h>
+#include <kernel/irq.h>
 #include <string.h>
 #include <mbstring.h>
 #include <errno.h>
@@ -240,7 +241,7 @@ int csl_write(inode_t *ino, const char *buf, size_t len, int flags)
     return s;
 }
 
-int csl_ioctl(inode_t *ino, int cmd, void *params)
+int csl_ioctl(inode_t *ino, int cmd, void **params)
 {
     errno = 0;
     switch (cmd) {
@@ -255,21 +256,15 @@ int csl_ioctl(inode_t *ino, int cmd, void *params)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-dev_ops_t csl_dops = {
-    .ioctl = csl_ioctl,
-};
-
 ino_ops_t csl_fops = {
     .write = (void *)csl_write,
-    .close = NULL
+    .ioctl = csl_ioctl,
 };
 
 void csl_setup()
 {
-    inode_t *ino = vfs_inode(1, FL_CHR, NULL);
+    inode_t *ino = vfs_inode(1, FL_CHR, NULL, &csl_fops);
     ino->dev->devclass = (char *)"VBA text console";
-    ino->dev->ops = &csl_dops;
-    ino->ops = &csl_fops;
     vfs_mkdev(ino, "csl");
 }
 
@@ -277,5 +272,5 @@ void csl_teardown()
 {
 }
 
-MODULE(csl, csl_setup, csl_teardown);
+// MODULE(csl, csl_setup, csl_teardown);
 

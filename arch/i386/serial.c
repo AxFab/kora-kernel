@@ -17,9 +17,10 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/cpu.h>
-#include <kernel/device.h>
+#include <kernel/stdc.h>
+#include <kernel/arch.h>
+#include <kernel/vfs.h>
+#include <kernel/irq.h>
 #include <errno.h>
 
 
@@ -107,7 +108,7 @@ int com_write(inode_t *ino, const char *buf, size_t len, int flags)
 }
 
 
-int com_ioctl(inode_t *ino, int cmd, void *params)
+int com_ioctl(inode_t *ino, int cmd, void **params)
 {
     errno = ENOSYS;
     return -1;
@@ -116,15 +117,12 @@ int com_ioctl(inode_t *ino, int cmd, void *params)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-dev_ops_t com_dops = {
+ino_ops_t com_fops = {
+    .write = (void *)com_write,
     .ioctl = com_ioctl,
 };
 
-ino_ops_t com_fops = {
-
-    .write = (void *)com_write,
-    .close = NULL
-};
+// irq_register(int, irq_handler_t, void*);
 
 
 const char *devnames[] = {
@@ -137,11 +135,9 @@ void com_setup()
     char name[8];
     for (i = 0; i < 4; ++i) {
         snprintf(name, 8, "com%d", i + 1);
-        inode_t *ino = vfs_inode(i + 1, FL_CHR, NULL);
-        ino->dev->devclass = "Serial port";
-        ino->dev->devname = (char *)devnames[i];
-        ino->dev->ops = &com_dops;
-        ino->ops = &com_fops;
+        inode_t *ino = vfs_inode(i + 1, FL_CHR, NULL, &com_fops);
+        ino->dev->devclass = strdup("Serial port");
+        ino->dev->devname = strdup((char *)devnames[i]);
         vfs_mkdev(ino, name);
     }
     irq_register(3, (irq_handler_t)com_irq, (void *)1);
@@ -154,8 +150,8 @@ void com_teardown()
     irq_unregister(3, (irq_handler_t)com_irq, (void *)1);
     irq_unregister(4, (irq_handler_t)com_irq, (void *)0);
     for (i = 0; i < 4; ++i)
-        vfs_close(serial_inos[i], X_OK);
+        vfs_close_inode(serial_inos[i]);
 }
 
-MODULE(serial, com_setup, com_teardown);
+// MODULE(serial, com_setup, com_teardown);
 

@@ -152,19 +152,19 @@ uint16_t net_ephemeral_port(socket_t *socket)
 void net_print(netdev_t *ifnet)
 {
     char buf[20];
-    kprintf(KLOG_DBG, "eth%d:  flags < %s%s>  mtu %d\n", ifnet->no,
+    kprintf(KL_DBG, "eth%d:  flags < %s%s>  mtu %d\n", ifnet->no,
             ifnet->flags & NET_CONNECTED ? "UP " : "",
             ifnet->flags & NET_QUIET ? "QUIET " : "",
             ifnet->mtu);
-    kprintf(KLOG_DBG, "    MAC address %s\n", net_ethstr(buf, ifnet->eth_addr));
-    kprintf(KLOG_DBG, "    IP address %s\n", net_ip4str(buf, ifnet->ip4_addr));
-    kprintf(KLOG_DBG, "    RX packets %d   bytes %d (%s)\n", ifnet->rx_packets,
+    kprintf(KL_DBG, "    MAC address %s\n", net_ethstr(buf, ifnet->eth_addr));
+    kprintf(KL_DBG, "    IP address %s\n", net_ip4str(buf, ifnet->ip4_addr));
+    kprintf(KL_DBG, "    RX packets %d   bytes %d (%s)\n", ifnet->rx_packets,
             ifnet->rx_bytes, sztoa(ifnet->rx_bytes));
-    kprintf(KLOG_DBG, "    RX errors %d   dropped %d\n", ifnet->rx_errors,
+    kprintf(KL_DBG, "    RX errors %d   dropped %d\n", ifnet->rx_errors,
             ifnet->rx_dropped);
-    kprintf(KLOG_DBG, "    TX packets %d   bytes %d (%s)\n", ifnet->tx_packets,
+    kprintf(KL_DBG, "    TX packets %d   bytes %d (%s)\n", ifnet->tx_packets,
             ifnet->tx_bytes, sztoa(ifnet->tx_bytes));
-    kprintf(KLOG_DBG, "    TX errors %d   dropped %d\n", ifnet->tx_errors,
+    kprintf(KL_DBG, "    TX errors %d   dropped %d\n", ifnet->tx_errors,
             ifnet->tx_dropped);
 }
 
@@ -232,7 +232,7 @@ void net_service()
 //                 break;
 
 //             int ret = eth_receive(skb);
-//             kprintf(KLOG_DBG, "Packet received %s (%d) : %d \n", skb->log, skb->length,
+//             kprintf(KL_DBG, "Packet received %s (%d) : %d \n", skb->log, skb->length,
 //                     ret);
 //             if (ret != 0)
 //                 ifnet->rx_errors++;

@@ -36,7 +36,7 @@ void test_01()
 
     inode_t *ino = vfs_search(root, NULL, "/bin/init", NULL);
     assert(ino != NULL);
-    vfs_close(ino);
+    vfs_close_inode(ino);
 
     vfs_umount(root);
 
@@ -44,7 +44,7 @@ void test_01()
     assert(ino == NULL);
 
     mountfs_t *fs = root->fs;
-    vfs_close(root);
+    vfs_close_inode(root);
 
     vfs_sweep(fs, 5);
 
@@ -69,12 +69,12 @@ void test_02()
         if (ino == NULL)
             break;
         kprintf(0, "isofs - '%s'\n", name);
-        vfs_close(ino);
+        vfs_close_inode(ino);
     }
     vfs_closedir(root, dir);
 
     mountfs_t *fs = root->fs;
-    vfs_close(root);
+    vfs_close_inode(root);
 
     vfs_sweep(fs, 15);
     vfs_umount(root);
@@ -109,7 +109,7 @@ void test_03()
 
 
     mountfs_t *fs = root->fs;
-    vfs_close(root);
+    vfs_close_inode(root);
 
     vfs_sweep(fs, 15);
     vfs_umount(root);

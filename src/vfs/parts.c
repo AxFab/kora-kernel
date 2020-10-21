@@ -17,13 +17,11 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
 #if 0
-#include <kernel/device.h>
 #include <string.h>
 #include <errno.h>
 
-extern device_t *vfs_lookup_device_(CSTR name);
+extern device_t *vfs_lookup_device_(const char *name);
 
 PACK(struct MBR_parts {
     char media;
@@ -68,7 +66,7 @@ int vfs_mbr_write(MBR_inode_t *ino, const char *buf, size_t len, off_t off)
     return vfs_write(ino->underlying->ino, buf, len, off + ino->ino.lba * 512);
 }
 
-int vfs_fdisk(CSTR dname, long parts, long *sz)
+int vfs_fdisk(const char *dname, long parts, long *sz)
 {
     int i;
     device_t *dev = vfs_lookup_device_(dname);
@@ -105,7 +103,7 @@ void vfs_mbr_release(device_t *dev)
     kfree(dev);
 }
 
-int vfs_parts(CSTR dname)
+int vfs_parts(const char *dname)
 {
     int i;
     char buf[20];
@@ -139,7 +137,7 @@ int vfs_parts(CSTR dname)
             sdev->write = (fs_write)vfs_mbr_write;
             sdev->release = (fs_release_dev)vfs_mbr_release;
             vfs_mkdev(buf, sdev, &ino->ino);
-            vfs_close((inode_t *)ino, X_OK);
+            vfs_close_inode((inode_t *)ino, X_OK);
         }
     }
 
