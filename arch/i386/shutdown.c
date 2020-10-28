@@ -36,7 +36,8 @@
 
 void cpu_setjmp(cpu_state_t *jmpbuf, void *stack, void *entry, void *param)
 {
-    size_t *sptr = stack + (PAGE_SIZE / sizeof(size_t));
+    size_t len = (KSTACK_PAGES * PAGE_SIZE) - sizeof(size_t);
+    size_t *sptr = (void*)((size_t)stack + len);
     (*jmpbuf)[5] = (size_t)entry;
     (*jmpbuf)[3] = (size_t)sptr;
     (*jmpbuf)[6] = (size_t)sptr;
@@ -45,19 +46,6 @@ void cpu_setjmp(cpu_state_t *jmpbuf, void *stack, void *entry, void *param)
     *sptr = (size_t)param;
     sptr--;
     (*jmpbuf)[4] = (size_t)sptr;
-}
-
-void cpu_stack(task_t *task, size_t entry, size_t param)
-{
-    size_t *sptr = task->stack + (PAGE_SIZE / sizeof(size_t));
-    task->jmpbuf[5] = entry;
-    task->jmpbuf[3] = (size_t)sptr;
-    task->jmpbuf[6] = (size_t)sptr;
-
-    sptr--;
-    *sptr = param;
-    sptr--;
-    task->jmpbuf[4] = (size_t)sptr;
 }
 
 void cpu_shutdown(int cmd) // REBOOT, POWER_OFF, SLEEP, DEEP_SLEEP, HALT

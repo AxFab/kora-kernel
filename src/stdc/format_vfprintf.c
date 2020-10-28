@@ -291,7 +291,7 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
     int lg;
     char ch;
     format_arg_t arg;
-    char tmp [512];
+    char tmp [64];
     char *mxs;
     format_spec_t sb;
 

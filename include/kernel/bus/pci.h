@@ -26,6 +26,7 @@
 struct PCI_device {
     uint8_t bus;
     uint8_t slot;
+    uint8_t func;
     uint8_t irq;
     uint8_t busy;
     uint16_t vendor_id;

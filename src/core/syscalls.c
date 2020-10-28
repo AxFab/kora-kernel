@@ -2,37 +2,9 @@
 #include <kernel/memory.h>
 #include <kernel/vfs.h>
 #include <errno.h>
+#include <kernel/syscalls.h>
 
-struct dirent {
-    int d_ino;
-    int d_off;
-    unsigned short int d_reclen;
-    unsigned char d_type;
-    char d_name[256];
-};
-
-struct filemeta {
-    int ino;
-    int dev;
-    int block;
-    int ftype;
-
-    int64_t size;
-    int64_t rsize;
-
-    uint64_t ctime;
-    uint64_t mtime;
-    uint64_t atime;
-    uint64_t btime;
-};
-
-enum sys_vars {
-    SNFO_NONE = 0,
-    SNFO_ARCH,
-    SNFO_SNAME,
-    SNFO_OSNAME,
-    SNFO_PWD,
-};
+#include <bits/mman.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -101,12 +73,23 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, size_t off)
     }
 
     unsigned vma = flags & VM_RWX;
+    if (ino != NULL)
+        vma |= VMA_FILE;
+    else if (flags & MAP_HEAP)
+        vma |= VMA_HEAP;
+    else if (flags & MAP_STACK)
+        vma |= VMA_STACK;
+    else
+        vma |= VMA_ANON;
+    if (flags & MAP_POPULATE && !(flags & MAP_SHARED))
+        vma |= VM_RESOLVE;
+
     // TODO - Transform flags !
     void *ptr = mspace_map(__current->vm, (size_t)addr, length, ino, off, vma);
     return ptr != NULL ? ptr : (void *) -1;
 }
 
-long sys_unmap(void *addr, size_t length)
+long sys_munmap(void *addr, size_t length)
 {
     return mspace_unmap(__current->vm, (size_t)addr, length);
 }
@@ -176,7 +159,7 @@ long sys_sinfo(unsigned info, const char *buf, size_t len)
 
 long sys_syslog(const char *log)
 {
-    kprintf(KL_USR, "[Task.%3d] %s\n", __current->pid, log);
+    kprintf(KL_USR, "Task.%d] %s\n", __current->pid, log);
     return 0;
 }
 
@@ -198,9 +181,21 @@ long sys_open(int dirfd, const char *path, int flags, int mode)
     if (node == NULL)
         return -1;
 
+    if (vfs_lookup(node) != 0) {
+        errno = ENOENT;
+        return -1;
+    }
+
     // TODO - Lookup or create !?
 
-    fstream_t *strm = stream_put(__current->fset, node, flags);
+    int flg = 0;
+    if (flags & 1)
+        flg |= VM_RD;
+    if (flags & 2)
+        flg |= VM_WR;
+
+    fstream_t *strm = stream_put(__current->fset, node, flg);
+    vfs_close_fsnode(node);
     return strm->fd;
 }
 

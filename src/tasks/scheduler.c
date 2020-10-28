@@ -89,6 +89,10 @@ void scheduler_switch(int status)
         if (status == TS_ZOMBIE) {
             task_raise(sch, task->parent, SIGCHLD);
             // TODO -- Events
+        } else if (task->sc_log[0] != '\0') {
+            strncat(task->sc_log, " .....", 64);
+            kprintf(-1, "Task.%d] \033[96m%s\033[0m\n", task->pid, task->sc_log);
+            task->sc_log[0] = '\0';
         }
     }
 

@@ -38,6 +38,7 @@
 #define VM_UNCACHABLE 0400
 
 
+#define KSTACK_PAGES 4
 #define PAGE_SIZE  4096
 #define HZ 100
 // TODO --- REMOVE FROM HERE !
@@ -56,6 +57,7 @@ enum klog {
     KL_IRQ,
     KL_MAL, // Memory Allocation
     KL_USR,
+
 };
 
 enum xtime_name {
@@ -107,6 +109,7 @@ int atoi(const char *nptr);
 long atol(const char *nptr);
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 long strtol(const char *nptr, char **endptr, int base);
+char *itoa(int value, char *str, int base);
 #endif
 
 #endif /* _KERNEL_STDC_H */

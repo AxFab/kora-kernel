@@ -56,6 +56,7 @@ struct ftx {
 masterclock_t __clock;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+extern int __irq_semaphore;
 
 void advent_register(masterclock_t *clock, advent_t *advent, long timeout, long interval)
 {
@@ -76,7 +77,7 @@ void advent_register(masterclock_t *clock, advent_t *advent, long timeout, long 
 void advent_unregister(masterclock_t *clock, advent_t *advent)
 {
     if (advent->until != 0) {
-        assert(splock_locked(&clock->lock));
+        // assert(splock_locked(&clock->lock));
         ll_remove(&clock->list, &advent->tm_node);
         advent->until = 0;
     }
@@ -84,8 +85,10 @@ void advent_unregister(masterclock_t *clock, advent_t *advent)
 
 void advent_pause_task(masterclock_t *clock, advent_t *advent, long timeout)
 {
+    assert(__irq_semaphore == 0);
     advent_register(clock, advent, MAX(1, timeout), 0);
     scheduler_switch(TS_BLOCKED);
+    assert(__irq_semaphore == 0);
 }
 
 void advent_resume_task(masterclock_t *clock, advent_t *advent)
@@ -105,7 +108,7 @@ void advent_resume_task(masterclock_t *clock, advent_t *advent)
 static ftx_t *futex_open(masterclock_t *clock, int *addr, int flags)
 {
     size_t phys = (size_t)addr; // TODO resolve physical address
-    splock_lock(&clock->lock);
+    splock_lock(&clock->tree_lock);
     ftx_t *futex = bbtree_search_eq(&clock->tree, phys, ftx_t, bnode);
     if (futex == NULL && (flags & FUTEX_CREATE)) {
         futex = (ftx_t *)kalloc(sizeof(ftx_t));
@@ -122,16 +125,16 @@ static ftx_t *futex_open(masterclock_t *clock, int *addr, int flags)
     }
     if (futex != NULL)
         futex->rcu++;
-    splock_unlock(&clock->lock);
+    splock_unlock(&clock->tree_lock);
     return futex;
 }
 
 static void futex_close(masterclock_t *clock, ftx_t *futex)
 {
-    splock_lock(&clock->lock);
+    splock_lock(&clock->tree_lock);
     if (--futex->rcu != 0) {
         splock_unlock(&futex->lock);
-        splock_unlock(&clock->lock);
+        splock_unlock(&clock->tree_lock);
         return;
     }
 
@@ -143,17 +146,17 @@ static void futex_close(masterclock_t *clock, ftx_t *futex)
 
     splock_unlock(&futex->lock);
     kfree(futex);
-    splock_unlock(&clock->lock);
+    splock_unlock(&clock->tree_lock);
 }
 
 static void futex_wake_advent(masterclock_t *clock, advent_t *advent)
 {
     ftx_t *futex = advent->object;
-    splock_lock(&futex->lock);
+    // splock_lock(&futex->lock);
     /* wake up the thread */
     ll_remove(&futex->queue, &advent->node);
     advent_resume_task(clock, advent);
-    splock_unlock(&futex->lock);
+    // splock_unlock(&futex->lock);
 }
 
 static void futex_dtor_advent(masterclock_t *clock, advent_t *advent)
@@ -200,10 +203,8 @@ int futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
     while (it && val-- > 0) {
         advent_t *advent = it;
         it = ll_next(&it->node, advent_t, node);
-        splock_lock(&__clock.lock);
         assert(advent->object == origin);
         futex_wake_advent(&__clock, advent);
-        splock_unlock(&__clock.lock);
     }
 
     if (val2 == 0 || addr2 == NULL) {
@@ -287,6 +288,7 @@ masterclock_t *clock_init(int irq)
 {
     // masterclock_t*clock = kalloc(sizeof(masterclock_t));
     splock_init(&__clock.lock);
+    splock_init(&__clock.tree_lock);
     bbtree_init(&__clock.tree);
     llist_init(&__clock.list);
 

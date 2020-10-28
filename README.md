@@ -164,4 +164,4 @@ long sys_log(const char * msg);
 ## To know more
 
  - [Github wiki](https://github.com/axfab/koraos/wiki) _Still not ready yet!_
- - Reach me on [Slack](http://koraos.slack.com)
+ - Join me on [Discord](https://discord.gg/nwQT4zu)

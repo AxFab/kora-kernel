@@ -194,10 +194,10 @@ static inline bool ll_contains(llhead_t *list, llnode_t *node)
 {
     if (list->first_ == NULL)
         return false;
-    struct llnode *w = node;
-    while (w->prev_)
-        w = w->prev_;
-    return w == list->first_;
+    struct llnode *w = list->first_;
+    while (w != node && w->next_)
+        w = w->next_;
+    return w == node;
 }
 
 static inline llnode_t *ll_index_(llhead_t *list, int idx)

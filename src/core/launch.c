@@ -46,7 +46,7 @@ void kernel_start()
     task_start("Kernel loader #1", module_loader, NULL);
     // task_start("Kernel loader #2", module_loader, NULL);
     // Prepare exec
-    task_start("Kernel init", task_init, NULL);
+    task_start("Kernel init", task_firstinit, NULL);
 
     irq_reset(true);
 }

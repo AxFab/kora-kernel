@@ -16,21 +16,6 @@
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #  This makefile is generic.
 #
-all: deliveries
-
-define fn_objs
-	$(patsubst $(topdir)/%.c,$(outdir)/%.o,$(patsubst $(topdir)/%.$(ASM_EXT),$(outdir)/%.o,$($(1))))
-endef
-define fn_deps
-	$(patsubst $(topdir)/%.c,$(outdir)/%.d,$(patsubst $(topdir)/%.$(ASM_EXT),,$($(1))))
-endef
-define fn_inst
-	$(patsubst $(gendir)/%,$(prefix)/%,$(1))
-endef
-define fn_flcp
-	$(patsubst $(topdir)/%,$(prefix)/%,$(1))
-endef
-
 $(outdir)/%.o: $(topdir)/%.c
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    CC  $<"
@@ -39,13 +24,14 @@ $(outdir)/%.o: $(topdir)/%.c
 $(outdir)/%.d: $(topdir)/%.c
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    CM  $<"
-	$(V) $(CC) -M -o $@ $< $(CFLAGS)
+	$(V) $(CC) -M $< $(CFLAGS) | sed "s%$(notdir $(@:.d=.o))%$(@:.d=.o)%" > $@
+
 
 define link_shared
 LIBS += $(libdir)/lib$(1).so
 lib$(1): $(libdir)/lib$(1).so
 install-lib$(1): $(prefix)/lib/lib$(1).so
-$(libdir)/lib$(1).so: $(call fn_objs,$(2)-y)
+$(libdir)/lib$(1).so: $(call fn_objs,$(2))
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  $$@"
 	$(V) $(LD) -shared -o $$@ $$^ $($(3))
@@ -55,7 +41,7 @@ define link_bin
 BINS += $(bindir)/$(1)
 $(1): $(bindir)/$(1)
 install-$(1): $(prefix)/bin/$(1)
-$(bindir)/$(1): $(call fn_objs,$(2)-y)
+$(bindir)/$(1): $(call fn_objs,$(2))
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  $$@"
 	$(V) $(LDC) -o $$@ $$^ $($(3))

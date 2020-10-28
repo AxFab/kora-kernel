@@ -35,6 +35,34 @@ void irq_ack(int no);
 
 void irq_enter(int no);
 void irq_fault(const char *name, unsigned signum);
-long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5);
+long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5);
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#define SCALL_ENTRY(n,a1,a2,a3,a4,a5,rt,s) \
+    { .scall = (void*)sys_##n, .name = #n, .args = {a1, a2, a3, a4, a5, rt},\
+      .split = s }
+
+enum {
+    ARG_NONE,
+    ARG_STR,
+    ARG_INT,
+    ARG_FLG,
+    ARG_LEN,
+    ARG_FD,
+    ARG_PTR,
+};
+
+
+
+typedef struct syscall_info syscall_info_t;
+
+struct syscall_info {
+    long(*scall)(long a1, long a2, long a3, long a4, long a5);
+    const char *name;
+    char args[6];
+    int split;
+};
 
 #endif /* _KERNEL_IRQ_H */

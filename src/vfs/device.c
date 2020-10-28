@@ -22,6 +22,8 @@
 #include <assert.h>
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
+#include <errno.h>
+#include <stdbool.h>
 
 hmap_t fs_hmap;
 
@@ -30,6 +32,7 @@ void devfs_register(inode_t *ino, const char *name);
 
 vfs_t *vfs_init()
 {
+    hmp_init(&fs_hmap, 16);
     vfs_t *vfs = kalloc(sizeof(vfs_t));
     inode_t *ino = devfs_setup();
 
@@ -46,7 +49,6 @@ vfs_t *vfs_init()
     vfs->rcu = 1;
     vfs_close_inode(ino);
 
-    hmp_init(&fs_hmap, 16);
     return vfs;
 }
 
@@ -100,11 +102,29 @@ void vfs_rmfs(const char *name)
     hmp_remove(&fs_hmap, name, strlen(name));
 }
 
-inode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *name, const char *options)
+fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char* path, const char *options)
 {
-    assert(devname != NULL && fs != NULL);
+    assert(fs != NULL && path != NULL);
+    fsnode_t *node = vfs_search(vfs, path, NULL, false);
+    if (node == NULL)
+        return NULL;
+
+    if (vfs_lookup(node) == 0) {
+        errno = EEXIST;
+        return NULL;
+    }
+
+    mtx_lock(&node->mtx);
+    if (node->mode != FN_NOENTRY) {
+        mtx_unlock(&node->mtx);
+        errno = EEXIST;
+        return NULL;
+    }
+
     fsmount_t mount = (fsmount_t)hmp_get(&fs_hmap, fs, strlen(fs));
     if (mount == NULL) {
+        mtx_unlock(&node->mtx);
+        vfs_close_fsnode(node);
         errno = ENOSYS;
         return NULL;
     }
@@ -114,6 +134,8 @@ inode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *
         dev = vfs_search(vfs, devname, NULL, true);
 
         if (dev == NULL) {
+            mtx_unlock(&node->mtx);
+            vfs_close_fsnode(node);
             errno = ENODEV;
             return NULL;
         }
@@ -122,20 +144,31 @@ inode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *
     inode_t *ino = mount(dev ? dev->ino : NULL, options);
     vfs_close_fsnode(dev);
     if (ino == NULL) {
+        mtx_unlock(&node->mtx);
+        vfs_close_fsnode(node);
         assert(errno != 0);
         return NULL;
     }
 
     if (ino->type != FL_DIR) {
+        mtx_unlock(&node->mtx);
+        vfs_close_fsnode(node);
         vfs_close_inode(ino);
         errno = ENOTDIR;
         return NULL;
     }
 
-    // TODO -- Should return a fsnode or nothing !
-    vfs_mkdev(ino, name);
+    // vfs_mkdev(ino, NULL);
+    fsnode_t* dir = node->parent;
+    splock_lock(&dir->lock);
+    ll_append(&dir->mnt, &node->nmt);
+    splock_unlock(&dir->lock);
+
+    node->ino = ino;
+    node->mode = FN_OK;
+    mtx_unlock(&node->mtx);
     errno = 0;
-    return ino;
+    return node;
 }
 
 // int vfs_umount(inode_t *ino)

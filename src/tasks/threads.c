@@ -31,7 +31,7 @@ static task_t *task_create(scheduler_t *sch, task_t *parent, const char *name)
 {
     // Allocate
     task_t *task = kalloc(sizeof(task_t));
-    task->stack = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VMA_STACK);
+    task->stack = kmap(KSTACK_PAGES * PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VMA_STACK);
     task->status = TS_ZOMBIE;
     task->parent = parent;
     task->name = name != NULL ? strdup(name) : NULL;
@@ -104,12 +104,33 @@ void task_raise(scheduler_t *sch, task_t *task, unsigned signum)
 void task_fatal(const char *msg, unsigned signum)
 {
     task_t *task = __current;
-    kprintf(KL_ERR, "Fatal error on task %d: %s\n", task->pid, msg);
+    kprintf(KL_ERR, "Task.%d] \033[31mFatal error %d: %s\033[0m\n", task->pid, msg);
     scheduler_switch(TS_ZOMBIE);
     // task_raise(sch, task, signum);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+_Noreturn void task_firstinit()
+{
+    fsnode_t *root;
+    // Try to mount image
+    for (;;) {
+        root = vfs_mount(__current->vfs, "sdC", "iso", "/mnt/cdrom", "");
+        if (root != NULL)
+            break;
+        sleep_timer(250000);
+    }
+    vfs_close_fsnode(root);
+
+    // Change root
+    vfs_chdir(__current->vfs, "/mnt/cdrom", true);
+
+    // Re-mount devfs
+    vfs_mount(__current->vfs, NULL, "devfs", "/dev", "");
+
+    task_init();
+}
 
 _Noreturn void task_init()
 {
@@ -117,6 +138,7 @@ _Noreturn void task_init()
     char *exec_args[] = {
         execname, "-x", "-s", NULL
     };
+
 
     // Load executable image
     assert(__current->proc == NULL);
@@ -163,9 +185,7 @@ _Noreturn void task_init()
     kprintf(-1, "Task.%d] Ready to enter usermode for executable %s, start:%p, stack:%p \n",
             __current->pid, execname, start, stack);
 
-    for (;;)
-        sleep_timer(250000);
-    // cpu_usermode(task->kstack, start, stack);
+    cpu_usermode(start, stack);
 }
 
 

@@ -21,8 +21,13 @@
 #include <assert.h>
 #include <errno.h>
 
+struct diterator
+{
+    int mode;
+    void* ctx;
+};
 
-void *vfs_opendir(fsnode_t *dir, void *acl)
+diterator_t *vfs_opendir(fsnode_t *dir, void *acl)
 {
     assert(dir->mode == FN_OK);
     if (dir->ino->type != FL_DIR) {
@@ -33,25 +38,25 @@ void *vfs_opendir(fsnode_t *dir, void *acl)
         //        return NULL;
     }
 
-    return dir->ino->ops->opendir(dir->ino);
+    void* ctx = dir->ino->ops->opendir(dir->ino);
+    if (ctx == NULL)
+        return NULL;
+    diterator_t* it = kalloc(sizeof(diterator_t));
+    it->ctx = ctx;
+    it->mode = 0;
+    return it;
 }
 
-fsnode_t *vfs_readdir(fsnode_t *dir, void *ctx)
+static fsnode_t* vfs_readdir_std(fsnode_t* dir, diterator_t* it)
 {
-    assert(dir->mode == FN_OK);
-    if (ctx == NULL) {
-        errno = EINVAL;
-        return NULL;
-    }
-
-    char *name = kalloc(256);
-    inode_t *ino = dir->ino->ops->readdir(dir->ino, name, ctx);
+    char* name = kalloc(256);
+    inode_t* ino = dir->ino->ops->readdir(dir->ino, name, it->ctx);
     if (ino == NULL) {
         kfree(name);
         return NULL;
     }
 
-    fsnode_t *node = vfs_fsnode_from(dir, name);
+    fsnode_t* node = vfs_fsnode_from(dir, name);
     if (node->mode == FN_OK) {
         vfs_close_inode(ino);
         kfree(name);
@@ -59,7 +64,7 @@ fsnode_t *vfs_readdir(fsnode_t *dir, void *ctx)
     }
 
     mtx_lock(&node->mtx);
-    // TODO - Check for weirdness
+    // TODO - Check for already resolved fsnode_t
     node->ino = ino;
     node->mode = FN_OK;
     mtx_unlock(&node->mtx);
@@ -67,15 +72,39 @@ fsnode_t *vfs_readdir(fsnode_t *dir, void *ctx)
     return node;
 }
 
-int vfs_closedir(fsnode_t *dir, void *ctx)
+fsnode_t *vfs_readdir(fsnode_t *dir, diterator_t *it)
 {
     assert(dir->mode == FN_OK);
-    if (ctx == NULL) {
+    if (it == NULL || it->ctx == NULL) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    fsnode_t* node = NULL;
+    if (it->mode == 0)
+        node = vfs_readdir_std(dir, it);
+    if (node != NULL)
+        return node;
+
+    // List mounted point!
+    it->mode++;
+    splock_lock(&dir->lock);
+    node = ll_index(&dir->mnt, it->mode - 1, fsnode_t, nmt);
+    splock_unlock(&dir->lock);
+    return node;
+}
+
+int vfs_closedir(fsnode_t *dir, diterator_t* it)
+{
+    assert(dir->mode == FN_OK);
+    if (it == NULL) {
         errno = EINVAL;
         return -1;
     }
 
-    dir->ino->ops->closedir(dir->ino, ctx);
+    if (it->ctx != NULL)
+        dir->ino->ops->closedir(dir->ino, it->ctx);
+    kfree(it);
     return 0;
 }
 
