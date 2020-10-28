@@ -71,6 +71,7 @@ struct scheduler {
 struct masterclock {
     llhead_t list;
     splock_t lock;
+    splock_t tree_lock;
     bbtree_t tree;
     xtime_t wall;
     xtime_t boot;
@@ -92,6 +93,9 @@ struct task {
 
     uint32_t raised;
     sig_handler_t shandler[32];
+
+    char sc_log[64];
+    int sc_len;
 
     llhead_t advent_list;
 
@@ -126,6 +130,7 @@ void cpu_setjmp(cpu_state_t *buf, void *stack, void *func, void *arg);
 int cpu_save(cpu_state_t *buf);
 _Noreturn void cpu_restore(cpu_state_t *buf);
 _Noreturn void cpu_halt();
+_Noreturn void cpu_usermode(void *start, void *stack);
 int cpu_no();
 
 int task_start(const char *name, void *func, void *arg);
@@ -133,7 +138,8 @@ int task_fork(const char *name, void *func, void *arg, int flags);
 void task_raise(scheduler_t *sch, task_t *task, unsigned signum);
 void task_stop(task_t *task, int code);
 void task_fatal(const char *msg, unsigned signum);
-void task_init();
+_Noreturn void task_firstinit();
+_Noreturn void task_init();
 
 void scheduler_add(scheduler_t *sch, task_t *task);
 void scheduler_rm(scheduler_t *sch, task_t *task, int status);

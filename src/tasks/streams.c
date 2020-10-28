@@ -42,7 +42,7 @@ static void stream_destroy(fstream_t *stm)
 fstream_t *stream_put(streamset_t *strms, fsnode_t *file, int flags)
 {
     fstream_t *stm = kalloc(sizeof(fstream_t));
-    stm->file = file;
+    stm->file = vfs_open_fsnode(file);
     stm->position = 0;
     stm->flags = flags;
     vfs_usage(file, flags, 1);

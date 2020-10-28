@@ -215,6 +215,7 @@ static void pci_device(uint8_t bus, uint8_t slot, uint8_t func, uint16_t vendor_
     /* We found a new PCI device */
     device_stack[dev_sp].bus = bus;
     device_stack[dev_sp].slot = slot;
+    device_stack[dev_sp].func = func;
     device_stack[dev_sp].irq = pci_config_read16(bus, slot, func, PCI_OFF_INTERRUPT_LINE) & 0xFF;
     device_stack[dev_sp].busy = 0;
     device_stack[dev_sp].vendor_id = vendor_id;

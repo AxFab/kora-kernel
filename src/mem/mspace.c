@@ -322,14 +322,22 @@ vma_t *mspace_search_vma(mspace_t *mspace, size_t address)
     if (address >= kMMU.kspace->lower_bound && address < kMMU.kspace->upper_bound) {
         splock_lock(&kMMU.kspace->lock);
         vma = bbtree_search_le(&kMMU.kspace->tree, address, vma_t, node);
-    } else if (mspace != NULL && address >= mspace->lower_bound
-               && address < mspace->upper_bound) {
+        if (vma == NULL) {
+            splock_unlock(&kMMU.kspace->lock);
+            return NULL;
+        }
+    } else if (mspace != NULL && address >= mspace->lower_bound && address < mspace->upper_bound) {
         splock_lock(&mspace->lock);
         vma = bbtree_search_le(&mspace->tree, address, vma_t, node);
+        if (vma == NULL) {
+            splock_unlock(&mspace->lock);
+            return NULL;
+        }
     }
 
     if (vma == NULL)
         return NULL;
+
     if (vma->node.value_ + vma->length <= address) {
         splock_unlock(&vma->mspace->lock);
         return NULL;
@@ -368,16 +376,25 @@ int mspace_check(mspace_t *mspace, const void *ptr, size_t len, int flags)
         return -1;
     }
 
+    if (vma->mspace == kMMU.kspace) {
+        splock_unlock(&vma->mspace->lock);
+        errno = EINVAL;
+        return -1;
+    }
+
     if (vma->node.value_ + vma->length <= (size_t)ptr + len) {
+        splock_unlock(&vma->mspace->lock);
         errno = EINVAL;
         return -1;
     }
 
     if ((flags & VM_WR) && !(vma->flags & VM_WR)) {
+        splock_unlock(&vma->mspace->lock);
         errno = EINVAL;
         return -1;
     }
 
+    splock_unlock(&vma->mspace->lock);
     return 0;
 }
 
@@ -389,11 +406,19 @@ int mspace_check_str(mspace_t *mspace, const char *str, size_t max)
         return -1;
     }
 
-    max = MIN(max, vma->node.value_ + vma->length - (size_t)str);
-    if (strnlen(str, max) >= max) {
+    if (vma->mspace == kMMU.kspace) {
+        splock_unlock(&vma->mspace->lock);
         errno = EINVAL;
         return -1;
     }
 
+    max = MIN(max, vma->node.value_ + vma->length - (size_t)str);
+    if (strnlen(str, max) >= max) {
+        splock_unlock(&vma->mspace->lock);
+        errno = EINVAL;
+        return -1;
+    }
+
+    splock_unlock(&vma->mspace->lock);
     return 0;
 }

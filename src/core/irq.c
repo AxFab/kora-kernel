@@ -20,7 +20,9 @@
 #include <kernel/stdc.h>
 #include <kernel/tasks.h>
 #include <kernel/irq.h>
+#include <kernel/syscalls.h>
 #include <kora/llist.h>
+#include <sys/signum.h>
 
 
 bool __irq_active = false;
@@ -135,9 +137,11 @@ void irq_fault(const char *name, unsigned signum)
         for (;;);
     }
 
-    kprintf(KL_ERR, "Failure task.%d on CPU%d: %s\n", __current->pid, cpu_no(), name);
-    if (signum != 0)
+    kprintf(KL_ERR, "Task.%d] Failure on CPU%d: %s\n", __current->pid, cpu_no(), name);
+    if (signum != 0) {
         task_raise(&__scheduler, __current, signum);
+        task_fatal("CPU Failure", signum);
+    }
     scheduler_switch(TS_READY);
 }
 
@@ -145,10 +149,128 @@ void irq_fault(const char *name, unsigned signum)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-long irq_syscall(long no, long a1, long a2, long a3, long a4, long a5)
+syscall_info_t __syscalls_info[] = {
+    [SYS_EXIT] = SCALL_ENTRY(exit, ARG_INT, 0, 0, 0, 0, 0, 1),
+    // SYS_SLEEP,
+    // SYS_FUTEX_WAIT,
+    // SYS_FUTEX_REQUEUE,
+    // SYS_FUTEX_WAKE,
+    [SYS_MMAP] = SCALL_ENTRY(mmap, ARG_PTR, ARG_LEN, ARG_FLG, ARG_FD, ARG_LEN, ARG_PTR, 5),
+    [SYS_MUNMAP] = SCALL_ENTRY(munmap, ARG_PTR, ARG_LEN, 0, 0, 0, ARG_INT, 2),
+    // SYS_MPROTECT,
+    [SYS_GINFO] = SCALL_ENTRY(ginfo, ARG_INT, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
+    // SYS_SINFO,
+    [SYS_OPEN] = SCALL_ENTRY(open, ARG_FD, ARG_STR, ARG_FLG, ARG_FLG, 0, ARG_FD, 4),
+    // SYS_CLOSE,
+    // SYS_READDIR,
+    // SYS_SEEK,
+    [SYS_READ] = SCALL_ENTRY(read, ARG_FD, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
+    [SYS_WRITE] = SCALL_ENTRY(write, ARG_FD, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
+    // SYS_ACCESS,
+    [SYS_FCNTL] = SCALL_ENTRY(fcntl, ARG_FD, ARG_INT, ARG_PTR, 0, 0, ARG_INT, 3),
+    // SYS_FSTAT,
+};
+
+static void scall_log_arg(task_t *task, char type, long arg)
 {
+    char tmp[16];
+    switch (type) {
+    case ARG_STR:
+        strncat(task->sc_log, "\"", 64);
+        strncat(task->sc_log, (char*)arg, 64);
+        strncat(task->sc_log, "\"", 64);
+        break;
+    case ARG_INT:
+        snprintf(tmp, 16, "%d", arg);
+        strncat(task->sc_log, tmp, 64);
+        break;
+    case ARG_FLG:
+        snprintf(tmp, 16, "0%o", arg);
+        strncat(task->sc_log, tmp, 64);
+        break;
+    case ARG_LEN:
+        snprintf(tmp, 16, "0x%x", arg);
+        strncat(task->sc_log, tmp, 64);
+        break;
+    case ARG_FD:
+        snprintf(tmp, 16, "%d<->", arg);
+        strncat(task->sc_log, tmp, 64);
+        break;
+    default:
+    case ARG_PTR:
+        snprintf(tmp, 16, "@%08x", (void*)arg);
+        strncat(task->sc_log, tmp, 64);
+        break;
+    }
+}
+
+
+long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5)
+{
+    int i;
     assert(__irq_semaphore == 0);
 
-    return -1;
+    task_t *task = __current;
+    syscall_info_t *info = NULL;
+    if (no < (sizeof(__syscalls_info) / sizeof(syscall_info_t)))
+        info = &__syscalls_info[no];
+
+    if (info == NULL || info->scall == NULL) {
+        kprintf(-1, "Task.%d] Unknown syscall %d\n", task->pid, no);
+        task_fatal("Unknown syscall", SIGABRT);
+    }
+
+#ifndef NDEBUG
+    bool strace = true;// no != SYS_READ && no != SYS_WRITE;
+    // Prepare strace log for debug
+    long args[] = { a1, a2, a3, a4, a5};
+    if (strace) {
+        irq_disable();
+        strncpy(task->sc_log, info->name, 64);
+        strncat(task->sc_log, "(", 64);
+        for (i = 0; i < info->split; ++i) {
+            if (info->args[i] == 0)
+                break;
+            if (i != 0)
+                strncat(task->sc_log, ", ", 64);
+            scall_log_arg(task, info->args[i], args[i]);
+        }
+
+        if (info->args[5] == 0) {
+            strncat(task->sc_log, ")", 64);
+            kprintf(-1, "Task.%d] \033[96m%s\033[0m\n", task->pid, task->sc_log);
+            task->sc_log[0] = '\0';
+        }
+        irq_enable();
+    }
+#endif
+
+    assert(__irq_semaphore == 0);
+    long ret = info->scall(a1, a2, a3, a4, a5);
+    assert(__irq_semaphore == 0);
+
+#ifndef NDEBUG
+    // Complete strace log
+    if (strace) {
+        irq_disable();
+        if (task->sc_log[0] == '\0')
+            strncat(task->sc_log, " .....", 64);
+        for (; i < 5; ++i) {
+            if (info->args[i] == 0)
+                break;
+            if (i != 0)
+                strncat(task->sc_log, ", ", 64);
+            scall_log_arg(task, info->args[i], args[i]);
+        }
+
+        strncat(task->sc_log, ") = ", 64);
+        scall_log_arg(task, info->args[5], ret);
+        kprintf(-1, "Task.%d] \033[96m%s\033[0m\n", task->pid, task->sc_log);
+        task->sc_log[0] = '\0';
+        irq_enable();
+    }
+#endif
+
+    return ret;
 }
 

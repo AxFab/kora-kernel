@@ -237,8 +237,8 @@ _Noreturn void module_loader()
     vfs_close_fsnode(directory);
 
     for (;;) {
-        kprintf(-1, "Hello from task %d \n", __current->pid);
-        sleep_timer(250000);
+        // kprintf(-1, "Hello from task %d \n", __current->pid);
+        sleep_timer(500000);
     }
 }
 

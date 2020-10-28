@@ -245,6 +245,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
             inode_t *ino = vma->ino;
             if (ino->fops->fetch == NULL) {
                 errno = ENOSYS;
+                kprintf(KL_ERR, "Unable to resolve already mapped file\n");
                 return -1;
             }
             splock_unlock(&vma->mspace->lock);

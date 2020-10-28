@@ -392,7 +392,7 @@ void tss_setup()
 
     TSS_BASE[i].debug_flag = 0;
     TSS_BASE[i].io_map = 0;
-    TSS_BASE[i].esp0 = cpu_table[i].stack + PAGE_SIZE - 16;
+    TSS_BASE[i].esp0 = cpu_table[i].stack + (KSTACK_PAGES * PAGE_SIZE) - 16;
     TSS_BASE[i].ss0 = 0x18;
     GDT(i + 7, TSS_CPU(i), 0x67, 0xe9, 0x00); // TSS CPU(i)
     x86_set_tss(i + 7);
@@ -436,7 +436,8 @@ void cpu_early_init() // GDT & IDT
 {
     int i;
     // GDT - Global Descriptor Table
-    GDT(0, 0, 0, 0, 0); // Empty
+    for (i = 0; i < 256; ++i)
+        GDT(i, 0, 0, 0, 0); // Empty
     GDT(1, 0x0, 0xfffff, 0x9B, 0x0D); // Kernel code
     GDT(2, 0x0, 0xfffff, 0x93, 0x0D); // Kernel data
     GDT(3, 0x0, 0x00000, 0x97, 0x0D); // Kernel stack

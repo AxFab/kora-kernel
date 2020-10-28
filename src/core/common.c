@@ -43,7 +43,11 @@ int *__errno_location()
 
 void *kmap(size_t length, void *ino, xoff_t offset, int flags)
 {
+    char tmp[64];
     length = ALIGN_UP(length, PAGE_SIZE);
+    int type = flags & VMA_TYPE;
+    if (type == 0 && ino != NULL)
+        flags |= VMA_FILE;
     void *ptr = mspace_map(kMMU.kspace, 0, length, (inode_t *)ino, offset, flags);
     if (ptr == NULL) {
         kprintf(KL_ERR, "Unable to map memory on the kernel\n");

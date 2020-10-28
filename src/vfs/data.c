@@ -48,8 +48,8 @@ void vfs_createfile(inode_t *ino)
         ino->fops = &pipe_ops;
         break;
     case FL_CHR:
-        // ino->fl_data = pipe_create();
-        // ino->fops = &chr_ops;
+        ino->fl_data = pipe_create();
+        ino->fops = &chr_ops;
         break;
     case FL_SOCK:
         ino->fl_data = socket_create();

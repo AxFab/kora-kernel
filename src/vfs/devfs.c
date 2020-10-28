@@ -397,6 +397,14 @@ void devfs_register(inode_t *ino, const char *name)
     entry->flags = DF_USED;
 }
 
+inode_t* devfs_mount(inode_t *dev, const char* options)
+{
+    if (dev != NULL)
+        return NULL;
+
+    return vfs_open_inode(DEV_INO);
+}
+
 inode_t *devfs_setup()
 {
     dfs_info_t *info = kalloc(sizeof(dfs_info_t));
@@ -432,6 +440,8 @@ inode_t *devfs_setup()
     devfs_dev(info, "zero", FL_CHR, DF_ROOT, &devfs_zero_ops);
     devfs_dev(info, "null", FL_CHR, DF_ROOT, &devfs_null_ops);
     devfs_dev(info, "random", FL_CHR, DF_ROOT, &devfs_rand_ops);
+
+    vfs_addfs("devfs", devfs_mount);
 
     return vfs_open_inode(DEV_INO);
 }

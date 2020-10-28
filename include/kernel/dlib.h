@@ -132,7 +132,6 @@ void *dlib_exec_entry(proc_t *proc);
 
 
 int elf_parse(dynlib_t *dlib);
-void cpu_usermode(void *start, void *stack);
 
 
 #endif  /* _KERNEL_DLIB_H */

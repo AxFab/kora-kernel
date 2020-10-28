@@ -39,6 +39,7 @@ typedef struct ino_ops ino_ops_t;
 typedef struct fsnode fsnode_t;
 typedef struct path path_t;
 typedef enum ftype ftype_t;
+typedef struct diterator diterator_t;
 
 // typedef struct acl acl_t;
 
@@ -55,7 +56,7 @@ enum ftype {
     FL_LNK,  /* Symbolic link (FS) */
     FL_FRM,  /* Video stream */
     FL_DIR,  /* Directory (FS) */
-    // FL_INFO,  /* Information file */
+    // FL_INFO,  /* Information file
     // FL_SFC,  /* Application surface */
     // FL_VOL,  /* File system volume */
     // FL_TTY,  /* Terminal (Virtual) */
@@ -160,6 +161,10 @@ struct fsnode {
     llnode_t nlru;
     int mode;
     mtx_t mtx;
+
+    splock_t lock;
+    llhead_t mnt;
+    llnode_t nmt;
 };
 
 enum {
@@ -177,7 +182,7 @@ vfs_t *vfs_init();
 vfs_t *vfs_open_vfs(vfs_t *vfs);
 vfs_t *vfs_clone_vfs(vfs_t *vfs);
 void vfs_sweep(vfs_t *vfs);
-inode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *name, const char *options);
+fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *name, const char *options);
 // unmount
 char *vfs_inokey(inode_t *ino, char *buf);
 
@@ -195,6 +200,7 @@ void vfs_rmfs(const char *name);
 
 // For kernel
 fsnode_t *vfs_search(vfs_t *vfs, const char *pathname, void *user, bool resolve);
+int vfs_lookup(fsnode_t *node);
 fsnode_t *vfs_open_fsnode(fsnode_t *node);
 void vfs_close_fsnode(fsnode_t *node);
 int vfs_chdir(vfs_t *vfs, const char *path, bool root);
@@ -202,9 +208,9 @@ int vfs_readlink(vfs_t *vfs, fsnode_t *node, char *buf, int len, bool relative);
 
 void vfs_usage(fsnode_t *node, int flags, int use);
 
-void *vfs_opendir(fsnode_t *dir, void *acl);
-fsnode_t *vfs_readdir(fsnode_t *dir, void *ctx);
-int vfs_closedir(fsnode_t *dir, void *ctx);
+diterator_t *vfs_opendir(fsnode_t *dir, void *acl);
+fsnode_t *vfs_readdir(fsnode_t *dir, diterator_t *it);
+int vfs_closedir(fsnode_t *dir, diterator_t *it);
 
 
 int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags);
