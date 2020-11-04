@@ -20,11 +20,12 @@
 #ifndef _SRC_ISOFS_H
 #define _SRC_ISOFS_H 1
 
-#include <kernel/device.h>
+#include <kernel/vfs.h>
 #include <string.h>
 #include <errno.h>
 
 #define FILENAME_MAX 255
+#define ISOFS_SECTOR_SIZE  2048
 
 /* Identificators for volume descriptors */
 #define ISOFS_STD_ID1    0x30444300
@@ -38,6 +39,8 @@
 typedef struct ISOFS_entry ISOFS_entry_t;
 typedef struct ISOFS_descriptor ISOFS_descriptor_t;
 typedef struct ISOFS_entry_extra ISOFS_entry_extra_t;
+typedef struct ISO_info ISO_info_t;
+typedef struct ISO_dirctx ISO_dirctx_t;
 
 #define ISOFS_nextEntry(e)  ((ISOFS_entry_t*)&(((char*)(e))[(e)->lengthRecord]));
 
@@ -65,25 +68,15 @@ PACK(struct ISOFS_entry {
     char fileId[1];
 });
 
-// Can't find on the spec, only way to get the filename !
+/* Can't find on the spec, only way to get the filename ! */
 PACK(struct ISOFS_entry_extra {
     uint16_t pm; // 50 58  (PX)
-    uint16_t r[21]; //
-    // __ __ 24 01 6D 81 00 00 00 00 81 6D 01 00 00 00
-    // 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00
-    // 00 00 00 00 54 46 1A 01 0E 78 09 01
-    uint16_t v[2]; // Changing...
-    // 16 17 01 00
-    // 16 32 19 00
-
-    uint32_t r2[4];
-    // 78 09 01 16 33 2E 00 78 09 01 16 33 2E 00 4E 4D
-    uint8_t r3[3]; // Changing...
-    // 13 01 00
-    // 0E 01 00
+    uint16_t r1[21];
+    uint16_t r2[2];
+    uint32_t r3[4];
+    uint8_t r4[3];
     uint8_t filename[1];
 });
-
 
 /* Structure of the Primary volume descriptor in isofs FS */
 PACK(struct ISOFS_descriptor {
@@ -128,10 +121,6 @@ PACK(struct ISOFS_descriptor {
     char timelag;
 });
 
-
-typedef struct ISO_info ISO_info_t;
-typedef struct ISO_dirctx ISO_dirctx_t;
-
 struct ISO_info {
     time_t created;
     char bootable;
@@ -140,21 +129,14 @@ struct ISO_info {
     int sectorCount;
     int sectorSize;
     char name[128];
-    bio_t *io;
 };
 
 struct ISO_dirctx {
     size_t off;
-    int lba;
+    size_t lba;
+    size_t map_lba;
+    uint8_t *map_ptr;
     uint8_t *base;
 };
-
-
-
-inode_t *isofs_readdir(inode_t *dir, char *name, ISO_dirctx_t *ctx);
-
-inode_t *isofs_mount(inode_t *dev);
-int isofs_umount(inode_t *ino);
-int isofs_read(inode_t *ino, void *buffer, size_t length, off_t offset);
 
 #endif  /* _SRC_ISOFS_H */

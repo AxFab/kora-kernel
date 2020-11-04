@@ -19,54 +19,30 @@
  */
 #include "vfat.h"
 
-// int fatfs_umount(inode_t *ino)
-// {
-//     FAT_volume_t *info = (FAT_volume_t *)ino->info;
-//     bio_destroy(info->io_data_ro);
-//     bio_destroy(info->io_data_rw);
-//     bio_destroy(info->io_head);
-//     kfree(info);
-//     return 0;
-// }
-
-fs_ops_t fatfs_ops = {
-    .open = fatfs_open,
-    .unlink = fatfs_unlink,
-    .umount = fatfs_umount,
-};
-
 ino_ops_t fatfs_reg_ops = {
-    .close = fatfs_close,
+    // .close = fatfs_close,
+    .read = fat_read,
+    .write = fat_write,
     .truncate = fatfs_truncate,
-    .fetch = fatfs_truncate,
-    .sync = fatfs_sync,
-    .release = fatfs_release,
 };
 
 ino_ops_t fatfs_dir_ops = {
-    .close = fatfs_close,
-    .truncate = fatfs_truncate,
-    .opendir = (void *)fatfs_opendir,
-    .readdir = (void *)fatfs_readdir,
-    .closedir = (void *)fatfs_closedir,
+    .open = fat_open,
+    // .close = fatfs_close,
+    .unlink = fat_unlink,
+    .opendir = fat_opendir,
+    .readdir = fat_readdir,
+    .closedir = fat_closedir,
 };
 
-ino_ops_t fatfs_vol_ops = {
-    // .close = fatfs_umount,
-    .truncate = fatfs_truncate,
-    .opendir = (void *)fatfs_opendir,
-    .readdir = (void *)fatfs_readdir,
-    .closedir = (void *)fatfs_closedir,
-};
-
-inode_t *fatfs_mount(inode_t *dev)
+inode_t *fat_mount(inode_t *dev, const char *options)
 {
     if (dev == NULL) {
         errno = ENODEV;
         return NULL;
     }
 
-    uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, dev, 0, VMA_FILE_RO);
+    uint8_t *ptr = (uint8_t *)kmap(PAGE_SIZE, dev, 0, VM_RD);
     FAT_volume_t *info = fatfs_init(ptr);
     kunmap(ptr, PAGE_SIZE);
     if (info == NULL) {
@@ -74,45 +50,47 @@ inode_t *fatfs_mount(inode_t *dev)
         return NULL;
     }
 
-    info->io_head = bio_create(dev, VMA_FILE_RW, info->BytsPerSec, 0);
     const char *fsName = info->FATType == FAT32 ? "fat32" : (info->FATType == FAT16 ? "fat16" : "fat12");
-    inode_t *ino = vfs_inode(0, FL_VOL, NULL);
+    inode_t *ino = vfs_inode(1, FL_DIR, NULL, &fatfs_dir_ops);
     ino->length = 0;
-    ino->lba = 1;
-    ino->dev->info = info;
-    ino->dev->fsops = &fatfs_ops;
-    ino->dev->devclass = (char *)fsName;
+    ino->lba = info->RootEntry;
+    ino->drv_data = info;
+    ino->dev->devclass = strdup(fsName);
     ino->dev->devname = strdup(info->name);
-    ino->info = NULL;
-    ino->ops = &fatfs_dir_ops;
+    ino->dev->underlying = vfs_open_inode(dev);
 
     int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
-    info->io_data_rw = bio_create(dev, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
-    info->io_data_ro = bio_create(dev, VMA_FILE_RO, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
+    // info->io_data_rw = bio_create(dev, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
+    // info->io_data_ro = bio_create(dev, VMA_FILE_RO, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
     errno = 0;
     return ino;
 }
 
-void fatfs_umount(device_t *vol)
-{
-    FAT_volume_t *info = (FAT_volume_t *)vol->info;
+// int fatfs_umount(inode_t *ino)
+// {
+//     FAT_volume_t *info = (FAT_volume_t *)ino->info;
+//     kfree(info);
+//     return 0;
+// }
 
-    kfree(vol->devname);
-    bio_destroy(info->io_data_ro);
-    bio_destroy(info->io_data_rw);
-    bio_destroy(info->io_head);
-    kfree(info);
+
+void fat_setup()
+{
+    vfs_addfs("fat", fat_mount);
+    vfs_addfs("vfat", fat_mount);
+    vfs_addfs("fat12", fat_mount);
+    vfs_addfs("fat16", fat_mount);
+    vfs_addfs("fat32", fat_mount);
 }
 
-void fatfs_setup()
+void fat_teardown()
 {
-    register_fs("fatfs", (fs_mount)fatfs_mount);
+    vfs_rmfs("fat");
+    vfs_rmfs("vfat");
+    vfs_rmfs("fat12");
+    vfs_rmfs("fat16");
+    vfs_rmfs("fat32");
 }
 
-void fatfs_teardown()
-{
-    unregister_fs("fatfs");
-}
-
-MODULE(vfat, fatfs_setup, fatfs_teardown);
+MODULE(vfat, fat_setup, fat_teardown);
 

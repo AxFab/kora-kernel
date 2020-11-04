@@ -17,19 +17,18 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/files.h>
 #include "vfat.h"
 
-void fatfs_settime(unsigned short *date, unsigned short *time, clock64_t value)
+void fatfs_settime(unsigned short *date, unsigned short *time, xtime_t value)
 {
-    time_t sec = value / _PwNano_;
+    time_t sec = USEC_TO_SEC(value);
     struct tm datetime;
     gmtime_r(&sec, &datetime);
     *date = (datetime.tm_mday & 0x1F) | (((datetime.tm_mon + 1) & 0xF) << 5) | ((datetime.tm_year - 80) << 9);
     *time = (datetime.tm_sec >> 1) | (datetime.tm_min << 5) | (datetime.tm_hour << 11);
 }
 
-clock64_t fatfs_gettime(unsigned short *date, unsigned short *time)
+xtime_t fatfs_gettime(unsigned short *date, unsigned short *time)
 {
     struct tm datetime;
     memset(&datetime, 0, sizeof(datetime));
@@ -42,7 +41,7 @@ clock64_t fatfs_gettime(unsigned short *date, unsigned short *time)
         datetime.tm_hour = (*time >> 11) & 0x1F;
     }
     time_t sec = mktime(&datetime);
-    return sec * _PwNano_;
+    return SEC_TO_USEC(sec);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -86,7 +85,7 @@ void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname)
 extern ino_ops_t fatfs_reg_ops;
 extern ino_ops_t fatfs_dir_ops;
 
-inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, device_t *volume, FAT_volume_t *info)
+inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, device_t *device, FAT_volume_t *volume)
 {
     unsigned cluster = (entry->DIR_FstClusHi << 16) | entry->DIR_FstClusLo;
     ftype_t type = FL_INVAL;
@@ -95,24 +94,22 @@ inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, device_t *volume, FAT
     else if (entry->DIR_Attr & ATTR_ARCHIVE)
         type = FL_REG;
 
-    inode_t *ino = vfs_inode(no, type, volume);
+    inode_t *ino = NULL;
+    if (entry->DIR_Attr & ATTR_DIRECTORY)
+        ino = vfs_inode(no, type, device, &fatfs_dir_ops);
+    else if (entry->DIR_Attr & ATTR_ARCHIVE)
+        ino = vfs_inode(no, type, device, &fatfs_reg_ops);
+    if (ino == NULL)
+        return NULL;
+
+    ino->drv_data = volume;
     ino->length = entry->DIR_FileSize;
     ino->lba = cluster;
-    if (type == FL_REG)
-        ino->info = blk_create(ino, fatfs_read, fatfs_write);
     ino->atime = fatfs_gettime(&entry->DIR_LstAccDate, NULL);
     ino->ctime = fatfs_gettime(&entry->DIR_CrtDate, &entry->DIR_CrtTime);
     ino->mtime = fatfs_gettime(&entry->DIR_WrtDate, &entry->DIR_WrtTime);
-    if (entry->DIR_Attr & ATTR_DIRECTORY)
-        ino->ops = &fatfs_dir_ops;
-    else if (entry->DIR_Attr & ATTR_ARCHIVE)
-        ino->ops = &fatfs_reg_ops;
+    ino->btime = ino->ctime;
     return ino;
-}
-
-int fatfs_close(inode_t *ino)
-{
-    return 0;
 }
 
 void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t type)
@@ -123,7 +120,7 @@ void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t t
     else if (type == FL_REG)
         entry->DIR_Attr = ATTR_ARCHIVE;
 
-    fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, kclock());
+    fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, xtime_read(XTIME_CLOCK));
     entry->DIR_LstAccDate = entry->DIR_CrtDate;
     entry->DIR_WrtDate = entry->DIR_CrtDate;
     entry->DIR_WrtTime = entry->DIR_CrtTime;
@@ -136,9 +133,9 @@ void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t t
 
 int fatfs_mkdir(FAT_volume_t *info, inode_t *dir)
 {
-    int lba = fatfs_alloc_cluster_16(info, -1);
+    int lba = fatfs_alloc_cluster_16(dir->dev->underlying, info, -1);
 
-    struct FAT_ShortEntry *entry = (struct FAT_ShortEntry *)bio_access(info->io_data_rw, lba);
+    struct FAT_ShortEntry *entry = NULL;// (struct FAT_ShortEntry*)bio_access(info->io_data_rw, lba);
     memset(entry, 0, info->BytsPerSec * info->SecPerClus);
 
     /* Create . and .. entries */
@@ -148,6 +145,6 @@ int fatfs_mkdir(FAT_volume_t *info, inode_t *dir)
 
     fatfs_short_entry(entry, dir->lba, FL_DIR);
     memcpy(entry->DIR_Name, FAT_DIRNAME_PARENT, 11);
-    bio_clean(info->io_data_rw, lba);
+    // bio_clean(info->io_data_rw, lba);
     return lba;
 }

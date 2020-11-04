@@ -17,44 +17,40 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/files.h>
 #include "vfat.h"
+#include <assert.h>
 
-
-int fatfs_read(inode_t *ino, void *buffer, size_t length, off_t offset)
+int fat_read(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags)
 {
-    FAT_volume_t *info = (FAT_volume_t *)ino->dev->info;
-    int cluster = offset / (info->BytsPerSec * info->SecPerClus);
-    int lba = ino->lba;
+    FAT_volume_t * volume = ino->drv_data;
+
+    int lba = FAT_CLUSTER_TO_LBA(volume, ino->lba);
+
+    int fL = ((volume->FirstDataSector) * volume->BytsPerSec) / PAGE_SIZE;
+    int eL = ALIGN_UP((volume->FirstDataSector + volume->SecPerClus) * volume->BytsPerSec, PAGE_SIZE) / PAGE_SIZE;
+    int sL = eL - fL;
+    size_t map_size = sL * PAGE_SIZE;
+    size_t sec_size = volume->BytsPerSec;
+
+    int page = (lba * sec_size) / PAGE_SIZE;
+    int off = (lba * sec_size) % PAGE_SIZE;
+    void *cluster = kmap(map_size, ino->dev->underlying, page * PAGE_SIZE, VM_RD);
+
+    // int cluster = offset / (volume->BytsPerSec * volume->SecPerClus);
+    // int lba = ino->lba;
     while (length > 0) {
         if (lba == 0) {
             return -1; // EOF
         }
-        assert(false) ;
+        assert(false);
         // vfs_read();
     }
     return 0;
 }
 
-int fatfs_write(inode_t *ino, const void *buffer, size_t length, off_t offset)
+int fat_write(inode_t *ino, const void *buffer, size_t length, xoff_t offset, int flags)
 {
-    assert(false) ;
+    assert(false);
     return 0;
 }
-
-page_t fatfs_fetch(inode_t *ino, off_t off)
-{
-    return blk_fetch(ino->info, off);
-}
-
-void fatfs_sync(inode_t *ino, off_t off, page_t pg)
-{
-    blk_sync(ino->info, off, pg);
-}
-
-void fatfs_release(inode_t *ino, off_t off, page_t pg)
-{
-    blk_release(ino->info, off, pg);
-}
-
 

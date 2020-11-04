@@ -18,13 +18,14 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "vfat.h"
+#include <assert.h>
 
-int fatfs_truncate(inode_t *ino, off_t length)
+int fatfs_truncate(inode_t *ino, xoff_t length)
 {
-    FAT_volume_t *info = (FAT_volume_t *)ino->dev->info;
+    FAT_volume_t *info = (FAT_volume_t *)ino->drv_data;
     const int entry_per_cluster = info->BytsPerSec / sizeof(struct FAT_ShortEntry);
     int lba = ino->no / entry_per_cluster;
-    struct FAT_ShortEntry *entry = bio_access(info->io_data_rw, lba);
+    struct FAT_ShortEntry *entry = NULL; // bio_access(info->io_data_rw, lba);
     entry += ino->no % entry_per_cluster;
     assert((entry->DIR_Attr & ATTR_ARCHIVE) != 0);
 
@@ -35,21 +36,21 @@ int fatfs_truncate(inode_t *ino, off_t length)
 
     if (mx > info->CountofClusters) {
         // TODO - Count used space
-        bio_clean(info->io_data_rw, lba);
+        // bio_clean(info->io_data_rw, lba);
         errno = ENOSPC;
         return -1;
     } else if (lg == mx) {
         entry->DIR_FileSize = length;
-        fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, kclock());
+        fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, xtime_read(XTIME_CLOCK));
         // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, kclock()); -- on unix but not windows
-        bio_clean(info->io_data_rw, lba);
+        // bio_clean(info->io_data_rw, lba);
         return 0;
     }
 
     int cluster = entry->DIR_FstClusLo;
     if (cluster == 0) {
         assert(lg == 0);
-        cluster = fatfs_alloc_cluster_16(info, -1);
+        cluster = fatfs_alloc_cluster_16(ino->dev->underlying, info, -1);
         entry->DIR_FstClusLo = cluster;
         i = 1;
     }
@@ -60,16 +61,16 @@ int fatfs_truncate(inode_t *ino, off_t length)
         // cluster = fatfs_next_cluster_16(info, cluster);
     }
     for (; i < mx; ++i)
-        cluster = fatfs_alloc_cluster_16(info, cluster);
+        cluster = fatfs_alloc_cluster_16(ino->dev->underlying, info, cluster);
     for (; i < lg; ++i) {
         // cluster = fatfs_release_cluster_16(info, cluster);
     }
 
     entry->DIR_FileSize = length;
-    fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, kclock());
+    fatfs_settime(&entry->DIR_WrtDate, &entry->DIR_WrtTime, xtime_read(XTIME_CLOCK));
     // fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, kclock()); -- on unix but not windows
-    bio_clean(info->io_data_rw, lba);
-    bio_sync(info->io_data_rw);
+    // bio_clean(info->io_data_rw, lba);
+    // bio_sync(info->io_data_rw);
     ino->length = length;
     return 0;
 }

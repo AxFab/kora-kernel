@@ -18,184 +18,206 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "vfat.h"
+#include <assert.h>
 
-struct FAT_diterator {
-    uint8_t *ptr;
-    struct FAT_ShortEntry *entry;
-    int cluster_size;
-    int idx;
-    off_t lba;
-    bio_t *io;
-};
-
-FAT_diterator_t *fatfs_diterator_open(inode_t *dir, bool write)
+void fat_create_iterator(inode_t *dir, fat_iterator_t *ctx)
 {
-    assert(dir != NULL);
-    assert(VFS_ISDIR(dir));
-    assert(dir->lba != 0);
-
-    FAT_volume_t *info = (FAT_volume_t *)dir->info;
-    FAT_diterator_t *it = (FAT_diterator_t *)kalloc(sizeof(FAT_diterator_t));
-    it->cluster_size = info->SecPerClus * info->BytsPerSec;
-    it->lba = dir->lba;
-    it->io = write ? info->io_data_rw : info->io_data_ro;
-    it->ptr = bio_access(it->io, it->lba);
-    it->entry = (struct FAT_ShortEntry *)it->ptr;
-    it->idx = -1;
-    it->entry--;
-    return it;
-}
-
-int fatfs_diterator_next_cluster(FAT_diterator_t *it)
-{
-    return -1;
-}
-
-struct FAT_ShortEntry *fatfs_diterator_next(FAT_diterator_t *it)
-{
-    it->entry++;
-    it->idx++;
-    for (;; it->idx++, it->entry++) {
-        if ((uint8_t *)it->entry - it->ptr > it->cluster_size) {
-            if (fatfs_diterator_next_cluster(it) != 0)
-                return NULL;
-        }
-
-        if (it->entry->DIR_Attr == ATTR_VOLUME_ID || it->entry->DIR_Attr == ATTR_DELETED)
-            continue;
-        if (it->entry->DIR_Attr == 0)
-            return NULL;
-        if ((it->entry->DIR_Attr & ATTR_LONG_NAME_MASK) == ATTR_LONG_NAME)
-            continue; // TODO - Prepare long name
-        if (memcmp(it->entry->DIR_Name, FAT_DIRNAME_CURRENT, 11) == 0)
-            continue;
-        if (memcmp(it->entry->DIR_Name, FAT_DIRNAME_PARENT, 11) == 0)
-            continue;
-        return it->entry;
+    assert(dir != NULL && dir->type == FL_DIR && dir->lba != 0);
+    fat_volume_t *volume = dir->drv_data;
+    ctx->cluster = NULL;
+    ctx->index = 0;
+    ctx->dev = dir->dev->underlying;
+    ctx->sec_size = volume->BytsPerSec;
+    if (dir->no == 1) {
+        int dL = (volume->RootEntry * volume->BytsPerSec) / PAGE_SIZE;
+        int dO = (volume->RootEntry * volume->BytsPerSec) % PAGE_SIZE;
+        int eL = ALIGN_UP((volume->RootEntry + volume->RootDirSectors) * volume->BytsPerSec, PAGE_SIZE) / PAGE_SIZE;
+        int sL = eL - dL;
+        ctx->lba = volume->RootEntry;
+        ctx->map_size = sL * PAGE_SIZE;
+        ctx->icount = volume->RootDirSectors * 16;
+    } else {
+        int lba = FAT_CLUSTER_TO_LBA(volume, dir->lba);
+        ctx->lba = lba;
+        int fL = ((volume->FirstDataSector) * volume->BytsPerSec) / PAGE_SIZE;
+        //int dL = (lba * volume->BytsPerSec) / PAGE_SIZE;
+        //int dO = (lba * volume->BytsPerSec) % PAGE_SIZE;
+        int eL = ALIGN_UP((volume->FirstDataSector + volume->SecPerClus) * volume->BytsPerSec, PAGE_SIZE) / PAGE_SIZE;
+        int sL = eL - fL;
+        ctx->map_size = sL * PAGE_SIZE;
+        ctx->icount = volume->SecPerClus * 16;
     }
 }
 
-void fatfs_diterator_close(FAT_diterator_t *it)
+void fat_clear_iterator(fat_iterator_t *ctx)
 {
-    if (it->lba != 0)
-        bio_clean(it->io, it->lba);
-    bio_sync(it->io);
-    kfree(it);
+    if (ctx->cluster == NULL)
+        return;
+    kunmap(ctx->cluster, ctx->map_size);
+    ctx->cluster = NULL;
+}
+
+int fat_iterator_next(fat_iterator_t *ctx, fat_entry_t **ptr)
+{
+    for (;;) {
+        if (ctx->cluster == NULL) {
+            int page = (ctx->lba * ctx->sec_size) / PAGE_SIZE;
+            int off = (ctx->lba * ctx->sec_size) % PAGE_SIZE;
+            ctx->cluster = kmap(ctx->map_size, ctx->dev, page * PAGE_SIZE, VM_RD);
+            ctx->tables = (fat_entry_t *)(ctx->cluster + off);
+            ctx->index = 0;
+        }
+
+        while (ctx->index < ctx->icount) {
+            fat_entry_t *entry = &ctx->tables[++ctx->index];
+
+            if (entry->DIR_Attr == 0)
+                return 0;
+            if (entry->DIR_Attr == ATTR_VOLUME_ID || entry->DIR_Attr == ATTR_DELETED)
+                continue;
+            if ((entry->DIR_Attr & ATTR_LONG_NAME_MASK) == ATTR_LONG_NAME) {
+                // TODO - Prepare long name
+                continue;
+            }
+            if (memcmp(entry->DIR_Name, FAT_DIRNAME_CURRENT, 11) == 0)
+                continue;
+            if (memcmp(entry->DIR_Name, FAT_DIRNAME_PARENT, 11) == 0)
+                continue;
+            *ptr = entry;
+            return ctx->lba * (ctx->sec_size / 32) + ctx->index - 1;
+        }
+
+        // TODO -- Got next cluster...
+    }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t *fatfs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags)
+inode_t *fat_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
 {
     inode_t *ino;
-    FAT_diterator_t *it = fatfs_diterator_open(dir, !!(flags | VFS_CREAT));
-    FAT_volume_t *info = (FAT_volume_t *)dir->info;
-    const int entries_per_cluster = info->BytsPerSec / sizeof(struct FAT_ShortEntry);
-    struct FAT_ShortEntry *entry;
-    while ((entry = fatfs_diterator_next(it)) != NULL) {
-        // TODO - Keep track of available space
+    fat_iterator_t ctx;
+    fat_create_iterator(dir, &ctx);
+    fat_volume_t *volume = dir->drv_data;
+
+    for (;;) {
+        fat_entry_t *entry;
+        int no = fat_iterator_next(&ctx, &entry);
+        if (no == 0)
+            break;
+
         char shortname[14];
         fatfs_read_shortname(entry, shortname);
         if (strcmp(name, shortname) != 0) // TODO - long name
             continue;
 
         // The file exist
-        if (!(flags & VFS_OPEN)) {
+        if (!(flags & IO_OPEN)) {
             errno = EEXIST;
             return NULL;
         }
 
-        ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->dev, info);
-        fatfs_diterator_close(it);
+        ino = fatfs_inode(no, entry, dir->dev, volume);
+        fat_clear_iterator(&ctx);
         errno = 0;
         return ino;
     }
 
-    if (!(flags & VFS_CREAT)) {
-        fatfs_diterator_close(it);
+    if (!(flags & IO_CREAT)) {
+        fat_clear_iterator(&ctx);
         errno = ENOENT;
         return NULL;
     }
 
-    // Create a new entry at the end
-    entry = it->entry;
-    if (entry == NULL) {
-        // TODO - alloc cluster
-    }
-    int alloc_lba = type == FL_DIR ? fatfs_mkdir(info, dir) : 0;
+    //// Create a new entry at the end
+    //entry = it->entry;
+    //if (entry == NULL) {
+    //    // TODO - alloc cluster
+    //}
+    //int alloc_lba = type == FL_DIR ? fatfs_mkdir(info, dir) : 0;
 
-    fatfs_short_entry(entry, alloc_lba, type);
-    fatfs_write_shortname(entry, name);
-    memset(&entry[1], 0, sizeof(*entry)); // TODO - not behind cluster
+    //fatfs_short_entry(entry, alloc_lba, type);
+    //fatfs_write_shortname(entry, name);
+    //memset(&entry[1], 0, sizeof(*entry)); // TODO - not behind cluster
 
-    ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->dev, info);
-    fatfs_diterator_close(it);
-    bio_sync(info->io_head);
-    errno = 0;
-    return ino;
+    //ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->dev, info);
+    //fatfs_diterator_close(it);
+    //// bio_sync(info->io_head);
+    //errno = 0;
+    //return ino;
+    fat_clear_iterator(&ctx);
+    return NULL;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-FAT_diterator_t *fatfs_opendir(inode_t *dir)
+void *fat_opendir(inode_t *dir)
 {
-    return fatfs_diterator_open(dir, false);
+    fat_iterator_t *ctx = kalloc(sizeof(fat_iterator_t));
+    fat_create_iterator(dir, ctx);
+    return ctx;
 }
 
-inode_t *fatfs_readdir(inode_t *dir, char *name, FAT_diterator_t *it)
+inode_t *fat_readdir(inode_t *dir, char *name, void *ptr)
 {
-    struct FAT_ShortEntry *entry = fatfs_diterator_next(it);
-    if (entry == NULL)
+    fat_iterator_t *ctx = ptr;
+    struct FAT_ShortEntry *entry;
+    int no = fat_iterator_next(ctx, &entry);
+    if (no == NULL)
         return NULL;
 
-    char shortname[14];
-    fatfs_read_shortname(entry, shortname);
-    strncpy(name, shortname, FILENAME_MAX);
-
-    FAT_volume_t *info = (FAT_volume_t *)dir->info;
-    const int entries_per_cluster = info-> BytsPerSec / sizeof(struct FAT_ShortEntry);
-    return fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->dev, info);
+    fat_volume_t *volume = dir->drv_data;
+    fatfs_read_shortname(entry, name);
+    return fatfs_inode(no, entry, dir->dev, volume);
 }
 
-int fatfs_closedir(inode_t *dir, FAT_diterator_t *it)
+int fat_closedir(inode_t *dir, void *ptr)
 {
-    fatfs_diterator_close(it);
+    fat_iterator_t *ctx = ptr;
+    fat_clear_iterator(ctx);
+    kfree(ctx);
     return 0;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int fatfs_unlink(inode_t *dir, CSTR name)
+int fat_unlink(inode_t *dir, const char *name)
 {
-    FAT_diterator_t *it = fatfs_diterator_open(dir, true);
-    FAT_volume_t *info = (FAT_volume_t *)dir->info;
-    const int entries_per_cluster = info->BytsPerSec / sizeof(struct FAT_ShortEntry);
-    struct FAT_ShortEntry *entry;
-    while ((entry = fatfs_diterator_next(it)) != NULL) {
+    inode_t *ino;
+    fat_iterator_t ctx;
+    fat_create_iterator(dir, &ctx); // TODO - write access
+    fat_volume_t *volume = dir->drv_data;
+
+    for (;;) {
+        fat_entry_t *entry;
+        int no = fat_iterator_next(&ctx, &entry);
+        if (no == 0)
+            break;
+
         char shortname[14];
         fatfs_read_shortname(entry, shortname);
-        if (strcmp(name, shortname) != 0) // TODO - Long name
+        if (strcmp(name, shortname) != 0) // TODO - long name
             continue;
+
         if (entry->DIR_Attr & ATTR_DIRECTORY) {
-            // Check directory's empty
-            inode_t *ino = fatfs_inode(it->lba * entries_per_cluster + it->idx, entry, dir->dev, info);
-            FAT_diterator_t *ino_it = fatfs_diterator_open(ino, false);
-            struct FAT_ShortEntry *ino_en = fatfs_diterator_next(ino_it);
-            fatfs_diterator_close(ino_it);
-            vfs_close(ino, X_OK);
-            if (ino_en != NULL) {
-                fatfs_diterator_close(it);
-                errno = ENOTEMPTY;
-                return -1;
-            }
+            // TODO - Check directory is empty
+            // fat_iterator_t ctx2;
+            // inode_t *sdir = fatfs_inode(no, entry, dir->dev, volume);
+            // fat_create_iterator(sdir, &ctx2);
+            // fat_iterator_next(&ctx2) == 0
+            // fat_clear_iterator(&ctx2);
+            // vfs_close_inode(sdir);
+            fat_clear_iterator(&ctx);
+            errno = ENOTEMPTY;
+            return -1;
         }
+
         // TODO - Remove allocated cluster
         entry->DIR_Attr = ATTR_DELETED;
-        fatfs_diterator_close(it);
-        bio_sync(info->io_head);
-        errno = 0;
-        return 0;
+        fat_clear_iterator(&ctx);
     }
+
+    fat_clear_iterator(&ctx);
     errno = ENOENT;
     return -1;
 }

@@ -20,11 +20,18 @@
 #ifndef _SRC_VFAT_H
 #define _SRC_VFAT_H 1
 
-#include <kernel/device.h>
-#include <kernel/core.h>
+#include <kernel/vfs.h>
+#include <kernel/stdc.h>
 #include <kora/mcrs.h>
 #include <errno.h>
 #include <string.h>
+
+typedef struct FAT_volume FAT_volume_t;
+typedef struct FAT_diterator  FAT_diterator_t;
+
+typedef struct FAT_volume fat_volume_t;
+typedef struct FAT_diterator  fat_iterator_t;
+typedef struct FAT_ShortEntry fat_entry_t;
 
 /* Identificators for volume descriptors */
 #define FAT12 12
@@ -54,7 +61,7 @@ PACK(struct BPB_Struct {
     unsigned short  BPB_BytsPerSec;
     unsigned char BPB_SecPerClus;
     unsigned short  BPB_ResvdSecCnt;
-    unsigned char BPB_NumFATs;
+    unsigned char BPB_NumFATs; // 0x10
     unsigned short  BPB_RootEntCnt;
     unsigned short  BPB_TotSec16;
     unsigned char BPB_Media;
@@ -62,7 +69,7 @@ PACK(struct BPB_Struct {
     unsigned short  BPB_SecPerTrk;
     unsigned short  BPB_NumHeads;
     unsigned int  BPB_HiddSec;
-    unsigned int  BPB_TotSec32;
+    unsigned int  BPB_TotSec32; // 0x20
 
     unsigned char BS_DrvNum;
     unsigned char BS_Reserved1;
@@ -70,6 +77,7 @@ PACK(struct BPB_Struct {
     unsigned int  BS_VolID;
     char      BS_VolLab [11];
     char      BS_FilSysType [8];
+    // 0x3e
 });
 
 PACK(struct BPB_Struct32 {
@@ -131,6 +139,10 @@ PACK(struct FAT_LongNameEntry {
 });
 
 
+// FirstSectorofCluster = ((N – 2) * BPB_SecPerClus) + FirstDataSector;
+#define FAT_LBA_TO_CLUSTER(i,n) ((((n) - (i)->FirstDataSector) / (i)->SecPerClus) + 2)
+#define FAT_CLUSTER_TO_LBA(i,n) ((((n) - 2) * (i)->SecPerClus) + (i)->FirstDataSector)
+
 
 /** Structure for a volume in FAT FS */
 struct FAT_volume {
@@ -150,31 +162,43 @@ struct FAT_volume {
     int FATType;
     unsigned int RootEntry;
     int SecPerClus;
-    bio_t *io_head;
-    bio_t *io_data_rw;
-    bio_t *io_data_ro;
+    //bio_t *io_head;
+    //bio_t *io_data_rw;
+    //bio_t *io_data_ro;
 };
+
+struct FAT_diterator {
+    bool isRoot;
+    char *ptr;
+    int sec_size;
+    struct FAT_ShortEntry *entry;
+    int cluster_size;
+    int idx;
+
+    xoff_t lba;
+
+    char *cluster;
+    fat_entry_t *tables;
+    int index;
+    int icount;
+    int map_size;
+    inode_t *dev;
+};
+
 
 #define FAT_DIRNAME_CURRENT  ".          "
 #define FAT_DIRNAME_PARENT  "..         "
 
-typedef struct FAT_volume FAT_volume_t;
-typedef struct FAT_diterator  FAT_diterator_t;
+
+// void fatfs_umount();
+
+int fatfs_truncate(inode_t *ino, xoff_t length);
+int fat_read(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags);
+int fat_write(inode_t *ino, const void *buffer, size_t length, xoff_t offset, int flags);
 
 
-void fatfs_umount(device_t *vol);
-
-int fatfs_truncate(inode_t *ino, off_t length);
-int fatfs_read(inode_t *ino, void *buffer, size_t length, off_t offset);
-int fatfs_write(inode_t *ino, const void *buffer, size_t length, off_t offset) ;
-page_t fatfs_fetch(inode_t *ino, off_t off) ;
-void fatfs_sync(inode_t *ino, off_t off, page_t pg) ;
-void fatfs_release(inode_t *ino, off_t off, page_t pg);
-
-
-
-void fatfs_settime(unsigned short *date, unsigned short *time, clock64_t value);
-clock64_t fatfs_gettime(unsigned short *date, unsigned short *time);
+void fatfs_settime(unsigned short *date, unsigned short *time, xtime_t value);
+xtime_t fatfs_gettime(unsigned short *date, unsigned short *time);
 void fatfs_read_shortname(struct FAT_ShortEntry *entry, char *shortname);
 void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname);
 inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, device_t *volume, FAT_volume_t *info);
@@ -182,16 +206,19 @@ void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t t
 int fatfs_mkdir(struct FAT_volume *info, inode_t *dir);
 
 FAT_volume_t *fatfs_init(void *ptr);
-void fatfs_reserve_cluster_16(FAT_volume_t *info, int cluster, int previous);
-unsigned fatfs_alloc_cluster_16(FAT_volume_t *info, int previous);
 
-inode_t *fatfs_open(inode_t *dir, CSTR name, ftype_t type, acl_t *acl, int flags);
-int fatfs_close(inode_t *ino);
-int fatfs_unlink(inode_t *dir, CSTR name);
 
-FAT_diterator_t *fatfs_opendir(inode_t *dir);
-inode_t *fatfs_readdir(inode_t *dir, char *name, FAT_diterator_t *it);
-int fatfs_closedir(inode_t *dir, FAT_diterator_t *it);
+void fatfs_reserve_cluster_16(inode_t *bdev, FAT_volume_t *info, int cluster, int previous);
+unsigned fatfs_alloc_cluster_16(inode_t *bdev, FAT_volume_t *info, int previous);
+
+inode_t *fat_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags);
+// int fatfs_close(inode_t *ino);
+int fat_unlink(inode_t *dir, const char *name);
+
+void *fat_opendir(inode_t *dir);
+inode_t *fat_readdir(inode_t *dir, char *name, void *ptr);
+int fat_closedir(inode_t *dir, void *ptr);
+
 
 #define FILENAME_MAX  256
 

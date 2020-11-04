@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "vfat.h"
+#include <assert.h>
 
 uint8_t fatfs_noboot_code[] = {
     0x0e, 0x1f, 0xbe, 0x5b, 0x7c, 0xac, 0x22, 0xc0, 0x74,
@@ -63,29 +64,29 @@ struct disksize_secpercluster dsk_table_fat32[] = {
 };
 
 
-int fatfs_format(inode_t *ino)
+int fatfs_format(inode_t *bdev, const char *options)
 {
-    assert(ino->type == FL_BLK);
+    assert(bdev->type == FL_BLK);
     // TODO -- config
-    const char *volume = "TestDrive";
+    const char *volume = "NO NAME";
     int cluster_size = 2048;
-    int sec_size = ino->dev->block;
+    int sec_size = bdev->dev->block;
 
-    bio_t *io_head = bio_create(ino, VMA_FILE_RW, sec_size, 0);
-    uint8_t *ptr = bio_access(io_head, 0);
+    // Write the FAT first sector
+    uint8_t *ptr = kmap(PAGE_SIZE, bdev, 0, VM_RW);
     memset(ptr, 0, sec_size);
     struct BPB_Struct *bpb = (struct BPB_Struct *)ptr;
     struct BPB_Struct32 *bpb32 = (struct BPB_Struct32 *)ptr;
 
-    int cluster_count = ino->length / cluster_size;
+    // int data_sector_count =
+    int cluster_count = bdev->length / cluster_size;
     int fatType = FAT_TYPE(cluster_count);
     int fatSz = cluster_count / (sec_size * 8 / fatType);
-
 
     memcpy(bpb->BS_OEMName, "Kora FAT", 8);
     bpb->BPB_BytsPerSec = sec_size;
     bpb->BPB_SecPerClus = cluster_size / sec_size;
-    bpb->BPB_ResvdSecCnt = fatType == 32 ? 32 : 1;
+    bpb->BPB_ResvdSecCnt = fatType == 32 ? 32 : bpb->BPB_SecPerClus;
     bpb->BPB_NumFATs = 2;
     bpb->BPB_Media = 0xF8;
 
@@ -96,7 +97,7 @@ int fatfs_format(inode_t *ino)
 
     unsigned root_lba = 0;
     if (fatType != 32) {
-        bpb->BPB_TotSec16 = (unsigned short)(ino->length / sec_size);
+        bpb->BPB_TotSec16 = (unsigned short)(bdev->length / sec_size);
         bpb->BPB_TotSec32 = 0;
         bpb->BS_DrvNum = 0x80; // Get
         bpb->BS_Reserved1 = 0;
@@ -109,16 +110,11 @@ int fatfs_format(inode_t *ino)
         bpb->BPB_FATSz16 = fatSz;
         root_lba = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz16);
 
-        // Copy boot code
-        bpb->BS_jmpBoot[0] = 0xEB;
-        bpb->BS_jmpBoot[1] = 0x3C;
-        bpb->BS_jmpBoot[2] = 0x90;
-        memcpy(&ptr[0x3E], fatfs_noboot_code, sizeof(fatfs_noboot_code));
 
     } else {
         bpb->BPB_TotSec16 = 0;
-        bpb->BPB_TotSec32 = ino->length / sec_size;
-        // bpb32->BPB_FATSz32 = ;
+        bpb->BPB_TotSec32 = bdev->length / sec_size;
+        // bpb32->BPB_FATSz32 = ALIGN_UP(bpb->BPB_TotSec32 / bpb->BPB_SecPerClus, 128) / 128;
         // bpb32->BPB_ExtFlags = ;
         bpb32->BPB_FSVer = 0;
         bpb32->BPB_RootClus = 2;
@@ -134,54 +130,75 @@ int fatfs_format(inode_t *ino)
         memcpy(bpb->BS_VolLab, volume, MIN(strlen(volume), 11));
         memcpy(bpb32->BS_FilSysType, "FAT32   ", 8);
         // root_lba
-        // boot code
     }
 
+    // Copy boot code
+    bpb->BS_jmpBoot[0] = 0xEB;
+    bpb->BS_jmpBoot[1] = 0x3C;
+    bpb->BS_jmpBoot[2] = 0x90;
+    memcpy(&ptr[0x3E], fatfs_noboot_code, sizeof(fatfs_noboot_code));
     ptr[510] = 0x55;
     ptr[511] = 0xaa;
 
     FAT_volume_t *info = fatfs_init(ptr);
     assert(info);
+    kunmap(ptr, PAGE_SIZE);
+
 
     // Write FAT16
     int i;
     unsigned j;
     for (i = 0; i < 2; ++i) {
-        int lba = i * info->FATSz + 1; // TODO - resvd_sector_count;
-        for (j = 0; j < info->FATSz; ++j) {
-            uint16_t *fat_table = (uint16_t *)bio_access(io_head, lba + j);
-            memset(fat_table, 0, sec_size);
-            if (j == 0) {
-                fat_table[0] = 0xfff8;
-                fat_table[1] = 0xffff;
-            }
-            bio_clean(io_head, lba + j);
+        int lbaFirst = i * info->FATSz + info->ResvdSecCnt;
+        int p1L = (lbaFirst * info->BytsPerSec) / PAGE_SIZE;
+        int p1O = (lbaFirst * info->BytsPerSec) % PAGE_SIZE;
+        int lbaLast = lbaFirst + info->FATSz;
+        int p2L = (lbaLast * info->BytsPerSec) / PAGE_SIZE;
+        int p2O = (lbaLast * info->BytsPerSec) % PAGE_SIZE;
+
+        // TODO - What if p1L == p2L
+        assert(p1L != p2L);
+        char *base = kmap(PAGE_SIZE, bdev, p1L * PAGE_SIZE, VM_RW);
+        memset(base + p1O, 0, PAGE_SIZE - p1O);
+        uint16_t *fat = (uint16_t *)(base + p1O);
+        fat[0] = 0xfff8;
+        fat[1] = 0xffff;
+        kunmap(base, PAGE_SIZE);
+
+        while (++p1L < p2L) {
+            base = kmap(PAGE_SIZE, bdev, p1L * PAGE_SIZE, VM_RW);
+            memset(base, 0, PAGE_SIZE);
+            kunmap(base, PAGE_SIZE);
+        }
+        if (p2O != 0) {
+            base = kmap(PAGE_SIZE, bdev, p2L * PAGE_SIZE, VM_RW);
+            memset(base, 0, p2O);
+            kunmap(base, PAGE_SIZE);
         }
     }
 
     assert(root_lba == info->RootEntry);
-    int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
-    bio_t *io_data = bio_create(ino, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
-    uint8_t *ptr_root = bio_access(io_data, 1);
-    // ...
-    struct FAT_ShortEntry *entry = (struct FAT_ShortEntry *)ptr_root;
-    memset(entry, 0, sizeof(*entry));
+    // int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
+    //bio_t *io_data = bio_create(ino, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
+    //uint8_t* ptr_root = bio_access(io_data, 1);
+
+    int rL = (info->RootEntry * info->BytsPerSec) / PAGE_SIZE;
+    int rO = (info->RootEntry * info->BytsPerSec) % PAGE_SIZE;
+
+    char *ptr_root = kmap(PAGE_SIZE, bdev, rL * PAGE_SIZE, VM_RW);
+    memset(ptr_root + rO, 0, PAGE_SIZE - rO);
+
+    struct FAT_ShortEntry *entry = (struct FAT_ShortEntry *)(ptr_root + rO);
     memset(entry->DIR_Name, ' ', 11);
     memcpy(entry->DIR_Name, volume, MIN(strlen(volume), 11));
     entry->DIR_Attr = ATTR_VOLUME_ID;
-    fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, kclock());
+    fatfs_settime(&entry->DIR_CrtDate, &entry->DIR_CrtTime, xtime_read(XTIME_CLOCK));
     entry->DIR_WrtDate = entry->DIR_CrtDate;
     entry->DIR_WrtTime = entry->DIR_CrtTime;
     entry->DIR_LstAccDate = entry->DIR_CrtDate;
 
-    memset(&entry[1], 0, sizeof(*entry));
-
-    bio_clean(io_data, 0);
-    bio_destroy(io_data);
-
-    bio_clean(io_head, 0);
-    bio_destroy(io_head);
-
+    // memset(&entry[1], 0, sizeof(*entry));
+    kunmap(ptr_root, PAGE_SIZE);
     kfree(info);
     return 0;
 }

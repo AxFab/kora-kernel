@@ -135,17 +135,22 @@ typedef struct ext2_dir_en ext2_dir_en_t;
 struct ext2_volume {
     ext2_sb_t *sb;
     ext2_grp_t *grp;
-    bio_t *io;
 };
 
 struct ext2_dir_iter {
     ext2_volume_t *vol;
-    ext2_ino_t *entry;
-    uint32_t blk;
+    // ext2_ino_t *entry;
+    // uint32_t blk;
     int idx;
-    int last;
-    int lba;
-    uint8_t *cur_block;
+    // int last;
+    // uint8_t *cur_block;
+
+    void* emap;
+    ext2_ino_t* entry;
+
+    // size_t off;
+    size_t lba;
+    void* cmap;
 };
 
 struct ext2_dir_en {
