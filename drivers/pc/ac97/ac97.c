@@ -17,9 +17,9 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
+#include <kernel/mods.h>
 #include <kernel/bus/pci.h>
-#include <kernel/cpu.h>
+#include <kernel/arch.h>
 
 #define AC97_VENDOR_ID 0x8086
 #define AC97_DEVICE_ID 0x2415
@@ -64,5 +64,5 @@ void ac97_teardown()
 }
 
 
-MODULE(ac97, ac97_setup, ac97_teardown);
+EXPORT_MODULE(ac97, ac97_setup, ac97_teardown);
 

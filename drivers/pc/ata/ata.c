@@ -17,18 +17,13 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
-#include <kernel/device.h>
-#include <kernel/cpu.h>
-#include <kernel/files.h>
+#include <kernel/stdc.h>
+#include <kernel/irq.h>
+#include <kernel/mods.h>
+#include <kernel/vfs.h>
+#include <kernel/arch.h>
 #include <string.h>
 #include <errno.h>
-
-#ifdef K_MODULE
-#  define ATA_setup setup
-#  define ATA_teardown teardown
-#endif
-
 
 
 #define ATA_SR_BSY     0x80
@@ -219,7 +214,7 @@ static int ATA_Detect(struct ATA_Drive *dr)
     }
 
     k = 39;
-    while (dr->model_[k] == ' ')
+    while (dr->model_[k] == ' ' || dr->model_[k] == -1)
         dr->model_[k--] = '\0';
     dr->model_[40] = '\0';// Terminate String.
     // kprintf (" Size: %d Kb, %s \n", dr->size_ / 2, dr->model_);
@@ -241,13 +236,13 @@ static int ATA_Polling(struct ATA_Drive *dr)
 
     // (III) Check For Errors:
     if (state & ATA_SR_ERR) {
-        kprintf(KLOG_ERR, "ATA] device on error\n");
+        kprintf(KL_ERR, "ATA] device on error\n");
         return 2; // Error.
     }
 
     // (IV) Check If Device fault:
     if (state & ATA_SR_DF) {
-        kprintf(KLOG_ERR, "ATA] device fault\n");
+        kprintf(KL_ERR, "ATA] device fault\n");
         return 1; // Device Fault.
     }
 
@@ -255,7 +250,7 @@ static int ATA_Polling(struct ATA_Drive *dr)
     // -------------------------------------------------
     // BSY = 0; DF = 0; ERR = 0 so we should check for DRQ now.
     if ((state & ATA_SR_DRQ) == 0) {
-        kprintf(KLOG_ERR, "ATA] DRQ should be set\n");
+        kprintf(KL_ERR, "ATA] DRQ should be set\n");
         return 3; // DRQ should be set
     }
 
@@ -461,10 +456,10 @@ static int ATAPI_Read(struct ATA_Drive *dr, uint32_t lba,  uint8_t sects,
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int ATA_read(inode_t *ino, void *data, size_t size, off_t offset)
+int ata_read(inode_t *ino, void *data, size_t size, xoff_t off, int flags)
 {
     struct ATA_Drive *dr = &sdx[ino->lba];
-    uint32_t lba = offset / ino->dev->block;
+    uint32_t lba = off / ino->dev->block;
     uint8_t sects = size / ino->dev->block;
 
     if (dr->type_ == IDE_ATA)
@@ -478,10 +473,10 @@ int ATA_read(inode_t *ino, void *data, size_t size, off_t offset)
     return errno == 0 ? 0 : -1;
 }
 
-int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
+int ata_write(inode_t *ino, const void *data, size_t size, xoff_t off, int flags)
 {
     struct ATA_Drive *dr = &sdx[ino->lba];
-    uint32_t lba = offset / ino->dev->block;
+    uint32_t lba = off / ino->dev->block;
     uint8_t sects = size / ino->dev->block;
 
     if (dr->type_ == IDE_ATA)
@@ -497,30 +492,14 @@ int ATA_write(inode_t *ino, const void *data, size_t size, off_t offset)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-page_t ata_fetch(inode_t *ino, off_t off)
+
+void ata_irqhandler(void *data)
 {
-    return blk_fetch((blk_cache_t *)ino->info, off);
 }
-
-void ata_sync(inode_t *ino, off_t off, page_t pg)
-{
-    blk_sync((blk_cache_t *)ino->info, off, pg);
-}
-
-void ata_release(inode_t *ino, off_t off, page_t pg)
-{
-    blk_release((blk_cache_t *)ino->info, off, pg);
-}
-
-
-dev_ops_t ata_dev_ops = {
-    //    .ioctl = ata_ioctl,
-};
 
 ino_ops_t ata_ino_ops = {
-    .fetch = ata_fetch,
-    .sync = ata_sync,
-    .release = ata_release,
+    .read = ata_read,
+    .write = ata_write,
     //    .ioctl = ata_ioctl,
 };
 
@@ -529,7 +508,7 @@ ino_ops_t ata_ino_ops = {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void ATA_setup()
+void ata_setup()
 {
     int i;
     memset(sdx, 0, 4 * sizeof(struct ATA_Drive));
@@ -548,27 +527,27 @@ void ATA_setup()
 
     // outb(0x3f6 + ATA_REG_CONTROL - 0x0A, 2);
     // outb(0x376 + ATA_REG_CONTROL - 0x0A, 2);
+    irq_register(14, ata_irqhandler, NULL);
+    irq_register(15, ata_irqhandler, NULL);
+
 
     for (i = 0; i < 4; ++i) {
         if (ATA_Detect(&sdx[i])) {
-            inode_t *blk = vfs_inode(i, FL_BLK, NULL);
+            inode_t *blk = vfs_inode(i, FL_BLK, NULL, &ata_ino_ops);
             blk->length = sdx[i].size_;
             blk->lba = i;
             blk->dev->block = sdx[i].type_ == IDE_ATA ? 512 : 2048;
-            blk->dev->flags = VFS_RDONLY;
+            blk->dev->flags = FD_RDONLY;
             blk->dev->model = strdup(sdx[i].model_);
             blk->dev->devclass = strdup(IDE_ATA ? "IDE ATA" : "IDE ATAPI");
-            blk->dev->ops = &ata_dev_ops;
-            blk->ops = &ata_ino_ops;
-            blk->info = blk_create(blk, ATA_read, ATA_write);
             vfs_mkdev(blk, sdNames[i]);
-            vfs_close(blk, X_OK);
+            vfs_close_inode(blk);
         }
     }
 }
 
 
-void ATA_teardown()
+void ata_teardown()
 {
     int i;
     for (i = 0; i < 4; ++i) {
@@ -578,4 +557,4 @@ void ATA_teardown()
 }
 
 
-MODULE(ide_ata, ATA_setup, ATA_teardown);
+EXPORT_MODULE(ide_ata, ata_setup, ata_teardown);

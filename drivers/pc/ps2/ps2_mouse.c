@@ -80,7 +80,6 @@ int mseY = 0;
 void PS2_mouse_handler()
 {
     evmsg_t msg;
-    pipe_t *kdb_buffer = (pipe_t *)kdb_ino->info;
 
     uint8_t status = inb(MOUSE_STATUS);
     while (status & MOUSE_DATA_BIT && status & MOUSE_F_BIT) {
@@ -116,7 +115,7 @@ void PS2_mouse_handler()
                 // msg.param2 = mouse_y;
                 msg.message = GFX_EV_MOUSEMOVE;
                 // kprintf(-1, "Mouse pos {%d, %d} - %02x %02x %02x\n", mseX, mseY, mouse_byte[0], mouse_byte[1], mouse_byte[2]);
-                pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
+                vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
 
             }
             if (mouse_btn != (mouse_byte[0] & 7)) {
@@ -127,17 +126,17 @@ void PS2_mouse_handler()
                 if (diff & 1) {
                     msg.param1 = 1;
                     msg.message = mouse_btn & 1 ? GFX_EV_BTNDOWN : GFX_EV_BTNUP;
-                    pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
+                    vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
                 }
                 if (diff & 2) {
                     msg.param1 = 2;
                     msg.message = mouse_btn & 2 ? GFX_EV_BTNDOWN : GFX_EV_BTNUP;
-                    pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
+                    vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
                 }
                 if (diff & 4) {
                     msg.param1 = 4;
                     msg.message = mouse_btn & 4 ? GFX_EV_BTNDOWN : GFX_EV_BTNUP;
-                    pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
+                    vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
                 }
             }
 

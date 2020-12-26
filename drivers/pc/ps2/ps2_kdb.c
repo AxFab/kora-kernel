@@ -32,7 +32,6 @@
 
 uint8_t kdb_status = 0;
 
-void input_event(inode_t *dev, int type, int param, pipe_t *pipe);
 
 static void PS2_kbd_led(uint8_t status)
 {
@@ -54,7 +53,6 @@ void PS2_kdb_setup()
 void PS2_kdb_handler()
 {
     evmsg_t msg;
-    pipe_t *kdb_buffer = (pipe_t *)kdb_ino->info;
     char c = 0;
 
     if (!(inb(0x64) & 0x01))
@@ -89,9 +87,6 @@ void PS2_kdb_handler()
         msg.param1 = (kdb_status << 16) | c;
         msg.param2 = (kdb_status << 16) | c;
         msg.message = GFX_EV_KEYDOWN;
-        pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
-        // wmgr_input(kdb_ino, EV_KEYDOWN, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
-        // PS2_event(kdb_ino, EV_KEY_PRESS, 0, (kdb_status << 16) | c);
 
     } else {
         c &= 0x7F;
@@ -119,8 +114,7 @@ void PS2_kdb_handler()
         msg.param1 = (kdb_status << 16) | c;
         msg.param2 = (kdb_status << 16) | c;
         msg.message = GFX_EV_KEYUP;
-        pipe_write(kdb_buffer, &msg, sizeof(msg), IO_ATOMIC);
-        // wmgr_input(kdb_ino, EV_KEYUP, (kdb_status << 16) | c, (pipe_t *)kdb_ino->info);
-        // PS2_event(kdb_ino, EV_KEY_RELEASE, 0, (kdb_status << 16) | c);
     }
+
+    vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
 }

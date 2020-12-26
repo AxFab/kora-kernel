@@ -20,11 +20,11 @@
 #ifndef _SRC_DRV_PS2_H
 #define _SRC_DRV_PS2_H 1
 
-#include <kernel/core.h>
+#include <kernel/stdc.h>
 #include <kernel/input.h>
-#include <kernel/files.h>
-#include <kernel/device.h>
-#include <kernel/cpu.h>
+#include <kernel/arch.h>
+#include <kernel/vfs.h>
+#include <kernel/irq.h>
 
 extern inode_t *mouse_ino;
 extern inode_t *kdb_ino;

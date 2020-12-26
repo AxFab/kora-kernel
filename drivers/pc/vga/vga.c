@@ -17,7 +17,8 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/core.h>
+#include <kernel/stdc.h>
+#include <kernel/mods.h>
 #include <kernel/bus/pci.h>
 #include <string.h>
 
@@ -40,22 +41,22 @@ struct device_id __vga_ids[] = {
 };
 
 
-struct device_id *vga_pci_info(struct PCI_device *pci)
-{
-    unsigned i;
-    for (i = 0; i < sizeof(__vga_ids) / sizeof(struct device_id); ++i) {
-        if (__vga_ids[i].id == pci->device_id || __vga_ids[i].vendor == pci->vendor_id)
-            return &__vga_ids[i];
-    }
+// struct device_id *vga_pci_info(struct PCI_device *pci)
+// {
+//     unsigned i;
+//     for (i = 0; i < sizeof(__vga_ids) / sizeof(struct device_id); ++i) {
+//         if (__vga_ids[i].id == pci->device_id && __vga_ids[i].vendor == pci->vendor_id)
+//             return &__vga_ids[i];
+//     }
 
-    return NULL;
-}
+//     return NULL;
+// }
 
 int vga_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
 {
     unsigned i;
     for (i = 0; i < sizeof(__vga_ids) / sizeof(struct device_id); ++i) {
-        if (__vga_ids[i].id == device || __vga_ids[i].vendor == vendor)
+        if (__vga_ids[i].id == device && __vga_ids[i].vendor == vendor)
             return i;
     }
 
@@ -86,4 +87,4 @@ void vga_teardown()
 }
 
 
-MODULE(vga, vga_setup, vga_teardown);
+EXPORT_MODULE(vga, vga_setup, vga_teardown);

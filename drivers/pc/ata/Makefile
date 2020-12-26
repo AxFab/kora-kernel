@@ -1,5 +1,5 @@
 
-ata_SRCS-y := $(wildcard $(topdir)/ata/*.c)
+ata_SRCS := $(wildcard $(topdir)/ata/*.c)
 $(eval $(call link_driver,ata))
 
-SRCS-y += $(ata_SRCS-y)
+SRCS += $(ata_SRCS)
