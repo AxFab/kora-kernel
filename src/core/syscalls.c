@@ -187,12 +187,13 @@ long sys_open(int dirfd, const char *path, int flags, int mode)
     }
 
     // TODO - Lookup or create !?
-
     int flg = 0;
-    if (flags & 1)
-        flg |= VM_RD;
     if (flags & 2)
         flg |= VM_WR;
+    else if (flags & 1)
+        flg |= VM_WR;
+    else
+        flg |= VM_RD;
 
     fstream_t *strm = stream_put(__current->fset, node, flg);
     vfs_close_fsnode(node);

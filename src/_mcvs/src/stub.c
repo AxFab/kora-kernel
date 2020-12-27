@@ -171,7 +171,7 @@ xtime_t xtime_read(xtime_name_t name)
     return cl / 10LL - SEC_TO_USEC(11644473600LL);
 }
 
-
+]
 uint8_t rand8()
 {
     return rand() & 0xff;

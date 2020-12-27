@@ -5,7 +5,6 @@
 splock_t scheduler_lock;
 llhead_t scheduler_list;
 
-void futex_tick();
 void usleep(long us);
 
 void scheduler_add(task_t *task)
@@ -43,7 +42,6 @@ void scheduler_switch(int status, int code)
         }
         splock_unlock(&scheduler_lock);
         usleep(MSEC_TO_USEC(50));
-        futex_tick();
     }
 }
 

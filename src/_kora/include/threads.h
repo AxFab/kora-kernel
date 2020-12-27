@@ -21,7 +21,7 @@
 #define _THREADS_H 1
 
 #include <bits/cdefs.h>
-#include <stdatomic.h>
+#include <kora/atomic.h>
 #include <time.h>
 
 #define ONCE_FLAG_INIT {0}
@@ -36,7 +36,7 @@ enum {
     thrd_error = -1,
     thrd_success = 0,
     thrd_busy = 1,
-    thrd_timeout,
+    thrd_timedout,
     thrd_nomem,
 };
 

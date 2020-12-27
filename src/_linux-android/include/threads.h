@@ -105,7 +105,7 @@ enum {
 
 enum {
     thrd_success = 0, // succeeded
-    thrd_timeout,     // timeout
+    thrd_timedout,     // timeout
     thrd_error,       // failed
     thrd_busy,        // resource busy
     thrd_nomem        // out of memory

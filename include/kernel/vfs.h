@@ -28,7 +28,7 @@
 #include <kora/bbtree.h>
 #include <kora/llist.h>
 #include <kora/hmap.h>
-#include <stdatomic.h>
+#include <kora/atomic.h>
 #include <threads.h>
 
 typedef struct vfs vfs_t;
