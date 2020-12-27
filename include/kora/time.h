@@ -17,30 +17,18 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _STDBOOL_H
-#define _STDBOOL_H
+#ifndef __KORA_TIME_H
+#define __KORA_TIME_H 1
 
-#ifndef __cplusplus
+typedef long long xtime_t;
+typedef enum xtime_name xtime_name_t;
 
-#define bool    _Bool
-#define true    1
-#define false   0
+enum xtime_name {
+    XTIME_CLOCK = 0,
+};
 
-#else /* __cplusplus */
 
-/* Supporting _Bool in C++ is a GCC extension.  */
-#define _Bool   bool
+xtime_t xtime_read(xtime_name_t name);
+// xtime_t xtime_adjust(xtime_t expected);
 
-#if __cplusplus < 201103L
-/* Defining these macros in C++98 is a GCC extension.  */
-#define bool    bool
-#define false   false
-#define true    true
-#endif
-
-#endif /* __cplusplus */
-
-/* Signal that all the definitions are present.  */
-#define __bool_true_false_are_defined   1
-
-#endif  /* _STDBOOL_H */
+#endif  /* __KORA_TIME_H */

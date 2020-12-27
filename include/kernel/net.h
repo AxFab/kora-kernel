@@ -17,139 +17,79 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _KERNEL_NET_H
-#define _KERNEL_NET_H 1
+#ifndef _KORA_NET_H
+#define _KORA_NET_H 1
 
-#include <kernel/core.h>
 #include <kora/llist.h>
 #include <kora/splock.h>
+#include <stdint.h>
+#include <string.h>
+#include <sys/sem.h>
 
-#define NET_LOG_SIZE 32
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* Ethernet */
-#define ETH_ALEN 6
-#define ETH_IP4 htonw(0x0800)
-#define ETH_IP6 htonw(0x86DD)
-#define ETH_ARP htonw(0x0806)
+#define NET_AF_ETH 1
+#define NET_AF_IP4 2
+#define NET_AF_IP6 3
+#define NET_AF_TCP 4
+#define NET_AF_UDP 5
 
-int eth_header(skb_t *skb, const uint8_t *target, uint16_t type);
-int eth_receive(skb_t *skb);
 
-#define eth_null(n) (((uint16_t*)(n))[0]==0&&((uint16_t*)(n))[1]==0&&((uint16_t*)(n))[2])
-#define eth_eq(a,b) (((uint16_t*)(a))[0]==((uint16_t*)(b))[0]&&((uint16_t*)(a))[1]==((uint16_t*)(b))[1]&&((uint16_t*)(a))[2]==((uint16_t*)(b))[2])
-extern const uint8_t eth_broadcast[ETH_ALEN];
+typedef struct netstack netstack_t;
+typedef struct net_ops net_ops_t;
+typedef struct ifnet ifnet_t;
+typedef struct skb skb_t;
+typedef struct socket socket_t;
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* ARP - Address Resolution Protocol */
-int arp_query(netdev_t *ifnet, const uint8_t *ip);
-int arp_receive(skb_t *skb);
+typedef int (*net_recv_t)(skb_t *);
+typedef int (*net_sock_t)(socket_t *);
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* IPv4 */
-#define IP4_ALEN 4
-#define IP4_ICMP 0x01
-#define IP4_TCP 0x06
-#define IP4_UDP 0x11
+typedef struct eth_info eth_info_t;
+typedef struct ip4_master ip4_master_t;
+typedef struct ipv4_info ip4_info_t;
+typedef struct dhcp_info dhcp_info_t;
+typedef struct icmp_info icmp_info_t;
 
-uint16_t ip4_checksum(skb_t *skb, size_t len);
-int ip4_header(skb_t *skb, const uint8_t *ip_addr, int identifier, int offset,
-               int length, int protocol);
-int ip4_receive(skb_t *skb);
+// Network stack
+netstack_t *__netstack;
 
-#define ip4_null(n) (*((uint32_t*)(n))==0)
-#define ip4_eq(a,b) (*((uint32_t*)(a))==*((uint32_t*)(b)))
-extern const uint8_t ip4_broadcast[IP4_ALEN];
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* ICMP */
-#define ICMP_PONG 0
-#define ICMP_PING 8
-
-int icmp_ping(netdev_t *ifnet, const uint8_t *ip);
-int icmp_receive(skb_t *skb, unsigned len);
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* UDP */
-
-#define UDP_PORT_DNS 53
-#define UDP_PORT_NTP 123
-#define UDP_PORT_DHCP 67
-#define UDP_PORT_DHCP_S 68
-#define UDP_PORT_DHCP6 546
-
-int udp_header(skb_t *skb, const uint8_t *ip, int length, int port, int src);
-int udp_receive(skb_t *skb, unsigned length);
-int udp_packet(socket_t *socket);
-socket_t *udp_socket(netdev_t *ifnet, uint8_t *ip, int port);
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* TCP */
-
-int tcp_header(skb_t *skb, const uint8_t *ip, int length, int port, int src);
-int tcp_receive(skb_t *skb, unsigned length);
-int tcp_packet(socket_t *socket);
-socket_t *tcp_socket(netdev_t *ifnet, uint8_t *ip, int port);
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* DHCP */
-typedef struct dhcp_server dhcp_server_t;
-
-int dhcp_discovery(netdev_t *ifnet);
-int dhcp_receive(skb_t *skb, unsigned length);
-dhcp_server_t *dhcp_create_server(uint8_t *ip_rooter, int netsz);
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* DNS */
-
-int dns_receive(skb_t *skb, int length);
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* NTP */
-
-int ntp_receive(skb_t *skb, int length);
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* IPv6 */
-#define IP6_ALEN 16
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-#define ifnet_t netdev_t
-typedef int (*inet_recv_t)(skb_t *);
-
-struct netdev {
-    unsigned mtu;
-    int no;
-    int flags;
-    uint8_t hwaddr[16];
-    uint8_t eth_addr[ETH_ALEN];
-    uint8_t ip4_addr[IP4_ALEN];
-    int(*send)(netdev_t *, skb_t *);
-    int(*link)(netdev_t *);
-
-    llhead_t queue;
-    emitter_t waiters;
-    splock_t lock;
-
+struct netstack {
     char *hostname;
     char *domain;
+    llhead_t list;
+    splock_t lock;
 
-    // IP ------------
-    uint8_t gateway_ip[IP4_ALEN];
-    uint8_t gateway_mac[ETH_ALEN];
-    uint8_t subnet_bits;
+    sem_t rx_sem;
+    llhead_t rx_list;
+    splock_t rx_lock;
 
-    // DHCP ------------
-    dhcp_server_t *dhcp_srv;
-    uint8_t dhcp_ip[IP4_ALEN];
-    uint32_t dhcp_transaction;
-    uint64_t dhcp_lastsend;
-    uint8_t dhcp_mode;
+    int idMax;
 
-    // DNS ------------
-    uint8_t dns_ip[IP4_ALEN];
+    // protocol info
+    eth_info_t *eth;
+    ip4_master_t *ipv4;
+};
 
+struct net_ops {
+    void (*link)(ifnet_t*);
+    int (*send)(ifnet_t *, skb_t *);
+};
 
+// Network interface
+struct ifnet {
+    int idx;
+    int mtu;
+    splock_t lock;
+    netstack_t *stack;
+    uint8_t hwaddr[16];
+    llnode_t node;
+    int protocol;
+    int flags;
+
+    // Drivers operations
+    void *drv_data;
+    net_ops_t *ops;
+
+    // Statistics
     long rx_packets;
     long rx_bytes;
     long rx_broadcast;
@@ -160,95 +100,80 @@ struct netdev {
     long tx_broadcast;
     long tx_errors;
     long tx_dropped;
+
+
+    // protocol info
+    ip4_info_t *ipv4;
+    dhcp_info_t *dhcp;
+    icmp_info_t *icmp;
 };
 
+// Socket kernel buffer
 struct skb {
     int err;
     unsigned pen;
     unsigned length;
     unsigned size;
-    netdev_t *ifnet;
-    uint8_t eth_addr[ETH_ALEN];
-    uint8_t ip4_addr[IP4_ALEN];
-    char log[NET_LOG_SIZE];
+    ifnet_t *ifnet;
     llnode_t node;
-    bbnode_t bnode;
-    int fragment;
-    int data_len;
-    protocol_t *protocol;
-    uint8_t buf[0];
+    char log[64];
+    uint8_t buf[1];
 };
-
 
 struct socket {
-    ifnet_t *ifnet;
-    bbtree_t packets;
-    int next_frag;
-    int send_frag;
-    pipe_t *input;
-    protocol_t *protocol;
-
-    uint16_t sport, dport;
-    void *packet;
-    uint8_t addr[16];
+    int protocol;
 };
 
-struct protocol {
-    int(*max_frame)(socket_t *);
-    int(*packet)(socket_t *, const char *, size_t);
-    int(*receive)(skb_t *skb);
-    int(*connect)(socket_t *, char *);
+
+
+enum {
+    NET_CONNECTED = (1 << 0),
+
+    NET_OVERFILL = (1 << 2),
 };
 
-#define NET_ERR_OVERFILL (1 << 0)
-#define NET_ERR_HW_ADDR (1 << 1)
-#define NET_ERR_SW_ADDR (1 << 2)
 
-#define NET_CONNECTED  (1 << 0)
-#define NET_QUIET  (1 << 1)
-#define NET_NO_DHCP  (1 << 2)
-#define NET_QUIT  (1 << 16)
 
-#define HOST_TEMPORARY 1
+// Socket kernel buffer
 
-/* Register a network device */
-int net_device(netdev_t *ifnet);
 /* Create a new tx packet */
-skb_t *net_packet(netdev_t *ifnet);
+skb_t *net_packet(ifnet_t *net);
+/* Create a new tx packet */
+skb_t *net_packet(ifnet_t *net);
 /* Create a new rx packet and push it into received queue */
-void net_recv(netdev_t *ifnet, protocol_t *protocol, uint8_t *buf, unsigned len);
+void net_skb_recv(ifnet_t *net, uint8_t *buf, unsigned len);
 /* Send a tx packet to the network card */
-int net_send(skb_t *skb);
+int net_skb_send(skb_t *skb);
 /* Trash a faulty tx packet */
-int net_trash(skb_t *skb);
+int net_skb_trash(skb_t *skb);
 /* Read data from a packet */
-int net_read(skb_t *skb, void *buf, unsigned len);
+int net_skb_read(skb_t *skb, void *buf, unsigned len);
 /* Write data on a packet */
-int net_write(skb_t *skb, const void *buf, unsigned len);
+int net_skb_write(skb_t *skb, const void *buf, unsigned len);
 /* Get pointer on data from a packet and move cursor */
-void *net_pointer(skb_t *skb, unsigned len);
+void *net_skb_reserve(skb_t *skb, unsigned len);
 
-void net_service();
+ifnet_t *net_alloc(netstack_t* stack, int protocol, uint8_t *hwaddr, net_ops_t *ops, void *driver);
 
-
-int net_sock_recv(socket_t *socket, skb_t *skb);
-int net_socket_read(socket_t *socket, char *buf, int len);
-int net_socket_write(socket_t *socket, const char *buf, int len);
-socket_t *net_socket(int protocol, char *buf);
+#define net_skb_log(s,m)  strncat((s)->log,(m),64)
 
 
-char *net_ethstr(char *buf, uint8_t *mac);
-char *net_ip4str(char *buf, uint8_t *ip);
+// Socket
+socket_t *net_socket(netstack_t *stack, int protocol);
 
-uint16_t net_rand_port();
-uint16_t net_ephemeral_port(socket_t *socket);
 
-void host_init();
-void host_register(uint8_t *mac, uint8_t *ip, const char *hostname,
-                   const char *domain, int trust);
-int host_mac_for_ip(uint8_t *mac, const uint8_t *ip, int trust);
+// Ethernet
+#define ETH_ALEN 6
+#define ETH_IP4 htonw(0x0800)
+#define ETH_IP6 htonw(0x86DD)
+#define ETH_ARP htonw(0x0806)
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+char *eth_writemac(const uint8_t *mac, char *buf, int len);
+int eth_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv);
+int eth_header(skb_t *skb, const uint8_t *addr, uint16_t protocol);
+int eth_receive(skb_t *skb);
+
+
 
 #define __swap16(w) ((uint16_t)((((w) & 0xFF00) >> 8) | (((w) & 0xFF) << 8)))
 #define __swap32(l) ((uint32_t)((((l) & 0xFF000000) >> 24) | (((l) & 0xFF0000) >> 8) | (((l) & 0xFF00) << 8) | (((l) & 0xFF) << 24)))
@@ -260,4 +185,4 @@ int host_mac_for_ip(uint8_t *mac, const uint8_t *ip, int trust);
 #define ntohl(w) __swap32(l)
 
 
-#endif  /* _KERNEL_NET_H */
+#endif /* _KORA_NET_H */

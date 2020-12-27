@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <bits/cdefs.h>
+#include <kora/time.h>
 
 #define VM_RD 04
 #define VM_WR 02
@@ -45,8 +46,6 @@
 
 typedef size_t page_t;
 typedef int64_t xoff_t;
-typedef int64_t xtime_t;
-typedef enum xtime_name xtime_name_t;
 typedef enum klog klog_t;
 
 enum klog {
@@ -60,9 +59,6 @@ enum klog {
 
 };
 
-enum xtime_name {
-    XTIME_CLOCK = 0,
-};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* Memory allocation */
@@ -89,9 +85,6 @@ void kprintf(klog_t log, const char *msg, ...);
 void kwrite(const char *buf, int len);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-xtime_t xtime_read(xtime_name_t name);
-// xtime_t xtime_adjust(xtime_t expected);
 
 int futex_wait(int *addr, int val, long timeout, int flags);
 int futex_requeue(int *addr, int val, int val2, int *addr2, int flags);

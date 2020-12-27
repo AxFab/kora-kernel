@@ -305,7 +305,7 @@ void clock_adjtime(masterclock_t *clock, xtime_t now)
 }
 
 xtime_t clock_read(masterclock_t *clock, xtime_name_t name)
-{
+{ // TODO -- Replace by xtime_read
     if (name == XTIME_CLOCK)
         return clock->wall;
     return 0;

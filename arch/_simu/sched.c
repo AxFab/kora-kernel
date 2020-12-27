@@ -5,7 +5,6 @@
 splock_t scheduler_lock;
 llhead_t scheduler_list;
 
-void futex_tick();
 void usleep(long us);
 
 void scheduler_add(task_t *task)
@@ -39,7 +38,6 @@ void scheduler_switch(int status, int code)
 
     }
     for (;;) {
-        futex_tick();
         splock_lock(&scheduler_lock);
         task_t *task = ll_dequeue(&scheduler_list, task_t, node);
         splock_unlock(&scheduler_lock);

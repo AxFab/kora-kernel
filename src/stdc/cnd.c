@@ -4,12 +4,13 @@
 #include <errno.h>
 #include <kernel/stdc.h>
 #include <kora/mcrs.h>
+#include <kora/atomic.h>
 
 /* creates a condition variable */
 int cnd_init(cnd_t *cond)
 {
     cond->mtx = NULL;
-    atomic_init(&cond->seq, 0);
+    atomic_store(&cond->seq, 0);
     return 0;
 }
 
@@ -54,7 +55,7 @@ int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mutex, const struct time
             return EINVAL;
         /* atomically set mutex inside cond */
         intptr_t ptr = 0;
-        atomic_compare_exchange_strong((atomic_intptr_t *)&cond->mtx, &ptr, (intptr_t)mutex);
+        atomic_ptr_compare_exchange(&cond->mtx, &ptr, mutex);
         if (cond->mtx != mutex)
             return EINVAL;
     }

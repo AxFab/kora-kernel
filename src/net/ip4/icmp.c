@@ -1,100 +1,143 @@
-/*
- *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- *   - - - - - - - - - - - - - - -
- */
-#include <kernel/net.h>
-#include <string.h>
+#include "ip4.h"
+#include <threads.h>
+#include <kernel/core.h>
 
-typedef struct ICMP_header ICMP_header_t;
+typedef struct icmp_header icmp_header_t;
 
-PACK(struct ICMP_header {
+
+PACK(struct icmp_header {
     uint8_t type;
     uint8_t code;
     uint16_t checksum;
     uint32_t data;
 });
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+struct icmp_info {
+    hmap_t pings;
+    splock_t lock;
+};
 
-static uint16_t icmp_checksum(ICMP_header_t *header)
+struct icmp_ping {
+    mtx_t mtx;
+    cnd_t cnd;
+    uint32_t data;
+    uint16_t id;
+    time_t time;
+    char* buf;
+    int len;
+    bool received;
+};
+
+#define ICMP_PONG 0
+#define ICMP_PING 8
+
+icmp_info_t* icmp_readinfo(ifnet_t* net)
 {
-    return 0;
+    splock_lock(&net->lock);
+    icmp_info_t* info = net->icmp;
+    if (info == NULL) {
+        info = kalloc(sizeof(icmp_info_t));
+        hmp_init(&info->pings, 8);
+        net->icmp = info;
+    }
+    splock_unlock(&net->lock);
+    return info;
 }
 
-static int icmp_packet(netdev_t *ifnet, const uint8_t *ip, uint8_t type,
-                       uint8_t code, uint32_t data, void *extra, int len)
+int icmp_packet(ifnet_t *net, ip4_route_t *route, int type, int code, uint32_t data, const char *buf, int len)
 {
-    skb_t *skb = net_packet(ifnet);
-    if (skb == NULL)
+    skb_t* skb = net_packet(net);
+    if (unlikely(skb == NULL))
         return -1;
-    if (ip4_header(skb, ip, rand32(), 0, sizeof(ICMP_header_t) + len, IP4_ICMP) != 0)
-        return net_trash(skb);
-    strncat(skb->log, "icmp:", NET_LOG_SIZE);
-    ICMP_header_t header;
-    header.type = type;
-    header.code = code;
-    header.data = data;
-    header.checksum = icmp_checksum(&header);
-    net_write(skb, &header, sizeof(header));
+    if (ip4_header(skb, route, IP4_ICMP, len + sizeof(icmp_header_t), 0, 0) != 0)
+        return net_skb_trash(skb);
+
+    net_skb_log(skb, ",icmp");
+    icmp_header_t* header = net_skb_reserve(skb, sizeof(icmp_header_t));
+    if (header == NULL) {
+        net_skb_log(skb, ":Unexpected end of data");
+        return -1;
+    }
+
+    header->type = type;
+    header->code = code;
+    header->data = data;
+    header->checksum = 0;
+    header->checksum = ip4_checksum(header, sizeof(icmp_header_t));
     if (len > 0)
-        net_write(skb, extra, len);
-    return net_send(skb);
+        net_skb_write(skb, buf, len);
+    return net_skb_send(skb);
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int icmp_ping(netdev_t *ifnet, const uint8_t *ip)
+icmp_ping_t *icmp_ping(ip4_route_t *route, const char* buf, int len)
 {
-    short id = rand16();
+    uint16_t id = rand16();
     short seq = 1;
-    return icmp_packet(ifnet, ip, ICMP_PING, 0, id | (seq << 16),
-                       "abcdefghijklmnop", 16);
+    uint32_t data = id | (seq << 16);
+    icmp_ping_t *ping = kalloc(sizeof(icmp_ping_t));
+    if (len > 0) {
+        ping->len = len;
+        ping->buf = kalloc(len);
+        memcpy(ping->buf, buf, len);
+    }
+    ping->id = id;
+    ping->data = data;
+    ping->time = time(NULL);
+    ping->received = false;
+    mtx_init(&ping->mtx, mtx_plain);
+    cnd_init(&ping->cnd);
+    icmp_info_t* info = icmp_readinfo(route->net);
+    splock_lock(&info->lock);
+    hmp_put(&info->pings, &ping->id, 2, ping);
+    splock_unlock(&info->lock);
+    int ret = icmp_packet(route->net, route, ICMP_PING, 0, data, buf, len);
+    if (ret == 0)
+        return ping;
+
+    splock_lock(&info->lock);
+    hmp_remove(&info->pings, &id, 2);
+    splock_unlock(&info->lock);
+    kfree(ping->buf);
+    kfree(ping);
+    return NULL;
 }
 
-int icmp_receive(skb_t *skb, unsigned len)
+int icmp_receive(skb_t* skb, int length)
 {
-    int ret;
-    uint8_t *payload = NULL;
-    strncat(skb->log, "icmp:", NET_LOG_SIZE);
-    ICMP_header_t header;
-    len -= sizeof(header);
-    ret = net_read(skb, &header, sizeof(header));
-    if (len > 0) {
-        payload = kalloc(len);
-        ret = net_read(skb, payload, len);
-    }
-    if (ret != 0)
+    net_skb_log(skb, ",icmp");
+    icmp_header_t* header = net_skb_reserve(skb, sizeof(icmp_header_t));
+    if (header == NULL) {
+        net_skb_log(skb, ":Unexpected end of data");
         return -1;
-    switch (header.type) {
-    case ICMP_PONG:
-        // get last request clock
-        break;
-    case ICMP_PING:
-        ret = icmp_packet(skb->ifnet, skb->ip4_addr, ICMP_PONG, 0, header.data, payload,
-                          len);
-        break;
-    // case ICMP_TIMESTAMP:
-    default:
-        ret = -1;
     }
 
-    if (payload)
-        kfree(payload);
-    return ret;
+    length -= sizeof(icmp_header_t);
+    char* buf = NULL;
+    if (length > 0) 
+        buf = net_skb_reserve(skb, length);
+    
+    if (header->type == ICMP_PING) {
+        // TODO - Find who to send it to ?
+        // icmp_packet(skb->ifnet, NULL, ICMP_PONG, 0, header->data, buf, length);
+    }
+    else if (header->type == ICMP_PONG) {
+        icmp_info_t* info = icmp_readinfo(skb->ifnet);
+        uint16_t id = header->data & 0xFFFF;
+        icmp_ping_t* ping = hmp_get(&info->pings, &id, 2);
+        if (ping != NULL) {
+            // TODO - Check the payload!
+            mtx_lock(&ping->mtx);
+            splock_lock(&info->lock);
+            hmp_remove(&info->pings, &id, 2);
+            splock_unlock(&info->lock);
+            ping->received = true;
+            cnd_signal(&ping->cnd);
+            mtx_unlock(&ping->mtx);
+        }
+    }
+
+    free(skb);
+    return 0;
 }
 

@@ -213,7 +213,6 @@ void kprintf(int log, const char *msg, ...)
 // }
 
 
-void futex_tick() {}
 void futex_init() {}
 
 
