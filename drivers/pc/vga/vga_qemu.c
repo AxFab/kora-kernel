@@ -38,6 +38,17 @@ struct device_id {
     void (*start)(struct PCI_device *pci, struct device_id *info);
 };
 
+typedef struct vga_info vga_info_t;
+struct vga_info {
+    struct PCI_device *pci;
+    void *pixels0;
+    void *pixels1;
+    size_t offset;
+    size_t width;
+    size_t height;
+    size_t pitch;
+};
+
 uint16_t size[] = {
     320, 200, // 16:10
     640, 480,  // 4:3
@@ -100,43 +111,42 @@ static void vga_change_offset(uint16_t offset)
     outw(VGA_PORT_DATA, offset);
 }
 
-int vga_fcntl(inode_t *ino, int cmd, size_t *params)
-{
-    if (cmd == 800) {
-        vga_flip(ino);
-        return 0;
-    }
-    return -1;
-}
-
 page_t vga_fetch(inode_t *ino, xoff_t off)
 {
-    struct PCI_device *pci = ino->drv_data;
-    size_t base = pci->bar[0].base & ~(PAGE_SIZE - 1);
+    vga_info_t *info = ino->drv_data;
+    size_t base = info->pci->bar[0].base & ~(PAGE_SIZE - 1);
 
     // framebuffer_t *fb = (framebuffer_t *)ino->info;
     // return mmu_read(ADDR_OFF(fb->pixels, off));
     return base + off;
 }
 
-void vga_flip(inode_t *ino)
+void vga_flip(inode_t *ino, size_t newoffset)
 {
-    // framebuffer_t *fb = (framebuffer_t *)ino->info;
-    // vga_change_offset(fb->pixels > fb->backup ? fb->height : 0);
-    // uint8_t *tmp = fb->pixels;
-    // fb->pixels = fb->backup;
-    // fb->backup = tmp;
+    vga_info_t *info = ino->drv_data;
+    vga_change_offset(newoffset);
+    info->offset = newoffset;
+    if (info->offset == 0)
+        memcpy32(info->pixels1, info->pixels0, info->pitch * info->height);
+    else
+        memcpy32(info->pixels0, info->pixels1, info->pitch * info->height);
+}
 
-    // memcpy32(fb->pixels, fb->backup, fb->pitch * fb->height);
+int vga_ioctl(inode_t *ino, int cmd, size_t *params)
+{
+    if (cmd == FB_FLIP) {
+        vga_flip(ino, params[0]);
+        return 0;
+    }
+    return -1;
 }
 
 ino_ops_t vga_ino_ops = {
-    // .flip = vga_flip,
-    // .fcntl = vga_fcntl,
+    .ioctl = vga_ioctl,
     .fetch = vga_fetch,
 };
 
-void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
+void vga_start_qemu(struct PCI_device *pci, struct device_id *devinfo)
 {
     // Tested on QEMU and VirtualBox (should works for BOCHS too)
     // MMIO PREFETCH region #0: fd000000..fe000000
@@ -170,17 +180,22 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *info)
     vga_change_resol(size[i * 2], size[i * 2 + 1]);
 
 
-    // framebuffer_t *fb = gfx_create(size[i * 2], size[i * 2 + 1], 4, (void *) - 1);
-    // uint32_t pixels1 = pixels0 + fb->pitch * fb->height;
-    // fb->pixels = (uint8_t *)pixels0;
-    // fb->backup = (uint8_t *)pixels1;
-    // vga_change_offset(fb->height);
-
     inode_t *ino = vfs_inode(1, FL_FRM, NULL, &vga_ino_ops);
-    ino->drv_data = pci;
-    ino->dev->model = strdup(info->name);
+    ino->dev->model = strdup(devinfo->name);
     ino->dev->devclass = strdup("VGA Screen");
-    vfs_fcntl(ino, FB_RESIZE, &size[i * 2]);
+
+    vga_info_t *info = kalloc(sizeof(vga_info_t));
+    ino->drv_data = info;
+    info->pci = pci;
+    info->width = size[i * 2];
+    info->height = size[i * 2 + 1];
+    info->offset = 0;
+    info->pitch = ALIGN_UP(info->width * 4, 4);
+    info->pixels0 = pixels0;
+    info->pixels1 = pixels0 + info->pitch * info->height;
+
+    vga_change_offset(info->pitch * info->height);
+    // vfs_fcntl(ino, FB_RESIZE, &size[i * 2]);
     vfs_mkdev(ino, "fb0");
     vfs_close_inode(ino);
 }
