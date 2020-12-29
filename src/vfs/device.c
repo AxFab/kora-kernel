@@ -82,7 +82,7 @@ void vfs_sweep(vfs_t *vfs)
     kprintf(-1, "Destroy all VFS data\n");
 }
 
-int vfs_mkdev(inode_t *ino, const char *name)
+int vfs_mkdev(/* fsnode_t *parent, */inode_t *ino, const char *name)
 {
     devfs_register(ino, name);
     return 0;
@@ -241,3 +241,59 @@ int vfs_readlink(vfs_t *vfs, fsnode_t *node, char *buf, int len, bool relative)
     }
 }
 
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+ino_ops_t pipe_ino_ops = {
+    .read = NULL,
+};
+
+fsnode_t *__private;
+
+fsnode_t *vfs_mknod(fsnode_t *parent, const char *name, int devno)
+{
+    int i;
+    if (__private == NULL) {
+        __private = kalloc(sizeof(fsnode_t));
+        mtx_init(&__private->mtx, mtx_plain);
+        __private->parent = NULL;
+        __private->ino = vfs_inode(1, FL_DIR, NULL, &pipe_ino_ops);
+        __private->rcu = 1;
+        __private->mode = FN_OK;
+    }
+    if (parent == NULL)
+        parent = __private;
+
+    fsnode_t *node = NULL;
+    char *fname = NULL;
+    if (name == NULL) {
+        fname = kalloc(17);
+        for (i = 0; i < 16; ++i)
+            fname[i] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"[rand8() % 64];
+        fname[16] = 0;
+        node = vfs_fsnode_from(parent, fname);
+        kfree(fname);
+    } else {
+        node = vfs_fsnode_from(parent, name);
+    }
+
+    mtx_lock(&node->mtx);
+    if (node->mode != FN_EMPTY) {
+        mtx_unlock(&node->mtx);
+        vfs_close_fsnode(node);
+        errno = EEXIST;
+        return NULL;
+    }
+
+    device_t *dev = NULL;
+    ino_ops_t *ops = &pipe_ino_ops;
+    int no = 1;
+    int type = FL_PIPE;
+
+    inode_t *ino = vfs_inode(no, type, dev, ops);
+
+    node->ino = ino;
+    node->mode = FN_OK;
+    mtx_unlock(&node->mtx);
+    return node;
+}

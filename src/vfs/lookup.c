@@ -81,6 +81,7 @@ void vfs_close_inode(inode_t *ino)
     }
 }
 
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 fsnode_t *vfs_fsnode_from(fsnode_t *parent, const char *name)
@@ -244,18 +245,19 @@ int vfs_lookup(fsnode_t *node)
         mtx_lock(&node->mtx);
         if (node->mode != FN_EMPTY)
             mtx_unlock(&node->mtx);
+        else {
+            inode_t *dir = node->parent->ino;
+            assert(dir->ops->open != NULL);
+            inode_t *ino = dir->ops->open(dir, node->name, FL_INVAL, NULL, IO_OPEN);
+            // TODO - Handle error
+            if (ino != NULL) {
+                node->ino = ino;
+                node->mode = FN_OK;
+            } else
+                node->mode = FN_NOENTRY;
 
-        inode_t *dir = node->parent->ino;
-        assert(dir->ops->open != NULL);
-        inode_t *ino = dir->ops->open(dir, node->name, FL_INVAL, NULL, IO_OPEN);
-        // TODO - Handle error
-        if (ino != NULL) {
-            node->ino = ino;
-            node->mode = FN_OK;
-        } else
-            node->mode = FN_NOENTRY;
-
-        mtx_unlock(&node->mtx);
+            mtx_unlock(&node->mtx);
+        }
     }
     if (node->mode == FN_NOENTRY) {
         errno = ENOENT;
@@ -329,7 +331,7 @@ char *vfs_inokey(inode_t *ino, char *buf)
 
 void vfs_usage(fsnode_t *node, int flags, int use)
 {
-    if (node->ino->fops->usage != NULL)
+    if (node->ino->fops && node->ino->fops->usage != NULL)
         node->ino->fops->usage(node->ino, flags, use);
 }
 

@@ -349,6 +349,8 @@ vma_t *mspace_search_vma(mspace_t *mspace, size_t address)
 /* Display the state of the current address space */
 void mspace_display(mspace_t *mspace)
 {
+    if (mspace == NULL)
+        mspace = kMMU.kspace;
     splock_lock(&mspace->lock);
     kprintf(KL_DBG,
             "%p-%p mapped: %d KB   physical: %d KB   shared: %d KB   used: %d KB\n",

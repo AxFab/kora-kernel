@@ -375,34 +375,70 @@ void cpuid_setup()
     }
 }
 
-// #include <kernel/task.h>
-
-// void cpu_tss(task_t *task)
-// {
-//     int i = cpu_no();
-//     size_t ptr = (size_t)task->kstack + PAGE_SIZE - 16;
-//     TSS_BASE[i].esp0 = ptr;
-//     // kprintf(-1, "CPU%d set TSS at %p \n", i, TSS_BASE[i].esp0);
-// }
-
 void tss_setup()
 {
     int i = cpu_no();
     // kprintf(-1, "CPU%d - at %p \n", i, &kCPU);
 
     TSS_BASE[i].debug_flag = 0;
-    TSS_BASE[i].io_map = 0;
+    TSS_BASE[i].io_map = 0x68;
     TSS_BASE[i].esp0 = cpu_table[i].stack + (KSTACK_PAGES * PAGE_SIZE) - 16;
     TSS_BASE[i].ss0 = 0x18;
-    GDT(i + 7, TSS_CPU(i), 0x67, 0xe9, 0x00); // TSS CPU(i)
+
+    GDT(i + 7, TSS_CPU(i), 0x68, 0x89, 4); // TSS CPU(i)
+    // GDT(i + 7, TSS_CPU(i), 0x67, 0xe9, 0x00); // TSS CPU(i)
     x86_set_tss(i + 7);
 
     kprintf(-1, "CPU(%d) TSS no %d at %x using stack %x\n", i, i + 7, &TSS_BASE[i], TSS_BASE[i].esp0);
 }
 
-// create cpufeatures structs
-void cpu_setup()
+int enabled_A20()
 {
+    int *p0 = (int*)0x112345;
+    int *p1 = (int*)0x012345;
+    *p0 = (int)p0;
+    *p1 = (int)p1;
+    return *p0 != *p1;
+}
+
+void init_A20(void)
+{
+    if (enabled_A20()) {
+        kprintf(-1, "A20 was already enabled\n");
+        return;
+    }
+
+    kprintf(-1, "A20 need to be enabled\n");
+    while (inb(0x64) & 2); // A20 Wait
+    outb(0x64, 0xAD); // disable keyboard
+
+    while (inb(0x64) & 2); // A20 Wait
+    outb(0x64, 0xD0); // read from input
+
+    while (inb(0x64) & 2); // A20 Wait
+    uint8_t a = inb(0x60);
+
+    while (inb(0x64) & 2); // A20 Wait
+    outb(0x64, 0xD1); // write to output
+
+    while (inb(0x64) & 2); // A20 Wait
+    outb(0x60, a | 2); // write to output
+
+    while (inb(0x64) & 2); // A20 Wait
+    outb(0x64, 0xAE); // enable keyboard
+
+    if (enabled_A20()) {
+        kprintf(-1, "A20 is now enabled\n");
+        return;
+    }
+
+    kprintf(-1, "A20 activation failed\n");
+}
+
+// create cpufeatures structs
+void cpu_setup(xtime_t *now)
+{
+    init_A20();
     // call for one, reach by all
     // setup pic (BSP only)
     // pic_setup();
@@ -410,7 +446,7 @@ void cpu_setup()
     pic_setup();
     // acpi_setup();
     cpuid_setup();
-    xtime_t now = rtc_time();
+    *now = rtc_time();
     // kprintf(0, "Unix Epoch: %lld \n", now);
     // apic_setup();
     tss_setup();

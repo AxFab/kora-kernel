@@ -25,7 +25,7 @@
 #include <kernel/memory.h>
 
 /* - */
-void cpu_setup();
+void cpu_setup(xtime_t *now);
 /* - */
 void cpu_setjmp(cpu_state_t *buf, void *stack, void *func, void *arg);
 /* - */

@@ -47,7 +47,7 @@ fstream_t *stream_put(streamset_t *strms, fsnode_t *file, int flags)
     stm->flags = flags;
     vfs_usage(file, flags, 1);
     splock_lock(&strms->lock);
-    fstream_t *p = bbtree_first(&strms->tree, fstream_t, node);
+    fstream_t *p = bbtree_last(&strms->tree, fstream_t, node);
     stm->fd = p == NULL ? 0 : p->fd + 1;
     stm->node.value_ = stm->fd;
     bbtree_insert(&strms->tree, &stm->node);

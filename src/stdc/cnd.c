@@ -75,7 +75,7 @@ int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mutex, const struct time
             start = now;
             timeout -= (long)elapsed;
             if (timeout <= 0 || elapsed >= LONG_MAX)
-                return thrd_timeout;
+                return thrd_timedout;
         }
     }
     return 0;

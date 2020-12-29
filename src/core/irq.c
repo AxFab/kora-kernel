@@ -151,24 +151,38 @@ void irq_fault(const char *name, unsigned signum)
 
 syscall_info_t __syscalls_info[] = {
     [SYS_EXIT] = SCALL_ENTRY(exit, ARG_INT, 0, 0, 0, 0, 0, 1),
-    // SYS_SLEEP,
-    // SYS_FUTEX_WAIT,
-    // SYS_FUTEX_REQUEUE,
-    // SYS_FUTEX_WAKE,
+    [SYS_SPAWN] = SCALL_ENTRY(spawn, ARG_STR, ARG_PTR, ARG_PTR, ARG_PTR, ARG_FLG, ARG_INT, 5),
+    [SYS_THREAD] = SCALL_ENTRY(thread, ARG_STR, ARG_PTR, ARG_PTR, ARG_LEN, ARG_FLG, ARG_INT, 5),
+    [SYS_SLEEP] = SCALL_ENTRY(sleep, ARG_PTR, ARG_PTR, 0, 0, 0, ARG_INT, 1),
+
+    [SYS_FUTEX_WAIT] = SCALL_ENTRY(futex_wait, ARG_PTR, ARG_INT, ARG_INT, ARG_FLG, 0, ARG_INT, 4),
+    [SYS_FUTEX_REQUEUE] = SCALL_ENTRY(futex_requeue, ARG_PTR, ARG_INT, ARG_INT, ARG_PTR, ARG_FLG, ARG_INT, 5),
+    [SYS_FUTEX_WAKE] = SCALL_ENTRY(futex_wake, ARG_PTR, ARG_INT, 0, 0, 0, ARG_INT, 2),
+
     [SYS_MMAP] = SCALL_ENTRY(mmap, ARG_PTR, ARG_LEN, ARG_FLG, ARG_FD, ARG_LEN, ARG_PTR, 5),
     [SYS_MUNMAP] = SCALL_ENTRY(munmap, ARG_PTR, ARG_LEN, 0, 0, 0, ARG_INT, 2),
-    // SYS_MPROTECT,
+    // [SYS_MPROTECT] = SCALL_ENTRY(mprotect, ),
+
     [SYS_GINFO] = SCALL_ENTRY(ginfo, ARG_INT, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
-    // SYS_SINFO,
+    // [SYS_SINFO] = SCALL_ENTRY(sinfo, ),
+
     [SYS_OPEN] = SCALL_ENTRY(open, ARG_FD, ARG_STR, ARG_FLG, ARG_FLG, 0, ARG_FD, 4),
-    // SYS_CLOSE,
-    // SYS_READDIR,
-    // SYS_SEEK,
+    [SYS_CLOSE] = SCALL_ENTRY(close, ARG_FD, 0, 0, 0, 0, ARG_INT, 1),
+    [SYS_READDIR] = SCALL_ENTRY(readdir, ARG_FD, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
+    // [SYS_SEEK] = SCALL_ENTRY(seek, ),
     [SYS_READ] = SCALL_ENTRY(read, ARG_FD, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
     [SYS_WRITE] = SCALL_ENTRY(write, ARG_FD, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
-    // SYS_ACCESS,
+    // [SYS_ACCESS] = SCALL_ENTRY(access, ),
     [SYS_FCNTL] = SCALL_ENTRY(fcntl, ARG_FD, ARG_INT, ARG_PTR, 0, 0, ARG_INT, 3),
-    // SYS_FSTAT,
+
+    [SYS_PIPE] = SCALL_ENTRY(pipe, ARG_PTR, ARG_FLG, 0, 0, 0, ARG_INT, 2),
+    [SYS_FSTAT] = SCALL_ENTRY(fstat, ARG_FD, ARG_STR, ARG_PTR, ARG_FLG, 0, ARG_INT, 2),
+
+    // [SYS_RAISE] = SCALL_ENTRY(raise, ),
+    // [SYS_KILL] = SCALL_ENTRY(kill, ),
+    // [SYS_SIGRET] = SCALL_ENTRY(sigret, ),
+
+    [SYS_XTIME] = SCALL_ENTRY(xtime, ARG_INT, ARG_PTR, 0, 0, 0, ARG_INT, 1),
 };
 
 static void scall_log_arg(task_t *task, char type, long arg)
@@ -212,6 +226,7 @@ long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5)
 
     task_t *task = __current;
     syscall_info_t *info = NULL;
+    kprintf(-1, "Task.%d] syscall %d\n", task->pid, no);
     if (no < (sizeof(__syscalls_info) / sizeof(syscall_info_t)))
         info = &__syscalls_info[no];
 
@@ -221,7 +236,7 @@ long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5)
     }
 
 #ifndef NDEBUG
-    bool strace = true;// no != SYS_READ && no != SYS_WRITE;
+    bool strace = no != SYS_READ && no != SYS_WRITE;
     // Prepare strace log for debug
     long args[] = { a1, a2, a3, a4, a5};
     if (strace) {

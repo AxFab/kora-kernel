@@ -50,6 +50,7 @@ typedef enum task_status task_status_t;
 typedef struct scheduler scheduler_t;
 typedef void *sig_handler_t;
 
+typedef struct task_params task_params_t;
 typedef struct masterclock masterclock_t;
 typedef struct advent advent_t;
 typedef struct fstream fstream_t;
@@ -133,13 +134,18 @@ _Noreturn void cpu_halt();
 _Noreturn void cpu_usermode(void *start, void *stack);
 int cpu_no();
 
+// int task_fork(const char *name, void *func, void *arg, int flags);
 int task_start(const char *name, void *func, void *arg);
-int task_fork(const char *name, void *func, void *arg, int flags);
 void task_raise(scheduler_t *sch, task_t *task, unsigned signum);
 void task_stop(task_t *task, int code);
 void task_fatal(const char *msg, unsigned signum);
-_Noreturn void task_firstinit();
-_Noreturn void task_init();
+
+int task_spawn(const char *program, const char **args, fsnode_t **nodes);
+int task_thread(const char *name, void *entry, void *params, size_t len, int flags);
+
+// _Noreturn void task_firstinit();
+// _Noreturn void task_init(task_info_t *info);
+// _Noreturn void task_thread(task_thread_t *info);
 
 void scheduler_add(scheduler_t *sch, task_t *task);
 void scheduler_rm(scheduler_t *sch, task_t *task, int status);
@@ -166,7 +172,7 @@ void itimer_create(inode_t *ino, long delay, long interval);
 xtime_t sleep_timer(long timeout);
 
 
-masterclock_t *clock_init(int irq);
+masterclock_t *clock_init(int irq, xtime_t now);
 void clock_adjtime(masterclock_t *clock, xtime_t now);
 xtime_t clock_read(masterclock_t *clock, xtime_name_t name);
 void clock_ticks(masterclock_t *clock, unsigned elapsed);
