@@ -25,6 +25,11 @@ typedef enum xtime_name xtime_name_t;
 
 enum xtime_name {
     XTIME_CLOCK = 0,
+    XTIME_UTC,
+    XTIME_LOCAL,
+    XTIME_MONOTONIC,
+    XTIME_UPTIME,
+    XTIME_THREAD,
 };
 
 

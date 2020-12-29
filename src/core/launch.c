@@ -31,11 +31,12 @@ void kernel_start()
     kprintf(KL_MSG, "\033[97mKoraOS\033[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
 
     memory_initialize();
-    cpu_setup();
+    xtime_t now;
+    cpu_setup(&now);
     kprintf(KL_MSG, "\n");
 
     kprintf(KL_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
-    clock_init(0);
+    clock_init(0, now);
     vfs_t *vfs = vfs_init();
     // Network
     module_init(vfs, kMMU.kspace);
@@ -46,7 +47,7 @@ void kernel_start()
     task_start("Kernel loader #1", module_loader, NULL);
     // task_start("Kernel loader #2", module_loader, NULL);
     // Prepare exec
-    task_start("Kernel init", task_firstinit, NULL);
+    // task_start("Kernel init", task_firstinit, NULL);
 
     irq_reset(true);
 }

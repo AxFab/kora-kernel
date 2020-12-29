@@ -25,13 +25,13 @@ void sys_exit(int code)
 // }
 
 
-long sys_sleep(long timeout, long *remain)
+long sys_sleep(xtime_t *timeout, xtime_t *remain)
 {
     // TODO - Check mspace_check(__current->vm, remain, sizeof(long));
-    if (timeout <= 0)
+    if (*timeout <= 0)
         scheduler_switch(TS_READY);
     else {
-        xtime_t rest = sleep_timer(timeout);
+        xtime_t rest = sleep_timer(*timeout);
         if (*remain)
             *remain = rest;
     }
@@ -40,10 +40,10 @@ long sys_sleep(long timeout, long *remain)
 }
 
 
-long sys_futex_wait(int *addr, int val, long timeout, int flags)
+long sys_futex_wait(int *addr, int val, xtime_t *timeout, int flags)
 {
     // TODO - Check mspace_check(__current->vm, addr, sizeof(int));
-    return futex_wait(addr, val, timeout, flags);
+    return futex_wait(addr, val, *timeout, flags);
 }
 
 long sys_futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
@@ -57,6 +57,42 @@ long sys_futex_wake(int *addr, int val)
     // TODO - Check mspace_check(__current->vm, addr, sizeof(int));
     return futex_wake(addr, val);
 }
+
+
+long sys_spawn(const char *program, const char **args, const char **envs, int *streams, int flags)
+{
+    if (mspace_check_str(__current->vm, program, 4096) != 0)
+        return -1;
+    // TODO -- Check arrays and content of args / envs
+
+    fstream_t *strm;
+    fsnode_t *nodes[4];
+
+    strm = stream_get(__current->fset, streams[0]);
+    if (strm != NULL)
+        nodes[0] = strm->file;
+
+    strm = stream_get(__current->fset, streams[1]);
+    if (strm != NULL)
+        nodes[1] = strm->file;
+
+    strm = stream_get(__current->fset, streams[2]);
+    if (strm != NULL)
+        nodes[2] = strm->file;
+
+    return task_spawn(program, args, nodes);
+}
+
+long sys_thread(const char *name, void *entry, void *params, size_t len, int flags)
+{
+    if (name != NULL && mspace_check_str(__current->vm, name, 4096) != 0)
+        return -1;
+    if (mspace_check(__current->vm, params, len, VM_RD) != 0)
+        return -1;
+
+    return task_thread(name, entry, params, len, KEEP_FS | KEEP_FSET | KEEP_VM);
+}
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -364,8 +400,22 @@ long sys_fstat(int dirfd, const char *path, struct filemeta *meta, int flags)
 
 
 // #define SYS_WINDOW  18
-// #define SYS_PIPE  19
 
+long sys_pipe(int *fds, int flags)
+{
+    fsnode_t *node = vfs_mknod(NULL, NULL, 0);
+    if (node == NULL)
+        return -1;
+
+    fstream_t *strm0 = stream_put(__current->fset, node, flags | VM_RD);
+    fds[0] = strm0->fd;
+
+    fstream_t *strm1 = stream_put(__current->fset, node, flags | VM_WR);
+    fds[1] = strm1->fd;
+
+    vfs_close_fsnode(node);
+    return 0;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -374,4 +424,10 @@ long sys_fstat(int dirfd, const char *path, struct filemeta *meta, int flags)
 // #define SYS_SIGACTION  16
 // #define SYS_SIGRETURN  17
 
+
+int sys_xtime(int name, xtime_t *ptime)
+{
+    *ptime = xtime_read(name);
+    return 0;
+}
 

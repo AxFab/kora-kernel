@@ -126,6 +126,9 @@ void module_init(vfs_t *vfs, mspace_t *vm)
     kernel_export_symbol(strtok_r);
     kernel_export_symbol(strdup);
 
+    kernel_export_symbol(memcpy32);
+    kernel_export_symbol(memset32);
+
     // Formating
     kernel_export_symbol(atoi);
     kernel_export_symbol(atol);
@@ -235,6 +238,17 @@ _Noreturn void module_loader()
         vfs_closedir(directory, ctx);
     }
     vfs_close_fsnode(directory);
+
+    // Look for root
+    fsnode_t *root = vfs_mount(__current->vfs, "sdC", "iso", "/mnt/cdrom", "");
+    vfs_close_fsnode(root);
+    vfs_chdir(__current->vfs, "/mnt/cdrom", true);
+    vfs_mount(__current->vfs, NULL, "devfs", "/dev", "");
+
+    // Start first user program
+    const char *args[] = { "-x", NULL, };
+    fsnode_t nodes[3] = { NULL };
+    task_spawn("krish", args, nodes);
 
     for (;;) {
         // kprintf(-1, "Hello from task %d \n", __current->pid);

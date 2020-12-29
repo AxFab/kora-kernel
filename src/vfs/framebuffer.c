@@ -100,20 +100,39 @@ void framebuffer_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
     assert(false);
 }
 
-int framebuffer_fcntl(inode_t *ino, int cmd, void **params)
+int framebuffer_resize(framebuffer_t *fb, size_t w, size_t h)
+{
+    if (w > 8196 || h > 8196)
+        return -1;
+    fb->width = w;
+    fb->height = h;
+    fb->pitch = w * 4;
+    // TODO - Send event to those who listen ?
+    // Unused pages ?
+    return 0;
+}
+
+int framebuffer_flip(framebuffer_t *fb, size_t off)
+{
+    return -1;
+}
+
+int framebuffer_iocntl(inode_t *ino, int cmd, void **params)
 {
     framebuffer_t *fb = ino->drv_data;
-    if (cmd == FB_RESIZE) {
-        size_t w = (size_t)params[0];
-        size_t h = (size_t)params[1];
-        if (w > 8196 || h > 8196)
+    switch (cmd) {
+        case FB_RESIZE:
+            return framebuffer_resize(fb, params[0], params[1]);
+        case FB_FLIP:
+            return framebuffer_flip(fb, params[0]);
+        default:
             return -1;
-        fb->width = w;
-        fb->height = h;
-        fb->pitch = w * 4;
-        // TODO - Send event to those who listen ?
     }
-    return -1;
+}
+
+int framebuffer_fcntl(inode_t *ino, int cmd, void **params)
+{
+    return ino->ops->ioctl(ino, cmd, params);
 }
 
 void framebuffer_destroy(inode_t *ino)

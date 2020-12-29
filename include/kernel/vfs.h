@@ -196,6 +196,7 @@ void vfs_rmdev(const char *name);
 void vfs_addfs(const char *name, fsmount_t mount);
 void vfs_rmfs(const char *name);
 
+fsnode_t *vfs_mknod(fsnode_t *parent, const char *name, int devno);
 
 
 // For kernel

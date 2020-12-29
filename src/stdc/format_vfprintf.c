@@ -390,9 +390,20 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap)
                 arg.p = "(null)";
 
             lg = strlen((char *)arg.p);
+            if (lg < sb.field_ && !(sb.flag_ & LEFT_ADJ)) {
+                int m = sb.field_ - lg;
+                while (m-- > 0)
+                    fp->write(fp, " ", 1);
+            }
 
             if (lg > 0 && fp->write(fp, (char *)arg.p, lg) < 0)
                 return -1;
+
+            if (lg < sb.field_ && (sb.flag_ & LEFT_ADJ)) {
+                int m = sb.field_ - lg;
+                while (m-- > 0)
+                    fp->write(fp, " ", 1);
+            }
             break;
         }
 

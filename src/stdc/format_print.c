@@ -40,6 +40,7 @@ int _PRT(vfprintf)(FILE *fp, const char *str, va_list ap);
 #undef SIZE_MAX
 #define SIZE_MAX (4294967295U)
 
+
 /* Write on a string streaming */
 static int _swrite(FILE *fp, const char *buf, size_t length)
 {
@@ -52,6 +53,16 @@ static int _swrite(FILE *fp, const char *buf, size_t length)
     return (int)lg;
 }
 
+void _sfile(FILE *fp, char *buf, int len)
+{
+    memset(fp, 0, sizeof(*fp));
+    fp->lbuf_ = EOF;
+    fp->write = _swrite;
+    fp->lock_ = -1;
+    fp->wbf_.pos_ = buf;
+    fp->wbf_.end_ = buf + len;
+}
+
 /* Implementation of `vsnprintf` need to be inlined */
 static inline int _vsnprintf(char *str, size_t lg, const char *format,
                              va_list ap)
@@ -59,12 +70,7 @@ static inline int _vsnprintf(char *str, size_t lg, const char *format,
     char b;
     int res;
     FILE fp;
-
-    fp.lbuf_ = EOF;
-    fp.write = _swrite;
-    fp.lock_ = -1;
-    fp.wbf_.pos_ = str;
-    fp.wbf_.end_ = str + lg;
+    _sfile(&fp, str, lg);
 
     if (lg - 1 > INT_MAX - 1) {
         errno = EOVERFLOW;

@@ -284,13 +284,14 @@ xtime_t sleep_timer(long timeout)
 
 void clock_handler ();
 
-masterclock_t *clock_init(int irq)
+masterclock_t *clock_init(int irq, xtime_t now)
 {
     // masterclock_t*clock = kalloc(sizeof(masterclock_t));
     splock_init(&__clock.lock);
     splock_init(&__clock.tree_lock);
     bbtree_init(&__clock.tree);
     llist_init(&__clock.list);
+    __clock.wall = now;
 
     irq_register(irq, (irq_handler_t)clock_handler, &__clock);
     return &__clock;

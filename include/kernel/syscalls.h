@@ -90,8 +90,11 @@ enum syscall_no {
     SYS_WINDOW,
     SYS_PIPE,
 
-    SYS_PFORK,
-    SYS_TFORK,
+    SYS_SPAWN,
+    SYS_THREAD,
+    // SYS_PFORK,
+    // SYS_TFORK,
+    SYS_XTIME,
 };
 
 // #define SPW_SHUTDOWN 0xcafe
@@ -106,10 +109,13 @@ enum syscall_no {
 
 void sys_exit(int code);
 // long sys_wait(int pid, int *status, int option);
-long sys_sleep(long timeout, long *remain);
-long sys_futex_wait(int *addr, int val, long timeout, int flags);
+long sys_sleep(xtime_t *timeout, xtime_t *remain);
+long sys_futex_wait(int *addr, int val, xtime_t *timeout, int flags);
 long sys_futex_requeue(int *addr, int val, int val2, int *addr2, int flags);
 long sys_futex_wake(int *addr, int val);
+
+long sys_spawn(const char *program, const char **args, const char **envs, int *streams, int flags);
+long sys_thread(const char *name, void *entry, void *params, size_t len, int flags);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 // Memory
@@ -134,6 +140,10 @@ long sys_fstat(int dirfd, const char *path, struct filemeta *meta, int flags);
 
 // #define SYS_WINDOW  18
 // #define SYS_PIPE  19
+long sys_pipe(int *fds, int flags);
+
+
+int sys_xtime(int name, xtime_t *ptime);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

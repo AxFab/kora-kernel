@@ -105,4 +105,9 @@ long strtol(const char *nptr, char **endptr, int base);
 char *itoa(int value, char *str, int base);
 #endif
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+void *memcpy32(void *dest, void *src, size_t lg);
+void *memset32(void *dest, uint32_t val, size_t lg);
+
 #endif /* _KERNEL_STDC_H */

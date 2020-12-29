@@ -59,7 +59,6 @@ void vfs_createfile(inode_t *ino)
         ino->fl_data = framebuffer_create();
         ino->fops = &framebuffer_ops;
         break;
-
     case FL_NET:
     case FL_LNK:
     case FL_DIR:
