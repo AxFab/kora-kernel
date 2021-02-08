@@ -153,8 +153,9 @@ void mboot_load_modules()
     if (mboot_table->flags & GRUB_MODULES) {
         struct mboot_module *mods = (struct mboot_module *)mboot_table->mods_addr;
         for (i = 0; i < mboot_table->mods_count; ++i) {
-            kprintf(KL_MSG, "Module preloaded [%s] '%s'\n", sztoa(mods->end - mods->start), mods->string);
-            inode_t *root = tar_mount(mods->start, mods->end - mods->start, mods->string);
+            size_t len = (size_t)(((char*)mods->end) - ((char*)mods->start));
+            kprintf(KL_MSG, "Module preloaded [%s] '%s'\n", sztoa(len), mods->string);
+            inode_t *root = tar_mount(mods->start, len, mods->string);
             snprintf(tmp, 12, "boot%d", i);
             vfs_mkdev(root, tmp);
             // kmod_mount(root);

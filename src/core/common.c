@@ -43,7 +43,6 @@ int *__errno_location()
 
 void *kmap(size_t length, void *ino, xoff_t offset, int flags)
 {
-    char tmp[64];
     length = ALIGN_UP(length, PAGE_SIZE);
     int type = flags & VMA_TYPE;
     if (type == 0 && ino != NULL)

@@ -39,6 +39,7 @@ typedef struct net_ops net_ops_t;
 typedef struct ifnet ifnet_t;
 typedef struct skb skb_t;
 typedef struct socket socket_t;
+typedef struct nproto nproto_t;
 
 typedef int (*net_recv_t)(skb_t *);
 typedef int (*net_sock_t)(socket_t *);
@@ -120,8 +121,17 @@ struct skb {
     uint8_t buf[1];
 };
 
-struct socket {
+struct nproto {
     int protocol;
+    int(*bind)(socket_t*, uint8_t*, size_t);
+    int(*connect)(socket_t*, uint8_t*, size_t);
+};
+
+struct socket {
+    netstack_t* net;
+    nproto_t *protocol;
+    uint8_t laddr[32];
+    uint8_t raddr[32];
 };
 
 
@@ -160,6 +170,12 @@ ifnet_t *net_alloc(netstack_t* stack, int protocol, uint8_t *hwaddr, net_ops_t *
 
 // Socket
 socket_t *net_socket(netstack_t *stack, int protocol);
+int net_socket_bind(socket_t* sock, uint8_t* addr, size_t len);
+int net_socket_connect(socket_t* sock, uint8_t* addr, size_t len);
+int net_socket_close(socket_t* sock);
+socket_t* net_socket_accept(socket_t* sock, bool block);
+int net_socket_write(socket_t* sock, const char* buf, size_t len);
+int net_socket_read(socket_t* sock, const char* buf, size_t len);
 
 
 // Ethernet

@@ -77,7 +77,7 @@ int ansi_parse(ansi_cmd_t *cmd, const char *str, int len)
     char *sv = (char *)str;
     cmd->len = 0;
     cmd->cmd = 0;
-    if (len <= 2 || str[0] != '\e' || str[1] != '[')
+    if (len <= 2 || str[0] != '\033' || str[1] != '[')
         return 1;
 
     sv += 2;
@@ -221,7 +221,7 @@ int csl_write(inode_t *ino, const char *buf, size_t len, int flags)
                 csl_eol();
                 buf++;
                 len--;
-            } else if (*buf == '\e') {
+            } else if (*buf == '\033') {
                 ansi_cmd_t cmd;
                 int lc = ansi_parse(&cmd, buf, len);
                 csl_ansi_cmd(&cmd);

@@ -139,6 +139,7 @@ void block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
             kprintf(-1, "\033[35mError while syncing page: %s, pg:%d\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
         } else
             page->dirty = false;
+        mtx_unlock(&page->mtx);
         kunmap(ptr, PAGE_SIZE);
     }
 

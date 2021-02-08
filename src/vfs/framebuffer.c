@@ -93,11 +93,9 @@ page_t framebuffer_fetch(inode_t *ino, xoff_t off)
 
 void framebuffer_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
 {
-    if (ino->ops->release != NULL)
-        return ino->ops->release(ino, off, pg, dirty);
     if (ino->ops->fetch != NULL)
         return;
-    assert(false);
+    ino->ops->release(ino, off, pg, dirty);
 }
 
 int framebuffer_resize(framebuffer_t *fb, size_t w, size_t h)
@@ -122,9 +120,9 @@ int framebuffer_iocntl(inode_t *ino, int cmd, void **params)
     framebuffer_t *fb = ino->drv_data;
     switch (cmd) {
         case FB_RESIZE:
-            return framebuffer_resize(fb, params[0], params[1]);
+            return framebuffer_resize(fb, (size_t)params[0], (size_t)params[1]);
         case FB_FLIP:
-            return framebuffer_flip(fb, params[0]);
+            return framebuffer_flip(fb, (size_t)params[0]);
         default:
             return -1;
     }

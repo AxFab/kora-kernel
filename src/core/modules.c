@@ -247,7 +247,7 @@ _Noreturn void module_loader()
 
     // Start first user program
     const char *args[] = { "-x", NULL, };
-    fsnode_t nodes[3] = { NULL };
+    fsnode_t *nodes[3] = { NULL };
     task_spawn("krish", args, nodes);
 
     for (;;) {

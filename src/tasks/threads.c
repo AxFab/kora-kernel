@@ -57,10 +57,10 @@ static _Noreturn void task_usermode(task_params_t *info)
     size_t *args = ADDR_PUSH(stack, ALIGN_UP(info->len, sizeof(void*)));
     memcpy(args, info->params, info->len);
     if (info->needmap) {
-        args[1] = &args[3];
+        args[1] = (size_t)&args[3];
         int i, argc = args[0];
         for (i = 0; i < argc; ++i)
-            args[i + 3] = &args[args[i + 3]];
+            args[i + 3] = (size_t)&args[args[i + 3]];
     }
     ADDR_PUSH(stack, sizeof(void*));
 
@@ -147,16 +147,16 @@ int task_spawn(const char *program, const char **args, fsnode_t **nodes)
     info->params = kalloc(len);
     info->params[0] = count;
     info->params[1] = 0; // &info->params[4];
-    info->params[2] = NULL; // environ
+    info->params[2] = 0; // environ
 
     len = 3 + count;
     info->params[3] = len; //(size_t)(&info->params[len]);
-    strcpy(&info->params[len], program);
+    strcpy((char*)&info->params[len], program);
     len += ALIGN_UP(strlen(program) + 1, 4) / 4;
 
     for (i = 0; args[i]; ++i) {
         info->params[i + 4] = len; //(size_t)(&info->params[len]);
-        strcpy(&info->params[len], args[i]);
+        strcpy((char*)&info->params[len], args[i]);
         len += ALIGN_UP(strlen(args[i]) + 1, 4) / 4;
     }
 

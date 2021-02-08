@@ -40,6 +40,7 @@ typedef struct fsnode fsnode_t;
 typedef struct path path_t;
 typedef enum ftype ftype_t;
 typedef struct diterator diterator_t;
+typedef enum fnode_status fnode_status_t;
 
 // typedef struct acl acl_t;
 
@@ -132,6 +133,9 @@ struct ino_ops {
     inode_t *(*readdir)(inode_t *dir, char *name, void *iterator);
     void (*closedir)(inode_t *dir, void *);
 
+    inode_t* (*mkdir)(inode_t* ino, const char* name, int mode, void* acl);
+    int (*rmdir)(inode_t* ino, const char* name);
+
     int(*truncate)(inode_t *ino, xoff_t length);
 
     page_t(*fetch)(inode_t *ino, xoff_t off);
@@ -153,27 +157,26 @@ struct fl_ops {
     void(*destroy)(inode_t *ino);
 };
 
-struct fsnode {
-    fsnode_t *parent;
-    char name[256];
-    inode_t *ino;
-    atomic_int rcu;
-    llnode_t nlru;
-    int mode;
-    mtx_t mtx;
-
-    splock_t lock;
-    llhead_t mnt;
-    llnode_t nmt;
-};
-
-enum {
+enum fnode_status {
     FN_EMPTY = 0,
     FN_NOENTRY,
     FN_LRU,
     FN_OK,
 };
 
+struct fsnode {
+    fsnode_t *parent;
+    char name[256];
+    inode_t *ino;
+    atomic_int rcu;
+    llnode_t nlru;
+    fnode_status_t mode;
+    mtx_t mtx;
+
+    splock_t lock;
+    llhead_t mnt;
+    llnode_t nmt;
+};
 
 
 
@@ -234,6 +237,37 @@ inode_t *tar_mount(void *base, size_t length, const char *name);
 
 #define FB_RESIZE 0x8001
 #define FB_FLIP 0x8002
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+struct bkmap {
+    size_t addr;
+    size_t off;
+    size_t len;
+    void* map;
+};
+
+static inline void* bkmap(struct bkmap* bm, size_t blkno, size_t blksize, size_t size, void* dev, int flg)
+{
+    assert(POW2(blksize));
+    if (size == 0)
+        size = blksize;
+    size_t by = blkno * blksize;
+    size_t bo = ALIGN_DW(by, PAGE_SIZE);
+    size_t be = ALIGN_UP(by + size, PAGE_SIZE);
+    bm->addr = bo;
+    bm->off = by - bo;
+    bm->len = be - bo;
+    bm->map = kmap(bm->len, dev, (xoff_t)bm->addr, flg);
+    return ((char*)bm->map) + bm->off;
+}
+
+static inline void bkunmap(struct bkmap* bm)
+{
+    kunmap(bm->map, bm->len);
+    bm->map = 0;
+}
 
 
 #endif /* _KERNEL_VFS_H */

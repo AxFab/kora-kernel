@@ -19,7 +19,7 @@
  */
 #include <stdio.h>
 #include <stddef.h>
-#include <stdatomic.h>
+#include <kora/atomic.h>
 #include <bits/cdefs.h>
 #include <kora/bbtree.h>
 #include <kora/mcrs.h>
@@ -171,7 +171,7 @@ xtime_t xtime_read(xtime_name_t name)
     return cl / 10LL - SEC_TO_USEC(11644473600LL);
 }
 
-]
+
 uint8_t rand8()
 {
     return rand() & 0xff;

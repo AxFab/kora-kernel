@@ -110,4 +110,6 @@ char *itoa(int value, char *str, int base);
 void *memcpy32(void *dest, void *src, size_t lg);
 void *memset32(void *dest, uint32_t val, size_t lg);
 
+void stackdump(size_t frame);
+
 #endif /* _KERNEL_STDC_H */
