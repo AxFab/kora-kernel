@@ -23,6 +23,7 @@
 #include <kernel/vfs.h>
 #include <kernel/core.h>
 
+void module_init(vfs_t *vfs, mspace_t *vm);
 
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()

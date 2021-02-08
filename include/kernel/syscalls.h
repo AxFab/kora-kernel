@@ -69,31 +69,34 @@ enum sys_vars {
 enum syscall_no {
     SYS_EXIT = 0,
     SYS_SLEEP,
+
     SYS_FUTEX_WAIT,
     SYS_FUTEX_REQUEUE,
     SYS_FUTEX_WAKE,
+
+    SYS_SPAWN,
+    SYS_THREAD,
+
     SYS_MMAP,
     SYS_MUNMAP,
     SYS_MPROTECT,
-    SYS_GINFO,
+
+    SYS_GINFO, // 10
     SYS_SINFO,
+
     SYS_OPEN,
     SYS_CLOSE,
     SYS_READDIR,
     SYS_SEEK,
-    SYS_READ,
+    SYS_READ, // 16
     SYS_WRITE,
     SYS_ACCESS,
-    SYS_FCNTL,
+    SYS_FCNTL, // 19
+
+    SYS_PIPE,
+    SYS_WINDOW,
     SYS_FSTAT,
 
-    SYS_WINDOW,
-    SYS_PIPE,
-
-    SYS_SPAWN,
-    SYS_THREAD,
-    // SYS_PFORK,
-    // SYS_TFORK,
     SYS_XTIME,
 };
 

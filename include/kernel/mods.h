@@ -56,7 +56,7 @@ struct kmodule {
     { .name = #n, .sym = n }
 
 
-#define kernel_export_symbol(x) module_symbol(#x,(x));
+#define kernel_export_symbol(x) module_symbol(#x,(void*)(x));
 
 void module_symbol(const char *name, void *ptr);
 

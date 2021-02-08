@@ -108,3 +108,49 @@ int vfs_closedir(fsnode_t *dir, diterator_t* it)
     return 0;
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+int vfs_mkdir(fsnode_t* node, int mode, void *user)
+{
+    assert(node != NULL);
+    mtx_lock(&node->mtx);
+    if (node->mode != FN_EMPTY && node->mode != FN_NOENTRY) {
+        mtx_unlock(&node->mtx);
+        errno = EEXIST;
+        return -1;
+    }
+
+    assert(node->parent);
+    inode_t *dir = node->parent->ino;
+    inode_t *ino = dir->ops->mkdir(dir, node->name, mode, user);
+    if (ino != NULL) {
+        node->ino = ino;
+        node->mode = FN_OK;
+    }
+    mtx_unlock(&node->mtx);
+    return ino ? 0 : -1;
+}
+
+
+int vfs_rmdir(fsnode_t* node)
+{
+    mtx_lock(&node->mtx);
+    if (node->mode != FN_OK) {
+        mtx_unlock(&node->mtx);
+        errno = ENOENT;
+        return -1;
+    }
+
+    inode_t* dir = node->parent->ino;
+    int ret = dir->ops->rmdir(dir, node->name);
+    if (ret == 0) {
+        vfs_close_inode(node->ino);
+        node->ino = NULL;
+        node->mode = FN_EMPTY;
+    }
+    mtx_unlock(&node->mtx);
+    return ret;
+}
+
+

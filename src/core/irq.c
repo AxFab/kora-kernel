@@ -164,7 +164,7 @@ syscall_info_t __syscalls_info[] = {
     // [SYS_MPROTECT] = SCALL_ENTRY(mprotect, ),
 
     [SYS_GINFO] = SCALL_ENTRY(ginfo, ARG_INT, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
-    // [SYS_SINFO] = SCALL_ENTRY(sinfo, ),
+    [SYS_SINFO] = SCALL_ENTRY(sinfo, ARG_INT, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
 
     [SYS_OPEN] = SCALL_ENTRY(open, ARG_FD, ARG_STR, ARG_FLG, ARG_FLG, 0, ARG_FD, 4),
     [SYS_CLOSE] = SCALL_ENTRY(close, ARG_FD, 0, 0, 0, 0, ARG_INT, 1),
@@ -178,8 +178,8 @@ syscall_info_t __syscalls_info[] = {
     [SYS_PIPE] = SCALL_ENTRY(pipe, ARG_PTR, ARG_FLG, 0, 0, 0, ARG_INT, 2),
     [SYS_FSTAT] = SCALL_ENTRY(fstat, ARG_FD, ARG_STR, ARG_PTR, ARG_FLG, 0, ARG_INT, 2),
 
+    // [SYS_SIGNAL] = SCALL_ENTRY(signal, ),
     // [SYS_RAISE] = SCALL_ENTRY(raise, ),
-    // [SYS_KILL] = SCALL_ENTRY(kill, ),
     // [SYS_SIGRET] = SCALL_ENTRY(sigret, ),
 
     [SYS_XTIME] = SCALL_ENTRY(xtime, ARG_INT, ARG_PTR, 0, 0, 0, ARG_INT, 1),
@@ -226,7 +226,7 @@ long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5)
 
     task_t *task = __current;
     syscall_info_t *info = NULL;
-    kprintf(-1, "Task.%d] syscall %d\n", task->pid, no);
+    // kprintf(-1, "Task.%d] syscall %d\n", task->pid, no);
     if (no < (sizeof(__syscalls_info) / sizeof(syscall_info_t)))
         info = &__syscalls_info[no];
 

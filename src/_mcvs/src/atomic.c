@@ -1,5 +1,19 @@
-#include <stdatomic.h>
+#include <kora/atomic.h>
 #include <stdbool.h>
+
+
+void __atomic_inc_4(atomic_i32* ref, int mode)
+{
+    ((void)mode);
+    ++(*ref);
+}
+
+void __atomic_dec_4(atomic_i32* ref, int mode)
+{
+    ((void)mode);
+    --(*ref);
+}
+
 
 int __atomic_fetch_add_4(atomic_int *ref, int val, int mode)
 {

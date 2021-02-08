@@ -150,7 +150,6 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
 
 int dlib_openexec(proc_t *proc, const char *execname)
 {
-    char tmp[12];
     dynlib_t *lib;
     // Look for executable file
     fsnode_t *node = dlib_lookfor(proc, execname, "PATH", "/usr/bin:/bin");
