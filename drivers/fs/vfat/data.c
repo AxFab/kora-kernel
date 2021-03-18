@@ -23,27 +23,35 @@
 int fat_read(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags)
 {
     FAT_volume_t * volume = ino->drv_data;
+    size_t clusterSize = volume->SecPerClus * volume->BytsPerSec;
+    assert(POW2(clusterSize) && (offset & (clusterSize - 1)) == 0);
 
-    int lba = FAT_CLUSTER_TO_LBA(volume, ino->lba);
+    unsigned clustNo = ino->lba;
+    int foff = 0;
 
-    int fL = ((volume->FirstDataSector) * volume->BytsPerSec) / PAGE_SIZE;
-    int eL = ALIGN_UP((volume->FirstDataSector + volume->SecPerClus) * volume->BytsPerSec, PAGE_SIZE) / PAGE_SIZE;
-    int sL = eL - fL;
-    size_t map_size = sL * PAGE_SIZE;
-    size_t sec_size = volume->BytsPerSec;
-
-    int page = (lba * sec_size) / PAGE_SIZE;
-    int off = (lba * sec_size) % PAGE_SIZE;
-    void *cluster = kmap(map_size, ino->dev->underlying, page * PAGE_SIZE, VM_RD);
-
-    // int cluster = offset / (volume->BytsPerSec * volume->SecPerClus);
-    // int lba = ino->lba;
     while (length > 0) {
-        if (lba == 0) {
-            return -1; // EOF
+        while (clustNo != 0 && offset - foff >= clusterSize) {
+            clustNo = fat_cluster_next_16(ino->dev->underlying, volume, clustNo);
+            foff += clusterSize;
         }
-        assert(false);
-        // vfs_read();
+
+        size_t cap = clusterSize;
+        if (clustNo) {
+            int lba = FAT_CLUSTER_TO_LBA(volume, clustNo);
+            struct bkmap bm;
+            char* data = bkmap(&bm, lba, 512, clusterSize, ino->dev->underlying, VM_RD);
+            cap = MIN(cap, length);
+            memcpy(buffer, data, cap);
+            bkunmap(&bm);
+        }
+        else {
+            cap = MIN(cap, length);
+            memset(buffer, 0, cap);
+        }
+
+        length -= cap;
+        offset += cap;
+        buffer = ((char*)buffer) + cap;
     }
     return 0;
 }

@@ -211,7 +211,9 @@ FAT_volume_t *fatfs_init(void *ptr);
 void fatfs_reserve_cluster_16(inode_t *bdev, FAT_volume_t *info, int cluster, int previous);
 unsigned fatfs_alloc_cluster_16(inode_t *bdev, FAT_volume_t *info, int previous);
 
-inode_t *fat_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags);
+inode_t* fat_lookup(inode_t* dir, const char* name, void* acl);
+// inode_t *fat_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags);
+inode_t* fat_create(inode_t* dir, const char* name, void* acl, int flags);
 // int fatfs_close(inode_t *ino);
 int fat_unlink(inode_t *dir, const char *name);
 

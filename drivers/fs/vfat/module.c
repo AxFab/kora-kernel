@@ -27,7 +27,8 @@ ino_ops_t fatfs_reg_ops = {
 };
 
 ino_ops_t fatfs_dir_ops = {
-    .open = fat_open,
+    // .open = fat_open,
+    .lookup = fat_lookup,
     // .close = fatfs_close,
     .unlink = fat_unlink,
     .opendir = fat_opendir,

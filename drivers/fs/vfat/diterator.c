@@ -93,6 +93,40 @@ int fat_iterator_next(fat_iterator_t *ctx, fat_entry_t **ptr)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+inode_t* fat_lookup(inode_t* dir, const char* name, void* acl)
+{
+    inode_t* ino;
+    fat_iterator_t ctx;
+    fat_create_iterator(dir, &ctx);
+    fat_volume_t* volume = dir->drv_data;
+
+    for (;;) {
+        fat_entry_t* entry;
+        int no = fat_iterator_next(&ctx, &entry);
+        if (no == 0)
+            break;
+
+        char shortname[14];
+        fatfs_read_shortname(entry, shortname);
+        if (strcmp(name, shortname) != 0) // TODO - long name
+            continue;
+
+        ino = fatfs_inode(no, entry, dir->dev, volume);
+        fat_clear_iterator(&ctx);
+        errno = 0;
+        return ino;
+    }
+
+    fat_clear_iterator(&ctx);
+    errno = ENOENT;
+    return NULL;
+}
+
+//inode_t* fat_create(inode_t* dir, const char* name, void* acl, int mode)
+//{
+//
+//}
+
 inode_t *fat_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
 {
     inode_t *ino;
@@ -163,7 +197,7 @@ inode_t *fat_readdir(inode_t *dir, char *name, void *ptr)
     fat_iterator_t *ctx = ptr;
     struct FAT_ShortEntry *entry;
     int no = fat_iterator_next(ctx, &entry);
-    if (no == NULL)
+    if (no == 0)
         return NULL;
 
     fat_volume_t *volume = dir->drv_data;
@@ -183,7 +217,6 @@ int fat_closedir(inode_t *dir, void *ptr)
 
 int fat_unlink(inode_t *dir, const char *name)
 {
-    inode_t *ino;
     fat_iterator_t ctx;
     fat_create_iterator(dir, &ctx); // TODO - write access
     fat_volume_t *volume = dir->drv_data;

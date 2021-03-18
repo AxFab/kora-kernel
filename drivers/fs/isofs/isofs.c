@@ -23,7 +23,7 @@
 inode_t *isofs_mount(inode_t *dev, const char *options);
 // int isofs_umount(inode_t* ino);
 
-inode_t *isofs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags);
+inode_t *isofs_lookup(inode_t *dir, const char *name, void *acl);
 int isofs_read(inode_t *ino, void *buffer, size_t length, xoff_t offset);
 
 ISO_dirctx_t *isofs_opendir(inode_t *dir);
@@ -36,7 +36,7 @@ ino_ops_t iso_reg_ops = {
 };
 
 ino_ops_t iso_dir_ops = {
-    .open = isofs_open,
+    .lookup = isofs_lookup,
     .opendir = (void *)isofs_opendir,
     .readdir = (void *)isofs_readdir,
     .closedir = (void *)isofs_closedir,
@@ -138,13 +138,8 @@ int isofs_closedir(inode_t *dir, ISO_dirctx_t *ctx)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-inode_t *isofs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
+inode_t *isofs_lookup(inode_t* dir, const char* name, void *acl)
 {
-    if (!(flags & IO_OPEN)) {
-        errno = EROFS;
-        return NULL;
-    }
-
     char *filename = kalloc(256);
     size_t maxlba = dir->lba + dir->length / ISOFS_SECTOR_SIZE;
     // struct ISO_info *info = (struct ISO_info *)dir->drv_data;
@@ -185,11 +180,6 @@ inode_t *isofs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int
     }
 
     kfree(filename);
-    if (flags & IO_CREAT) {
-        errno = EROFS;
-        return NULL;
-    }
-
     errno = ENOENT;
     return NULL;
 }
