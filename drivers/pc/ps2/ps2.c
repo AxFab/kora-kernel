@@ -55,7 +55,7 @@ void PS2_setup()
     kdb_ino->dev->block = sizeof(evmsg_t);
     kdb_ino->dev->flags = FD_RDONLY;
     kdb_ino->dev->devclass = strdup("PS/2 Keyboard");
-    vfs_mkdev(kdb_ino, "kdb");
+    vfs_mkdev(kdb_ino, "kbd");
     vfs_close_inode(kdb_ino);
 
     // TODO - Remove this hack!
@@ -75,7 +75,7 @@ void PS2_setup()
 void PS2_teardown()
 {
     /*
-    vfs_rmdev("kdb");
+    vfs_rmdev("kbd");
     vfs_rmdev("mouse");
     */
 }

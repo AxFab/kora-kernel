@@ -134,9 +134,12 @@ void vga_flip(inode_t *ino, size_t newoffset)
 
 int vga_ioctl(inode_t *ino, int cmd, size_t *params)
 {
+    vga_info_t *info = ino->drv_data;
     if (cmd == FB_FLIP) {
         vga_flip(ino, params[0]);
         return 0;
+    } if (cmd == FB_SIZE) {
+        return info->width | info->height << 16;
     }
     return -1;
 }
