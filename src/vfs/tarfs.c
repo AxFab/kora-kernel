@@ -132,14 +132,32 @@ static tar_entry_t *tar_do_iterate(inode_t *dir, char *name, tar_iterator_t *ctx
     return entry;
 }
 
+///* Look for entry visible on a directory */
+//inode_t *tar_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
+//{
+//    tar_iterator_t ctx;
+//    tar_start_iterate(dir, &ctx);
+//    char tmp[256];
+//    for (;;) {
+//        tar_entry_t *entry = tar_do_iterate(dir, tmp, &ctx);
+//        if (entry == NULL) {
+//            errno = ENOENT;
+//            return NULL;
+//        }
+//
+//        if (strcmp(name, tmp) == 0)
+//            return tar_inode(dir, entry);
+//    }
+//}
+
 /* Look for entry visible on a directory */
-inode_t *tar_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
+inode_t* tar_lookup(inode_t* dir, const char* name, void* acl)
 {
     tar_iterator_t ctx;
     tar_start_iterate(dir, &ctx);
     char tmp[256];
     for (;;) {
-        tar_entry_t *entry = tar_do_iterate(dir, tmp, &ctx);
+        tar_entry_t* entry = tar_do_iterate(dir, tmp, &ctx);
         if (entry == NULL) {
             errno = ENOENT;
             return NULL;
@@ -149,6 +167,7 @@ inode_t *tar_open(inode_t *dir, const char *name, ftype_t type, void *acl, int f
             return tar_inode(dir, entry);
     }
 }
+
 
 /* Start an iterator to walk on a directory */
 tar_iterator_t *tar_opendir(inode_t *dir)
@@ -212,7 +231,8 @@ int tar_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 ino_ops_t tar_dir_ops = {
-    .open = tar_open,
+    // .open = tar_open,
+    .lookup = tar_lookup,
     .opendir = (void *)tar_opendir,
     .readdir = (void *)tar_readdir,
     .closedir = (void *)tar_closedir,
@@ -224,7 +244,8 @@ ino_ops_t tar_reg_ops = {
 };
 
 ino_ops_t tar_lnk_ops = {
-    .open = tar_open,
+    // .open = tar_open,
+    .lookup = tar_lookup,
 };
 
 static inode_t *tar_inode(inode_t *dir, tar_entry_t *entry)

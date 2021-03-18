@@ -247,8 +247,8 @@ int vfs_lookup(fsnode_t *node)
             mtx_unlock(&node->mtx);
         else {
             inode_t *dir = node->parent->ino;
-            assert(dir->ops->open != NULL);
-            inode_t *ino = dir->ops->open(dir, node->name, FL_INVAL, NULL, IO_OPEN);
+            assert(dir->ops->lookup != NULL);
+            inode_t *ino = dir->ops->lookup(dir, node->name, NULL);
             // TODO - Handle error
             if (ino != NULL) {
                 node->ino = ino;
@@ -319,6 +319,39 @@ fsnode_t *vfs_search(vfs_t *vfs, const char *pathname, void *user, bool resolve)
         assert(node->mode == FN_OK);
     }
 }
+
+int vfs_create(fsnode_t *node, void * user, int flags, int mode)
+{
+    assert(node != NULL);
+    mtx_lock(&node->mtx);
+    if (node->mode != FN_EMPTY && node->mode != FN_NOENTRY) {
+        mtx_unlock(&node->mtx);
+        errno = EEXIST;
+        return -1;
+    }
+
+    assert(node->parent);
+    inode_t* dir = node->parent->ino;
+    if (dir->dev->flags & FD_RDONLY) {
+        mtx_unlock(&node->mtx);
+        errno = EROFS;
+        return -1;
+    }
+    if (dir->ops->create == NULL) {
+        mtx_unlock(&node->mtx);
+        errno = ENOSYS;
+        return -1;
+    }
+
+    inode_t* ino = dir->ops->create(dir, node->name, user, mode);
+    if (ino != NULL) {
+        node->ino = ino;
+        node->mode = FN_OK;
+    }
+    mtx_unlock(&node->mtx);
+    return ino ? 0 : -1;
+}
+
 
 const char *ftype_char = "?rbpcnslfd";
 

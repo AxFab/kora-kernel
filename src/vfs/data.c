@@ -98,6 +98,18 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags)
     return ino->fops->write(ino, buf, size, off, flags);
 }
 
+int vfs_truncate(inode_t* ino, xoff_t off)
+{
+    assert(ino != NULL);
+    if (ino->ops == NULL || ino->ops->truncate == NULL) {
+        errno = ENOSYS;
+        return -1;
+    }
+
+    int ret = ino->ops->truncate(ino, off);
+    assert((ret != 0) != (ino->length == off));
+    return ret;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

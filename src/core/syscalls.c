@@ -238,6 +238,31 @@ long sys_open(int dirfd, const char *path, int flags, int mode)
     return strm->fd;
 }
 
+long sys_create(int dirfd, const char *path, int flags, int mode)
+{
+    if (mspace_check_str(__current->vm, path, 4096) != 0)
+        return -1;
+
+    if (dirfd >= 0) {
+        fstream_t *strm = stream_get(__current->fset, dirfd);
+        if (strm == NULL)
+            return -1;
+    }
+
+    fsnode_t *node = vfs_search(__current->vfs, path, NULL, false);
+    if (node == NULL)
+        return -1;
+
+    int ret = vfs_create(node, flags, mode);
+    if (ret != 0) {
+        return -1;
+    }
+
+    fstream_t *strm = stream_put(__current->fset, node, VM_RD);
+    vfs_close_fsnode(node);
+    return strm->fd;
+}
+
 long sys_close(int fd)
 {
     fstream_t *strm = stream_get(__current->fset, fd);
@@ -247,6 +272,32 @@ long sys_close(int fd)
     stream_remove(__current->fset, strm);
     vfs_close_fsnode(file);
     return 0;
+}
+
+long sys_opendir(int dirfd, const char *path)
+{
+    if (mspace_check_str(__current->vm, path, 4096) != 0)
+        return -1;
+
+    if (dirfd >= 0) {
+        fstream_t *strm = stream_get(__current->fset, dirfd);
+        if (strm == NULL)
+            return -1;
+    }
+
+    fsnode_t *node = vfs_search(__current->vfs, path, NULL, false);
+    if (node == NULL)
+        return -1;
+
+    if (vfs_lookup(node) != 0 || node->ino->type != FL_DIR) {
+        vfs_close_fsnode(node);
+        errno = ENOENT;
+        return -1;
+    }
+
+    fstream_t *strm = stream_put(__current->fset, node, VM_RD);
+    vfs_close_fsnode(node);
+    return strm->fd;
 }
 
 long sys_readdir(int fd, char *buf, size_t len)

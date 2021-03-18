@@ -122,7 +122,9 @@ struct vfs {
 };
 
 struct ino_ops {
-    inode_t *(*open)(inode_t *dir, const char *name, ftype_t type, void *acl, int flags);
+    // inode_t *(*open)(inode_t *dir, const char *name, ftype_t type, void *acl, int flags);
+    inode_t* (*lookup)(inode_t* dir, const char* name, void* acl);
+    inode_t* (*create)(inode_t* dir, const char* name, void* acl, int mode);
     void (*close)(inode_t *dir, inode_t *ino);
     int (*unlink)(inode_t *dir, const char *name);
 
@@ -210,6 +212,10 @@ void vfs_close_fsnode(fsnode_t *node);
 int vfs_chdir(vfs_t *vfs, const char *path, bool root);
 int vfs_readlink(vfs_t *vfs, fsnode_t *node, char *buf, int len, bool relative);
 
+
+int vfs_create(fsnode_t* node, void* acl, int flags, int mode);
+int vfs_mkdir(fsnode_t* node, int flags, void* acl);
+
 void vfs_usage(fsnode_t *node, int flags, int use);
 
 diterator_t *vfs_opendir(fsnode_t *dir, void *acl);
@@ -219,7 +225,7 @@ int vfs_closedir(fsnode_t *dir, diterator_t *it);
 
 int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags);
 int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags);
-
+int vfs_truncate(inode_t* ino, xoff_t off);
 
 // Internal
 fsnode_t *vfs_fsnode_from(fsnode_t *parent, const char *name);
@@ -237,6 +243,7 @@ inode_t *tar_mount(void *base, size_t length, const char *name);
 
 #define FB_RESIZE 0x8001
 #define FB_FLIP 0x8002
+#define FB_SIZE 0x8003
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
