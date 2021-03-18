@@ -210,6 +210,35 @@ inode_t *devfs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int
     return NULL;
 }
 
+inode_t* devfs_lookup(inode_t* dir, const char* name, void* acl)
+{
+    dfs_info_t* info = dir->drv_data;
+    dfs_entry_t* entry = devfs_fetch(info, dir->no);
+
+    // TODO Look on name / label or uuid ?
+    int idx;
+    dfs_table_t* table = info->table;
+    for (idx = 0; ; ++idx) {
+        if (idx >= table->length) {
+            idx = 0;
+            table = table->next;
+            if (table == NULL) {
+                errno = ENOENT;
+                return NULL;
+            }
+        }
+
+        dfs_entry_t* en = &table->entries[idx];
+        if ((en->show & entry->filter) == 0)
+            continue;
+
+        int k = strcmp(en->name, name);
+        if (k == 0)
+            return devfs_inode(info, en);
+    }
+    return NULL;
+}
+
 /* Start an iterator to walk on a directory */
 dfs_iterator_t *devfs_opendir(inode_t *dir)
 {
@@ -265,7 +294,8 @@ void devfs_closedir(inode_t *dir, dfs_iterator_t *ctx)
 
 
 ino_ops_t devfs_dir_ops = {
-    .open = devfs_open,
+    // .open = devfs_open,
+    .lookup = devfs_lookup,
     .opendir = (void *)devfs_opendir,
     .readdir = (void *)devfs_readdir,
     .closedir = (void *)devfs_closedir,

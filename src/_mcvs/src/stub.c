@@ -97,7 +97,7 @@ void *kmap(size_t len, void *ino, xoff_t off, int access)
     while (len > 0) {
         page_t pg = ((inode_t *)ino)->fops->fetch(ino, off);
         mp->pgs[i++] = pg;
-        assert(pg != NULL); // TODO - Better handling this
+        assert(pg != 0); // TODO - Better handling this
         memcpy(buf, (void *)pg, PAGE_SIZE);
         // TODO -- We're suppose to use those pages an release them at kunmap only !
         // ((inode_t *)ino)->fops->release(ino, off, pg);
@@ -106,7 +106,7 @@ void *kmap(size_t len, void *ino, xoff_t off, int access)
         off += PAGE_SIZE;
     }
 
-    mp->node.value_ = ptr;
+    mp->node.value_ = (size_t)ptr;
     bbtree_insert(&map_tree, &mp->node);
     return ptr;
 }
@@ -114,13 +114,13 @@ void *kmap(size_t len, void *ino, xoff_t off, int access)
 void kunmap(void *addr, size_t len)
 {
     --kmapCount;
-    map_page_t *mp = bbtree_search_eq(&map_tree, addr, map_page_t, node);
+    map_page_t *mp = (void*)bbtree_search_eq(&map_tree, addr, map_page_t, node);
     if (mp != NULL) {
         char tmp[64];
         kprintf(KL_MAL, "- kunmap (%p, %d, %s+%llx)\n", addr, len, vfs_inokey(mp->ino, tmp), mp->off);
-        bbtree_remove(&map_tree, addr);
+        bbtree_remove(&map_tree, (size_t)addr);
         bool dirty = mp->access & 2 ? true : false;
-        int i;
+        unsigned i;
         for (i = 0; i < mp->len; ++i) {
             page_t pg = mp->pgs[i];
             if (dirty)
@@ -198,7 +198,7 @@ void page_release(page_t page)
 page_t mmu_read(size_t address)
 {
     void *page = _valloc(PAGE_SIZE);
-    memcpy(page, address, PAGE_SIZE);
+    memcpy(page, (void*)address, PAGE_SIZE);
     // kprintf(-1, "Page shadow copy at %p \n", page);
     return (page_t)page;
 }
@@ -224,13 +224,13 @@ void mmu_leave() {}
 /* - */
 void mmu_context(mspace_t *mspace) {}
 /* - */
-int mmu_resolve(size_t vaddr, page_t phys, int falgs) {}
+int mmu_resolve(size_t vaddr, page_t phys, int falgs) { assert(0); return -1; }
 /* - */
 // page_t mmu_read(size_t vaddr) {}
 /* - */
-page_t mmu_drop(size_t vaddr) {}
+page_t mmu_drop(size_t vaddr) { assert(0); return 0; }
 /* - */
-page_t mmu_protect(size_t vaddr, int falgs) {}
+page_t mmu_protect(size_t vaddr, int falgs) { assert(0); return 0; }
 /* - */
 void mmu_create_uspace(mspace_t *mspace) {}
 /* - */
@@ -243,20 +243,25 @@ void mmu_destroy_uspace(mspace_t *mspace) {}
 void cpu_setjmp(cpu_state_t *buf, void *stack, void *func, void *arg)
 {
     printf("Cpu set jmp\n");
+    assert(0);
 }
 
 int cpu_save(cpu_state_t *buf)
 {
     printf("Cpu save \n");
+    assert(0);
+    return -1;
 }
 
 _Noreturn void cpu_restore(cpu_state_t *buf)
 {
+    assert(0);
     for (;;);
 }
 
 _Noreturn void cpu_halt()
 {
+    assert(0);
     for (;;);
 }
 
@@ -314,6 +319,7 @@ bool irq_enable()
 {
     assert(__irq_semaphore > 0);
     --__irq_semaphore;
+    return __irq_semaphore == 0;
 }
 
 void irq_disable()

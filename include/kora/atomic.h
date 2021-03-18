@@ -50,8 +50,8 @@ bool atomic_compare_exchange_explicit(atomic_int *ref, atomic_int *ptr, int valu
 #define atomic_store(p,v) do { (*(p) = (v)); } while(0)
 #define atomic_load(p)  (*(p))
 
-#define atomic_inc(p)  __atomic_inc_4(p,0)
-#define atomic_dec(p)  __atomic_dec_4(p,0)
+#define atomic_inc(p)  __atomic_inc_4(p)
+#define atomic_dec(p)  __atomic_dec_4(p)
 
 #define atomic_fetch_add(p,v)  __atomic_fetch_add_4(p,v,0)
 #define atomic_fetch_sub(p,v)  __atomic_fetch_sub_4(p,v,0)

@@ -25,21 +25,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <fcntl.h>
-
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define SEEK_SET 0 /* Seek from beginning of file.  */
-#define SEEK_CUR 1 /* Seek from current position.  */
-#define SEEK_END 2 /* Seek from end of file.  */
-
-#if defined _WIN32
-int open(const char *name, int flags, ...);
-#else
-#define O_BINARY 0
-#endif
-int read(int fd, char *buf, int len);
-int write(int fd, const char *buf, int len);
-int lseek(int fd, off_t off, int whence);
-void close(int fd);
+#include <unistd.h>
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -292,8 +278,8 @@ int vhd_read(inode_t *ino, void *data, size_t size, xoff_t offset)
     struct vhd_info *info = ino->drv_data;
     splock_lock(&ino->lock);
     while (size > 0) {
-        size_t idx = offset / info->block_size;
-        size_t bat_off = idx * 4 + info->table_off;
+        uint64_t idx = offset / info->block_size;
+        uint64_t bat_off = idx * 4 + info->table_off;
         uint32_t bat_val;
         lseek(fd, bat_off, SEEK_SET);
         read(fd, &bat_val, 4);
@@ -319,10 +305,10 @@ int vhd_write(inode_t *ino, const void *data, size_t size, xoff_t offset)
     struct vhd_info *info = ino->drv_data;
     splock_lock(&ino->lock);
     while (size > 0) {
-        size_t idx = offset / info->block_size;
-        size_t bat_off = idx * 4 + info->table_off;
+        uint64_t idx = offset / info->block_size;
+        uint64_t bat_off = idx * 4 + info->table_off;
         uint32_t bat_val;
-        lseek(fd, bat_off, SEEK_SET);
+        lseek(fd, (off_t)bat_off, SEEK_SET);
         read(fd, &bat_val, 4);
         size_t avail = MIN(size, info->block_size - offset % info->block_size);
         if (bat_val == ~0) {
@@ -360,11 +346,12 @@ void imgdk_create(const char *name, size_t size)
         kprintf(-1, "Unable to create image disk %s\n", name);
 }
 
-uint32_t vhd_checksum(char *buf, int len)
+uint32_t vhd_checksum(void *buf, int len)
 {
+    char* b = buf;
     uint32_t checksum = 0;
     for (int i = 0; i < len; ++i)
-        checksum += buf[i];
+        checksum += b[i];
     return __swap32(~checksum);
 }
 

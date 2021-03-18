@@ -85,7 +85,9 @@ enum syscall_no {
     SYS_SINFO,
 
     SYS_OPEN,
+    SYS_CREATE,
     SYS_CLOSE,
+    SYS_OPENDIR,
     SYS_READDIR,
     SYS_SEEK,
     SYS_READ, // 16
