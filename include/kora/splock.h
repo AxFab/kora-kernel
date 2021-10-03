@@ -21,7 +21,7 @@
 #define _KORA_SPLOCK_H 1
 
 #include <bits/cdefs.h>
-#include <kora/atomic.h>
+#include <bits/atomic.h>
 #include <stdbool.h>
 
 extern void irq_reset(bool enable);
@@ -46,7 +46,7 @@ static inline void splock_lock(splock_t *lock)
 {
     irq_disable();
     for (;;) {
-        if (atomic_exchange(lock, 1) == 0)
+        if (atomic_xchg(lock, 1) == 0)
             return;
         while (*lock != 0)
             __asm_pause_;
@@ -64,7 +64,7 @@ static inline void splock_unlock(splock_t *lock)
 static inline bool splock_trylock(splock_t *lock)
 {
     irq_disable();
-    if (atomic_exchange(lock, 1) == 0)
+    if (atomic_xchg(lock, 1) == 0)
         return true;
     irq_enable();
     return false;

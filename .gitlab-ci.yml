@@ -1,25 +1,43 @@
 # CI script for KoraOS on Gitlab
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-image: gcc
+image: axfab/kora-gcc:latest
 
-build:
+.build:
   stage: build
-  before_script:
-    - apt update && apt install -y binutils make gcc nasm
-    - ./scripts/toolchain.sh install
   script:
     - make clean
-    - make CROSS=./opt/bin/i386-elf- target=i386-pc-kora
+    - make
   artifacts:
     paths:
-      - bin/kora-i386.krn
+      - bin/kora-$ARCH.krn
 
 test:
   stage: test
-  before_script:
-    - apt update && apt install -y binutils make gcc nasm lcov valgrind
   script:
     - make clean
     - make check
     - sh ./scripts/coverage.sh || true
+  coverage: 'lines......: [0-9.]*% ([0-9]* of [0-9]* lines)'
+
+publish:
+  stage: release
+  needs:
+    - job: .build
+      artifacts: true
+  only:
+    refs:
+      - master
+  release:
+    name: 'Release $CI_COMMIT_TAG'
+    description: 'Created using the release-cli $EXTRA_DESCRIPTION'  # $EXTRA_DESCRIPTION must be defined
+    tag_name: '$CI_COMMIT_TAG'                                       # elsewhere in the pipeline.
+    ref: '$CI_COMMIT_TAG'
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+build_i386:
+  extends: .build
+  variables:
+    ARCH: 'i386'
+    CROSS: "/opt/bin/i386-elf-"
+    target: "i386-pc-kora"
 

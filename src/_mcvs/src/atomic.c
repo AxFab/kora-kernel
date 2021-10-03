@@ -1,4 +1,4 @@
-#include <kora/atomic.h>
+#include <bits/atomic.h>
 #include <stdbool.h>
 
 //

@@ -19,6 +19,7 @@
  */
 #include "isofs.h"
 #include <kernel/mods.h>
+#include <time.h>
 
 inode_t *isofs_mount(inode_t *dev, const char *options);
 // int isofs_umount(inode_t* ino);

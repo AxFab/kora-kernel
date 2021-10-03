@@ -28,7 +28,7 @@
 #include <kora/bbtree.h>
 #include <kora/llist.h>
 #include <kora/hmap.h>
-#include <kora/atomic.h>
+#include <bits/atomic.h>
 #include <threads.h>
 
 typedef struct vfs vfs_t;
@@ -112,6 +112,7 @@ struct device {
     llhead_t llru;
     size_t block;
     inode_t *underlying;
+    llnode_t node;
 };
 
 struct vfs {

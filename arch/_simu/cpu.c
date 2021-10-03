@@ -20,7 +20,7 @@ void usleep(long us);
 void cpu_setup()
 {
     int i;
-    __cpu_no = atomic_fetch_add(&__cpu_inc, 1);
+    __cpu_no = atomic_xadd(&__cpu_inc, 1);
     if (__cpu_no == 0) {
         thrd_t thrd;
         kSYS.cpus = kalloc(sizeof(struct kCpu) * opts.cpu_count);

@@ -4,7 +4,8 @@
 #include <errno.h>
 #include <kernel/stdc.h>
 #include <kora/mcrs.h>
-#include <kora/atomic.h>
+#include <bits/atomic.h>
+
 
 /* creates a condition variable */
 int cnd_init(cnd_t *cond)
@@ -19,14 +20,14 @@ int cnd_signal(cnd_t *cond)
 {
     /* we are waking someone up */
     cond->seq++;
-    futex_wake((int *)&cond->seq, 1);
+    futex_wake((int *)&cond->seq, 1, 0);
     return 0;
 }
 
 /* unblocks all threads blocked on a condition variable */
 int cnd_broadcast(cnd_t *cond)
 {
-    mtx_t *mutex = cond->mtx;
+    volatile mtx_t *mutex = cond->mtx;
     /* no mutex means no waiters */
     if (mutex == NULL)
         return 0;
@@ -54,8 +55,7 @@ int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mutex, const struct time
         if (cond->mtx)
             return EINVAL;
         /* atomically set mutex inside cond */
-        intptr_t ptr = 0;
-        atomic_ptr_compare_exchange(&cond->mtx, &ptr, mutex);
+        atomic_ptr_cmpxchg(&cond->mtx, NULL, mutex);
         if (cond->mtx != mutex)
             return EINVAL;
     }
@@ -66,7 +66,7 @@ int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mutex, const struct time
 
     mtx_unlock(mutex);
     futex_wait((int *)&cond->seq, seq, timeout, cond->flags);
-    while (atomic_exchange(&mutex->value, 2)) {
+    while (atomic_xchg(&mutex->value, 2)) {
         futex_wait((int *)&mutex->value, 2, timeout, mutex->flags);
 
         if (time_point->tv_sec >= 0) {
@@ -87,3 +87,4 @@ void cnd_destroy(cnd_t *cond)
 {
     (void)cond;
 }
+

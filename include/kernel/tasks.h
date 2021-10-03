@@ -166,7 +166,7 @@ void stream_remove(streamset_t *strms, fstream_t *stm);
 
 int futex_wait(int *addr, int val, long timeout, int flags);
 int futex_requeue(int *addr, int val, int val2, int *addr2, int flags);
-int futex_wake(int *addr, int val);
+int futex_wake(int *addr, int val, int flags);
 
 void itimer_create(inode_t *ino, long delay, long interval);
 xtime_t sleep_timer(long timeout);

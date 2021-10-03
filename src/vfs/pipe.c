@@ -248,7 +248,7 @@ void pipe_usage(inode_t *ino, int flags, int use)
     } else {
         if (flags & VM_RD)
             atomic_dec(&pipe->readers);
-        if (flags & VM_WR && atomic_fetch_sub(&pipe->writers, 1) == 1)
+        if (flags & VM_WR && atomic_xadd(&pipe->writers, -1) == 1)
             pipe_hangup(pipe);
     }
 }

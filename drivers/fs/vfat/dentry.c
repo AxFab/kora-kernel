@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "vfat.h"
+#include <time.h>
 
 void fatfs_settime(unsigned short *date, unsigned short *time, xtime_t value)
 {

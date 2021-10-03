@@ -46,7 +46,7 @@ struct block_page {
 
 static void block_close_page(block_file_t *block, block_page_t *page)
 {
-    if (atomic_fetch_sub(&page->rcu, 1) == 1) {
+    if (atomic_xadd(&page->rcu, -1) == 1) {
         splock_lock(&block->lock);
         if (page->rcu != 0) {
             splock_unlock(&block->lock);

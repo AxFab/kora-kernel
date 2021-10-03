@@ -23,8 +23,11 @@
 #include <kora/llist.h>
 
 atomic_int dev_no = 1;
+llhead_t dev_head = INIT_LLHEAD;
+splock_t dev_lock = INIT_SPLOCK;
 
 void vfs_createfile(inode_t *ino);
+void vfs_cleanfile(inode_t* ino);
 
 /* An inode must be created by the driver using a call to `vfs_inode()' */
 inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t *ops)
@@ -32,7 +35,11 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t 
     if (device == NULL) {
         device = kalloc(sizeof(device_t));
         // TODO -- Give UniqueID / Register on
-        device->no = atomic_fetch_add(&dev_no, 1);
+        device->no = atomic_xadd(&dev_no, 1);
+        splock_lock(&dev_lock);
+        ll_append(&dev_head, &device->node);
+        splock_unlock(&dev_lock);
+        // kprintf(KL_INO, "Alloc new device `%d`\n", device->no);
         bbtree_init(&device->btree);
         hmp_init(&device->map, 16);
     }
@@ -46,12 +53,13 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t 
         return inode;
     }
 
-    inode = (inode_t *)kalloc(sizeof(inode_t));
+    inode = (inode_t *)kalloc(sizeof(inode_t)); // TODO -- Alloc while holding a spinlock !?
     inode->no = no;
     inode->type = type;
     inode->dev = device;
     inode->ops = ops;
     inode->rcu = 1;
+    // kprintf(KL_INO, "Alloc new inode `%s`\n", vfs_inokey(inode, tmp));
     vfs_createfile(inode);
     atomic_inc(&device->rcu);
 
@@ -61,7 +69,6 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t 
     return inode;
 }
 
-
 inode_t *vfs_open_inode(inode_t *ino)
 {
     if (ino)
@@ -69,16 +76,47 @@ inode_t *vfs_open_inode(inode_t *ino)
     return ino;
 }
 
-void vfs_close_inode(inode_t *ino)
+void vfs_close_inode(inode_t* ino)
 {
     if (ino == NULL)
         return;
-    if (atomic_fetch_sub(&ino->rcu, 1) == 1) {
-        if (atomic_fetch_sub(&ino->dev->rcu, 1) == 1) {
-            // TODO - CLEAN UP VOLUME
-        }
-        // TODO - CLEAN UP INODE
+    device_t* device = ino->dev;
+    splock_lock(&device->lock);
+    if (atomic_xadd(&ino->rcu, -1) != 1) {
+        splock_unlock(&device->lock);
+        return;
     }
+
+    // kprintf(KL_INO, "Release inode `%s`\n", vfs_inokey(ino, tmp));
+    bbtree_remove(&device->btree, ino->bnode.value_);
+    splock_unlock(&device->lock);
+    vfs_cleanfile(ino);
+    if (ino->ops->close)
+        ino->ops->close(NULL, ino); // TODO -- Can we find the parent?
+    kfree(ino);
+
+    if (atomic_xadd(&device->rcu, -1) != 1)
+        return;
+
+    assert(device->map.count == 0);
+    hmp_destroy(&device->map);
+    splock_lock(&dev_lock);
+    ll_remove(&dev_head, &device->node);
+    splock_unlock(&dev_lock);
+    // kprintf(KL_INO, "Release device `%d`\n", device->no);
+    kfree(device);
+}
+
+device_t* vfs_device_by_id(int no)
+{
+    device_t* dev = NULL;
+    splock_lock(&dev_lock);
+    for ll_each(&dev_head, dev, device_t, node) {
+        if (dev->no == no)
+            break;
+    }
+    splock_unlock(&dev_lock);
+    return dev; // This pointer can be invalid already !?
 }
 
 
@@ -88,13 +126,18 @@ fsnode_t *vfs_fsnode_from(fsnode_t *parent, const char *name)
 {
     device_t *device = parent->ino->dev;
     splock_lock(&device->lock);
-    int len = 4 + strlen(name);
-    char *key = kalloc(len + 1);
+    int len = 4 + strnlen(name, 256);
+    if (len >= 260) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+    char *key = kalloc(len + 1); // TODO -- Annoying alloc
     *((uint32_t *)key) = parent->ino->no;
     strcpy(&key[4], name);
     fsnode_t *node = hmp_get(&device->map, key, len);
     if (node == NULL) {
         node = kalloc(sizeof(fsnode_t));
+        // kprintf(KL_INO, "Alloc new fsnode `%s/%s`\n", vfs_inokey(parent->ino, tmp), name);
         mtx_init(&node->mtx, mtx_plain);
         node->parent = vfs_open_fsnode(parent);
         hmp_put(&device->map, key, len, node);
@@ -128,6 +171,7 @@ void vfs_dev_scavenge(device_t *dev, int max)
         splock_unlock(&dev->lock);
 
         vfs_close_fsnode(node->parent);
+        // kprintf(KL_INO, "Release fsnode `%s/%s`\n", vfs_inokey(node->parent->ino, tmp), node->name);
         mtx_destroy(&node->mtx);
         vfs_close_inode(node->ino);
         kfree(node);
@@ -146,7 +190,7 @@ void vfs_close_fsnode(fsnode_t *node)
 {
     if (node == NULL)
         return;
-    if (atomic_fetch_sub(&node->rcu, 1) == 1) {
+    if (atomic_xadd(&node->rcu, -1) == 1) {
         device_t *device = node->parent->ino->dev;
         splock_lock(&device->lock);
         if (node->rcu == 0)
@@ -274,7 +318,7 @@ fsnode_t *vfs_search(vfs_t *vfs, const char *pathname, void *user, bool resolve)
         return NULL;
     else if (path->list.count_ == 0) {
         assert(path->node->mode == FN_OK);
-        return vfs_open_fsnode(path->node);
+        return vfs_release_path(path, true);
     }
 
     int links = 0;

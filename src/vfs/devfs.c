@@ -42,7 +42,7 @@ struct dfs_info {
 struct dfs_entry {
     int ino;
     int flags;
-    char uuid[16];
+    char uuid[40];
     char name[32];
     char label[32];
     int show;
@@ -88,6 +88,10 @@ enum dfs_flags {
     DF_FREE = 0,
     DF_BUSY = 1,
     DF_USED = 2,
+    DF_USAGE = 3,
+
+    DF_BY_UUID = 4,
+    DF_BY_LABEL= 8
 };
 
 
@@ -120,8 +124,8 @@ static dfs_entry_t *devfs_fetch_new(dfs_info_t *info)
             table = table->next;
             idx = 0;
         }
-        if (table->entries[idx].flags == DF_FREE) {
-            table->entries[idx].flags = DF_BUSY;
+        if ((table->entries[idx].flags & DF_USAGE) == DF_FREE) {
+            table->entries[idx].flags |= DF_BUSY;
             return &table->entries[idx];
         }
     }
@@ -136,12 +140,12 @@ static dfs_entry_t *devfs_fetch(dfs_info_t *info, int no)
         table = table->next;
     }
 
-    assert(table->entries[no - 1].flags == DF_USED);
+    assert((table->entries[no - 1].flags & DF_USAGE) == DF_USED);
     return &table->entries[no - 1];
 }
 
 /* Use a new entry to create a new directory */
-static int devfs_dir(dfs_info_t *info, const char *name, int parent, int filter, int show)
+static int devfs_dir(dfs_info_t *info, const char *name, int parent, int filter, int show, int flg)
 {
     dfs_entry_t *entry = devfs_fetch_new(info);
     // entry->prt = prt;
@@ -149,7 +153,8 @@ static int devfs_dir(dfs_info_t *info, const char *name, int parent, int filter,
     entry->show = show;
     entry->filter = filter;
     strncpy(entry->name, name, 32);
-    entry->flags = DF_USED;
+    entry->flags &= ~DF_BUSY;
+    entry->flags |= DF_USED | flg;
     return entry->ino;
 }
 
@@ -186,7 +191,6 @@ inode_t *devfs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int
     }
     dfs_entry_t *entry = devfs_fetch(info, dir->no);
 
-    // TODO Look on name / label or uuid ?
     int idx;
     dfs_table_t *table = info->table;
     for (idx = 0; ; ++idx) {
@@ -203,7 +207,13 @@ inode_t *devfs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int
         if ((en->show & entry->filter) == 0)
             continue;
 
-        int k = strcmp(en->name, name);
+        int k = 0;
+        if (entry->flags & DF_BY_UUID)
+            k = strcmp(en->uuid, name);
+        else if (entry->flags & DF_BY_LABEL)
+            k = strcmp(en->label, name);
+        else
+           k = strcmp(en->name, name);
         if (k == 0)
             return devfs_inode(info, en);
     }
@@ -274,13 +284,18 @@ inode_t *devfs_readdir(inode_t *dir, char *name, dfs_iterator_t *ctx)
         ctx->idx++;
 
         dfs_entry_t *entry = &table->entries[no];
-        if (entry->flags != DF_USED)
+        if ((entry->flags & DF_USAGE) != DF_USED)
             continue;
         if ((entry->show & ctx->entry->filter) == 0)
             continue;
 
-        // TODO Look on name / label or uuid ?
-        strcpy(name, entry->name);
+        if (ctx->entry->flags & DF_BY_UUID)
+            strcpy(name, entry->uuid);
+        else if (ctx->entry->flags & DF_BY_LABEL)
+            strcpy(name, entry->label);
+        else
+            strcpy(name, entry->name);
+
         return devfs_inode(info, entry);
     }
 }
@@ -380,7 +395,8 @@ static inode_t *devfs_dev(dfs_info_t *info, const char *name, int type, int show
     entry->show = show;
     entry->dev = ino;
     strncpy(entry->name, name, 32);
-    entry->flags = DF_USED;
+    entry->flags &= ~DF_BUSY;
+    entry->flags |= DF_USED;
     kprintf(KL_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
             ino->dev->model ? ino->dev->model : "", name);
 
@@ -403,10 +419,18 @@ void devfs_register(inode_t *ino, const char *name)
         break;
     case FL_BLK:
         entry->show = DF_DISK | DF_ROOT;
-        if (ino->dev->uuid[0] != '0')
+        if (ino->dev->uuid[0] != '0') {
+            snprintf(entry->uuid, 40, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                ino->dev->uuid[0], ino->dev->uuid[1], ino->dev->uuid[2], ino->dev->uuid[3],
+                ino->dev->uuid[4], ino->dev->uuid[5], ino->dev->uuid[6], ino->dev->uuid[7],
+                ino->dev->uuid[8], ino->dev->uuid[9], ino->dev->uuid[10], ino->dev->uuid[11],
+                ino->dev->uuid[12], ino->dev->uuid[13], ino->dev->uuid[14], ino->dev->uuid[15]);
             entry->show |= DF_DISK1;
-        if (ino->dev->devname != NULL)
+        }
+        if (ino->dev->devname != NULL) {
+            strncpy(entry->label, ino->dev->devname, 32);
             entry->show |= DF_DISK2;
+        }
         if (ino->length)
             kprintf(KL_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
                     ino->dev->model ? ino->dev->model : "", sztoa(ino->length), name);
@@ -424,7 +448,8 @@ void devfs_register(inode_t *ino, const char *name)
     // kprintf(-1, "Device %s\n", vfs_inokey(ino, tmp));
     entry->dev = vfs_open_inode(ino);
     strncpy(entry->name, name, 32);
-    entry->flags = DF_USED;
+    entry->flags &= ~DF_BUSY;
+    entry->flags |= DF_USED;
 }
 
 inode_t* devfs_mount(inode_t *dev, const char* options)
@@ -447,25 +472,25 @@ inode_t *devfs_setup()
 
 
     dfs_entry_t *entry = devfs_fetch_new(info);
-    entry->dev = DEV_INO;
+    entry->dev = vfs_open_inode(DEV_INO);
     entry->filter = DF_ROOT;
     entry->flags = DF_USED;
 
-    int bus = devfs_dir(info, "bus", 1, DF_BUS, DF_ROOT);
-    int dsk = devfs_dir(info, "disk", 1, DF_DISK, DF_ROOT);
-    devfs_dir(info, "input", 1, DF_INPUT, DF_ROOT);
-    int mnt = devfs_dir(info, "mnt", 1, DF_MOUNT, DF_ROOT);
-    devfs_dir(info, "net", 1, DF_NET, DF_ROOT);
-    devfs_dir(info, "shm", 1, DF_SHM, DF_ROOT);
+    int bus = devfs_dir(info, "bus", 1, DF_BUS, DF_ROOT, 0);
+    int dsk = devfs_dir(info, "disk", 1, DF_DISK, DF_ROOT, 0);
+    devfs_dir(info, "input", 1, DF_INPUT, DF_ROOT, 0);
+    int mnt = devfs_dir(info, "mnt", 1, DF_MOUNT, DF_ROOT, 0);
+    devfs_dir(info, "net", 1, DF_NET, DF_ROOT, 0);
+    devfs_dir(info, "shm", 1, DF_SHM, DF_ROOT, 0);
 
-    devfs_dir(info, "by-uuid", dsk, DF_DISK1, DF_DISK);
-    devfs_dir(info, "by-label", dsk, DF_DISK2, DF_DISK);
+    devfs_dir(info, "by-uuid", dsk, DF_DISK1, DF_DISK, DF_BY_UUID);
+    devfs_dir(info, "by-label", dsk, DF_DISK2, DF_DISK, DF_BY_LABEL);
 
-    devfs_dir(info, "by-uuid", mnt, DF_MOUNT1, DF_MOUNT);
-    devfs_dir(info, "by-label", mnt, DF_MOUNT2, DF_MOUNT);
+    devfs_dir(info, "by-uuid", mnt, DF_MOUNT1, DF_MOUNT, DF_BY_UUID);
+    devfs_dir(info, "by-label", mnt, DF_MOUNT2, DF_MOUNT, DF_BY_LABEL);
 
-    devfs_dir(info, "pci", bus, DF_CSTM1, DF_BUS);
-    devfs_dir(info, "usb", bus, DF_CSTM2, DF_BUS);
+    devfs_dir(info, "pci", bus, DF_CSTM1, DF_BUS, 0);
+    devfs_dir(info, "usb", bus, DF_CSTM2, DF_BUS, 0);
 
     devfs_dev(info, "zero", FL_CHR, DF_ROOT, &devfs_zero_ops);
     devfs_dev(info, "null", FL_CHR, DF_ROOT, &devfs_null_ops);
@@ -476,15 +501,15 @@ inode_t *devfs_setup()
     return vfs_open_inode(DEV_INO);
 }
 
-void devfs_sweep(inode_t *ino)
+void devfs_sweep()
 {
     int i;
-    dfs_info_t *info = ino->drv_data;
+    dfs_info_t *info = DEV_INO->drv_data;
     dfs_table_t *table = info->table;
     while (table) {
         for (i = 0; i < table->length; ++i) {
             dfs_entry_t *entry = &table->entries[i];
-            if (entry->flags == 0)
+            if ((entry->flags & DF_USAGE) == 0)
                 continue;
             vfs_close_inode(entry->dev);
         }
@@ -493,7 +518,11 @@ void devfs_sweep(inode_t *ino)
         table = table->next;
         kunmap(p, PAGE_SIZE);
     }
+
     info->table = NULL;
+    vfs_close_inode(DEV_INO);
+    DEV_INO = NULL;
+    kfree(info);
 }
 
 

@@ -1,7 +1,14 @@
 # CI script for KoraOS on Travis
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 language: c
+
+services:
+  - docker
+
 before_install:
+  - docker pull axfab/kora-gcc:latest
+  - docker run -v `pwd`:/app -w /app -e LANG=C.UTF-8 -t axfab/kora-gcc:latest bash
+
   - sudo apt-get update
   - sudo apt-get install -y binutils gcc make
 

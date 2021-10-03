@@ -17,139 +17,110 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#if !defined __KORA_ATOMIC_H
-# error "Never use <bits/atomic.h> directly; include <kora/atomic.h> instead."
-#endif
+#ifndef __BITS_ATOMIC_H
+#define __BITS_ATOMIC_H 1
 
+typedef volatile int atomic_int;
+typedef volatile void *atomic_ptr;
+typedef volatile unsigned long long atomic_u64;
 
+void __lock(atomic_int *lock);
+void __unlock(atomic_int *lock);
 
-static inline void __atomic_inc_1(atomic_i8 *ref, int mode)
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+static inline int atomic_cmpxchg(atomic_int *p, int t, int s)
 {
-    ((void)mode);
-    asm volatile("lock incb %0" : "=m"(*ref));
+    __asm__ volatile(
+        "lock ; cmpxchg %3, %1"
+        : "=a"(t), "=m"(*p) : "a"(t), "r"(s) : "memory");
+    return t;
 }
 
-static inline void __atomic_dec_1(atomic_i8 *ref, int mode)
+static inline int atomic_xchg(atomic_int *p, int v)
 {
-    ((void)mode);
-    asm volatile("lock decb %0" : "=m"(*ref));
+    __asm__ volatile(
+        "xchg %0, %1"
+        : "=r"(v), "=m"(*p) : "0"(v) : "memory");
+    return v;
 }
 
-static inline int8_t __atomic_fetch_add_1(atomic_i8 *ref, int8_t val, int mode)
+static inline int atomic_xadd(atomic_int *p, int v)
 {
-    ((void)mode);
-    asm volatile("lock xaddb %%al, %2;"
-                 :"=a"(val) :"a"(val), "m"(*ref) :"memory");
-    return val;
+    __asm__ volatile(
+        "lock ; xadd %0, %1"
+        : "=r"(v), "=m"(*p) : "0"(v) : "memory");
+    return v;
 }
 
-static inline int8_t __atomic_fetch_sub_1(atomic_i8 *ref, int8_t val, int mode)
+static inline void atomic_inc(atomic_int *p)
 {
-    return __atomic_fetch_add_1(ref, -val, mode);
+    __asm__ volatile(
+        "lock ; incl %0"
+        : "=m"(*p) : "m"(*p) : "memory");
 }
 
-bool __atomic_exchange_1(atomic_i8 *ref, int8_t val, int mode);
-bool __atomic_compare_exchange_1(atomic_i8 *ref, int8_t *ptr, int8_t val,
-    bool weak, int mode_success, int mode_failure);
-// {
-//     ((void)weak);
-//     ((void)mode_success);
-//     ((void)mode_failure);
-//     int prev = *ptr;
-//     asm volatile("cmpxchgb  %1, %2;"
-//                  :"=a"(val) :"r"(val), "m"(*ref), "a"(prev) :"memory");
-//     *ptr = val;
-//     return val == prev;
-// }
-
-
-/* ------------------------------------------------------------------------ */
-
-static inline void __atomic_inc_2(atomic_i16 *ref, int mode)
+static inline void atomic_dec(atomic_int *p)
 {
-    ((void)mode);
-    asm volatile("lock incw %0" : "=m"(*ref));
+    __asm__ volatile(
+        "lock ; decl %0"
+        : "=m"(*p) : "m"(*p) : "memory");
 }
 
-static inline void __atomic_dec_2(atomic_i16 *ref, int mode)
+static inline void atomic_store(atomic_int *p, int x)
 {
-    ((void)mode);
-    asm volatile("lock decw %0" : "=m"(*ref));
+    __asm__ volatile(
+        "mov %1, %0 ; lock ; orl $0,(%%esp)"
+        : "=m"(*p) : "r"(x) : "memory");
 }
 
-static inline int16_t __atomic_fetch_add_2(atomic_i16 *ref, int16_t val, int mode)
+static inline int atomic_load(atomic_int *p)
 {
-    ((void)mode);
-    asm volatile("lock xaddw %%ax, %2;"
-                 :"=a"(val) :"a"(val), "m"(*ref) :"memory");
-    return val;
+    return *p;
 }
 
-static inline int16_t __atomic_fetch_sub_2(atomic_i16 *ref, int16_t val, int mode)
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+static inline void *atomic_ptr_cmpxchg(atomic_ptr *p, void *t, void *s)
 {
-    return __atomic_fetch_add_2(ref, -val, mode);
+    __asm__ volatile(
+        "lock ; cmpxchg %3, %1"
+        : "=a"(t), "=m"(*p) : "a"(t), "r"(s) : "memory");
+    return t;
+}
+
+static inline void *atomic_ptr_xchg(atomic_ptr *p, void *v)
+{
+    __asm__ volatile(
+        "xchg %0, %1"
+        : "=r"(v), "=m"(*p) : "0"(v) : "memory");
+    return v;
+}
+
+static inline void atomic_ptr_store(atomic_ptr *p, void *x)
+{
+    __asm__ volatile(
+        "mov %1, %0 ; lock ; orl $0,(%%esp)"
+        : "=m"(*p) : "r"(x) : "memory");
+}
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+static inline void atomic_barrier()
+{
+    __asm__ volatile("" : : : "memory");
 }
 
 
-int16_t __atomic_exchange_2(atomic_i16 *ref, int16_t val, int mode);
-bool __atomic_compare_exchange_2(atomic_i16 *ref, int16_t *ptr, int16_t val,
-    bool weak, int mode_success, int mode_failure);
-// {
-//     ((void)weak);
-//     ((void)mode_success);
-//     ((void)mode_failure);
-//     int prev = *ptr;
-//     asm volatile("cmpxchgq  %1, %2;"
-//                  :"=a"(val) :"r"(val), "m"(*ref), "a"(prev) :"memory");
-//     *ptr = val;
-//     return val == prev;
-// }
-
-/* ------------------------------------------------------------------------ */
-
-static inline void __atomic_inc_4(atomic_i32 *ref, int mode)
+static inline void atomic_break()
 {
-    ((void)mode);
-    asm volatile("lock incl %0" : "=m"(*ref));
+    __asm__ volatile("pause" : : : "memory");
 }
 
-static inline void __atomic_dec_4(atomic_i32 *ref, int mode)
+
+static inline void atomic_crash()
 {
-    ((void)mode);
-    asm volatile("lock decl %0" : "=m"(*ref));
+    __asm__ volatile("hlt" : : : "memory");
 }
 
-static inline int32_t __atomic_fetch_add_4(atomic_i32 *ref, int32_t val, int mode)
-{
-    ((void)mode);
-    asm volatile("lock xaddl %%eax, %2;"
-                 :"=a"(val) :"a"(val), "m"(*ref) :"memory");
-    return val;
-}
-
-static inline int32_t __atomic_fetch_sub_4(atomic_i32 *ref, int32_t val, int mode)
-{
-    return __atomic_fetch_add_4(ref, -val, mode);
-}
-
-static inline int32_t __atomic_exchange_4(atomic_i32 *ref, int32_t val, int mode)
-{
-    ((void)mode);
-    register int32_t store = val;
-    asm volatile("lock xchg %1, %0" : "=m"(*ref), "=r"(store) : "1"(val));
-    return store;
-}
-
-static inline bool __atomic_compare_exchange_4(atomic_i32 *ref, int32_t *ptr,
-    int32_t val, bool weak, int mode_success, int mode_failure)
-{
-    ((void)weak);
-    ((void)mode_success);
-    ((void)mode_failure);
-    register int32_t store = *ptr;
-    asm volatile("cmpxchg %1, %2;"
-                 :"=a"(val) :"r"(val), "m"(*ref), "a"(store) :"memory");
-    *ptr = val;
-    return val == store;
-}
-
+#endif  /* __BITS_ATOMIC_H */

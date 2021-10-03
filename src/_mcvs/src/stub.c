@@ -19,7 +19,7 @@
  */
 #include <stdio.h>
 #include <stddef.h>
-#include <kora/atomic.h>
+#include <bits/atomic.h>
 #include <bits/cdefs.h>
 #include <kora/bbtree.h>
 #include <kora/mcrs.h>
@@ -113,6 +113,10 @@ void *kmap(size_t len, void *ino, xoff_t off, int access)
 
 void kunmap(void *addr, size_t len)
 {
+    if (!map_init) {
+        bbtree_init(&map_tree);
+        map_init = true;
+    }
     --kmapCount;
     map_page_t *mp = (void*)bbtree_search_eq(&map_tree, addr, map_page_t, node);
     if (mp != NULL) {
@@ -287,7 +291,7 @@ int cpu_no()
 
 //void cpu_setup()
 //{
-//    __cpu_no = atomic_fetch_add(&__cpu_inc, 1);
+//    __cpu_no = atomic_xadd(&__cpu_inc, 1);
 //    kCPU.running = (task_t *)calloc(1, sizeof(task_t));
 //    kCPU.running->pid = __cpu_no;
 //}
