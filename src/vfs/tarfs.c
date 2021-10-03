@@ -204,7 +204,7 @@ int tar_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
     tar_entry_t *entry = ADDR_OFF(info->base, (ino->no - 2) * TAR_BLOCK_SIZE);
     uint8_t *data = ADDR_OFF(entry, TAR_BLOCK_SIZE);
     if ((xoff_t)len + off > ino->length) {
-        if ((xoff_t)len > ino->length)
+        if ((xoff_t)len > ALIGN_UP(ino->length, PAGE_SIZE))
             return -1;
         memset(buf, 0, len);
         memcpy(buf, &data[off], (size_t)(ino->length - off));
