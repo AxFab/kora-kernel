@@ -55,7 +55,7 @@ long sys_futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
 long sys_futex_wake(int *addr, int val)
 {
     // TODO - Check mspace_check(__current->vm, addr, sizeof(int));
-    return futex_wake(addr, val);
+    return futex_wake(addr, val, 0);
 }
 
 
@@ -253,7 +253,7 @@ long sys_create(int dirfd, const char *path, int flags, int mode)
     if (node == NULL)
         return -1;
 
-    int ret = vfs_create(node, flags, mode);
+    int ret = vfs_create(node, NULL, flags, mode);
     if (ret != 0) {
         return -1;
     }

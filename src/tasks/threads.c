@@ -223,7 +223,7 @@ void task_raise(scheduler_t *sch, task_t *task, unsigned signum)
 void task_fatal(const char *msg, unsigned signum)
 {
     task_t *task = __current;
-    kprintf(KL_ERR, "Task.%d] \033[31mFatal error %d: %s\033[0m\n", task->pid, msg);
+    kprintf(KL_ERR, "Task.%d] \033[31mFatal error %d: %s\033[0m\n", task->pid, signum, msg);
     scheduler_switch(TS_ZOMBIE);
     // task_raise(sch, task, signum);
 }

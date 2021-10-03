@@ -215,7 +215,7 @@ void cpu_restore(/* cpu_save_t *buf */)
 void cpu_setup()
 {
     utime_t now = cpu_clock(CLOCK_MONOTONIC);
-    __cpu_no = atomic_fetch_add(&__cpu_nb, 1);
+    __cpu_no = atomic_xadd(&__cpu_nb, 1);
     kCpu_t *cpu = malloc(sizeof(kCpu_t));
     memset(cpu, 0, sizeof(kCpu_t));
     cpu->chrono = now;

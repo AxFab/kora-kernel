@@ -56,7 +56,7 @@ enum klog {
     KL_IRQ,
     KL_MAL, // Memory Allocation
     KL_USR,
-
+    KL_INO, // VFS ressources alloc
 };
 
 
@@ -88,7 +88,7 @@ void kwrite(const char *buf, int len);
 
 int futex_wait(int *addr, int val, long timeout, int flags);
 int futex_requeue(int *addr, int val, int val2, int *addr2, int flags);
-int futex_wake(int *addr, int val);
+int futex_wake(int *addr, int val, int flags);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

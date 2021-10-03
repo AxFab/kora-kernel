@@ -231,7 +231,7 @@ int futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
     return 0;
 }
 
-int futex_wake(int *addr, int val)
+int futex_wake(int *addr, int val, int flags)
 {
     return futex_requeue(addr, val, 0, NULL, 0);
 }

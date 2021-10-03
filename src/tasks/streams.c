@@ -93,7 +93,7 @@ streamset_t *stream_open_set(streamset_t *strms)
 
 void stream_close_set(streamset_t *strms)
 {
-    if (atomic_fetch_sub(&strms->rcu, 1) > 1)
+    if (atomic_xadd(&strms->rcu, -1) > 1)
         return;
 
     while (strms->tree.count_ > 0) {

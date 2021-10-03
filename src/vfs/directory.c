@@ -25,6 +25,7 @@ struct diterator
 {
     int mode;
     void* ctx;
+    char name[256];
 };
 
 diterator_t *vfs_opendir(fsnode_t *dir, void *acl)
@@ -49,17 +50,13 @@ diterator_t *vfs_opendir(fsnode_t *dir, void *acl)
 
 static fsnode_t* vfs_readdir_std(fsnode_t* dir, diterator_t* it)
 {
-    char* name = kalloc(256);
-    inode_t* ino = dir->ino->ops->readdir(dir->ino, name, it->ctx);
-    if (ino == NULL) {
-        kfree(name);
+    inode_t* ino = dir->ino->ops->readdir(dir->ino, it->name, it->ctx);
+    if (ino == NULL)
         return NULL;
-    }
-
-    fsnode_t* node = vfs_fsnode_from(dir, name);
+    
+    fsnode_t* node = vfs_fsnode_from(dir, it->name);
     if (node->mode == FN_OK) {
         vfs_close_inode(ino);
-        kfree(name);
         return node;
     }
 
@@ -68,7 +65,6 @@ static fsnode_t* vfs_readdir_std(fsnode_t* dir, diterator_t* it)
     node->ino = ino;
     node->mode = FN_OK;
     mtx_unlock(&node->mtx);
-    kfree(name);
     return node;
 }
 

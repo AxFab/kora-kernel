@@ -248,7 +248,7 @@ _Noreturn void module_loader()
     // Start first user program
     const char *args[] = { "-x", NULL, };
     fsnode_t *nodes[3] = { NULL };
-    task_spawn("krish", args, nodes);
+    // task_spawn("krish", args, nodes);
 
     for (;;) {
         // kprintf(-1, "Hello from task %d \n", __current->pid);

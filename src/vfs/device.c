@@ -27,11 +27,16 @@
 
 hmap_t fs_hmap;
 
-inode_t *devfs_setup();
+inode_t* devfs_setup();
+
+void devfs_sweep();
 void devfs_register(inode_t *ino, const char *name);
 
+extern atomic_int dev_no;;
 vfs_t *vfs_init()
 {
+    dev_no = 1;
+
     hmp_init(&fs_hmap, 16);
     vfs_t *vfs = kalloc(sizeof(vfs_t));
     inode_t *ino = devfs_setup();
@@ -77,6 +82,14 @@ void vfs_sweep(vfs_t *vfs)
     // TODO --- Scavenge for all devices
     vfs_dev_scavenge(vfs->pwd->ino->dev, 20);
     vfs_dev_scavenge(vfs->root->ino->dev, 20);
+
+    devfs_sweep();
+
+    assert(vfs->root->parent == NULL && vfs->root->rcu == 1);
+    fsnode_t* node = vfs->root; // Check if that's the correct one and it's device is empty!?
+    mtx_destroy(&node->mtx);
+    vfs_close_inode(node->ino); // 
+    kfree(node);
 
     kfree(vfs);
     kprintf(-1, "Destroy all VFS data\n");

@@ -83,7 +83,7 @@ void ip4_setip(ifnet_t* net, const uint8_t* ip, const uint8_t* submsk, const uin
     info->submsk[0] = 0;
     if (submsk != NULL)
         memcpy(info->submsk, submsk, IP4_ALEN);
-    if (info->submsk != 0xff) {
+    if (info->submsk[0] != 0xff) {
         memset(info->submsk, 0xff, IP4_ALEN);
         info->submsk[3] = 0;
         if (info->ip[0] < 192)

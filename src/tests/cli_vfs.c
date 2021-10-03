@@ -1,6 +1,6 @@
 
 #include <kernel/vfs.h>
-#include <kernel/device.h>
+// #include <kernel/device.h>
 #include <kora/mcrs.h>
 
 #include <fcntl.h>
@@ -39,11 +39,11 @@ void do_ls(const char *path)
 
     while ((ino = vfs_readdir(dir, name, ctx)) != NULL) {
         printf("    %s (%s)\n", name, vfs_inokey(ino, tmp));
-        vfs_close_inode(ino, X_OK);
+        vfs_close_inode(ino);
     }
 
     vfs_closedir(dir, ctx);
-    vfs_close_inode(dir, X_OK);
+    vfs_close_inode(dir);
 }
 
 void do_stat(const char *path)
@@ -81,7 +81,7 @@ void do_mount(const char *path)
     char *dev = strtok_r(path, ";", &rp);
     char *fs = strtok_r(NULL, ";", &rp);
     char *name = strtok_r(NULL, ";", &rp);
-    vfs_mount(dev, fs, name);
+    vfs_mount(dev, fs, name, NULL);
 }
 
 void do_hd(const char *arg)
