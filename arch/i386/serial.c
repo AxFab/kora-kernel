@@ -60,7 +60,7 @@ static void com_init(int port)
     outb(port + 4, 0x0B);  // IRQs enabled, RTS/DSR set
 }
 
-static int com_read(int port, inode_t *ino)
+static int com_input(int port, inode_t *ino)
 {
     char byte;
     if ((inb(port + 5) & 1) != 0) {
@@ -98,8 +98,8 @@ void com_early_init()
 
 void com_irq(int o)
 {
-    com_read(serial_ports[o], serial_inos[o]);
-    com_read(serial_ports[o + 2], serial_inos[o + 2]);
+    com_input(serial_ports[o], serial_inos[o]);
+    com_input(serial_ports[o + 2], serial_inos[o + 2]);
 }
 
 int com_write(inode_t *ino, const char *buf, size_t len, int flags)

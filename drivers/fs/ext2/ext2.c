@@ -131,13 +131,6 @@ inode_t* ext2_creat(ext2_volume_t* vol, uint32_t no, ftype_t type, xtime_t time)
     return ino;
 }
 
-int ext2_format(inode_t *dev)
-{
-    // uint8_t *ptr = kmap(PAGE_SIZE, dev, 0, VMA_FILE_RW);
-    // ext2_sb_t *sb = (ext2_sb_t *)&ptr[1024];
-    return -1;
-}
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -860,6 +853,24 @@ inode_t *ext2_mount(inode_t *dev, const char *options)
     ino->dev->underlying = vfs_open_inode(dev);
     errno = 0;
     return ino;
+}
+
+
+int ext2_format(inode_t* bdev, const char* options)
+{
+    assert(bdev->type == FL_BLK);
+    // TODO -- config
+    const char* volume = "NO NAME";
+    int cluster_size = 2048;
+    int sec_size = bdev->dev->block;
+    
+    // Write the first sector
+    uint8_t * ptr = kmap(PAGE_SIZE, bdev, 0, VM_RW);
+    ext2_sb_t * sb = (ext2_sb_t*)&ptr[1024];
+    
+    
+    kunmap(ptr, PAGE_SIZE);
+    return -1;
 }
 
 

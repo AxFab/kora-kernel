@@ -3,7 +3,7 @@ ENTRY(_start)
 OUTPUT_FORMAT(elf32-i386)
 SECTIONS
 {
-    . = 2M;
+    . = 128K;
     .text ALIGN(4K) :
     {
         code = .;

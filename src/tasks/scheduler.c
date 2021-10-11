@@ -61,8 +61,6 @@ static task_t *scheduler_next(scheduler_t *sch)
     return task;
 }
 
-extern int __irq_semaphore;
-
 /* */
 void scheduler_switch(int status)
 {
@@ -101,12 +99,12 @@ void scheduler_switch(int status)
     __current = task;
     if (task == NULL) {
         // clock_elapsed(CPU_IDLE);
-        __irq_semaphore = 0;
+        irq_zero();
         cpu_halt();
     }
     // clock_elapsed(CPU_USER);
     if (task->vm != NULL)
         mmu_context(task->vm);
-    __irq_semaphore = 0;
+    irq_zero();
     cpu_restore(&task->jmpbuf);
 }

@@ -21,22 +21,33 @@
 #include <kernel/tasks.h>
 #include <kernel/irq.h>
 #include <kernel/syscalls.h>
+#include <kernel/core.h>
 #include <kora/llist.h>
 #include <sys/signum.h>
 
 
 bool __irq_active = false;
-int __irq_semaphore = 0; // TODO -- per cpu
+// int __irq_semaphore = 0; // TODO -- per cpu
+
+void irq_zero()
+{
+    per_cpu_t *pc = cpu_store();
+    pc->irq_semaphore = 0;
+}
 
 void irq_reset(bool enable)
 {
-    assert(__irq_semaphore <= 1);
-    __irq_active = true;
+    per_cpu_t *pc = cpu_store();
+    assert(pc == NULL || pc->irq_semaphore <= 1);
+    if (pc)
+        __irq_active = true;
     if (enable) {
-        __irq_semaphore = 0;
+        if (pc)
+            pc->irq_semaphore = 0;
         __asm_irq_on_;
     } else {
-        __irq_semaphore = 1;
+        if (pc)
+            pc->irq_semaphore = 1;
         __asm_irq_off_;
     }
 }
@@ -44,9 +55,10 @@ void irq_reset(bool enable)
 
 bool irq_enable()
 {
-    if (__irq_active) {
-        assert(__irq_semaphore > 0);
-        if (--__irq_semaphore == 0) {
+    per_cpu_t *pc = cpu_store();
+    if (pc != NULL && __irq_active) {
+        assert(pc->irq_semaphore > 0);
+        if (--pc->irq_semaphore == 0) {
             __asm_irq_on_;
             return true;
         }
@@ -56,10 +68,20 @@ bool irq_enable()
 
 void irq_disable()
 {
-    if (__irq_active) {
+    per_cpu_t *pc = cpu_store();
+    if (pc != NULL && __irq_active) {
         __asm_irq_off_;
-        ++__irq_semaphore;
+        ++pc->irq_semaphore;
     }
+}
+
+bool irq_ready()
+{
+    per_cpu_t *pc = cpu_store();
+    if (pc != NULL && __irq_active) {
+        return pc->irq_semaphore == 0;
+    }
+    return true;
 }
 
 
@@ -112,7 +134,7 @@ void irq_unregister(int no, irq_handler_t func, void *data)
 void irq_enter(int no)
 {
     assert(no >= 0 && no < IRQ_COUNT);
-    assert(__irq_semaphore == 0);
+    assert(irq_ready());
     irq_disable();
     // clock_elapsed(CPU_IRQ);
 
@@ -125,7 +147,7 @@ void irq_enter(int no)
         record->func(record->data);
 
     //clock_elapsed(prev);
-    __irq_semaphore = 0;
+    irq_zero();
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -222,7 +244,7 @@ static void scall_log_arg(task_t *task, char type, long arg)
 long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5)
 {
     int i;
-    assert(__irq_semaphore == 0);
+    assert(irq_ready());
 
     task_t *task = __current;
     syscall_info_t *info = NULL;
@@ -260,9 +282,9 @@ long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5)
     }
 #endif
 
-    assert(__irq_semaphore == 0);
+    assert(irq_ready());
     long ret = info->scall(a1, a2, a3, a4, a5);
-    assert(__irq_semaphore == 0);
+    assert(irq_ready());
 
 #ifndef NDEBUG
     // Complete strace log

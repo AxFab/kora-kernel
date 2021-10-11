@@ -114,7 +114,7 @@ int fatfs_format(inode_t *bdev, const char *options)
     } else {
         bpb->BPB_TotSec16 = 0;
         bpb->BPB_TotSec32 = bdev->length / sec_size;
-        // bpb32->BPB_FATSz32 = ALIGN_UP(bpb->BPB_TotSec32 / bpb->BPB_SecPerClus, 128) / 128;
+        // bpb32->BPB_FATSz32 = ALIGN_UP(bpb->BPB_TotSec32 / bpb->BPB_SecPerClus, 128) / 128; TODO
         // bpb32->BPB_ExtFlags = ;
         bpb32->BPB_FSVer = 0;
         bpb32->BPB_RootClus = 2;

@@ -40,6 +40,7 @@ void lapic_register(madt_lapic_t *info)
     else
         cpu_table[info->acpi_id].stack = (size_t)kmap(PAGE_SIZE, NULL, 0,
                                          VMA_STACK | VM_RW | VM_RESOLVE);
+    irq_reset(false);
 }
 
 void lapic_setup(int cpus)
@@ -180,19 +181,21 @@ void apic_setup()
         return;
 
     kprintf(KL_ERR, "Local APIC at %x\n", apic_mmio);
-    apic_regs = kmap(PAGE_SIZE, NULL, apic_mmio, VM_RW | VM_PHYSIQ | VM_UNCACHABLE);
+    apic_regs = kmap(PAGE_SIZE, NULL, apic_mmio, VM_RW | VM_PHYSIQ | VM_UNCACHABLE | VM_RESOLVE);
 
     kprintf(KL_DBG, "Send INIT IPI to all APs\n");
     // INIT IPI to all APs
     apic_regs[APIC_ICR_LOW] = 0x0C4500;
     x86_delay(100/*00*/); // 10-millisecond delay loop.
 
-    kprintf(KL_DBG, "Broadcast SIPI IP to APs (x2)\n");
+    kprintf(KL_DBG, "Broadcast SIPI IPI to APs (x2)\n");
+    uint32_t sipi_ipi = 0x000C4600 | ((size_t)ap_start >> 12);
     // Load ICR encoding for broadcast SIPI IP (x2)
-    apic_regs[APIC_ICR_LOW] = 0x000C4600 | ((size_t)ap_start >> 12);
+    apic_regs[APIC_ICR_LOW] = sipi_ipi;
     x86_delay(2); // 200-microsecond delay loop.
-    apic_regs[APIC_ICR_LOW] = 0x000C4600 | ((size_t)ap_start >> 12);
-    x86_delay(2); // 200-microsecond delay loop.
+    // TODO -- Check if awake ?
+    apic_regs[APIC_ICR_LOW] = sipi_ipi;
+    x86_delay(500); // 50-millisecond delay loop.
 
     // pic_mask_off();
     apic_init();
@@ -203,9 +206,9 @@ void apic_setup()
 
 void ap_setup()
 {
-    kprintf(KL_DBG, "CPU%d is awake !\n", cpu_no());
     irq_reset(false);
-    irq_disable();
+    for (;;);
+    kprintf(KL_DBG, "CPU%d is awake !\n", cpu_no());
     // assert(kCPU.irq_semaphore == 1);
     cpuid_setup();
     apic_init();
