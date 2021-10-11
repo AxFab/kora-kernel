@@ -99,6 +99,7 @@ page_t block_fetch(inode_t *ino, xoff_t off)
         mtx_lock(&page->mtx);
         if (!page->ready) {
             void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VM_PHYSIQ);
+            assert(irq_ready());
             int ret = ino->ops->read(ino, ptr, PAGE_SIZE, off, 0);
             if (ret != 0) {
                 kprintf(-1, "\033[35mError while reading page: %s, pg:%d\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
@@ -133,6 +134,7 @@ void block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
     if (dirty || page->dirty) { // TODO -- Check block is not RDONLY !?
         mtx_lock(&page->mtx);
         void *ptr = kmap(PAGE_SIZE, NULL, (xoff_t)page->phys, VM_RW | VM_RESOLVE | VM_PHYSIQ);
+        assert(irq_ready());
         int ret = ino->ops->write(ino, ptr, PAGE_SIZE, off, 0);
         if (ret != 0) {
             page->dirty = true;

@@ -21,6 +21,7 @@
 #define _SRC_APIC_H 1
 
 #include <kernel/stdc.h>
+#include <kernel/core.h>
 
 #define APIC_ID  (0x20 / 4) // Local APIC ID
 #define APIC_VERS  (0x30 / 4) // Local APIC Version
@@ -52,6 +53,7 @@ struct cpu_x86 {
     char *family;
     size_t stack;
     int features[4];
+    per_cpu_t data;
 };
 
 extern cpu_x86_t *cpu_table;

@@ -64,6 +64,8 @@ void mmu_enable()
     memset(tbl, 0, PAGE_SIZE);
     dir[1023] = dir[1022] = (page_t)dir | MMU_K_RW;
     dir[0] = (page_t)tbl | MMU_K_RW;
+    // for (i = 0; i < 5; ++i)
+    //     tbl[i] = (i * PAGE_SIZE) | MMU_K_RW;
     for (i = 0; i < 1024; ++i)
         tbl[i] = (i * PAGE_SIZE) | MMU_K_RW;
 

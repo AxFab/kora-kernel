@@ -56,7 +56,6 @@ struct ftx {
 masterclock_t __clock;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-extern int __irq_semaphore;
 
 void advent_register(masterclock_t *clock, advent_t *advent, long timeout, long interval)
 {
@@ -85,10 +84,10 @@ void advent_unregister(masterclock_t *clock, advent_t *advent)
 
 void advent_pause_task(masterclock_t *clock, advent_t *advent, long timeout)
 {
-    assert(__irq_semaphore == 0);
+    assert(irq_ready());
     advent_register(clock, advent, MAX(1, timeout), 0);
     scheduler_switch(TS_BLOCKED);
-    assert(__irq_semaphore == 0);
+    assert(irq_ready());
 }
 
 void advent_resume_task(masterclock_t *clock, advent_t *advent)

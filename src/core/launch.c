@@ -23,11 +23,13 @@
 #include <kernel/vfs.h>
 #include <kernel/core.h>
 
+extern int __cpu_count;
 void module_init(vfs_t *vfs, mspace_t *vm);
 
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()
 {
+    int i;
     irq_reset(false);
     kprintf(KL_MSG, "\033[97mKoraOS\033[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
 
@@ -37,7 +39,7 @@ void kernel_start()
     kprintf(KL_MSG, "\n");
 
     kprintf(KL_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
-    clock_init(0, now);
+    clock_init(2, now); // TODO -- 0 without, 2 or x with APIC...
     vfs_t *vfs = vfs_init();
     // Network
     module_init(vfs, kMMU.kspace);
@@ -45,10 +47,12 @@ void kernel_start()
     platform_start();
 
     scheduler_init(vfs, NULL);
-    task_start("Kernel loader #1", module_loader, NULL);
-    // task_start("Kernel loader #2", module_loader, NULL);
-    // Prepare exec
-    // task_start("Kernel init", task_firstinit, NULL);
+    int n = __cpu_count == 1 ? 2 : __cpu_count + 2;
+    for (i = 0; i < n; ++i) {
+        char tmp[32];
+        snprintf(tmp, 32, "Kernel loader #%d", i + 1);
+        task_start(tmp, module_loader, NULL);
+    }
 
     irq_reset(true);
 }
@@ -60,6 +64,4 @@ void kernel_ready()
     kprintf(KL_MSG, "\033[32mCpu %d is waiting...\033[0m\n", cpu_no());
     for (;;);
 }
-
-
 

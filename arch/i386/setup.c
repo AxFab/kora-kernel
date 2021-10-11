@@ -206,12 +206,21 @@ static void rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
 
 int all_features[4] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 
+
+per_cpu_t *cpu_store()
+{
+    if (cpu_table == NULL)
+        return NULL;
+    return &cpu_table[cpu_no()].data;
+}
+
 void cpuid_setup()
 {
     int cpu_name[5];
     if (cpu_table == NULL) {
         cpu_table = (cpu_x86_t *)kalloc(sizeof(cpu_x86_t));
         cpu_table[0].stack = 0x4000;
+        irq_reset(false);
     }
 
     // Get CPU Vendor name
@@ -392,48 +401,8 @@ void tss_setup()
     kprintf(-1, "CPU(%d) TSS no %d at %x using stack %x\n", i, i + 7, &TSS_BASE[i], TSS_BASE[i].esp0);
 }
 
-int enabled_A20()
-{
-    int *p0 = (int*)0x112345;
-    int *p1 = (int*)0x012345;
-    *p0 = (int)p0;
-    *p1 = (int)p1;
-    return *p0 != *p1;
-}
 
-void init_A20(void)
-{
-    if (enabled_A20()) {
-        kprintf(-1, "A20 was already enabled\n");
-        return;
-    }
-
-    kprintf(-1, "A20 need to be enabled\n");
-    while (inb(0x64) & 2); // A20 Wait
-    outb(0x64, 0xAD); // disable keyboard
-
-    while (inb(0x64) & 2); // A20 Wait
-    outb(0x64, 0xD0); // read from input
-
-    while (inb(0x64) & 2); // A20 Wait
-    uint8_t a = inb(0x60);
-
-    while (inb(0x64) & 2); // A20 Wait
-    outb(0x64, 0xD1); // write to output
-
-    while (inb(0x64) & 2); // A20 Wait
-    outb(0x60, a | 2); // write to output
-
-    while (inb(0x64) & 2); // A20 Wait
-    outb(0x64, 0xAE); // enable keyboard
-
-    if (enabled_A20()) {
-        kprintf(-1, "A20 is now enabled\n");
-        return;
-    }
-
-    kprintf(-1, "A20 activation failed\n");
-}
+void init_A20(void);
 
 // create cpufeatures structs
 void cpu_setup(xtime_t *now)
@@ -444,11 +413,12 @@ void cpu_setup(xtime_t *now)
     // pic_setup();
     // look for ACPI (BSP)
     pic_setup();
-    // acpi_setup();
+    acpi_setup();
     cpuid_setup();
     *now = rtc_time();
     // kprintf(0, "Unix Epoch: %lld \n", now);
-    // apic_setup();
+    irq_reset(false);
+    apic_setup();
     tss_setup();
     // hpet_setup();
     //   save prepare cpus

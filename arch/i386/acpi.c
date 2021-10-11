@@ -45,27 +45,29 @@ void acpi_fadt_setup(acpi_fadt_t *fadt)
     kprintf(KL_DBG, "FADT Table at %p\n", fadt);
 }
 
+int __cpu_count = 1;
+
 void acpi_madt_setup(acpi_madt_t *madt)
 {
     kprintf(KL_DBG, "MADT Table at %p\n", madt);
     apic_mmio = madt->local_apic;
     kprintf(KL_DBG, "Local APIC at %p\n", apic_mmio);
 
-    int cpus = 0;
     uint8_t *ptr = madt->records;
     uint8_t *end = ptr + madt->header.length - offsetof(acpi_madt_t, records);
 
+    __cpu_count = 0;
     while (ptr < end) {
         madt_lapic_t *lapic = (madt_lapic_t *)ptr;
         switch (lapic->type) {
         case 0:
-            cpus++;
+            __cpu_count++;
             break;
         }
         ptr += lapic->size;
     }
 
-    lapic_setup(cpus);
+    lapic_setup(__cpu_count);
     ptr = madt->records;
     while (ptr < end) {
         madt_lapic_t *lapic = (madt_lapic_t *)ptr;

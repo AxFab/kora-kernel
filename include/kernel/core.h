@@ -24,6 +24,12 @@
 #include <kernel/stdc.h>
 #include <kernel/memory.h>
 
+typedef struct per_cpu per_cpu_t;
+
+struct per_cpu {
+    int irq_semaphore;
+};
+
 /* - */
 void cpu_setup(xtime_t *now);
 /* - */
@@ -37,7 +43,7 @@ _Noreturn void cpu_halt();
 /* - */
 int cpu_no();
 
-
+per_cpu_t *cpu_store();
 
 /* - */
 void mmu_enable();

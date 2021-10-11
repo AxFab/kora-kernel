@@ -218,41 +218,94 @@ int module_load(fsnode_t *file)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+typedef struct mtask mtask_t;
+struct mtask {
+    void *ptr;
+    int type;
+    llnode_t node;
+};
 
-_Noreturn void module_loader()
+llhead_t mtask_queue = INIT_LLHEAD;
+splock_t mtask_lock = INIT_SPLOCK;
+atomic_int mtask_step = 0;
+
+void module_new_task(int type, void *ptr)
 {
-    fsnode_t *directory = vfs_search(__current->vfs, "/mnt/boot0", NULL, true);
-    if (directory == NULL) {
-        kprintf(KL_MSG, "Unable to find kernel modules");
-    } else {
+    splock_lock(&mtask_lock);
+    mtask_t *mt = kalloc(sizeof(mtask_t));
+    mt->ptr = ptr;
+    mt->type = type;
+    ll_enqueue(&mtask_queue, &mt->node);
+    splock_unlock(&mtask_lock);
+}
 
-        void *ctx = vfs_opendir(directory, NULL);
-        for (;;) {
-            fsnode_t *file = vfs_readdir(directory, ctx);
-            if (file == NULL)
-                break;
-            // kprintf(-1, "New file: '%s'\n", file->name);
-            module_load(file);
-            vfs_close_fsnode(file);
-        }
-        vfs_closedir(directory, ctx);
+void module_do_dir(fsnode_t *directory)
+{
+    void *ctx = vfs_opendir(directory, NULL);
+    for (;;) {
+        fsnode_t *file = vfs_readdir(directory, ctx);
+        if (file == NULL)
+            break;
+        // kprintf(-1, "New file: '%s'\n", file->name);
+        module_new_task(2, file);
     }
+    vfs_closedir(directory, ctx);
     vfs_close_fsnode(directory);
+}
 
-    // Look for root
+void module_do_file(fsnode_t *file)
+{
+    module_load(file);
+    vfs_close_fsnode(file);
+}
+
+void module_do_proc(char *cmd)
+{
     fsnode_t *root = vfs_mount(__current->vfs, "sdC", "iso", "/mnt/cdrom", "");
     vfs_close_fsnode(root);
     vfs_chdir(__current->vfs, "/mnt/cdrom", true);
     vfs_mount(__current->vfs, NULL, "devfs", "/dev", "");
 
     // Start first user program
-    const char *args[] = { "-x", NULL, };
+    const char *args[] = { NULL, };
     fsnode_t *nodes[3] = { NULL };
-    // task_spawn("krish", args, nodes);
+    task_spawn(cmd, args, nodes);
+    kfree(cmd);
+}
+
+_Noreturn void module_loader()
+{
+    int val = atomic_xchg(&mtask_step, 1);
+    if (val == 0) {
+        fsnode_t *directory = vfs_search(__current->vfs, "/mnt/boot0", NULL, true);
+        if (directory == NULL) {
+            kprintf(KL_MSG, "Unable to find kernel modules");
+        } else {
+            module_new_task(1, directory);
+        }
+    }
 
     for (;;) {
-        // kprintf(-1, "Hello from task %d \n", __current->pid);
-        sleep_timer(500000);
+        splock_lock(&mtask_lock);
+        mtask_t *mt = ll_dequeue(&mtask_queue, mtask_t, node);
+        splock_unlock(&mtask_lock);
+        if (mt == NULL) {
+            val = atomic_xchg(&mtask_step, 2);
+            // if (val == 1)
+            //     module_new_task(3, strdup("krish"));
+            kprintf(-1, "Hello from task %d (cpu:%d) \n", __current->pid, cpu_no());
+            sleep_timer(500000);
+            continue;
+        } else if (mt->type == 1) {
+            module_do_dir(mt->ptr);
+        } else if (mt->type == 2) {
+            module_do_file(mt->ptr);
+        } else if (mt->type == 3) {
+            module_do_proc(mt->ptr);
+        } else {
+            kprintf(-1, "Unknown system task [%d]\n", mt->type);
+        }
+        kfree(mt);
     }
 }
 

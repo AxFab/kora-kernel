@@ -39,7 +39,7 @@
 #define VM_UNCACHABLE 0400
 
 
-#define KSTACK_PAGES 4
+#define KSTACK_PAGES 2
 #define PAGE_SIZE  4096
 #define HZ 100
 // TODO --- REMOVE FROM HERE !

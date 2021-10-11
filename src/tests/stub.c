@@ -78,6 +78,7 @@ bool map_init = false;
 
 void* kmap(size_t len, void* ino, xoff_t off, int access)
 {
+    assert(irq_ready());
     ++kmapCount;
     if (!map_init) {
         bbtree_init(&map_tree);
@@ -115,11 +116,13 @@ void* kmap(size_t len, void* ino, xoff_t off, int access)
 
     mp->node.value_ = ptr;
     bbtree_insert(&map_tree, &mp->node);
+    assert(irq_ready());
     return ptr;
 }
 
 void kunmap(void* addr, size_t len)
 {
+    assert(irq_ready());
     --kmapCount;
     map_page_t* mp = bbtree_search_eq(&map_tree, addr, map_page_t, node);
     if (mp != NULL) {
@@ -141,6 +144,7 @@ void kunmap(void* addr, size_t len)
     else
         kprintf(-1, "- kunmap (%p, %d, -)\n", addr, len);
     _vfree(addr);
+    assert(irq_ready());
 }
 
 void page_release(page_t page)
@@ -228,6 +232,11 @@ bool irq_enable()
 void irq_disable()
 {
     ++__irq_semaphore;
+}
+
+bool irq_ready()
+{
+    return __irq_semaphore == 0;
 }
 
 
