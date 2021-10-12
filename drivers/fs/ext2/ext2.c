@@ -131,6 +131,13 @@ inode_t* ext2_creat(ext2_volume_t* vol, uint32_t no, ftype_t type, xtime_t time)
     return ino;
 }
 
+int ext2_format(inode_t *dev)
+{
+    // uint8_t *ptr = kmap(PAGE_SIZE, dev, 0, VMA_FILE_RW);
+    // ext2_sb_t *sb = (ext2_sb_t *)&ptr[1024];
+    return -1;
+}
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -213,12 +220,12 @@ int ext2_getblock_indirect(ext2_volume_t* vol, uint32_t block, int offset, uint3
     uint32_t* table = bkmap(&bk, block, vol->blocksize, 0, vol->blkdev, VM_RW);
 
     if (depth == 0) {
-        int ret = ext2_getblock_direct(vol, table, vol->blocksize / 4, offset, buf, cnt, off, depth);
+        int ret = ext2_getblock_direct(vol, table, vol->blocksize / 4, offset, buf, cnt, off); //, depth);
         bkunmap(&bk);
         return ret;
     }
 
-    
+
     bkunmap(&bk);
     return 0;
 }
@@ -441,7 +448,7 @@ int ext2_add_link(ext2_volume_t* vol, ext2_ino_t* dir, unsigned no, const char* 
             }
             if (idx + en->rec_len >= vol->blocksize) {
                 if (idx + sizeof(ext2_dir_en_t) + ALIGN_UP(en->name_len, 4) + sz <= vol->blocksize) {
-                    // Write here 
+                    // Write here
                     en->rec_len = sizeof(ext2_dir_en_t) + ALIGN_UP(en->name_len, 4);
 
                     idx += en->rec_len;
@@ -853,24 +860,6 @@ inode_t *ext2_mount(inode_t *dev, const char *options)
     ino->dev->underlying = vfs_open_inode(dev);
     errno = 0;
     return ino;
-}
-
-
-int ext2_format(inode_t* bdev, const char* options)
-{
-    assert(bdev->type == FL_BLK);
-    // TODO -- config
-    const char* volume = "NO NAME";
-    int cluster_size = 2048;
-    int sec_size = bdev->dev->block;
-    
-    // Write the first sector
-    uint8_t * ptr = kmap(PAGE_SIZE, bdev, 0, VM_RW);
-    ext2_sb_t * sb = (ext2_sb_t*)&ptr[1024];
-    
-    
-    kunmap(ptr, PAGE_SIZE);
-    return -1;
 }
 
 

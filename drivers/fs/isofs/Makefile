@@ -1,4 +1,4 @@
 
 isofs_LFLAGS += $(LFLAGS)
-isofs_SRCS := $(wildcard $(topdir)/isofs/*.c)
+isofs_SRCS := $(wildcard $(topdir)/drivers/fs/isofs/*.c)
 $(eval $(call link_driver,isofs))

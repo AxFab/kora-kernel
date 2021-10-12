@@ -23,27 +23,28 @@ srcdir = $(topdir)/src
 arcdir = $(topdir)/arch/$(target_arch)
 kname = kora-$(target_arch).krn
 
-all: kernel
+all: kernel drivers libs bins
 
 kernel: $(bindir)/$(kname)
 
-install: $(prefix)/boot/$(kname)
+initrd: $(prefix)/boot/bootrd.tar
 
-$(prefix)/boot/$(kname): $(bindir)/$(kname)
-	$(S) mkdir -p $(dir $@)
-	$(Q) echo "    INSTALL "$@
-	$(V) $(INSTALL) $< $@
+include $(topdir)/make/build.mk
+include $(topdir)/make/drivers.mk
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Setup compile flags
+CFLAGS_inc  = -I$(topdir)/include
+CFLAGS_inc += -I$(topdir)/src/_$(target_os)/include
+CFLAGS_inc += -I$(topdir)/arch/$(target_arch)/include
+CFLAGS_def  = -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
+CFLAGS_def += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
 
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# Rule to build the kernel
 CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb
-CFLAGS += -ffreestanding
-CFLAGS += -I$(topdir)/include
-CFLAGS += -I$(topdir)/src/_$(target_os)/include
-CFLAGS += -I$(topdir)/arch/$(target_arch)/include
-CFLAGS += -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
-CFLAGS += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
+CFLAGS += -ffreestanding $(CFLAGS_inc) $(CFLAGS_def)
 
 ifeq ($(target_os),kora)
 # Build the kernel
@@ -61,10 +62,7 @@ endif
 
 endif
 
-include $(topdir)/make/build.mk
 
-# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-# Rule to build the kernel
 SRCS += $(wildcard $(srcdir)/stdc/*.c)
 SRCS += $(wildcard $(srcdir)/vfs/*.c)
 SRCS += $(wildcard $(srcdir)/mem/*.c)
@@ -84,7 +82,7 @@ $(bindir)/$(kname): $(call fn_objs,SRCS)
 
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
+# Build tests
 CHECKS += ckstdc ckvfs ckmem cktask cknet
 
 lck:
@@ -101,9 +99,49 @@ SRC_STDC += $(srcdir)/stdc/sem.c
 
 SRC_ckvfs = $(SRC_STDC) $(srcdir)/tests/ckvfs.c
 SRC_ckvfs += $(wildcard $(srcdir)/vfs/*.c)
-$(eval $(call link_bin,ckvfs,SRC_ckvfs,CFLAGS))
+# $(eval $(call link_bin,ckvfs,SRC_ckvfs,CFLAGS))
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# Build drivers
+
+CFLAGS_dr ?= -Wall -Wextra -Wno-unused-parameter -ggdb
+CFLAGS_dr += -ffreestanding -fPIC $(CFLAGS_inc) $(CFLAGS_def)
+ifeq ($(target_os),kora)
+CFLAGS_dr += -Dmain=_main
+endif
+
+LFLAGS_dr += -lc
+
+# DRV = vfat ext2 isofs
+DRV  = fs/vfat fs/isofs fs/ext2
+DRV += pc/ata pc/e1000 pc/ps2
+DRV += misc/vbox
+# DRV += pc/ac97 pc/sb16
+
+include $(foreach dir,$(DRV),$(topdir)/drivers/$(dir)/Makefile)
 
 
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+$(prefix)/boot/$(kname): $(bindir)/$(kname)
+	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    INSTALL "$@
+	$(V) $(INSTALL) $< $@
+
+install: $(prefix)/boot/$(kname) initrd $(INSTALL_BINS)
+
+drivers: $(DRVS)
+
+libs: $(LIBS)
+
+bins: $(BINS)
+
+$(prefix)/boot/bootrd.tar: $(INSTALL_DRVS)
+	$(Q) echo "    TAR "$@
+	$(V) cd $(prefix)/boot/mods && tar cf $@ $(patsubst $(prefix)/boot/mods/%,%,$^)
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 ifeq ($(NODEPS),)
 -include $(call fn_deps,SRCS)

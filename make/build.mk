@@ -47,6 +47,41 @@ $(bindir)/$(1): $(call fn_objs,$(2))
 	$(V) $(LDC) -o $$@ $$^ $($(3))
 endef
 
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+define comp_source
+$(outdir)/$(1)/%.o: $(topdir)/%.c
+	$(S) mkdir -p $(dir $$@)
+	$(Q) echo "    CC  $$<"
+	$(V) $(CC) -c -o $$@ $$< $($(2))
+
+$(outdir)/$(1)/%.d: $(topdir)/%.c
+	$(S) mkdir -p $(dir $$@)
+	$(Q) echo "    CM  $$<"
+	$(V) $(CC) -M $< $($(2)) | sed "s%$(notdir $$(@:.d=.o))%$$(@:.d=.o)%" > $$@
+endef
+
+define link_shared2
+LIBS += $(libdir)/lib$(1).so
+lib$(1): $(libdir)/lib$(1).so
+install-lib$(1): $(prefix)/lib/lib$(1).so
+$(libdir)/lib$(1).so: $(call fn_objs2,$(2),$(4))
+	$(S) mkdir -p $$(dir $$@)
+	$(Q) echo "    LD  $$@"
+	$(V) $(LD) -shared -o $$@ $$^ $($(3))
+endef
+
+define link_bin2
+BINS += $(bindir)/$(1)
+$(1): $(bindir)/$(1)
+install-$(1): $(prefix)/bin/$(1)
+$(bindir)/$(1): $(call fn_objs2,$(2),$(4))
+	$(S) mkdir -p $$(dir $$@)
+	$(Q) echo "    LD  $$@"
+	$(V) $(LDC) -o $$@ $$^ $($(3))
+endef
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 clean:
 	$(V) rm -rf $(outdir)
 	$(V) rm -rf $(libdir)
