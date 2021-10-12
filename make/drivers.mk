@@ -16,15 +16,26 @@
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #  This makefile is generic.
 
+$(outdir)/dr/%.o: $(topdir)/%.c
+	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    CC  $<"
+	$(V) $(CC) -c -o $@ $< $(CFLAGS_dr)
+
+$(outdir)/dr/%.d: $(topdir)/%.c
+	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    CM  $<"
+	$(V) $(CC) -M $< $(CFLAGS_dr) | sed "s%$(notdir $(@:.d=.o))%$(@:.d=.o)%" > $@
+
+
 define link_driver
 DRVS += $(libdir)/$(1).ko
 INSTALL_DRVS += $(prefix)/boot/mods/$(1).ko
 $(1): $(libdir)/$(1).ko $(libdir)/lk$(1).a
-$(libdir)/$(1).ko: $(call fn_objs,$(1)_SRCS)
+$(libdir)/$(1).ko: $(call fn_objs2,$(1)_SRCS,dr)
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  $$@"
-	$(V) $(LD) -shared -o $$@ $$^ $($(1)_LFLAGS)
-$(libdir)/lk$(1).a: $(call fn_objs,$(1)_SRCS)
+	$(V) $(LD) -shared -o $$@ $$^ $($(1)_LFLAGS_dr)
+$(libdir)/lk$(1).a: $(call fn_objs2,$(1)_SRCS,dr)
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    AR  $$@"
 	$(V) $(AR) rc $$@ $$^
@@ -39,10 +50,10 @@ define link_sbin
 BINS += $(bindir)/$(1)
 INSTALL_BINS += $(prefix)/sbin/$(1)
 $(1): $(bindir)/$(1)
-$(bindir)/$(1): $(call fn_objs,$(1)_SRCS)
+$(bindir)/$(1): $(call fn_objs2,$(1)_SRCS,dr)
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  $$@"
-	$(V) $(CC) -o $$@ $$^ $($(1)_LFLAGS)
+	$(V) $(CC) -o $$@ $$^ $($(1)_LFLAGS_dr)
 $(prefix)/sbin/$(1): $(bindir)/$(1)
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    INSTALL  $$@"
