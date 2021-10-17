@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -153,4 +153,3 @@ LIBAPI int keyboard_down(int key, int *status, int *key2);
 LIBAPI int keyboard_up(int key, int *status);
 
 #endif  /* _KORA_KEYS_H */
-

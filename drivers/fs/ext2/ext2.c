@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -39,7 +39,7 @@ static inline int math_power(int val, int exp)
 extern ino_ops_t ext2_dir_ops;
 extern ino_ops_t ext2_reg_ops;
 
-ext2_ino_t* ext2_entry(struct bkmap* bk, ext2_volume_t* vol, unsigned no, int flg)
+ext2_ino_t *ext2_entry(struct bkmap *bk, ext2_volume_t *vol, unsigned no, int flg)
 {
     uint32_t group = (no - 1) / vol->sb->inodes_per_group;
     uint32_t index = (no - 1) % vol->sb->inodes_per_group;
@@ -47,20 +47,19 @@ ext2_ino_t* ext2_entry(struct bkmap* bk, ext2_volume_t* vol, unsigned no, int fl
     int ino_per_block = vol->blocksize / sizeof(ext2_ino_t);
     blk += index / ino_per_block;
     index = index % ino_per_block;
-    ext2_ino_t* ptr = bkmap(bk, blk, vol->blocksize, 0, vol->blkdev, flg);
+    ext2_ino_t *ptr = bkmap(bk, blk, vol->blocksize, 0, vol->blkdev, flg);
     return &ptr[index];
 }
 
-inode_t* ext2_inode_from(ext2_volume_t* vol, ext2_ino_t* entry, unsigned no)
+inode_t *ext2_inode_from(ext2_volume_t *vol, ext2_ino_t *entry, unsigned no)
 {
-    inode_t* ino;
+    inode_t *ino;
     if ((entry->mode & 0xf000) == EXT2_S_IFDIR)
         ino = vfs_inode(no, FL_DIR, vol->dev, &ext2_dir_ops);
     else if ((entry->mode & 0xf000) == EXT2_S_IFREG)
         ino = vfs_inode(no, FL_REG, vol->dev, &ext2_reg_ops);
-    else {
+    else
         return NULL;
-    }
 
     ino->length = entry->size;
     ino->btime = entry->ctime * _PwNano_;
@@ -75,12 +74,12 @@ inode_t *ext2_inode(ext2_volume_t *vol, uint32_t no)
 {
     struct bkmap bk;
     ext2_ino_t *en = ext2_entry(&bk, vol, no, VM_RD);
-    inode_t* ino = ext2_inode_from(vol, en, no);
+    inode_t *ino = ext2_inode_from(vol, en, no);
     bkunmap(&bk);
     return ino;
 }
 
-inode_t* ext2_creat(ext2_volume_t* vol, uint32_t no, ftype_t type, xtime_t time)
+inode_t *ext2_creat(ext2_volume_t *vol, uint32_t no, ftype_t type, xtime_t time)
 {
     uint32_t group = (no - 1) / vol->sb->inodes_per_group;
     uint32_t index = (no - 1) % vol->sb->inodes_per_group;
@@ -89,8 +88,8 @@ inode_t* ext2_creat(ext2_volume_t* vol, uint32_t no, ftype_t type, xtime_t time)
 
     size_t off = (1024 << vol->sb->log_block_size) * blk + index * sizeof(ext2_ino_t);
     size_t lba = ALIGN_DW(off, PAGE_SIZE);
-    void* ptr = kmap(PAGE_SIZE, vol->blkdev, lba, VM_WR);
-    ext2_ino_t* entry = ADDR_OFF(ptr, off - lba);
+    void *ptr = kmap(PAGE_SIZE, vol->blkdev, lba, VM_WR);
+    ext2_ino_t *entry = ADDR_OFF(ptr, off - lba);
 
     entry->mode = EXT2_S_IFDIR | 0755;
     entry->uid = 0;
@@ -111,7 +110,7 @@ inode_t* ext2_creat(ext2_volume_t* vol, uint32_t no, ftype_t type, xtime_t time)
     entry->dir_acl = 0;
     entry->faddr = 0;
 
-    inode_t* ino = NULL;
+    inode_t *ino = NULL;
     if (type == FL_DIR)
         ino = vfs_inode(no, type, vol->dev, &ext2_dir_ops);
     else if (type == FL_REG)
@@ -141,7 +140,7 @@ int ext2_format(inode_t *dev)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-uint32_t ext2_alloc_block(ext2_volume_t* vol)
+uint32_t ext2_alloc_block(ext2_volume_t *vol)
 {
     int i, j, k;
 
@@ -154,7 +153,7 @@ uint32_t ext2_alloc_block(ext2_volume_t* vol)
         return 0;
 
     struct bkmap bm;
-    uint8_t* bitmap = bkmap(&bm, vol->grp[i].block_bitmap, vol->blocksize, 0, vol->blkdev, VM_WR);
+    uint8_t *bitmap = bkmap(&bm, vol->grp[i].block_bitmap, vol->blocksize, 0, vol->blkdev, VM_WR);
 
     for (j = 0; j < vol->blocksize; ++j) {
         if (bitmap[j] == 0xff)
@@ -171,7 +170,7 @@ uint32_t ext2_alloc_block(ext2_volume_t* vol)
     return 0;
 }
 
-int ext2_release_block(ext2_volume_t* vol, uint32_t block)
+int ext2_release_block(ext2_volume_t *vol, uint32_t block)
 {
     int i = block / vol->sb->blocks_per_group;
     int j = (block - i * vol->sb->blocks_per_group) / 8;
@@ -182,7 +181,7 @@ int ext2_release_block(ext2_volume_t* vol, uint32_t block)
         return -1;
 
     struct bkmap bm;
-    uint8_t* bitmap = bkmap(&bm, vol->grp[i].block_bitmap, vol->blocksize, 0, vol->blkdev, VM_WR);
+    uint8_t *bitmap = bkmap(&bm, vol->grp[i].block_bitmap, vol->blocksize, 0, vol->blkdev, VM_WR);
     bitmap[j] &= ~(1 << k);
     vol->grp[i].free_blocks_count++;
     bkunmap(&bm);
@@ -191,7 +190,7 @@ int ext2_release_block(ext2_volume_t* vol, uint32_t block)
 
 
 
-int ext2_getblock_direct(ext2_volume_t* vol, uint32_t* table, int len, int offset, uint32_t* buf, int cnt, int off)
+int ext2_getblock_direct(ext2_volume_t *vol, uint32_t *table, int len, int offset, uint32_t *buf, int cnt, int off)
 {
     // TODO -- Offset !
     int j = 0, i = off / vol->blocksize;
@@ -201,7 +200,7 @@ int ext2_getblock_direct(ext2_volume_t* vol, uint32_t* table, int len, int offse
     return j;
 }
 
-int ext2_getblock_indirect(ext2_volume_t* vol, uint32_t block, int offset, uint32_t* buf, int cnt, int off, int depth)
+int ext2_getblock_indirect(ext2_volume_t *vol, uint32_t block, int offset, uint32_t *buf, int cnt, int off, int depth)
 {
     // TODO -- Offset !
     int subCount = math_power(vol->blocksize / 4, depth);
@@ -217,7 +216,7 @@ int ext2_getblock_indirect(ext2_volume_t* vol, uint32_t block, int offset, uint3
     }
 
     struct bkmap bk;
-    uint32_t* table = bkmap(&bk, block, vol->blocksize, 0, vol->blkdev, VM_RW);
+    uint32_t *table = bkmap(&bk, block, vol->blocksize, 0, vol->blkdev, VM_RW);
 
     if (depth == 0) {
         int ret = ext2_getblock_direct(vol, table, vol->blocksize / 4, offset, buf, cnt, off); //, depth);
@@ -230,16 +229,16 @@ int ext2_getblock_indirect(ext2_volume_t* vol, uint32_t block, int offset, uint3
     return 0;
 }
 
-uint32_t ext2_get_block(ext2_volume_t* vol, ext2_ino_t* dir, uint32_t blk)
+uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk)
 {
     if (blk < 12)
         return dir->block[blk];
     struct bkmap k1;
     struct bkmap k2;
     struct bkmap k3;
-    uint32_t* p;
-    uint32_t* pp;
-    uint32_t* ppp;
+    uint32_t *p;
+    uint32_t *pp;
+    uint32_t *ppp;
     uint32_t lba = 0;
     if (blk < 12 + vol->blocksize / sizeof(uint32_t)) {
         p = bkmap(&k1, dir->block[12], vol->blocksize, 0, vol->blkdev, VM_RD);
@@ -251,7 +250,7 @@ uint32_t ext2_get_block(ext2_volume_t* vol, ext2_ino_t* dir, uint32_t blk)
 
 
 
-static void ext2_truncate_direct(ext2_volume_t* vol, uint32_t* table, int len, int bcount, int offset)
+static void ext2_truncate_direct(ext2_volume_t *vol, uint32_t *table, int len, int bcount, int offset)
 {
     for (int i = 0; i < len; ++i) {
         if (table[i] == 0 && i + offset < bcount) {
@@ -259,11 +258,10 @@ static void ext2_truncate_direct(ext2_volume_t* vol, uint32_t* table, int len, i
             table[i] = ext2_alloc_block(vol);
             /* Map and reset to zero */
             struct bkmap bk;
-            char* ptr = bkmap(&bk, table[i], vol->blocksize, 0, vol->blkdev, VM_RW);
+            char *ptr = bkmap(&bk, table[i], vol->blocksize, 0, vol->blkdev, VM_RW);
             memset(ptr, 0, vol->blocksize);
             bkunmap(&bk);
-        }
-        else if (table[i] != 0 && i + offset >= bcount) {
+        } else if (table[i] != 0 && i + offset >= bcount) {
             /* Need to release block */
             ext2_release_block(vol, table[i]);
             table[i] = 0;
@@ -271,24 +269,21 @@ static void ext2_truncate_direct(ext2_volume_t* vol, uint32_t* table, int len, i
     }
 }
 
-static uint32_t ext2_truncate_indirect(ext2_volume_t* vol, uint32_t block, int bcount, int offset, int depth)
+static uint32_t ext2_truncate_indirect(ext2_volume_t *vol, uint32_t block, int bcount, int offset, int depth)
 {
     depth--;
     /* indirect block number */
-    if (block == 0 && offset < bcount) {
+    if (block == 0 && offset < bcount)
         block = ext2_alloc_block(vol);
-    }
     if (block != 0) {
         struct bkmap bk;
-        uint32_t* table = bkmap(&bk, block, vol->blocksize, 0, vol->blkdev, VM_RW);
-        if (depth == 0) {
+        uint32_t *table = bkmap(&bk, block, vol->blocksize, 0, vol->blkdev, VM_RW);
+        if (depth == 0)
             ext2_truncate_direct(vol, table, vol->blocksize / 4, bcount, offset);
-        }
         else {
             int subCount = math_power(vol->blocksize / 4, depth);
-            for (int i = 0, n = vol->blocksize / 4; i < n; ++i) {
+            for (int i = 0, n = vol->blocksize / 4; i < n; ++i)
                 table[i] = ext2_truncate_indirect(vol, table[i], bcount, offset + i * subCount, depth);
-            }
         }
         bkunmap(&bk);
     }
@@ -299,7 +294,7 @@ static uint32_t ext2_truncate_indirect(ext2_volume_t* vol, uint32_t block, int b
     return block;
 }
 
-uint32_t ext2_alloc_inode(ext2_volume_t* vol)
+uint32_t ext2_alloc_inode(ext2_volume_t *vol)
 {
     int i, j, k;
 
@@ -313,7 +308,7 @@ uint32_t ext2_alloc_inode(ext2_volume_t* vol)
 
 
     struct bkmap bm;
-    uint8_t* bitmap = bkmap(&bm, vol->grp[i].inode_bitmap, vol->blocksize, 0, vol->blkdev, VM_WR);
+    uint8_t *bitmap = bkmap(&bm, vol->grp[i].inode_bitmap, vol->blocksize, 0, vol->blkdev, VM_WR);
 
     for (j = 0; j < vol->blocksize; ++j) {
         if (bitmap[j] == 0xff)
@@ -369,11 +364,10 @@ uint32_t ext2_nextdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
             it->lba = lba;
         }
 
-        ext2_dir_en_t* entry = ADDR_OFF(it->cmap, off - lba);
+        ext2_dir_en_t *entry = ADDR_OFF(it->cmap, off - lba);
         it->idx += entry->rec_len;
-        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
+        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0)
             continue;
-        }
 
         // Assert name is on the block ?
         if (entry->type == 0)
@@ -411,10 +405,10 @@ int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int ext2_search_inode(inode_t* dir, const char* name, char* buf)
+int ext2_search_inode(inode_t *dir, const char *name, char *buf)
 {
-    ext2_volume_t* vol = (ext2_volume_t*)dir->drv_data;
-    ext2_dir_iter_t* it = ext2_opendir(dir);
+    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
+    ext2_dir_iter_t *it = ext2_opendir(dir);
 
     int ino_no;
     while ((ino_no = ext2_nextdir(dir, buf, it)) != 0) {
@@ -429,7 +423,7 @@ int ext2_search_inode(inode_t* dir, const char* name, char* buf)
     return ino_no;
 }
 
-int ext2_add_link(ext2_volume_t* vol, ext2_ino_t* dir, unsigned no, const char* name)
+int ext2_add_link(ext2_volume_t *vol, ext2_ino_t *dir, unsigned no, const char *name)
 {
     int i;
     int lg = strnlen(name, 255);
@@ -439,7 +433,7 @@ int ext2_add_link(ext2_volume_t* vol, ext2_ino_t* dir, unsigned no, const char* 
         int idx = 0;
         int blk = ext2_get_block(vol, dir, i);
         struct bkmap bk;
-        ext2_dir_en_t* en = bkmap(&bk, blk, vol->blocksize, 0, vol->blkdev, VM_WR);
+        ext2_dir_en_t *en = bkmap(&bk, blk, vol->blocksize, 0, vol->blkdev, VM_WR);
         while (en->ino != 0) {
             if (en->rec_len == 0) {
                 bkunmap(&bk);
@@ -477,10 +471,10 @@ int ext2_add_link(ext2_volume_t* vol, ext2_ino_t* dir, unsigned no, const char* 
 
 
 
-inode_t* ext2_lookup(inode_t* dir, const char* name, void* acl)
+inode_t *ext2_lookup(inode_t *dir, const char *name, void *acl)
 {
-    ext2_volume_t* vol = (ext2_volume_t*)dir->drv_data;
-    char* filename = kalloc(256);
+    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
+    char *filename = kalloc(256);
     int ino_no = ext2_search_inode(dir, name, filename);
     kfree(filename);
     if (ino_no == 0) {
@@ -488,15 +482,15 @@ inode_t* ext2_lookup(inode_t* dir, const char* name, void* acl)
         return NULL;
     }
 
-    inode_t* ino = ext2_inode(dir->drv_data, ino_no);
+    inode_t *ino = ext2_inode(dir->drv_data, ino_no);
     errno = 0;
     return ino;
 }
 
-inode_t* ext2_create(inode_t* dir, const char* name, int mode, void* acl)
+inode_t *ext2_create(inode_t *dir, const char *name, int mode, void *acl)
 {
-    ext2_volume_t* vol = (ext2_volume_t*)dir->drv_data;
-    char* filename = kalloc(256);
+    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
+    char *filename = kalloc(256);
     int ino_no = ext2_search_inode(dir, name, filename);
     kfree(filename);
 
@@ -513,14 +507,14 @@ inode_t* ext2_create(inode_t* dir, const char* name, int mode, void* acl)
 
     // Update parent inode
     struct bkmap bk_dir;
-    ext2_ino_t* ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
+    ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
     ino_dir->links++;
     ino_dir->ctime = now / _PwMicro_;
     ino_dir->mtime = now / _PwMicro_;
 
     // Create a new inode
     struct bkmap bk_new;
-    ext2_ino_t* ino_new = ext2_entry(&bk_new, vol, no, VM_WR);
+    ext2_ino_t *ino_new = ext2_entry(&bk_new, vol, no, VM_WR);
     ino_new->ctime = now / _PwMicro_;
     ino_new->atime = now / _PwMicro_;
     ino_new->mtime = now / _PwMicro_;
@@ -530,7 +524,7 @@ inode_t* ext2_create(inode_t* dir, const char* name, int mode, void* acl)
     ino_new->size = 0; // vol->blocksize;
     ino_new->blocks = 0; // vol->blocksize / 512;
 
-    inode_t* ino = ext2_inode_from(vol, ino_new, no);
+    inode_t *ino = ext2_inode_from(vol, ino_new, no);
     assert(ino != NULL);
 
     // Add the new entry
@@ -541,10 +535,10 @@ inode_t* ext2_create(inode_t* dir, const char* name, int mode, void* acl)
     return ino;
 }
 
-inode_t* ext2_mkdir(inode_t* dir, const char* name, int mode, void* acl)
+inode_t *ext2_mkdir(inode_t *dir, const char *name, int mode, void *acl)
 {
-    ext2_volume_t* vol = (ext2_volume_t*)dir->drv_data;
-    char* filename = kalloc(256);
+    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
+    char *filename = kalloc(256);
     int ino_no = ext2_search_inode(dir, name, filename);
     kfree(filename);
 
@@ -559,9 +553,9 @@ inode_t* ext2_mkdir(inode_t* dir, const char* name, int mode, void* acl)
 
     // Add . and ..
     struct bkmap bkd;
-    char* data = bkmap(&bkd, blkno, vol->blocksize, 0, vol->blkdev, VM_RW);
+    char *data = bkmap(&bkd, blkno, vol->blocksize, 0, vol->blkdev, VM_RW);
     memset(data, 0, vol->blocksize);
-    ext2_dir_en_t* en = data;
+    ext2_dir_en_t *en = data;
     en->ino = no;
     en->rec_len = sizeof(ext2_dir_en_t) + 4;
     en->name_len = 1;
@@ -579,14 +573,14 @@ inode_t* ext2_mkdir(inode_t* dir, const char* name, int mode, void* acl)
 
     // Update parent inode
     struct bkmap bk_dir;
-    ext2_ino_t* ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
+    ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
     ino_dir->links++;
     ino_dir->ctime = now / _PwMicro_;
     ino_dir->mtime = now / _PwMicro_;
 
     // Create a new inode
     struct bkmap bk_new;
-    ext2_ino_t* ino_new = ext2_entry(&bk_new, vol, no, VM_WR);
+    ext2_ino_t *ino_new = ext2_entry(&bk_new, vol, no, VM_WR);
     ino_new->ctime = now / _PwMicro_;
     ino_new->atime = now / _PwMicro_;
     ino_new->mtime = now / _PwMicro_;
@@ -596,7 +590,7 @@ inode_t* ext2_mkdir(inode_t* dir, const char* name, int mode, void* acl)
     ino_new->size = vol->blocksize;
     ino_new->blocks = vol->blocksize / 512;
 
-    inode_t* ino = ext2_inode_from(vol, ino_new, no);
+    inode_t *ino = ext2_inode_from(vol, ino_new, no);
     assert(ino != NULL);
 
     // Add the new entry
@@ -609,7 +603,7 @@ inode_t* ext2_mkdir(inode_t* dir, const char* name, int mode, void* acl)
 
 
 
-inode_t *ext2_open(inode_t *dir, const char * name, ftype_t type, void *acl, int flags)
+inode_t *ext2_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
 {
     ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
     ext2_dir_iter_t *it = ext2_opendir(dir);
@@ -651,14 +645,14 @@ inode_t *ext2_open(inode_t *dir, const char * name, ftype_t type, void *acl, int
     }
 
     ext2_dir_en_t *new_en;
-    ext2_dir_en_t* entry = (ext2_dir_en_t*)NULL;// &it->cur_block[off];
+    ext2_dir_en_t *entry = (ext2_dir_en_t *)NULL; // &it->cur_block[off];
     uint32_t no = ext2_alloc_inode(dir->drv_data);
     inode_t *ino = ext2_creat(dir->drv_data, no, FL_REG, xtime_read(XTIME_CLOCK));
     // TODO -- REgister !
     assert(false);
     if (entry->rec_len > entry->name_len + 4 + strlen(name)) {
         int sz = entry->name_len + 2;
-        new_en = (ext2_dir_en_t*)NULL; // &it->cur_block[off + sz];
+        new_en = (ext2_dir_en_t *)NULL; // &it->cur_block[off + sz];
         entry->rec_len = sz;
         new_en->rec_len = entry->rec_len - sz;
         new_en->name_len = (uint8_t)strlen(name);
@@ -675,11 +669,11 @@ inode_t *ext2_open(inode_t *dir, const char * name, ftype_t type, void *acl, int
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-int ext2_read(inode_t* ino, void* buffer, size_t length, xoff_t offset, int flags)
+int ext2_read(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags)
 {
     struct bkmap bk;
-    ext2_volume_t* vol = (ext2_volume_t*)ino->drv_data;
-    ext2_ino_t* en = ext2_entry(&bk, vol, ino->no, VM_RD);
+    ext2_volume_t *vol = (ext2_volume_t *)ino->drv_data;
+    ext2_ino_t *en = ext2_entry(&bk, vol, ino->no, VM_RD);
 
     while (length > 0) {
         size_t cap = MIN(vol->blocksize, length);
@@ -688,30 +682,28 @@ int ext2_read(inode_t* ino, void* buffer, size_t length, xoff_t offset, int flag
 
         if (blk && offset < ino->length) {
             struct bkmap bm;
-            char* data = bkmap(&bm, blk, vol->blocksize, 0, ino->dev->underlying, VM_RD);
+            char *data = bkmap(&bm, blk, vol->blocksize, 0, ino->dev->underlying, VM_RD);
             cap = MIN(cap, ino->length - offset);
             cap = MIN(cap, vol->blocksize - off);
             memcpy(buffer, &data[off], cap);
             bkunmap(&bm);
-        }
-        else {
+        } else
             memset(buffer, 0, cap);
-        }
 
         length -= cap;
         offset += cap;
-        buffer = ((char*)buffer) + cap;
+        buffer = ((char *)buffer) + cap;
     }
 
     bkunmap(&bk);
     return 0;
 }
 
-int ext2_write(inode_t* ino, void* buffer, size_t length, xoff_t offset, int flags)
+int ext2_write(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags)
 {
     struct bkmap bk;
-    ext2_volume_t* vol = (ext2_volume_t*)ino->drv_data;
-    ext2_ino_t* en = ext2_entry(&bk, vol, ino->no, VM_RD);
+    ext2_volume_t *vol = (ext2_volume_t *)ino->drv_data;
+    ext2_ino_t *en = ext2_entry(&bk, vol, ino->no, VM_RD);
 
     while (length > 0) {
         size_t cap = MIN(vol->blocksize, length);
@@ -720,13 +712,12 @@ int ext2_write(inode_t* ino, void* buffer, size_t length, xoff_t offset, int fla
 
         if (blk && offset < ino->length) {
             struct bkmap bm;
-            char* data = bkmap(&bm, blk, vol->blocksize, 0, ino->dev->underlying, VM_WR);
+            char *data = bkmap(&bm, blk, vol->blocksize, 0, ino->dev->underlying, VM_WR);
             cap = MIN(cap, ino->length - offset);
             cap = MIN(cap, vol->blocksize - off);
             memcpy(&data[off], buffer, cap);
             bkunmap(&bm);
-        }
-        else {
+        } else {
             bkunmap(&bk);
             errno = EINVAL;
             return -1;
@@ -734,7 +725,7 @@ int ext2_write(inode_t* ino, void* buffer, size_t length, xoff_t offset, int fla
 
         length -= cap;
         offset += cap;
-        buffer = ((char*)buffer) + cap;
+        buffer = ((char *)buffer) + cap;
     }
 
     bkunmap(&bk);
@@ -744,11 +735,11 @@ int ext2_write(inode_t* ino, void* buffer, size_t length, xoff_t offset, int fla
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int ext2_truncate(inode_t* ino, xoff_t offset)
+int ext2_truncate(inode_t *ino, xoff_t offset)
 {
     struct bkmap bk;
-    ext2_volume_t* vol = (ext2_volume_t*)ino->drv_data;
-    ext2_ino_t* en = ext2_entry(&bk, vol, ino->no, VM_WR);
+    ext2_volume_t *vol = (ext2_volume_t *)ino->drv_data;
+    ext2_ino_t *en = ext2_entry(&bk, vol, ino->no, VM_WR);
 
     int block_count = ALIGN_UP(offset, vol->blocksize) / vol->blocksize;
     int i = 0;
@@ -875,4 +866,3 @@ void ext2_teardown()
 }
 
 EXPORT_MODULE(ext2, ext2_setup, ext2_teardown);
-

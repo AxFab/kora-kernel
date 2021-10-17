@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -71,7 +71,7 @@ struct netstack {
 };
 
 struct net_ops {
-    void (*link)(ifnet_t*);
+    void (*link)(ifnet_t *);
     int (*send)(ifnet_t *, skb_t *);
 };
 
@@ -123,12 +123,12 @@ struct skb {
 
 struct nproto {
     int protocol;
-    int(*bind)(socket_t*, uint8_t*, size_t);
-    int(*connect)(socket_t*, uint8_t*, size_t);
+    int(*bind)(socket_t *, uint8_t *, size_t);
+    int(*connect)(socket_t *, uint8_t *, size_t);
 };
 
 struct socket {
-    netstack_t* net;
+    netstack_t *net;
     nproto_t *protocol;
     uint8_t laddr[32];
     uint8_t raddr[32];
@@ -163,19 +163,19 @@ int net_skb_write(skb_t *skb, const void *buf, unsigned len);
 /* Get pointer on data from a packet and move cursor */
 void *net_skb_reserve(skb_t *skb, unsigned len);
 
-ifnet_t *net_alloc(netstack_t* stack, int protocol, uint8_t *hwaddr, net_ops_t *ops, void *driver);
+ifnet_t *net_alloc(netstack_t *stack, int protocol, uint8_t *hwaddr, net_ops_t *ops, void *driver);
 
 #define net_skb_log(s,m)  strncat((s)->log,(m),64)
 
 
 // Socket
 socket_t *net_socket(netstack_t *stack, int protocol);
-int net_socket_bind(socket_t* sock, uint8_t* addr, size_t len);
-int net_socket_connect(socket_t* sock, uint8_t* addr, size_t len);
-int net_socket_close(socket_t* sock);
-socket_t* net_socket_accept(socket_t* sock, bool block);
-int net_socket_write(socket_t* sock, const char* buf, size_t len);
-int net_socket_read(socket_t* sock, const char* buf, size_t len);
+int net_socket_bind(socket_t *sock, uint8_t *addr, size_t len);
+int net_socket_connect(socket_t *sock, uint8_t *addr, size_t len);
+int net_socket_close(socket_t *sock);
+socket_t *net_socket_accept(socket_t *sock, bool block);
+int net_socket_write(socket_t *sock, const char *buf, size_t len);
+int net_socket_read(socket_t *sock, const char *buf, size_t len);
 
 
 // Ethernet

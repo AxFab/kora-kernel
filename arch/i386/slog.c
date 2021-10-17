@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -53,4 +53,3 @@ void cpu_dumpstate(size_t *state)
     kprintf(-1, " EBX: %08x   ESI: %08x   EDI: %08x   \n", state[0], state[1], state[2]);
     kprintf(-1, " EBP: %08x   ESP: %08x   EIP: %08x   \n", state[3], state[4], state[5]);
 }
-

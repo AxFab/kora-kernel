@@ -1,5 +1,5 @@
 ;      This file is part of the KoraOS project.
-;  Copyright (C) 2018  <Fabien Bavent>
+;  Copyright (C) 2015-2021  <Fabien Bavent>
 ;
 ;  This program is free software: you can redistribute it and/or modify
 ;  it under the terms of the GNU Affero General Public License as
@@ -14,8 +14,8 @@
 ;  You should have received a copy of the GNU Affero General Public License
 ;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-; I N T E R U P T -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use32
+; I N T E R U P T -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 global int_default, int_syscall
 global int_exDV, int_exDB, int_exNMI, int_exBP, int_exOF, int_exBR

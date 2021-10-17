@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -52,18 +52,18 @@ enum sys_vars {
     SNFO_SNAME,
     SNFO_OSNAME,
     SNFO_PWD,
-// SNFO_ARCH
-// SNFO_GITH
-// SNFO_SNAME
-// SNFO_VERSION
-// SNFO_RELEASE
-// SNFO_OSNAME
-// SNFO_HOSTNAME
-// SNFO_DOMAIN
-// SNFO_USER
-// SNFO_USERNAME
-// SNFO_USERMAIL
-// SNFO_PWD
+    // SNFO_ARCH
+    // SNFO_GITH
+    // SNFO_SNAME
+    // SNFO_VERSION
+    // SNFO_RELEASE
+    // SNFO_OSNAME
+    // SNFO_HOSTNAME
+    // SNFO_DOMAIN
+    // SNFO_USER
+    // SNFO_USERNAME
+    // SNFO_USERMAIL
+    // SNFO_PWD
 };
 
 enum syscall_no {

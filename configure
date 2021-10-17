@@ -97,6 +97,7 @@ topdir:=$TOPDIR
 gendir:=$GENDIR
 prefix:=$PREFIX
 target:=$TARGET
+sysdir:=$SYSDIR
 CROSS:=$CROSS
 CC:=$CROSS$CC
 LD:=$CROSS$LD

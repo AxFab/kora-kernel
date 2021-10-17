@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -93,15 +93,15 @@ int fat_iterator_next(fat_iterator_t *ctx, fat_entry_t **ptr)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t* fat_lookup(inode_t* dir, const char* name, void* acl)
+inode_t *fat_lookup(inode_t *dir, const char *name, void *acl)
 {
-    inode_t* ino;
+    inode_t *ino;
     fat_iterator_t ctx;
     fat_create_iterator(dir, &ctx);
-    fat_volume_t* volume = dir->drv_data;
+    fat_volume_t *volume = dir->drv_data;
 
     for (;;) {
-        fat_entry_t* entry;
+        fat_entry_t *entry;
         int no = fat_iterator_next(&ctx, &entry);
         if (no == 0)
             break;

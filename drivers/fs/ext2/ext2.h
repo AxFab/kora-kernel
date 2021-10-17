@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -144,8 +144,8 @@ struct ext2_volume {
     size_t blocksize;
     ext2_sb_t *sb;
     ext2_grp_t *grp;
-    inode_t* blkdev;
-    device_t* dev;
+    inode_t *blkdev;
+    device_t *dev;
     unsigned groupCount;
     size_t groupSize;
 };
@@ -158,12 +158,12 @@ struct ext2_dir_iter {
     // int last;
     // uint8_t *cur_block;
 
-    void* emap;
-    ext2_ino_t* entry;
+    void *emap;
+    ext2_ino_t *entry;
 
     // size_t off;
     size_t lba;
-    void* cmap;
+    void *cmap;
 };
 
 struct ext2_dir_en {
@@ -207,4 +207,3 @@ struct ext2_dir_en {
 #define EXT2_S_IROTH    0x0004  /* read */
 #define EXT2_S_IWOTH    0x0002  /* write */
 #define EXT2_S_IXOTH    0x0001  /* execute */
-

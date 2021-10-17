@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -21,10 +21,9 @@
 #include <assert.h>
 #include <errno.h>
 
-struct diterator
-{
+struct diterator {
     int mode;
-    void* ctx;
+    void *ctx;
     char name[256];
 };
 
@@ -39,22 +38,22 @@ diterator_t *vfs_opendir(fsnode_t *dir, void *acl)
         //        return NULL;
     }
 
-    void* ctx = dir->ino->ops->opendir(dir->ino);
+    void *ctx = dir->ino->ops->opendir(dir->ino);
     if (ctx == NULL)
         return NULL;
-    diterator_t* it = kalloc(sizeof(diterator_t));
+    diterator_t *it = kalloc(sizeof(diterator_t));
     it->ctx = ctx;
     it->mode = 0;
     return it;
 }
 
-static fsnode_t* vfs_readdir_std(fsnode_t* dir, diterator_t* it)
+static fsnode_t *vfs_readdir_std(fsnode_t *dir, diterator_t *it)
 {
-    inode_t* ino = dir->ino->ops->readdir(dir->ino, it->name, it->ctx);
+    inode_t *ino = dir->ino->ops->readdir(dir->ino, it->name, it->ctx);
     if (ino == NULL)
         return NULL;
-    
-    fsnode_t* node = vfs_fsnode_from(dir, it->name);
+
+    fsnode_t *node = vfs_fsnode_from(dir, it->name);
     if (node->mode == FN_OK) {
         vfs_close_inode(ino);
         return node;
@@ -76,7 +75,7 @@ fsnode_t *vfs_readdir(fsnode_t *dir, diterator_t *it)
         return NULL;
     }
 
-    fsnode_t* node = NULL;
+    fsnode_t *node = NULL;
     if (it->mode == 0)
         node = vfs_readdir_std(dir, it);
     if (node != NULL)
@@ -90,7 +89,7 @@ fsnode_t *vfs_readdir(fsnode_t *dir, diterator_t *it)
     return node;
 }
 
-int vfs_closedir(fsnode_t *dir, diterator_t* it)
+int vfs_closedir(fsnode_t *dir, diterator_t *it)
 {
     assert(dir->mode == FN_OK);
     if (it == NULL) {
@@ -107,7 +106,7 @@ int vfs_closedir(fsnode_t *dir, diterator_t* it)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-int vfs_mkdir(fsnode_t* node, int mode, void *user)
+int vfs_mkdir(fsnode_t *node, int mode, void *user)
 {
     assert(node != NULL);
     mtx_lock(&node->mtx);
@@ -129,7 +128,7 @@ int vfs_mkdir(fsnode_t* node, int mode, void *user)
 }
 
 
-int vfs_rmdir(fsnode_t* node)
+int vfs_rmdir(fsnode_t *node)
 {
     mtx_lock(&node->mtx);
     if (node->mode != FN_OK) {
@@ -138,7 +137,7 @@ int vfs_rmdir(fsnode_t* node)
         return -1;
     }
 
-    inode_t* dir = node->parent->ino;
+    inode_t *dir = node->parent->ino;
     int ret = dir->ops->rmdir(dir, node->name);
     if (ret == 0) {
         vfs_close_inode(node->ino);
@@ -148,5 +147,3 @@ int vfs_rmdir(fsnode_t* node)
     mtx_unlock(&node->mtx);
     return ret;
 }
-
-

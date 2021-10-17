@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -79,13 +79,13 @@ typedef struct e1000_device {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void e1000_link(ifnet_t* net)
+void e1000_link(ifnet_t *net)
 {
     e1000_device_t *ifnet = net->drv_data;
     e1000_init_hw(ifnet);
 }
 
-int e1000_send(ifnet_t * net, skb_t * skb)
+int e1000_send(ifnet_t *net, skb_t *skb)
 {
     e1000_device_t *ifnet = net->drv_data;
     kprintf(KL_DBG, "REQUEST SEND NETWORK %s (%d)\n", skb->log, skb->length);
@@ -446,4 +446,3 @@ void e1000_teardown()
 
 
 EXPORT_MODULE(e1000, e1000_setup, e1000_teardown);
-

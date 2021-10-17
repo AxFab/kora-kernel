@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -98,7 +98,7 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags)
     return ino->fops->write(ino, buf, size, off, flags);
 }
 
-int vfs_truncate(inode_t* ino, xoff_t off)
+int vfs_truncate(inode_t *ino, xoff_t off)
 {
     assert(ino != NULL);
     if (ino->ops == NULL || ino->ops->truncate == NULL) {
@@ -135,4 +135,3 @@ int vfs_seek(inode_t *ino, xoff_t off)
 
     return ino->fops->seek(ino, off);
 }
-

@@ -1,5 +1,5 @@
 #      This file is part of the KoraOS project.
-#  Copyright (C) 2018  <Fabien Bavent>
+#  Copyright (C) 2015-2021  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as
@@ -14,8 +14,6 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#  This makefile is generic.
-#
 $(outdir)/%.o: $(topdir)/%.c
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    CC  $<"
@@ -26,56 +24,35 @@ $(outdir)/%.d: $(topdir)/%.c
 	$(Q) echo "    CM  $<"
 	$(V) $(CC) -M $< $(CFLAGS) | sed "s%$(notdir $(@:.d=.o))%$(@:.d=.o)%" > $@
 
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+define comp_source
+$(outdir)/$(1)/%.o: $(topdir)/%.c
+	$(S) mkdir -p $$(dir $$@)
+	$(Q) echo "    CC  $$<"
+	$(V) $(CC) -c -o $$@ $$< $($(2))
+
+$(outdir)/$(1)/%.d: $(topdir)/%.c
+	$(S) mkdir -p $$(dir $$@)
+	$(Q) echo "    CM  $$<"
+	$(V) $(CC) -M $$< $($(2)) | sed "s%$(notdir $$(@:.d=.o))%$$(@:.d=.o)%" > $$@
+endef
 
 define link_shared
 LIBS += $(libdir)/lib$(1).so
 lib$(1): $(libdir)/lib$(1).so
 install-lib$(1): $(prefix)/lib/lib$(1).so
-$(libdir)/lib$(1).so: $(call fn_objs,$(2))
+$(libdir)/lib$(1).so: $(call fn_objs,$(2),$(4))
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  $$@"
-	$(V) $(LD) -shared -o $$@ $$^ $($(3))
+	$(V) $(LDC) -shared -o $$@ $$^ $($(3))
 endef
 
 define link_bin
 BINS += $(bindir)/$(1)
 $(1): $(bindir)/$(1)
 install-$(1): $(prefix)/bin/$(1)
-$(bindir)/$(1): $(call fn_objs,$(2))
-	$(S) mkdir -p $$(dir $$@)
-	$(Q) echo "    LD  $$@"
-	$(V) $(LDC) -o $$@ $$^ $($(3))
-endef
-
-# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-define comp_source
-$(outdir)/$(1)/%.o: $(topdir)/%.c
-	$(S) mkdir -p $(dir $$@)
-	$(Q) echo "    CC  $$<"
-	$(V) $(CC) -c -o $$@ $$< $($(2))
-
-$(outdir)/$(1)/%.d: $(topdir)/%.c
-	$(S) mkdir -p $(dir $$@)
-	$(Q) echo "    CM  $$<"
-	$(V) $(CC) -M $< $($(2)) | sed "s%$(notdir $$(@:.d=.o))%$$(@:.d=.o)%" > $$@
-endef
-
-define link_shared2
-LIBS += $(libdir)/lib$(1).so
-lib$(1): $(libdir)/lib$(1).so
-install-lib$(1): $(prefix)/lib/lib$(1).so
-$(libdir)/lib$(1).so: $(call fn_objs2,$(2),$(4))
-	$(S) mkdir -p $$(dir $$@)
-	$(Q) echo "    LD  $$@"
-	$(V) $(LD) -shared -o $$@ $$^ $($(3))
-endef
-
-define link_bin2
-BINS += $(bindir)/$(1)
-$(1): $(bindir)/$(1)
-install-$(1): $(prefix)/bin/$(1)
-$(bindir)/$(1): $(call fn_objs2,$(2),$(4))
+$(bindir)/$(1): $(call fn_objs,$(2),$(4))
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  $$@"
 	$(V) $(LDC) -o $$@ $$^ $($(3))

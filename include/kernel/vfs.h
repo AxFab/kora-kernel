@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -124,8 +124,8 @@ struct vfs {
 
 struct ino_ops {
     // inode_t *(*open)(inode_t *dir, const char *name, ftype_t type, void *acl, int flags);
-    inode_t* (*lookup)(inode_t* dir, const char* name, void* acl);
-    inode_t* (*create)(inode_t* dir, const char* name, void* acl, int mode);
+    inode_t *(*lookup)(inode_t *dir, const char *name, void *acl);
+    inode_t *(*create)(inode_t *dir, const char *name, void *acl, int mode);
     void (*close)(inode_t *dir, inode_t *ino);
     int (*unlink)(inode_t *dir, const char *name);
 
@@ -136,8 +136,8 @@ struct ino_ops {
     inode_t *(*readdir)(inode_t *dir, char *name, void *iterator);
     void (*closedir)(inode_t *dir, void *);
 
-    inode_t* (*mkdir)(inode_t* ino, const char* name, int mode, void* acl);
-    int (*rmdir)(inode_t* ino, const char* name);
+    inode_t *(*mkdir)(inode_t *ino, const char *name, int mode, void *acl);
+    int (*rmdir)(inode_t *ino, const char *name);
 
     int(*truncate)(inode_t *ino, xoff_t length);
 
@@ -214,8 +214,8 @@ int vfs_chdir(vfs_t *vfs, const char *path, bool root);
 int vfs_readlink(vfs_t *vfs, fsnode_t *node, char *buf, int len, bool relative);
 
 
-int vfs_create(fsnode_t* node, void* acl, int flags, int mode);
-int vfs_mkdir(fsnode_t* node, int flags, void* acl);
+int vfs_create(fsnode_t *node, void *acl, int flags, int mode);
+int vfs_mkdir(fsnode_t *node, int flags, void *acl);
 
 void vfs_usage(fsnode_t *node, int flags, int use);
 
@@ -226,7 +226,7 @@ int vfs_closedir(fsnode_t *dir, diterator_t *it);
 
 int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags);
 int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags);
-int vfs_truncate(inode_t* ino, xoff_t off);
+int vfs_truncate(inode_t *ino, xoff_t off);
 
 // Internal
 fsnode_t *vfs_fsnode_from(fsnode_t *parent, const char *name);
@@ -253,10 +253,10 @@ struct bkmap {
     size_t addr;
     size_t off;
     size_t len;
-    void* map;
+    void *map;
 };
 
-static inline void* bkmap(struct bkmap* bm, size_t blkno, size_t blksize, size_t size, void* dev, int flg)
+static inline void *bkmap(struct bkmap *bm, size_t blkno, size_t blksize, size_t size, void *dev, int flg)
 {
     assert(POW2(blksize));
     if (size == 0)
@@ -268,10 +268,10 @@ static inline void* bkmap(struct bkmap* bm, size_t blkno, size_t blksize, size_t
     bm->off = by - bo;
     bm->len = be - bo;
     bm->map = kmap(bm->len, dev, (xoff_t)bm->addr, flg);
-    return ((char*)bm->map) + bm->off;
+    return ((char *)bm->map) + bm->off;
 }
 
-static inline void bkunmap(struct bkmap* bm)
+static inline void bkunmap(struct bkmap *bm)
 {
     kunmap(bm->map, bm->len);
     bm->map = 0;

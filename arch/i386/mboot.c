@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -153,7 +153,7 @@ void mboot_load_modules()
     if (mboot_table->flags & GRUB_MODULES) {
         struct mboot_module *mods = (struct mboot_module *)mboot_table->mods_addr;
         for (i = 0; i < mboot_table->mods_count; ++i) {
-            size_t len = (size_t)(((char*)mods->end) - ((char*)mods->start));
+            size_t len = (size_t)(((char *)mods->end) - ((char *)mods->start));
             kprintf(KL_MSG, "Module preloaded [%s] '%s'\n", sztoa(len), mods->string);
             inode_t *root = tar_mount(mods->start, len, mods->string);
             snprintf(tmp, 12, "boot%d", i);

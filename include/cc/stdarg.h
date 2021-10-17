@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -32,7 +32,7 @@ typedef __builtin_va_list va_list;
 
 #else
 
-typedef char* va_list;
+typedef char *va_list;
 
 # define va_start(v,l)   (v = (((char*)&(l)) + sizeof(l)))
 # define va_end(v)   ((void)v)

@@ -1,7 +1,6 @@
 #!/bin/bash
-#
 #      This file is part of the KoraOS project.
-#  Copyright (C) 2015-2019  <Fabien Bavent>
+#  Copyright (C) 2015-2021  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as
@@ -54,4 +53,3 @@ fi
 exec git diff-index --check --cached $against --
 
 # astyle --style=kr --indent=spaces=4 --indent-col1-comments --min-conditional-indent=1 --pad-oper --pad-header --unpad-paren --align-pointer=name --align-reference=name --break-one-line-headers --remove-brackets --convert-tabs --lineend=linux --mode=c -r "*.c" "*.h"
-

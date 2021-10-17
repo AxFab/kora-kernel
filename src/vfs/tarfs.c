@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -151,13 +151,13 @@ static tar_entry_t *tar_do_iterate(inode_t *dir, char *name, tar_iterator_t *ctx
 //}
 
 /* Look for entry visible on a directory */
-inode_t* tar_lookup(inode_t* dir, const char* name, void* acl)
+inode_t *tar_lookup(inode_t *dir, const char *name, void *acl)
 {
     tar_iterator_t ctx;
     tar_start_iterate(dir, &ctx);
     char tmp[256];
     for (;;) {
-        tar_entry_t* entry = tar_do_iterate(dir, tmp, &ctx);
+        tar_entry_t *entry = tar_do_iterate(dir, tmp, &ctx);
         if (entry == NULL) {
             errno = ENOENT;
             return NULL;
@@ -290,4 +290,3 @@ inode_t *tar_mount(void *base, size_t length, const char *name)
     ino->dev->devclass = strdup("tar");
     return ino;
 }
-

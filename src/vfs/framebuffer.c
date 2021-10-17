@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -119,12 +119,12 @@ int framebuffer_iocntl(inode_t *ino, int cmd, void **params)
 {
     framebuffer_t *fb = ino->drv_data;
     switch (cmd) {
-        case FB_RESIZE:
-            return framebuffer_resize(fb, (size_t)params[0], (size_t)params[1]);
-        case FB_FLIP:
-            return framebuffer_flip(fb, (size_t)params[0]);
-        default:
-            return -1;
+    case FB_RESIZE:
+        return framebuffer_resize(fb, (size_t)params[0], (size_t)params[1]);
+    case FB_FLIP:
+        return framebuffer_flip(fb, (size_t)params[0]);
+    default:
+        return -1;
     }
 }
 
@@ -159,4 +159,3 @@ framebuffer_t *framebuffer_create()
     // splock_init(&fb->lock);
     return fb;
 }
-

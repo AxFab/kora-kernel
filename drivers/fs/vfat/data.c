@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@
 
 int fat_read(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags)
 {
-    FAT_volume_t * volume = ino->drv_data;
+    FAT_volume_t *volume = ino->drv_data;
     size_t clusterSize = volume->SecPerClus * volume->BytsPerSec;
     assert(POW2(clusterSize) && (offset & (clusterSize - 1)) == 0);
 
@@ -39,19 +39,18 @@ int fat_read(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags
         if (clustNo) {
             int lba = FAT_CLUSTER_TO_LBA(volume, clustNo);
             struct bkmap bm;
-            char* data = bkmap(&bm, lba, 512, clusterSize, ino->dev->underlying, VM_RD);
+            char *data = bkmap(&bm, lba, 512, clusterSize, ino->dev->underlying, VM_RD);
             cap = MIN(cap, length);
             memcpy(buffer, data, cap);
             bkunmap(&bm);
-        }
-        else {
+        } else {
             cap = MIN(cap, length);
             memset(buffer, 0, cap);
         }
 
         length -= cap;
         offset += cap;
-        buffer = ((char*)buffer) + cap;
+        buffer = ((char *)buffer) + cap;
     }
     return 0;
 }
@@ -61,4 +60,3 @@ int fat_write(inode_t *ino, const void *buffer, size_t length, xoff_t offset, in
     assert(false);
     return 0;
 }
-

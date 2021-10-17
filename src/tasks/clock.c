@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -281,7 +281,7 @@ xtime_t sleep_timer(long timeout)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void clock_handler ();
+void clock_handler();
 
 masterclock_t *clock_init(int irq, xtime_t now)
 {
@@ -305,7 +305,8 @@ void clock_adjtime(masterclock_t *clock, xtime_t now)
 }
 
 xtime_t clock_read(masterclock_t *clock, xtime_name_t name)
-{ // TODO -- Replace by xtime_read
+{
+    // TODO -- Replace by xtime_read
     if (name == XTIME_CLOCK)
         return clock->wall;
     return 0;

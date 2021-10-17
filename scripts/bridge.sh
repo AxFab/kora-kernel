@@ -1,7 +1,6 @@
 #!/bin/bash
-#
 #      This file is part of the KoraOS project.
-#  Copyright (C) 2015-2019  <Fabien Bavent>
+#  Copyright (C) 2015-2021  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as
@@ -44,4 +43,3 @@ macaddress ='DE:AD:BE:EF:%02X:%02X\n' $((RANDOM%256)) $((RANDOM%256))
 print $macaddress
 
 qemu-system-x86_64 -cdrom KoraOs.iso -device e1000,netdev=net0,mac=$macaddress -netdev tap,id=net0
-

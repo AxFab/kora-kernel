@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -278,11 +278,10 @@ _Noreturn void module_loader()
     int val = atomic_xchg(&mtask_step, 1);
     if (val == 0) {
         fsnode_t *directory = vfs_search(__current->vfs, "/mnt/boot0", NULL, true);
-        if (directory == NULL) {
+        if (directory == NULL)
             kprintf(KL_MSG, "Unable to find kernel modules");
-        } else {
+        else
             module_new_task(1, directory);
-        }
     }
 
     for (;;) {
@@ -296,21 +295,14 @@ _Noreturn void module_loader()
             kprintf(-1, "Hello from task %d (cpu:%d) \n", __current->pid, cpu_no());
             sleep_timer(500000);
             continue;
-        } else if (mt->type == 1) {
+        } else if (mt->type == 1)
             module_do_dir(mt->ptr);
-        } else if (mt->type == 2) {
+        else if (mt->type == 2)
             module_do_file(mt->ptr);
-        } else if (mt->type == 3) {
+        else if (mt->type == 3)
             module_do_proc(mt->ptr);
-        } else {
+        else
             kprintf(-1, "Unknown system task [%d]\n", mt->type);
-        }
         kfree(mt);
     }
 }
-
-
-
-
-
-

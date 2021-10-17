@@ -1,5 +1,5 @@
 #      This file is part of the KoraOS project.
-#  Copyright (C) 2018  <Fabien Bavent>
+#  Copyright (C) 2015-2021  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as
@@ -34,6 +34,7 @@ include $(topdir)/make/drivers.mk
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Setup compile flags
+CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb
 CFLAGS_inc  = -I$(topdir)/include
 CFLAGS_inc += -I$(topdir)/src/_$(target_os)/include
 CFLAGS_inc += -I$(topdir)/arch/$(target_arch)/include
@@ -43,39 +44,37 @@ CFLAGS_def += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Rule to build the kernel
-CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb
-CFLAGS += -ffreestanding $(CFLAGS_inc) $(CFLAGS_def)
+CFLAGS_kr += $(CFLAGS)
+CFLAGS_kr += -ffreestanding $(CFLAGS_inc) $(CFLAGS_def)
 
 ifeq ($(target_os),kora)
-# Build the kernel
-CFLAGS += -DKORA_KRN -D__NO_SYSCALL
-
+CFLAGS_kr += -DKORA_KRN -D__NO_SYSCALL
 else
-# Build hosted unit-tests
-CFLAGS += -lpthread
+CFLAGS_kr += -lpthread
 ifeq ($(NOCOV),)
-CFLAGS += --coverage -fprofile-arcs -ftest-coverage
+CFLAGS_kr += --coverage -fprofile-arcs -ftest-coverage
 endif
 ifeq ($(USE_ATOMIC),y)
-CFLAGS += -latomic
+CFLAGS_kr += -latomic
+endif
 endif
 
-endif
 
-
-SRCS += $(wildcard $(srcdir)/stdc/*.c)
-SRCS += $(wildcard $(srcdir)/vfs/*.c)
-SRCS += $(wildcard $(srcdir)/mem/*.c)
-SRCS += $(wildcard $(srcdir)/tasks/*.c)
-SRCS += $(wildcard $(srcdir)/core/*.c)
-# SRCS += $(wildcard $(srcdir)/net/*.c)
-# SRCS += $(wildcard $(srcdir)/net/ip4/*.c)
-SRCS += $(wildcard $(arcdir)/*.$(ASM_EXT))
-SRCS += $(wildcard $(arcdir)/*.c)
+SRCS_kr += $(wildcard $(srcdir)/stdc/*.c)
+SRCS_kr += $(wildcard $(srcdir)/vfs/*.c)
+SRCS_kr += $(wildcard $(srcdir)/mem/*.c)
+SRCS_kr += $(wildcard $(srcdir)/tasks/*.c)
+SRCS_kr += $(wildcard $(srcdir)/core/*.c)
+# SRCS_kr += $(wildcard $(srcdir)/net/*.c)
+# SRCS_kr += $(wildcard $(srcdir)/snd/*.c)
+# SRCS_kr += $(wildcard $(srcdir)/net/ip4/*.c)
+SRCS_kr += $(wildcard $(arcdir)/*.$(ASM_EXT))
+SRCS_kr += $(wildcard $(arcdir)/*.c)
 
 include $(topdir)/arch/$(target_arch)/make.mk
 
-$(bindir)/$(kname): $(call fn_objs,SRCS)
+$(eval $(call comp_source,kr,CFLAGS_kr))
+$(bindir)/$(kname): $(call fn_objs,SRCS_kr,kr)
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    LD  "$@
 	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
@@ -106,9 +105,6 @@ SRC_ckvfs += $(wildcard $(srcdir)/vfs/*.c)
 
 CFLAGS_dr ?= -Wall -Wextra -Wno-unused-parameter -ggdb
 CFLAGS_dr += -ffreestanding -fPIC $(CFLAGS_inc) $(CFLAGS_def)
-ifeq ($(target_os),kora)
-CFLAGS_dr += -Dmain=_main
-endif
 
 LFLAGS_dr += -lc
 
@@ -144,5 +140,6 @@ $(prefix)/boot/bootrd.tar: $(INSTALL_DRVS)
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 ifeq ($(NODEPS),)
--include $(call fn_deps,SRCS)
+-include $(call fn_deps,SRCS_kr,kr)
+-include $(call fn_deps,SRCS_dr,dr)
 endif

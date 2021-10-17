@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -527,4 +527,3 @@ void cpu_early_init() // GDT & IDT
 
     IDT(0xFF, 0x08, (uint32_t)int_irqLT, INTGATE);
 }
-

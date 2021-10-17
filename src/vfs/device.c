@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -27,7 +27,7 @@
 
 hmap_t fs_hmap;
 
-inode_t* devfs_setup();
+inode_t *devfs_setup();
 
 void devfs_sweep();
 void devfs_register(inode_t *ino, const char *name);
@@ -86,9 +86,9 @@ void vfs_sweep(vfs_t *vfs)
     devfs_sweep();
 
     assert(vfs->root->parent == NULL && vfs->root->rcu == 1);
-    fsnode_t* node = vfs->root; // Check if that's the correct one and it's device is empty!?
+    fsnode_t *node = vfs->root; // Check if that's the correct one and it's device is empty!?
     mtx_destroy(&node->mtx);
-    vfs_close_inode(node->ino); // 
+    vfs_close_inode(node->ino); //
     kfree(node);
 
     kfree(vfs);
@@ -115,7 +115,7 @@ void vfs_rmfs(const char *name)
     hmp_remove(&fs_hmap, name, strlen(name));
 }
 
-fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char* path, const char *options)
+fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *path, const char *options)
 {
     assert(fs != NULL && path != NULL);
     fsnode_t *node = vfs_search(vfs, path, NULL, false);
@@ -172,7 +172,7 @@ fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char*
     }
 
     // vfs_mkdev(ino, NULL);
-    fsnode_t* dir = node->parent;
+    fsnode_t *dir = node->parent;
     splock_lock(&dir->lock);
     ll_append(&dir->mnt, &node->nmt);
     splock_unlock(&dir->lock);
@@ -286,9 +286,8 @@ fsnode_t *vfs_mknod(fsnode_t *parent, const char *name, int devno)
         fname[16] = 0;
         node = vfs_fsnode_from(parent, fname);
         kfree(fname);
-    } else {
+    } else
         node = vfs_fsnode_from(parent, name);
-    }
 
     mtx_lock(&node->mtx);
     if (node->mode != FN_EMPTY) {

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -45,15 +45,15 @@ thread_local int __irq_semaphore = 0;
 int kallocCount = 0;
 int kmapCount = 0;
 
-void* kalloc(size_t len)
+void *kalloc(size_t len)
 {
     kallocCount++;
-    void* ptr = calloc(len, 1);
+    void *ptr = calloc(len, 1);
     // kprintf(-1, "+ alloc (%p, %d)\n", ptr, len);
     return ptr;
 }
 
-void kfree(void* ptr)
+void kfree(void *ptr)
 {
     kallocCount--;
     // kprintf(-1, "- free (%p)\n", ptr);
@@ -66,9 +66,9 @@ void kfree(void* ptr)
 typedef struct map_page map_page_t;
 struct map_page {
     page_t pgs[16];
-    char* ptr;
+    char *ptr;
     size_t len;
-    inode_t* ino;
+    inode_t *ino;
     bbnode_t node;
     int access;
     xoff_t off;
@@ -76,7 +76,7 @@ struct map_page {
 bbtree_t map_tree;
 bool map_init = false;
 
-void* kmap(size_t len, void* ino, xoff_t off, int access)
+void *kmap(size_t len, void *ino, xoff_t off, int access)
 {
     assert(irq_ready());
     ++kmapCount;
@@ -84,18 +84,18 @@ void* kmap(size_t len, void* ino, xoff_t off, int access)
         bbtree_init(&map_tree);
         map_init = true;
     }
-    void* ptr = _valloc(len);
+    void *ptr = _valloc(len);
     if (ino == NULL) {
         if (access & VM_PHYSIQ && off != 0)
-            memcpy(ptr, (void*)off, len);
+            memcpy(ptr, (void *)off, len);
         kprintf(-1, "+ kmap (%p, %d, -)\n", ptr, len);
         return ptr;
     }
     // printf("KMAP %x %X %X %o\n", len, ino, off, access);
-    char* buf = ptr;
+    char *buf = ptr;
     char tmp[64];
     kprintf(-1, "+ kmap (%p, %d, %s+%llx)\n", ptr, len, vfs_inokey(ino, tmp), off);
-    map_page_t* mp = kalloc(sizeof(map_page_t));
+    map_page_t *mp = kalloc(sizeof(map_page_t));
     mp->ptr = ptr;
     mp->len = len / PAGE_SIZE;
     mp->ino = ino;
@@ -103,10 +103,10 @@ void* kmap(size_t len, void* ino, xoff_t off, int access)
     mp->off = off;
     int i = 0;
     while (len > 0) {
-        page_t pg = ((inode_t*)ino)->fops->fetch(ino, off);
+        page_t pg = ((inode_t *)ino)->fops->fetch(ino, off);
         mp->pgs[i++] = pg;
         assert(pg != NULL); // TODO - Better handling this
-        memcpy(buf, (void*)pg, PAGE_SIZE);
+        memcpy(buf, (void *)pg, PAGE_SIZE);
         // TODO -- We're suppose to use those pages an release them at kunmap only !
         // ((inode_t *)ino)->fops->release(ino, off, pg);
         len -= PAGE_SIZE;
@@ -120,11 +120,11 @@ void* kmap(size_t len, void* ino, xoff_t off, int access)
     return ptr;
 }
 
-void kunmap(void* addr, size_t len)
+void kunmap(void *addr, size_t len)
 {
     assert(irq_ready());
     --kmapCount;
-    map_page_t* mp = bbtree_search_eq(&map_tree, addr, map_page_t, node);
+    map_page_t *mp = bbtree_search_eq(&map_tree, addr, map_page_t, node);
     if (mp != NULL) {
         char tmp[64];
         kprintf(-1, "- kunmap (%p, %d, %s+%llx)\n", addr, len, vfs_inokey(mp->ino, tmp), mp->off);
@@ -140,8 +140,7 @@ void kunmap(void* addr, size_t len)
             mp->ptr += PAGE_SIZE;
         }
         kfree(mp);
-    }
-    else
+    } else
         kprintf(-1, "- kunmap (%p, %d, -)\n", addr, len);
     _vfree(addr);
     assert(irq_ready());
@@ -149,12 +148,12 @@ void kunmap(void* addr, size_t len)
 
 void page_release(page_t page)
 {
-    _vfree((void*)page);
+    _vfree((void *)page);
 }
 
 page_t page_read(size_t address)
 {
-    void* page = _valloc(PAGE_SIZE);
+    void *page = _valloc(PAGE_SIZE);
     memcpy(page, address, PAGE_SIZE);
     // kprintf(-1, "Page shadow copy at %p \n", page);
     return (page_t)page;
@@ -167,19 +166,19 @@ page_t mmu_read(size_t address)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void __assert_fail(const char* expr, const char* file, int line)
+void __assert_fail(const char *expr, const char *file, int line)
 {
     fprintf(stderr, "Assertion - %s at %s:%d\n", expr, file, line);
     abort();
 }
 
-const char* ksymbol(void* ip, char* buf, int lg)
+const char *ksymbol(void *ip, char *buf, int lg)
 {
     return NULL;
 }
 
 
-void kprintf(int log, const char* msg, ...)
+void kprintf(int log, const char *msg, ...)
 {
     va_list ap;
     va_start(ap, msg);
@@ -278,4 +277,3 @@ bool irq_ready()
 //     usleep(MAX(1, timeout));
 // }
 // void futex_init() {}
-

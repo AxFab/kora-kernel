@@ -1,6 +1,6 @@
 #!/bin/bash
 #      This file is part of the KoraOS project.
-#  Copyright (C) 2018  <Fabien Bavent>
+#  Copyright (C) 2015-2021  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as
@@ -15,7 +15,6 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#  This build script is generic.
 
 # Parse first argument if provided
 if [ -n "$1" ]; then
@@ -37,7 +36,7 @@ case "$arch" in
         vendor=pc
         ;;
     x86_64|amd64)
-        arch=amd64
+        arch=x86_64
         vendor=pc
         ;;
     armv7l)
@@ -49,7 +48,7 @@ case "$arch" in
         vendor=phone
         ;;
     *)
-        echo "Unsupported architecture" >&2
+        echo "Unsupported architecture '${arch}'" >&2
         exit 1
         ;;
 esac
@@ -70,7 +69,7 @@ case "$os" in
     Android)
         os=linux-android
         ;;
-    GNU/Linux)
+    GNU/Linux|*Linux*)
         os=linux-gnu
         ;;
     kora)
@@ -80,7 +79,7 @@ case "$os" in
         os='win32'
         ;;
     *)
-        echo "Unsupported platform $os" >&2
+        echo "Unsupported platform '${os}'" >&2
         exit 1
         ;;
 esac

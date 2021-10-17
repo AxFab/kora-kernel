@@ -1,5 +1,5 @@
 #      This file is part of the KoraOS project.
-#  Copyright (C) 2018  <Fabien Bavent>
+#  Copyright (C) 2015-2021  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as
@@ -14,7 +14,6 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#  This makefile is generic.
 
 SED_LCOV  = -e '/SF:\/usr.*/,/end_of_record/d'
 SED_LCOV += -e '/SF:.*\/src\/tests\/.*/,/end_of_record/d'
@@ -31,7 +30,6 @@ coverage.lcov: check
 coverage: coverage.lcov
 	genhtml --rc lcov_branch_coverage=1 -o coverage coverage.lcov
 
-
 %.lcov: $(bindir)/%
 	$(S) find -name *.gcda | xargs -r rm
 	$(V) $<
@@ -44,10 +42,8 @@ cov_%: %.lcov
 val_%: $(bindir)/%
 	$(V) valgrind --error-exitcode=9 --leak-check=full --show-leak-kinds=all $< 2>&1 | tee $@
 
-
 # lcov --rc lcov_branch_coverage=1 -c --directory . -b . -o src.lcov
 # sed -e '/SF:\/usr.*/,/end_of_record/d' -e '/SF:.*\/src\/tests\/.*/,/end_of_record/d' -i src.lcov
 # genhtml --rc lcov_branch_coverage=1 -o cover src.lcov
 
 .PHONY: check coverage
-

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -359,4 +359,3 @@ int strnicoll(const char *s1, const char *s2, size_t maxlen);
 
 /* String transformation */
 size_t strxfrm(char *dest, const char *src, size_t n);
-

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -139,7 +139,7 @@ int isofs_closedir(inode_t *dir, ISO_dirctx_t *ctx)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-inode_t *isofs_lookup(inode_t* dir, const char* name, void *acl)
+inode_t *isofs_lookup(inode_t *dir, const char *name, void *acl)
 {
     char *filename = kalloc(256);
     size_t maxlba = dir->lba + dir->length / ISOFS_SECTOR_SIZE;
@@ -332,4 +332,3 @@ void isofs_teardown()
 }
 
 EXPORT_MODULE(isofs, isofs_setup, isofs_teardown);
-

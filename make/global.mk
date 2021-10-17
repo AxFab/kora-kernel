@@ -1,5 +1,5 @@
 #      This file is part of the KoraOS project.
-#  Copyright (C) 2018  <Fabien Bavent>
+#  Copyright (C) 2015-2021  <Fabien Bavent>
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as
@@ -14,7 +14,6 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#  This makefile is generic.
 
 # D I R E C T O R I E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 prefix ?= /usr/local
@@ -75,13 +74,10 @@ endif
 
 
 define fn_objs
-	$(patsubst $(topdir)/%.c,$(outdir)/%.o,$(patsubst $(topdir)/%.$(ASM_EXT),$(outdir)/%.o,$($(1))))
-endef
-define fn_objs2
-	$(patsubst $(topdir)/%.c,$(outdir)/$(2)/%.o,$(patsubst $(topdir)/%.$(ASM_EXT),$(outdir)/$(2)/%.o,$($(1))))
+	$(patsubst $(topdir)/%.c,$(outdir)/$(2)/%.o,$(patsubst $(topdir)/%.$(ASM_EXT),$(outdir)/%.o,$($(1))))
 endef
 define fn_deps
-	$(patsubst $(topdir)/%.c,$(outdir)/%.d,$(patsubst $(topdir)/%.$(ASM_EXT),,$($(1))))
+	$(patsubst $(topdir)/%.c,$(outdir)/$(2)/%.d,$(patsubst $(topdir)/%.$(ASM_EXT),,$($(1))))
 endef
 define fn_inst
 	$(patsubst $(gendir)/%,$(prefix)/%,$(1))

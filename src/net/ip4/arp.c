@@ -1,3 +1,22 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #include "ip4.h"
 
 #define ARP_HW_ETH htonw(1)
@@ -20,22 +39,22 @@ PACK(struct arp_header {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int arp_packet(ifnet_t* net, const uint8_t* mac, const uint8_t* ip, int opcode)
+int arp_packet(ifnet_t *net, const uint8_t *mac, const uint8_t *ip, int opcode)
 {
-    skb_t* skb = net_packet(net);
+    skb_t *skb = net_packet(net);
     if (unlikely(skb == NULL))
         return -1;
     if (eth_header(skb, mac, ETH_ARP) != 0)
         return net_skb_trash(skb);
 
     net_skb_log(skb, ",arp");
-    arp_header_t* header = net_skb_reserve(skb, sizeof(arp_header_t));
+    arp_header_t *header = net_skb_reserve(skb, sizeof(arp_header_t));
     if (header == NULL) {
         net_skb_log(skb, ":Unexpected end of data");
         return -1;
     }
 
-    ip4_info_t* info = ip4_readinfo(skb->ifnet);
+    ip4_info_t *info = ip4_readinfo(skb->ifnet);
     header->hardware = ARP_HW_ETH;
     header->protocol = ARP_PC_IP;
     header->hw_length = ETH_ALEN;
@@ -51,17 +70,17 @@ int arp_packet(ifnet_t* net, const uint8_t* mac, const uint8_t* ip, int opcode)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int arp_whois(ifnet_t* net, const uint8_t* ip)
+int arp_whois(ifnet_t *net, const uint8_t *ip)
 {
     uint8_t broadcast[ETH_ALEN];
     memset(broadcast, 0xff, ETH_ALEN);
     return arp_packet(net, broadcast, ip, ARP_REQUEST);
 }
 
-int arp_receive(skb_t* skb)
+int arp_receive(skb_t *skb)
 {
     net_skb_log(skb, ",arp");
-    arp_header_t* header = net_skb_reserve(skb, sizeof(arp_header_t));
+    arp_header_t *header = net_skb_reserve(skb, sizeof(arp_header_t));
     if (header == NULL) {
         net_skb_log(skb, ":Unexpected end of data");
         return -1;
@@ -82,13 +101,12 @@ int arp_receive(skb_t* skb)
     net_skb_read(skb, target_mac, ETH_ALEN);
     net_skb_read(skb, target_ip, IP4_ALEN);
 
-    ip4_info_t* info = ip4_readinfo(skb->ifnet);
+    ip4_info_t *info = ip4_readinfo(skb->ifnet);
     if (header->opcode == ARP_REQUEST && memcmp(info->ip, target_ip, IP4_ALEN) == 0)
         arp_packet(skb->ifnet, source_mac, source_ip, ARP_REPLY);
     else if (header->opcode == ARP_REPLY)
         ip4_route_add(skb->ifnet, source_ip, source_mac);
-    
+
     free(skb);
     return 0;
 }
-

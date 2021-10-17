@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -25,8 +25,7 @@
 #include <kora/llist.h>
 
 
-struct task_params
-{
+struct task_params {
     void *func;
     size_t *params;
     size_t len;
@@ -43,7 +42,7 @@ static _Noreturn void task_usermode(task_params_t *info)
         int ret = dlib_map_all(__current->proc);
         if (ret != 0) {
             kprintf(-1, "Task.%d] Error while mapping executable\n",
-                __current->pid);
+                    __current->pid);
             task_fatal("Unable to map the program", -1);
             for (;;);
         }
@@ -54,7 +53,7 @@ static _Noreturn void task_usermode(task_params_t *info)
     void *start = info->func;
     void *stack = mspace_map(__current->vm, 0, _Mib_, NULL, 0, VMA_STACK | VM_RW);
     stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
-    size_t *args = ADDR_PUSH(stack, ALIGN_UP(info->len, sizeof(void*)));
+    size_t *args = ADDR_PUSH(stack, ALIGN_UP(info->len, sizeof(void *)));
     memcpy(args, info->params, info->len);
     if (info->needmap) {
         args[1] = (size_t)&args[3];
@@ -62,7 +61,7 @@ static _Noreturn void task_usermode(task_params_t *info)
         for (i = 0; i < argc; ++i)
             args[i + 3] = (size_t)&args[args[i + 3]];
     }
-    ADDR_PUSH(stack, sizeof(void*));
+    ADDR_PUSH(stack, sizeof(void *));
 
     // Free info
     kfree(info->params);
@@ -103,7 +102,7 @@ static task_t *task_create(scheduler_t *sch, task_t *parent, const char *name, i
         task->net = parent->net;
     }
 
-    kprintf(-1, "Alloc task %d with stack %p-%p\n", task->pid, task->stack, (char*)task->stack + KSTACK_PAGES * PAGE_SIZE);
+    kprintf(-1, "Alloc task %d with stack %p-%p\n", task->pid, task->stack, (char *)task->stack + KSTACK_PAGES * PAGE_SIZE);
     return task;
 }
 
@@ -128,7 +127,7 @@ int task_spawn(const char *program, const char **args, fsnode_t **nodes)
     int ret = dlib_openexec(task->proc, program);
     if (ret != 0) {
         kprintf(-1, "Task.%d] Unable to open executable image %s \n",
-            __current->pid, program);
+                __current->pid, program);
         return 0;
     }
 
@@ -142,7 +141,7 @@ int task_spawn(const char *program, const char **args, fsnode_t **nodes)
         len += ALIGN_UP(strlen(args[i]) + 1, 4);
     }
 
-    len += sizeof(void*) * (count + 3);
+    len += sizeof(void *) * (count + 3);
     info->len = len;
     info->params = kalloc(len);
     info->params[0] = count;
@@ -151,12 +150,12 @@ int task_spawn(const char *program, const char **args, fsnode_t **nodes)
 
     len = 3 + count;
     info->params[3] = len; //(size_t)(&info->params[len]);
-    strcpy((char*)&info->params[len], program);
+    strcpy((char *)&info->params[len], program);
     len += ALIGN_UP(strlen(program) + 1, 4) / 4;
 
     for (i = 0; args[i]; ++i) {
         info->params[i + 4] = len; //(size_t)(&info->params[len]);
-        strcpy((char*)&info->params[len], args[i]);
+        strcpy((char *)&info->params[len], args[i]);
         len += ALIGN_UP(strlen(args[i]) + 1, 4) / 4;
     }
 
@@ -330,4 +329,3 @@ void task_fatal(const char *msg, unsigned signum)
 
 //     cpu_usermode(start, stack);
 // }
-

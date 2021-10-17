@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -85,9 +85,8 @@ static int mspace_set_flags(int flags, bool is_kernel)
 
     int mask = VM_RESOLVE;
     int type = flags & VMA_TYPE;
-    if (type == 0) {
+    if (type == 0)
         type = (is_kernel && flags & VM_PHYSIQ) ? VMA_PHYS : VMA_ANON;
-    }
 
     switch (type) {
     case VMA_HEAP:

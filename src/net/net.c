@@ -1,10 +1,29 @@
+/*
+ *      This file is part of the KoraOS project.
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   - - - - - - - - - - - - - - -
+ */
 #ifdef _WIN32
 #include <threads.h>
 #endif
 #include <kernel/net.h>
 #include <kernel/core.h>
 
-void net_deamon(netstack_t* stack)
+void net_deamon(netstack_t *stack)
 {
 #ifdef _WIN32
     char buf[128];
@@ -16,7 +35,7 @@ void net_deamon(netstack_t* stack)
 #endif
 
     for (;;) {
-        skb_t* skb;
+        skb_t *skb;
 
         sem_acquire(&stack->rx_sem);
 
@@ -40,9 +59,9 @@ void net_deamon(netstack_t* stack)
     }
 }
 
-ifnet_t *net_alloc(netstack_t* stack, int protocol, uint8_t *hwaddr, net_ops_t *ops, void *driver)
+ifnet_t *net_alloc(netstack_t *stack, int protocol, uint8_t *hwaddr, net_ops_t *ops, void *driver)
 {
-    ifnet_t* net = kalloc(sizeof(ifnet_t));
+    ifnet_t *net = kalloc(sizeof(ifnet_t));
     net->protocol = protocol;
     net->mtu = 1500;
     memcpy(net->hwaddr, hwaddr, ETH_ALEN);
@@ -57,12 +76,11 @@ ifnet_t *net_alloc(netstack_t* stack, int protocol, uint8_t *hwaddr, net_ops_t *
     return net;
 }
 
-ifnet_t* net_interface(netstack_t* stack, int protocol, int idx)
+ifnet_t *net_interface(netstack_t *stack, int protocol, int idx)
 {
-    ifnet_t* net;
+    ifnet_t *net;
     splock_lock(&stack->lock);
-    for ll_each(&stack->list, net, ifnet_t, node)
-    {
+    for ll_each(&stack->list, net, ifnet_t, node) {
         if (net->protocol == protocol && net->idx == idx) {
             splock_unlock(&stack->lock);
             return net;
@@ -72,9 +90,9 @@ ifnet_t* net_interface(netstack_t* stack, int protocol, int idx)
     return NULL;
 }
 
-netstack_t* net_setup()
+netstack_t *net_setup()
 {
-    netstack_t* stack = kalloc(sizeof(netstack_t));
+    netstack_t *stack = kalloc(sizeof(netstack_t));
     sem_init(&stack->rx_sem, 0);
     splock_init(&stack->rx_lock);
     splock_init(&stack->lock);

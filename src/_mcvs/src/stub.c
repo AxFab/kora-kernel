@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -118,7 +118,7 @@ void kunmap(void *addr, size_t len)
         map_init = true;
     }
     --kmapCount;
-    map_page_t *mp = (void*)bbtree_search_eq(&map_tree, addr, map_page_t, node);
+    map_page_t *mp = (void *)bbtree_search_eq(&map_tree, addr, map_page_t, node);
     if (mp != NULL) {
         char tmp[64];
         kprintf(KL_MAL, "- kunmap (%p, %d, %s+%llx)\n", addr, len, vfs_inokey(mp->ino, tmp), mp->off);
@@ -202,7 +202,7 @@ void page_release(page_t page)
 page_t mmu_read(size_t address)
 {
     void *page = _valloc(PAGE_SIZE);
-    memcpy(page, (void*)address, PAGE_SIZE);
+    memcpy(page, (void *)address, PAGE_SIZE);
     // kprintf(-1, "Page shadow copy at %p \n", page);
     return (page_t)page;
 }
@@ -228,13 +228,25 @@ void mmu_leave() {}
 /* - */
 void mmu_context(mspace_t *mspace) {}
 /* - */
-int mmu_resolve(size_t vaddr, page_t phys, int falgs) { assert(0); return -1; }
+int mmu_resolve(size_t vaddr, page_t phys, int falgs)
+{
+    assert(0);
+    return -1;
+}
 /* - */
 // page_t mmu_read(size_t vaddr) {}
 /* - */
-page_t mmu_drop(size_t vaddr) { assert(0); return 0; }
+page_t mmu_drop(size_t vaddr)
+{
+    assert(0);
+    return 0;
+}
 /* - */
-page_t mmu_protect(size_t vaddr, int falgs) { assert(0); return 0; }
+page_t mmu_protect(size_t vaddr, int falgs)
+{
+    assert(0);
+    return 0;
+}
 /* - */
 void mmu_create_uspace(mspace_t *mspace) {}
 /* - */
@@ -342,5 +354,3 @@ void irq_disable()
 // {
 //     return address;
 // }
-
-

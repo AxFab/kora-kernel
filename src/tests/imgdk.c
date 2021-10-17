@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2018  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -230,7 +230,7 @@ int imgdk_open(const char *path, const char *name)
     return 0;
 }
 
-int imgdk_close(inode_t* dir, inode_t* ino)
+int imgdk_close(inode_t *dir, inode_t *ino)
 {
     close(ino->no);
     return 0;
@@ -274,7 +274,8 @@ int imgdk_write(inode_t *ino, const void *data, size_t size, xoff_t offset)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static struct vhd_info *vhd_open(int fd) {
+static struct vhd_info *vhd_open(int fd)
+{
 
     struct footer_vhd footer;
     // Might be of size 511 only (like what the fuck !!!)
@@ -308,7 +309,7 @@ static struct vhd_info *vhd_open(int fd) {
     // ino->dev->vendor = strdup(vendor);
     // Check cookie and checksum
 
-    struct vhd_info* info = malloc(sizeof(struct vhd_info));
+    struct vhd_info *info = malloc(sizeof(struct vhd_info));
 
     if (footer.type == 2) {
         // ino->dev->model = strdup("VHD-Fixed");
@@ -339,19 +340,19 @@ static struct vhd_info *vhd_open(int fd) {
     info->block_size = header.block_size;
     info->disk_size = footer.actual_size;
     return info;
-    
+
 }
 
-static uint32_t vhd_checksum(void* buf, int len)
+static uint32_t vhd_checksum(void *buf, int len)
 {
-    unsigned char* b = buf;
+    unsigned char *b = buf;
     uint32_t checksum = 0;
     for (int i = 0; i < len; ++i)
         checksum += b[i];
     return __swap32(~checksum);
 }
 
-static void vhd_fill_footer(int fd, struct footer_vhd* footer, uint64_t disk_size)
+static void vhd_fill_footer(int fd, struct footer_vhd *footer, uint64_t disk_size)
 {
     int i;
     uint64_t sectors = MIN(disk_size / 512, 65535 * 16 * 255);
@@ -371,8 +372,7 @@ static void vhd_fill_footer(int fd, struct footer_vhd* footer, uint64_t disk_siz
         footer->cylinders = __swap16(MIN(sectors / 16 / 255, 65535));
         footer->heads = 16;
         footer->sectors = 255;
-    }
-    else {
+    } else {
         int cys = (int)sectors / 17;
         footer->sectors = 17;
         footer->heads = MAX(4, (cys + 1023) / 1024);
@@ -395,7 +395,7 @@ static void vhd_fill_footer(int fd, struct footer_vhd* footer, uint64_t disk_siz
     footer->checksum = vhd_checksum(footer, sizeof(struct footer_vhd));
 }
 
-static uint32_t vhd_alloc_block(int fd, struct vhd_info* info, uint64_t bat_off)
+static uint32_t vhd_alloc_block(int fd, struct vhd_info *info, uint64_t bat_off)
 {
     // Extends the disk image
     unsigned imgSize = lseek(fd, -512, SEEK_END);
@@ -406,7 +406,7 @@ static uint32_t vhd_alloc_block(int fd, struct vhd_info* info, uint64_t bat_off)
         write(fd, buf, 512);
 
     // Rewrite footer
-    struct footer_vhd* footer = buf;
+    struct footer_vhd *footer = buf;
     //footer. TODO
     write(fd, buf, 512);
     lseek(fd, 0, SEEK_SET);
@@ -525,15 +525,14 @@ void vhd_create_dyn(const char *name, uint64_t size)
     header->table_off = __swap64(1536); // Offset of BAT in bytes
     header->vers_maj = __swap16(1);
     header->vers_min = __swap16(0);
-    header->entries_count = __swap32(blocks); 
+    header->entries_count = __swap32(blocks);
     header->block_size = __swap32(bsize);
     header->checksum = vhd_checksum(header, sizeof(struct header_vhd));
     write(fd, buf, 512);
 
-    // Write sector 
+    // Write sector
     memset(buf, 0, 512);
     write(fd, buf, 512);
 
     close(fd);
 }
-

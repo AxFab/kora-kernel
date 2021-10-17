@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -133,10 +133,13 @@ extern void atomic_signal_fence(memory_order);
 
 #define atomic_exchange_explicit(X, V, MO)   ({ \
   typeof(*(X)) _r;
-  typeof((X)) _v = V; \
-  __atomic_exchange((X), &_v, _r, (MO)); \
-  *_r; \
- })
+typeof((X)) _v = V;
+\
+__atomic_exchange((X), &_v, _r, (MO));
+\
+*_r;
+\
+})
 
 // #define atomic_compare_exchange_weak_explicit(X, E, V, MOS, MOF)        \
 //   __atomic_compare_exchange((X), (E), &__atmp(*(X), (V)), 1, (MOS), (MOF))

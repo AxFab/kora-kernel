@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2019  <Fabien Bavent>
+ *  Copyright (C) 2015-2021  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -27,7 +27,7 @@ llhead_t dev_head = INIT_LLHEAD;
 splock_t dev_lock = INIT_SPLOCK;
 
 void vfs_createfile(inode_t *ino);
-void vfs_cleanfile(inode_t* ino);
+void vfs_cleanfile(inode_t *ino);
 
 /* An inode must be created by the driver using a call to `vfs_inode()' */
 inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t *ops)
@@ -76,11 +76,11 @@ inode_t *vfs_open_inode(inode_t *ino)
     return ino;
 }
 
-void vfs_close_inode(inode_t* ino)
+void vfs_close_inode(inode_t *ino)
 {
     if (ino == NULL)
         return;
-    device_t* device = ino->dev;
+    device_t *device = ino->dev;
     splock_lock(&device->lock);
     if (atomic_xadd(&ino->rcu, -1) != 1) {
         splock_unlock(&device->lock);
@@ -107,9 +107,9 @@ void vfs_close_inode(inode_t* ino)
     kfree(device);
 }
 
-device_t* vfs_device_by_id(int no)
+device_t *vfs_device_by_id(int no)
 {
-    device_t* dev = NULL;
+    device_t *dev = NULL;
     splock_lock(&dev_lock);
     for ll_each(&dev_head, dev, device_t, node) {
         if (dev->no == no)
@@ -364,7 +364,7 @@ fsnode_t *vfs_search(vfs_t *vfs, const char *pathname, void *user, bool resolve)
     }
 }
 
-int vfs_create(fsnode_t *node, void * user, int flags, int mode)
+int vfs_create(fsnode_t *node, void *user, int flags, int mode)
 {
     assert(node != NULL);
     mtx_lock(&node->mtx);
@@ -375,7 +375,7 @@ int vfs_create(fsnode_t *node, void * user, int flags, int mode)
     }
 
     assert(node->parent);
-    inode_t* dir = node->parent->ino;
+    inode_t *dir = node->parent->ino;
     if (dir->dev->flags & FD_RDONLY) {
         mtx_unlock(&node->mtx);
         errno = EROFS;
@@ -387,7 +387,7 @@ int vfs_create(fsnode_t *node, void * user, int flags, int mode)
         return -1;
     }
 
-    inode_t* ino = dir->ops->create(dir, node->name, user, mode);
+    inode_t *ino = dir->ops->create(dir, node->name, user, mode);
     if (ino != NULL) {
         node->ino = ino;
         node->mode = FN_OK;
@@ -417,4 +417,3 @@ int vfs_access(fsnode_t *node, int access)
 {
     return 0;
 }
-
