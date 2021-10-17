@@ -28,6 +28,7 @@
 #include <kora/bbtree.h>
 #include <kora/llist.h>
 #include <kora/hmap.h>
+#include <kora/mcrs.h>
 #include <bits/atomic.h>
 #include <threads.h>
 

@@ -32,8 +32,8 @@
 #define _PwNano_ (1000LL * _PwMicro_)
 #define _PwFemto_ (1000LL * _PwNano_)
 
-#define ALIGN_UP(v,a)      (((v)+(a-1))&(~(a-1)))
-#define ALIGN_DW(v,a)      ((v)&(~(a-1)))
+#define ALIGN_UP(v,a)      (((v)+((a)-1))&(~((a)-1)))
+#define ALIGN_DW(v,a)      ((v)&(~((a)-1)))
 #define IS_ALIGNED(v,a)      (((v)&((a)-1))==0)
 
 #define ADDR_OFF(a,o)  ((void*)(((char*)a)+(o)))

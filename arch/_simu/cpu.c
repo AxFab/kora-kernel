@@ -59,7 +59,6 @@ void cpu_sweep()
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 #include <fcntl.h>
-#include <kora/syscalls.h>
 int hostfs_setup();
 extern jmp_buf cpu_jbuf;
 

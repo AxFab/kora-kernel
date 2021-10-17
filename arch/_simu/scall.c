@@ -18,7 +18,6 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/syscalls.h>
-#include <kora/syscalls.h>
 #include <kernel/core.h>
 #include <string.h>
 

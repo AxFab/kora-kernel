@@ -22,6 +22,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <kora/mcrs.h>
 
 typedef size_t page_t;
 
