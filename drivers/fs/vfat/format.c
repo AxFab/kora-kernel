@@ -72,6 +72,32 @@ int fatfs_format(inode_t *bdev, const char *options)
     int cluster_size = 2048;
     int sec_size = bdev->dev->block;
 
+    if (bdev->length <= 0)
+        return -1;
+
+    if (bdev->length < 1 * _Mib_)
+        cluster_size = 512; // FAT12
+    else if (bdev->length < 2 * _Mib_)
+        cluster_size = _Kib_; // FAT12
+    else if (bdev->length < 32 * _Mib_)
+        cluster_size = 512; // FAT16
+    else if (bdev->length < 64 * _Mib_)
+        cluster_size = _Kib_; // FAT16
+    else if (bdev->length < 128 * _Mib_)
+        cluster_size = 2 * _Kib_; // FAT16
+    else if (bdev->length < 256 * _Mib_)
+        cluster_size = 4 * _Kib_; // FAT16
+    else if (bdev->length < 8 * _Gib_)
+        cluster_size = 4 * _Kib_; // FAT32
+    else if (bdev->length < 16 * _Gib_)
+        cluster_size = 8 * _Kib_; // FAT32
+    else if (bdev->length < 32 * _Gib_)
+        cluster_size = 16 * _Kib_; // FAT32
+    else if (bdev->length < 2 * _Tib_)
+        cluster_size = 32 * _Kib_; // FAT32
+    else
+        return -1;
+
     // Write the FAT first sector
     uint8_t *ptr = kmap(PAGE_SIZE, bdev, 0, VM_RW);
     memset(ptr, 0, sec_size);
@@ -157,23 +183,28 @@ int fatfs_format(inode_t *bdev, const char *options)
         int p2O = (lbaLast * info->BytsPerSec) % PAGE_SIZE;
 
         // TODO - What if p1L == p2L
-        assert(p1L != p2L);
-        char *base = kmap(PAGE_SIZE, bdev, p1L * PAGE_SIZE, VM_RW);
-        memset(base + p1O, 0, PAGE_SIZE - p1O);
-        uint16_t *fat = (uint16_t *)(base + p1O);
-        fat[0] = 0xfff8;
-        fat[1] = 0xffff;
-        kunmap(base, PAGE_SIZE);
+        if (fatSz == 16 && p1L != p2L) {
+            char* base = kmap(PAGE_SIZE, bdev, p1L * PAGE_SIZE, VM_RW);
+            memset(base + p1O, 0, PAGE_SIZE - p1O);
+            uint16_t* fat = (uint16_t*)(base + p1O);
+            fat[0] = 0xfff8;
+            fat[1] = 0xffff;
+            kunmap(base, PAGE_SIZE);
 
-        while (++p1L < p2L) {
-            base = kmap(PAGE_SIZE, bdev, p1L * PAGE_SIZE, VM_RW);
-            memset(base, 0, PAGE_SIZE);
-            kunmap(base, PAGE_SIZE);
+            while (++p1L < p2L) {
+                base = kmap(PAGE_SIZE, bdev, p1L * PAGE_SIZE, VM_RW);
+                memset(base, 0, PAGE_SIZE);
+                kunmap(base, PAGE_SIZE);
+            }
+            if (p2O != 0) {
+                base = kmap(PAGE_SIZE, bdev, p2L * PAGE_SIZE, VM_RW);
+                memset(base, 0, p2O);
+                kunmap(base, PAGE_SIZE);
+            }
         }
-        if (p2O != 0) {
-            base = kmap(PAGE_SIZE, bdev, p2L * PAGE_SIZE, VM_RW);
-            memset(base, 0, p2O);
-            kunmap(base, PAGE_SIZE);
+        else {
+            // TODO ...
+            assert(false);
         }
     }
 
