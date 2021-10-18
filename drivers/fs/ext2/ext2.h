@@ -26,6 +26,12 @@
 
 
 #define EXT2_SUPER_MAGIC 0xEF53
+#define EXT2_DYNAMIC_REV 1
+#define EXT2_MAX_BLOCK_SIZE 4096
+#define EXT2_GOOD_OLD_FIRST_INO 11 // first non-reserved inode for legacy ext2
+#define EXT2_NDIR_BLOCKS 12
+
+
 
 typedef struct ext2_sb ext2_sb_t;
 typedef struct ext2_grp ext2_grp_t;
@@ -175,6 +181,11 @@ struct ext2_dir_en {
 };
 
 
+#define EXT2_BAD_INO 1
+#define EXT2_ROOT_INO 2
+#define EXT2_BOOT_LOADER_INO 5
+#define EXT2_UNDEL_DIR_INO 6
+
 
 /* super_block: errors */
 #define EXT2_ERRORS_CONTINUE    1
@@ -207,3 +218,8 @@ struct ext2_dir_en {
 #define EXT2_S_IROTH    0x0004  /* read */
 #define EXT2_S_IWOTH    0x0002  /* write */
 #define EXT2_S_IXOTH    0x0001  /* execute */
+
+
+#define EXT2_FT_DIR  2   
+
+int ext2_format(inode_t* dev, const char* options);

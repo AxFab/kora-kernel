@@ -130,13 +130,6 @@ inode_t *ext2_creat(ext2_volume_t *vol, uint32_t no, ftype_t type, xtime_t time)
     return ino;
 }
 
-int ext2_format(inode_t *dev)
-{
-    // uint8_t *ptr = kmap(PAGE_SIZE, dev, 0, VMA_FILE_RW);
-    // ext2_sb_t *sb = (ext2_sb_t *)&ptr[1024];
-    return -1;
-}
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -239,13 +232,41 @@ uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk)
     uint32_t *p;
     uint32_t *pp;
     uint32_t *ppp;
-    uint32_t lba = 0;
-    if (blk < 12 + vol->blocksize / sizeof(uint32_t)) {
+    uint32_t lba;
+    size_t blkr = vol->blocksize / sizeof(uint32_t);
+    if (blk < 12 + blkr) {
         p = bkmap(&k1, dir->block[12], vol->blocksize, 0, vol->blkdev, VM_RD);
         lba = p[blk - 12];
         bkunmap(&k1);
+        return lba;
     }
-    return lba;
+
+    blk -= 12  + blkr;
+    int ip = blk / blkr;
+    int ix = blk % blkr;
+    if (ip < blkr) {
+        p = bkmap(&k1, dir->block[13], vol->blocksize, 0, vol->blkdev, VM_RD);
+        pp = bkmap(&k2, p[ip], vol->blocksize, 0, vol->blkdev, VM_RD);
+        lba = pp[ix];
+        bkunmap(&k1);
+        bkunmap(&k2);
+        return lba;
+    }
+
+    int iy = ip / blk;
+    int iz = ip % blk;
+    if (ip < blkr) {
+        p = bkmap(&k1, dir->block[14], vol->blocksize, 0, vol->blkdev, VM_RD);
+        pp = bkmap(&k2, p[iy], vol->blocksize, 0, vol->blkdev, VM_RD);
+        ppp = bkmap(&k3, pp[iz], vol->blocksize, 0, vol->blkdev, VM_RD);
+        lba = ppp[ix];
+        bkunmap(&k1);
+        bkunmap(&k2);
+        bkunmap(&k3);
+        return lba;
+    }
+
+    return -1;
 }
 
 
@@ -825,9 +846,9 @@ inode_t *ext2_mount(inode_t *dev, const char *options)
     vol->groupSize = vol->groupCount * sizeof(ext2_grp_t);
 
 
-    int i, n;
-    size_t grp_info = (sb->blocks_count / sb->blocks_per_group) * sizeof(ext2_grp_t);
-    for (i = 0, n = sb->blocks_count / sb->blocks_per_group; i < n; ++i) {
+    int i;
+    size_t grp_info = vol->groupCount * sizeof(ext2_grp_t);
+    for (i = 0; i < vol->groupCount; ++i) {
         int bb = vol->grp[i].block_bitmap;
         int ib = vol->grp[i].inode_bitmap;
         int it = vol->grp[i].inode_table;
