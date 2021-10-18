@@ -62,6 +62,7 @@ icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, int len);
 // DHCP
 #define DHCP_DELAY 15
 #define DHCP_LEASE_DURATION 900
+int dhcp_discovery(ifnet_t* net);
 int dhcp_receive(skb_t *skb, int length);
 
 // ARP
@@ -69,7 +70,7 @@ int arp_receive(skb_t *skb);
 int arp_whois(ifnet_t *net, const uint8_t *ip);
 
 
-int ip4_readip(const uint8_t *ip, const char *str);
+int ip4_readip(uint8_t *ip, const char *str);
 char *ip4_writeip(const uint8_t *ip, char *buf, int len);
 void ip4_setip(ifnet_t *net, const uint8_t *ip, const uint8_t *submsk, const uint8_t *gateway);
 void ip4_config(ifnet_t *net, const char *str);
@@ -112,8 +113,11 @@ struct ip4_port {
 };
 
 ip4_info_t *ip4_readinfo(ifnet_t *ifnet);
+ip4_master_t* ip4_readmaster(netstack_t* stack);
 ip4_route_t *ip4_route_broadcast(ifnet_t *net);
 ip4_route_t *ip4_route(netstack_t *stack, const uint8_t *ip);
 void ip4_route_add(ifnet_t *net, const uint8_t *ip, const uint8_t *mac);
+
+socket_t* ip4_lookfor_socket(ifnet_t* net, uint16_t port, bool stream, const uint8_t* ip);
 
 #endif /* _SRC_IP4_H */

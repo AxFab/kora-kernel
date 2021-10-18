@@ -108,14 +108,14 @@ icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, int len)
     cnd_init(&ping->cnd);
     icmp_info_t *info = icmp_readinfo(route->net);
     splock_lock(&info->lock);
-    hmp_put(&info->pings, &ping->id, 2, ping);
+    hmp_put(&info->pings, (char *)&ping->id, sizeof(uint16_t), ping);
     splock_unlock(&info->lock);
     int ret = icmp_packet(route->net, route, ICMP_PING, 0, data, buf, len);
     if (ret == 0)
         return ping;
 
     splock_lock(&info->lock);
-    hmp_remove(&info->pings, &id, 2);
+    hmp_remove(&info->pings, (char *)&id, sizeof(uint16_t));
     splock_unlock(&info->lock);
     kfree(ping->buf);
     kfree(ping);
@@ -142,12 +142,12 @@ int icmp_receive(skb_t *skb, int length)
     } else if (header->type == ICMP_PONG) {
         icmp_info_t *info = icmp_readinfo(skb->ifnet);
         uint16_t id = header->data & 0xFFFF;
-        icmp_ping_t *ping = hmp_get(&info->pings, &id, 2);
+        icmp_ping_t *ping = hmp_get(&info->pings, (char *)&id, sizeof(uint16_t));
         if (ping != NULL) {
             // TODO - Check the payload!
             mtx_lock(&ping->mtx);
             splock_lock(&info->lock);
-            hmp_remove(&info->pings, &id, 2);
+            hmp_remove(&info->pings, (char *)&id, sizeof(uint16_t));
             splock_unlock(&info->lock);
             ping->received = true;
             cnd_signal(&ping->cnd);

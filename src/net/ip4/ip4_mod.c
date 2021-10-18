@@ -22,13 +22,16 @@
 #include <kernel/core.h>
 
 
-int ip4_readip(const uint8_t *ip, const char *str)
+int ip4_readip(uint8_t *ip, const char *str)
 {
     int i;
     char *p;
     uint8_t buf[4];
     for (i = 0; i < IP4_ALEN; ++i) {
-        buf[i] = strtol(str, &p, 10);
+        long v = strtol(str, &p, 10);
+        if (v < 0 || v > 255)
+            return -1;
+        buf[i] = (uint8_t)v;
         if (p == str || (i != IP4_ALEN - 1 && *p != '.'))
             return -1;
         str = p + 1;
@@ -75,7 +78,6 @@ ip4_master_t *ip4_readmaster(netstack_t *stack)
     }
     return master;
 }
-
 
 void ip4_checkup(ifnet_t *net) // TODO - How this can be called
 {
@@ -160,7 +162,7 @@ socket_t *ip4_lookfor_socket(ifnet_t *net, uint16_t port, bool stream, const uin
     ip4_master_t *master = ip4_readmaster(net->stack);
     hmap_t *map = stream ? &master->tcp_ports : &master->udp_ports;
     splock_lock(&master->lock);
-    ip4_port_t *pt = hmp_get(map, &port, sizeof(uint16_t));
+    ip4_port_t *pt = hmp_get(map, (char *)&port, sizeof(uint16_t));
     splock_unlock(&master->lock);
     if (pt == NULL)
         return NULL;

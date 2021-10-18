@@ -52,7 +52,7 @@ static eth_info_t *eth_readinfo(netstack_t *stack)
 static net_recv_t eth_receiver(netstack_t *stack, uint16_t protocol)
 {
     eth_info_t *info = eth_readinfo(stack);
-    return hmp_get(&info->recv_map, &protocol, sizeof(uint16_t));
+    return hmp_get(&info->recv_map, (char *)&protocol, sizeof(uint16_t));
 }
 
 
@@ -65,7 +65,7 @@ char *eth_writemac(const uint8_t *mac, char *buf, int len)
 int eth_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv)
 {
     eth_info_t *info = eth_readinfo(stack);
-    hmp_put(&info->recv_map, &protocol, sizeof(uint16_t), recv);
+    hmp_put(&info->recv_map, (char *)&protocol, sizeof(uint16_t), recv);
     return 0;
 }
 

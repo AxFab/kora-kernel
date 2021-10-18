@@ -45,7 +45,7 @@ int udp_header(skb_t *skb, ip4_route_t *route, int length, int port, int src, ui
     header->dest_port = htonw(port);
     header->length = htonw(length + sizeof(udp_header_t));
     header->checksum = 0;
-    header->checksum = ip4_checksum(skb, sizeof(udp_header_t) + 8);
+    header->checksum = ip4_checksum((uint16_t *)skb->buf, sizeof(udp_header_t) + 8);
     // TODO - ip options
     return 0;
 }

@@ -161,7 +161,7 @@ static void dhcp_parse_msg(dhcp_msg_t *msg, skb_t *skb, dhcp_header_t *header)
             msg->qry = 0;
             for (i = 0; i < len; ++i) {
                 if (value[0] < 64)
-                    msg->qry |= (1 << value[0]);
+                    msg->qry |= (1ULL << value[0]);
             }
             break;
 
@@ -199,7 +199,7 @@ static void dhcp_option_value(skb_t *skb, uint8_t typ, uint8_t len, uint8_t val)
     net_skb_write(skb, option, 3);
 }
 
-static void dhcp_option_buf(skb_t *skb, uint8_t typ, uint8_t len, uint8_t *buf)
+static void dhcp_option_buf(skb_t *skb, uint8_t typ, uint8_t len, const void *buf)
 {
     uint8_t option[2];
     option[0] = typ;
@@ -269,7 +269,6 @@ static int dhcp_opts_write_res(ifnet_t *net, skb_t *skb, dhcp_lease_t *lease)
 
 int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode, dhcp_lease_t *lease)
 {
-    uint8_t option[32];
     int opcode = dhcp2boot[mode];
 
     int packet_length = sizeof(dhcp_header_t) + 3 + 9 + 1;
@@ -414,7 +413,6 @@ void dhcp_on_request(ifnet_t *net, dhcp_msg_t *msg)
 
 void dhcp_on_ack(ifnet_t *net, dhcp_msg_t *msg)
 {
-    char tmp[16];
     dhcp_info_t *info = dhcp_readinfo(net);
     ip4_info_t *ip4 = ip4_readinfo(net);
 

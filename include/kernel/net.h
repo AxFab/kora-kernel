@@ -78,7 +78,7 @@ struct net_ops {
 // Network interface
 struct ifnet {
     int idx;
-    int mtu;
+    unsigned mtu;
     splock_t lock;
     netstack_t *stack;
     uint8_t hwaddr[16];
@@ -176,6 +176,7 @@ int net_socket_close(socket_t *sock);
 socket_t *net_socket_accept(socket_t *sock, bool block);
 int net_socket_write(socket_t *sock, const char *buf, size_t len);
 int net_socket_read(socket_t *sock, const char *buf, size_t len);
+int net_socket_recv(socket_t* socket, skb_t* skb, int length);
 
 
 // Ethernet

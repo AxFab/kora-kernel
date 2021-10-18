@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/net.h>
+#include <kernel/stdc.h>
 #include <kora/mcrs.h>
 
 /* Create a new tx packet */
