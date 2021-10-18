@@ -118,6 +118,13 @@ int vfs_mkdir(fsnode_t *node, int mode, void *user)
 
     assert(node->parent);
     inode_t *dir = node->parent->ino;
+    assert(dir != NULL);
+    if (dir->ops->mkdir == NULL) {
+        mtx_unlock(&node->mtx);
+        errno = ENOSYS;
+        return -1;
+    }
+    assert(irq_ready());
     inode_t *ino = dir->ops->mkdir(dir, node->name, mode, user);
     if (ino != NULL) {
         node->ino = ino;

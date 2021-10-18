@@ -78,7 +78,7 @@ bool map_init = false;
 
 void *kmap(size_t len, void *ino, xoff_t off, int access)
 {
-    assert(irq_ready());
+    // assert(irq_ready());
     ++kmapCount;
     if (!map_init) {
         bbtree_init(&map_tree);
@@ -88,13 +88,13 @@ void *kmap(size_t len, void *ino, xoff_t off, int access)
     if (ino == NULL) {
         if (access & VM_PHYSIQ && off != 0)
             memcpy(ptr, (void *)off, len);
-        kprintf(-1, "+ kmap (%p, %d, -)\n", ptr, len);
+        // kprintf(-1, "+ kmap (%p, %d, -)\n", ptr, len);
         return ptr;
     }
     // printf("KMAP %x %X %X %o\n", len, ino, off, access);
     char *buf = ptr;
     char tmp[64];
-    kprintf(-1, "+ kmap (%p, %d, %s+%llx)\n", ptr, len, vfs_inokey(ino, tmp), off);
+    // kprintf(-1, "+ kmap (%p, %d, %s+%llx)\n", ptr, len, vfs_inokey(ino, tmp), off);
     map_page_t *mp = kalloc(sizeof(map_page_t));
     mp->ptr = ptr;
     mp->len = len / PAGE_SIZE;
@@ -105,7 +105,7 @@ void *kmap(size_t len, void *ino, xoff_t off, int access)
     while (len > 0) {
         page_t pg = ((inode_t *)ino)->fops->fetch(ino, off);
         mp->pgs[i++] = pg;
-        assert(pg != NULL); // TODO - Better handling this
+        assert((void *)pg != NULL); // TODO - Better handling this
         memcpy(buf, (void *)pg, PAGE_SIZE);
         // TODO -- We're suppose to use those pages an release them at kunmap only !
         // ((inode_t *)ino)->fops->release(ino, off, pg);
@@ -114,9 +114,9 @@ void *kmap(size_t len, void *ino, xoff_t off, int access)
         off += PAGE_SIZE;
     }
 
-    mp->node.value_ = ptr;
+    mp->node.value_ = (size_t)ptr;
     bbtree_insert(&map_tree, &mp->node);
-    assert(irq_ready());
+    // assert(irq_ready());
     return ptr;
 }
 
@@ -124,24 +124,24 @@ void kunmap(void *addr, size_t len)
 {
     assert(irq_ready());
     --kmapCount;
-    map_page_t *mp = bbtree_search_eq(&map_tree, addr, map_page_t, node);
+    map_page_t *mp = bbtree_search_eq(&map_tree, (size_t)addr, map_page_t, node);
     if (mp != NULL) {
         char tmp[64];
-        kprintf(-1, "- kunmap (%p, %d, %s+%llx)\n", addr, len, vfs_inokey(mp->ino, tmp), mp->off);
-        bbtree_remove(&map_tree, addr);
+        // kprintf(-1, "- kunmap (%p, %d, %s+%llx)\n", addr, len, vfs_inokey(mp->ino, tmp), mp->off);
+        bbtree_remove(&map_tree, (size_t)addr);
         bool dirty = mp->access & 2 ? true : false;
-        int i;
+        size_t i;
         for (i = 0; i < mp->len; ++i) {
             page_t pg = mp->pgs[i];
             if (dirty)
-                memcpy(pg, mp->ptr, PAGE_SIZE);
+                memcpy((void *)pg, mp->ptr, PAGE_SIZE);
             mp->ino->fops->release(mp->ino, mp->off, pg, dirty);
             mp->off += PAGE_SIZE;
             mp->ptr += PAGE_SIZE;
         }
         kfree(mp);
-    } else
-        kprintf(-1, "- kunmap (%p, %d, -)\n", addr, len);
+    } // else
+        // kprintf(-1, "- kunmap (%p, %d, -)\n", addr, len);
     _vfree(addr);
     assert(irq_ready());
 }
@@ -154,7 +154,7 @@ void page_release(page_t page)
 page_t page_read(size_t address)
 {
     void *page = _valloc(PAGE_SIZE);
-    memcpy(page, address, PAGE_SIZE);
+    memcpy(page, (void *)address, PAGE_SIZE);
     // kprintf(-1, "Page shadow copy at %p \n", page);
     return (page_t)page;
 }

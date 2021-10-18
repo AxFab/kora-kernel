@@ -123,6 +123,7 @@ fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char 
         return NULL;
 
     if (vfs_lookup(node) == 0) {
+        vfs_close_fsnode(node);
         errno = EEXIST;
         return NULL;
     }
@@ -181,7 +182,7 @@ fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char 
     node->mode = FN_OK;
     mtx_unlock(&node->mtx);
     errno = 0;
-    return node;
+    return vfs_open_fsnode(node);
 }
 
 // int vfs_umount(inode_t *ino)
@@ -212,13 +213,21 @@ int vfs_chdir(vfs_t *vfs, const char *path, bool root)
     if (root) {
         prev = vfs->root;
         vfs->root = node;
-        // TODO -- Don't allow PWD to be over chroot
-        // (What about opened files with `at` access !?)
     } else {
         prev = vfs->pwd;
         vfs->pwd = node;
     }
     vfs_close_fsnode(prev);
+
+    // Check pwd is below root
+    fsnode_t* wk = vfs->pwd;
+    while (wk && wk != vfs->root)
+        wk = wk->parent;
+
+    if (wk == NULL) {
+        vfs_close_fsnode(vfs->pwd);
+        vfs->pwd = vfs_open_fsnode(vfs->root);
+    }
     return 0;
 }
 

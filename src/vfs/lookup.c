@@ -305,7 +305,7 @@ int vfs_lookup(fsnode_t *node)
     }
     if (node->mode == FN_NOENTRY) {
         errno = ENOENT;
-        vfs_close_fsnode(node);
+        // vfs_close_fsnode(node);
         return -1;
     }
     return 0;
