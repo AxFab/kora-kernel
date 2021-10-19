@@ -77,9 +77,11 @@ static void ext2_format_allocate_grp(inode_t *dev, size_t blkno, uint32_t block_
     uint8_t* ptr = bkmap(&bm, blkno, block_size, 0, dev, VM_WR);
 
     memset(ptr, 0, block_size);
+    // Mark start first as buzy
     unsigned i = start / 8;
     memset(ptr, 0xff, i);
     ptr[i] = (1 << (start & 7)) - 1;
+    // Mark end last as buzy
     i = end / 8;
     ptr[block_size - i - 1] |= 0x7f00 >> (end & 7);
     memset(ptr + block_size - i, 0xff, i);
@@ -222,24 +224,28 @@ int ext2_format(inode_t* dev, const char* options)
         gd[i].block_bitmap = overhead + 0;
         gd[i].inode_bitmap = overhead + 1;
         gd[i].inode_table = overhead + 2;
+        kprintf(-1, "Group %d :: %d block bitmap, %d inodes bitmap, %d inodes tables, %d data blocks\n", i, overhead, overhead + 1, overhead + 2, sb->blocks_per_group - 3);
         overhead = overhead - pos + 2 + inode_table_blocks;
         free_inodes = inodes_per_group;
         if (i == 0) {
             overhead += 1 + lost_and_found_block;
             gd[i].used_dirs_count = 2;
             gd[i].free_inodes_count -= EXT2_GOOD_OLD_FIRST_INO;
+            free_inodes -= EXT2_GOOD_OLD_FIRST_INO;
         }
         free_blocks = (n < blocks_per_group ? n : blocks_per_group) - overhead;
         gd[i].free_inodes_count = free_inodes;
         gd[i].free_blocks_count = free_blocks;
 
         // Blocks bitmap
-        ext2_format_allocate_grp(dev, overhead, block_size, overhead, blocks_per_group - free_blocks - overhead);
+        ext2_format_allocate_grp(dev, gd[i].block_bitmap, block_size, overhead, blocks_per_group - free_blocks - overhead);
         // Inodes bitmap
-        ext2_format_allocate_grp(dev, overhead + 1, block_size, inodes_per_group - free_inodes, blocks_per_group - inodes_per_group);
+        ext2_format_allocate_grp(dev, gd[i].inode_bitmap, block_size, inodes_per_group - free_inodes, blocks_per_group - inodes_per_group);
 
         free_blocks_count += free_blocks;
     }
+    uint32_t last_block = dc + 1 + grp_desc_blocks + sb->blocks_per_group * ngroup;
+    kprintf(-1, "Last block %d / %d\n", pos, last_block);
 
     // Super blocks and descriptors
     sb->free_blocks_count = free_blocks_count;
@@ -252,7 +258,7 @@ int ext2_format(inode_t* dev, const char* options)
         memcpy(ptr, sb, 1024);
         bkunmap(&bm);
 
-        ptr = bkmap(&bm, pos, block_size, grp_full_size, dev, VM_WR);
+        ptr = bkmap(&bm, pos + 1, block_size, grp_full_size, dev, VM_WR);
         memcpy(ptr, gd, grp_full_size);
         bkunmap(&bm);
     }

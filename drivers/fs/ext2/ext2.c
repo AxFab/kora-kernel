@@ -845,15 +845,13 @@ inode_t *ext2_mount(inode_t *dev, const char *options)
     vol->groupCount = sb->blocks_count / sb->blocks_per_group;
     vol->groupSize = vol->groupCount * sizeof(ext2_grp_t);
 
-
     int i;
     size_t grp_info = vol->groupCount * sizeof(ext2_grp_t);
     for (i = 0; i < vol->groupCount; ++i) {
         int bb = vol->grp[i].block_bitmap;
         int ib = vol->grp[i].inode_bitmap;
         int it = vol->grp[i].inode_table;
-        int dt = sb->blocks_per_group - bb - ib - it;
-        // kprintf(-1, "Group %d block bitmap, %d inode bitmap, %d inodes, %d data\n", ib, bb, it, dt);
+        kprintf(-1, "Group %d :: %d blocks bitmap, %d inodes bitmap, %d inodes table\n", i, bb, ib, it);
     }
 
     vol->blkdev = vfs_open_inode(dev);

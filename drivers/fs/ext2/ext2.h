@@ -133,13 +133,13 @@ PACK(struct ext2_ino {
     uint8_t osd2[12];
 });
 
-PACK(struct directory_entry {
-    uint32_t inode;              /* inode number or 0 (unused) */
-    uint16_t rec_len;            /* offset to the next dir. entry */
-    uint8_t name_len;            /* name length */
-    uint8_t file_type;
-    char name;
-});
+//PACK(struct directory_entry {
+//    uint32_t inode;              /* inode number or 0 (unused) */
+//    uint16_t rec_len;            /* offset to the next dir. entry */
+//    uint8_t name_len;            /* name length */
+//    uint8_t file_type;
+//    char name;
+//});
 
 typedef struct ext2_volume ext2_volume_t;
 typedef struct ext2_dir_iter ext2_dir_iter_t;
