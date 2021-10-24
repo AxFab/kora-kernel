@@ -135,7 +135,7 @@ inode_t *ext2_creat(ext2_volume_t *vol, uint32_t no, ftype_t type, xtime_t time)
 
 uint32_t ext2_alloc_block(ext2_volume_t *vol)
 {
-    int i, j, k;
+    unsigned i, j, k;
 
     for (i = 0; i < vol->groupCount; ++i) {
         if (vol->grp[i].free_blocks_count != 0)
@@ -165,9 +165,9 @@ uint32_t ext2_alloc_block(ext2_volume_t *vol)
 
 int ext2_release_block(ext2_volume_t *vol, uint32_t block)
 {
-    int i = block / vol->sb->blocks_per_group;
-    int j = (block - i * vol->sb->blocks_per_group) / 8;
-    int k = block % 8;
+    unsigned i = block / vol->sb->blocks_per_group;
+    unsigned j = (block - i * vol->sb->blocks_per_group) / 8;
+    unsigned k = block % 8;
     assert(block == i * vol->sb->blocks_per_group + j * 8 + k);
 
     if (i >= vol->groupCount || j >= vol->blocksize)
@@ -204,7 +204,7 @@ int ext2_getblock_indirect(ext2_volume_t *vol, uint32_t block, int offset, uint3
 
     if (block == 0) {
         for (j = 0; i < count && j < cnt; ++i, ++j)
-            buf[j] == 0;
+            buf[j] = 0;
         return j;
     }
 
@@ -242,8 +242,8 @@ uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk)
     }
 
     blk -= 12  + blkr;
-    int ip = blk / blkr;
-    int ix = blk % blkr;
+    unsigned ip = blk / blkr;
+    unsigned ix = blk % blkr;
     if (ip < blkr) {
         p = bkmap(&k1, dir->block[13], vol->blocksize, 0, vol->blkdev, VM_RD);
         pp = bkmap(&k2, p[ip], vol->blocksize, 0, vol->blkdev, VM_RD);
@@ -253,8 +253,8 @@ uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk)
         return lba;
     }
 
-    int iy = ip / blk;
-    int iz = ip % blk;
+    unsigned iy = ip / blk;
+    unsigned iz = ip % blk;
     if (ip < blkr) {
         p = bkmap(&k1, dir->block[14], vol->blocksize, 0, vol->blkdev, VM_RD);
         pp = bkmap(&k2, p[iy], vol->blocksize, 0, vol->blkdev, VM_RD);
@@ -317,7 +317,7 @@ static uint32_t ext2_truncate_indirect(ext2_volume_t *vol, uint32_t block, int b
 
 uint32_t ext2_alloc_inode(ext2_volume_t *vol)
 {
-    int i, j, k;
+    unsigned i, j, k;
 
     for (i = 0; i < vol->groupCount; ++i) {
         if (vol->grp[i].free_inodes_count != 0)
@@ -411,13 +411,11 @@ inode_t *ext2_readdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
 
 int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it)
 {
-    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
     if (it->cmap)
         kunmap(it->cmap, PAGE_SIZE);
     if (it->emap)
         kunmap(it->emap, PAGE_SIZE);
 
-    // bio_clean(vol->io, it->blk);
     kfree(it);
     return 0;
 }
@@ -428,7 +426,6 @@ int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it)
 
 int ext2_search_inode(inode_t *dir, const char *name, char *buf)
 {
-    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
     ext2_dir_iter_t *it = ext2_opendir(dir);
 
     int ino_no;
@@ -446,13 +443,13 @@ int ext2_search_inode(inode_t *dir, const char *name, char *buf)
 
 int ext2_add_link(ext2_volume_t *vol, ext2_ino_t *dir, unsigned no, const char *name)
 {
-    int i;
-    int lg = strnlen(name, 255);
-    int sz = ALIGN_UP(sizeof(ext2_dir_en_t) + lg, 4);
-    int pages = dir->blocks / (vol->blocksize / 512);
+    unsigned i;
+    unsigned lg = strnlen(name, 255);
+    unsigned sz = ALIGN_UP(sizeof(ext2_dir_en_t) + lg, 4);
+    unsigned pages = dir->blocks / (vol->blocksize / 512);
     for (i = 0; i < pages; ++i) {
-        int idx = 0;
-        int blk = ext2_get_block(vol, dir, i);
+        unsigned idx = 0;
+        unsigned blk = ext2_get_block(vol, dir, i);
         struct bkmap bk;
         ext2_dir_en_t *en = bkmap(&bk, blk, vol->blocksize, 0, vol->blkdev, VM_WR);
         while (en->ino != 0) {
@@ -494,7 +491,6 @@ int ext2_add_link(ext2_volume_t *vol, ext2_ino_t *dir, unsigned no, const char *
 
 inode_t *ext2_lookup(inode_t *dir, const char *name, void *acl)
 {
-    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
     char *filename = kalloc(256);
     int ino_no = ext2_search_inode(dir, name, filename);
     kfree(filename);
@@ -508,7 +504,7 @@ inode_t *ext2_lookup(inode_t *dir, const char *name, void *acl)
     return ino;
 }
 
-inode_t *ext2_create(inode_t *dir, const char *name, int mode, void *acl)
+inode_t *ext2_create(inode_t *dir, const char *name, void *acl, int mode)
 {
     ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
     char *filename = kalloc(256);
@@ -576,7 +572,7 @@ inode_t *ext2_mkdir(inode_t *dir, const char *name, int mode, void *acl)
     struct bkmap bkd;
     char *data = bkmap(&bkd, blkno, vol->blocksize, 0, vol->blkdev, VM_RW);
     memset(data, 0, vol->blocksize);
-    ext2_dir_en_t *en = data;
+    ext2_dir_en_t *en = (ext2_dir_en_t *)data;
     en->ino = no;
     en->rec_len = sizeof(ext2_dir_en_t) + 4;
     en->name_len = 1;
@@ -654,10 +650,10 @@ inode_t *ext2_open(inode_t *dir, const char *name, ftype_t type, void *acl, int 
     }
 
     // Create it
-    int last = 0;
-    int blk_no = last / vol->blocksize;
-    int off = last % vol->blocksize;
-    int lba = it->entry->block[blk_no];
+    unsigned last = 0;
+    unsigned blk_no = last / vol->blocksize;
+    // int off = last % vol->blocksize;
+    unsigned lba = it->entry->block[blk_no];
     if (it->lba != lba) {
         // TODO
         ext2_closedir(dir, it);
@@ -690,7 +686,7 @@ inode_t *ext2_open(inode_t *dir, const char *name, ftype_t type, void *acl, int 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-int ext2_read(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags)
+int ext2_read(inode_t *ino, char *buffer, size_t length, xoff_t offset, int flags)
 {
     struct bkmap bk;
     ext2_volume_t *vol = (ext2_volume_t *)ino->drv_data;
@@ -713,14 +709,14 @@ int ext2_read(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flag
 
         length -= cap;
         offset += cap;
-        buffer = ((char *)buffer) + cap;
+        buffer = buffer + cap;
     }
 
     bkunmap(&bk);
     return 0;
 }
 
-int ext2_write(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags)
+int ext2_write(inode_t *ino, const char *buffer, size_t length, xoff_t offset, int flags)
 {
     struct bkmap bk;
     ext2_volume_t *vol = (ext2_volume_t *)ino->drv_data;
@@ -746,7 +742,7 @@ int ext2_write(inode_t *ino, void *buffer, size_t length, xoff_t offset, int fla
 
         length -= cap;
         offset += cap;
-        buffer = ((char *)buffer) + cap;
+        buffer = buffer + cap;
     }
 
     bkunmap(&bk);
@@ -763,7 +759,6 @@ int ext2_truncate(inode_t *ino, xoff_t offset)
     ext2_ino_t *en = ext2_entry(&bk, vol, ino->no, VM_WR);
 
     int block_count = ALIGN_UP(offset, vol->blocksize) / vol->blocksize;
-    int i = 0;
     /* direct block number */
     ext2_truncate_direct(vol, en->block, 12, block_count, 0);
 
@@ -789,7 +784,7 @@ int ext2_truncate(inode_t *ino, xoff_t offset)
 
 ino_ops_t ext2_dir_ops = {
     .lookup = ext2_lookup,
-    .create = ext2_create,
+    .create = (void *)ext2_create,
     // .open = ext2_open,
     .opendir = (void *)ext2_opendir,
     .readdir = (void *)ext2_readdir,
@@ -832,21 +827,14 @@ inode_t *ext2_mount(inode_t *dev, const char *options)
     kprintf(-1, "%d inodes per group\n", sb->inodes_per_group);
     kprintf(-1, "Superblock backup on blocks: %d\n", 0);
 
-    size_t inosz = sizeof(ext2_ino_t);
-    size_t table_ino = inosz * sb->inodes_per_group;
-
-    // vol->dev = vfs_open_inode(dev);
     vol->blocksize = 1024 << sb->log_block_size;
     assert(POW2(vol->blocksize));
 
     vol->grp = (ext2_grp_t *)&ptr[MAX(2048, vol->blocksize)];
-    // vol->io = bio_create(dev, VMA_FILE_RW, 1024 << sb->log_block_size, 0);
-
     vol->groupCount = sb->blocks_count / sb->blocks_per_group;
     vol->groupSize = vol->groupCount * sizeof(ext2_grp_t);
 
-    int i;
-    size_t grp_info = vol->groupCount * sizeof(ext2_grp_t);
+    unsigned i;
     for (i = 0; i < vol->groupCount; ++i) {
         int bb = vol->grp[i].block_bitmap;
         int ib = vol->grp[i].inode_bitmap;
@@ -873,9 +861,11 @@ inode_t *ext2_mount(inode_t *dev, const char *options)
 }
 
 
+int ext2_format(inode_t *dev, const char *options);
+
 void ext2_setup()
 {
-    vfs_addfs("ext2", ext2_mount);
+    vfs_addfs("ext2", ext2_mount, ext2_format);
 }
 
 

@@ -74,14 +74,15 @@ inode_t *fat_mount(inode_t *dev, const char *options)
 //     return 0;
 // }
 
+int fatfs_format(inode_t *dev, const char *options);
 
 void fat_setup()
 {
-    vfs_addfs("fat", fat_mount);
-    vfs_addfs("vfat", fat_mount);
-    vfs_addfs("fat12", fat_mount);
-    vfs_addfs("fat16", fat_mount);
-    vfs_addfs("fat32", fat_mount);
+    vfs_addfs("fat", fat_mount, fatfs_format);
+    vfs_addfs("vfat", fat_mount, fatfs_format);
+    vfs_addfs("fat12", fat_mount, fatfs_format);
+    vfs_addfs("fat16", fat_mount, fatfs_format);
+    vfs_addfs("fat32", fat_mount, fatfs_format);
 }
 
 void fat_teardown()

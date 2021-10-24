@@ -496,7 +496,7 @@ inode_t *devfs_setup()
     devfs_dev(info, "null", FL_CHR, DF_ROOT, &devfs_null_ops);
     devfs_dev(info, "random", FL_CHR, DF_ROOT, &devfs_rand_ops);
 
-    vfs_addfs("devfs", devfs_mount);
+    vfs_addfs("devfs", devfs_mount, NULL);
 
     return vfs_open_inode(DEV_INO);
 }

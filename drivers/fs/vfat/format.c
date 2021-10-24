@@ -173,7 +173,6 @@ int fatfs_format(inode_t *bdev, const char *options)
 
     // Write FAT16
     int i;
-    unsigned j;
     for (i = 0; i < 2; ++i) {
         int lbaFirst = i * info->FATSz + info->ResvdSecCnt;
         int p1L = (lbaFirst * info->BytsPerSec) / PAGE_SIZE;

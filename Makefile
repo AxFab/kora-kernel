@@ -79,6 +79,21 @@ $(bindir)/$(kname): $(call fn_objs,SRCS_kr,kr)
 	$(Q) echo "    LD  "$@
 	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
 
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# Build drivers
+
+CFLAGS_dr += $(CFLAGS)
+CFLAGS_dr += -ffreestanding -fPIC $(CFLAGS_inc) $(CFLAGS_def)
+
+LFLAGS_dr += -lc
+
+# DRV = vfat ext2 isofs
+DRV  = fs/vfat fs/isofs fs/ext2
+DRV += pc/ata pc/e1000 pc/ps2 pc/vga
+DRV += misc/vbox
+# DRV += pc/ac97 pc/sb16
+
+include $(foreach dir,$(DRV),$(topdir)/drivers/$(dir)/Makefile)
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Build tests
@@ -100,21 +115,29 @@ SRC_ckvfs = $(SRC_STDC) $(srcdir)/tests/ckvfs.c
 SRC_ckvfs += $(wildcard $(srcdir)/vfs/*.c)
 # $(eval $(call link_bin,ckvfs,SRC_ckvfs,CFLAGS))
 
+
+
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-# Build drivers
+# Build cli-*
 
-CFLAGS_dr ?= -Wall -Wextra -Wno-unused-parameter -ggdb
-CFLAGS_dr += -ffreestanding -fPIC $(CFLAGS_inc) $(CFLAGS_def)
+CFLAGS_cli += $(CFLAGS) -fPIC $(CFLAGS_inc) $(CFLAGS_def)
+LFLAGS_cli += -lpthread
 
-LFLAGS_dr += -lc
+SRC_kcore += $(topdir)/src/stdc/bbtree.c
+SRC_kcore += $(topdir)/src/stdc/debug.c
+SRC_kcore += $(topdir)/src/stdc/hmap.c
+SRC_kcore += $(topdir)/src/stdc/sem.c
+SRC_kcore += $(wildcard $(topdir)/cli/_unix/*.c)
 
-# DRV = vfat ext2 isofs
-DRV  = fs/vfat fs/isofs fs/ext2
-DRV += pc/ata pc/e1000 pc/ps2
-DRV += misc/vbox
-# DRV += pc/ac97 pc/sb16
+# SRC_kcore += $(topdir)/src/tests/stub.c
 
-include $(foreach dir,$(DRV),$(topdir)/drivers/$(dir)/Makefile)
+SRC_clivfs += $(wildcard $(topdir)/src/vfs/*.c)
+SRC_clivfs += $(wildcard $(topdir)/cli/vfs/*.c)
+SRC_clivfs += $(SRC_kcore)
+
+
+$(eval $(call comp_source,cli,CFLAGS_cli))
+$(eval $(call link_bin,cli-vfs,SRC_clivfs,LFLAGS_cli,cli))
 
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

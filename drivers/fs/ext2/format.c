@@ -178,7 +178,7 @@ int ext2_format(inode_t* dev, const char* options)
             kprintf(-1, "Superblock backup on blocks:%u\n", pos);
     }
 
-    uint32_t timestamp = time(NULL);
+    uint32_t timestamp = (uint32_t)(xtime_read(XTIME_CLOCK) / 1000000UL);
 
     // Prepare super block !
     ext2_sb_t* sb = kalloc(1024);
@@ -341,9 +341,9 @@ int ext2_format(inode_t* dev, const char* options)
     memcpy(ptr, dir, block_size);
     bkunmap(&bm);
 
-    free(sb);
-    free(gd);
-    free(ino);
-    free(dir);
+    kfree(sb);
+    kfree(gd);
+    kfree(ino);
+    kfree(dir);
     return 0;
 }

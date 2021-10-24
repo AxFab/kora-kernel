@@ -74,7 +74,7 @@ int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mutex, const struct time
         if (cond->mtx)
             return EINVAL;
         /* atomically set mutex inside cond */
-        atomic_ptr_cmpxchg(&cond->mtx, NULL, mutex);
+        atomic_ptr_cmpxchg((void*)&cond->mtx, NULL, mutex);
         if (cond->mtx != mutex)
             return EINVAL;
     }

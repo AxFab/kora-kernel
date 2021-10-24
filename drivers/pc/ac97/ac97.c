@@ -51,7 +51,7 @@ void ac97_setup()
     struct PCI_device *pci = NULL;
 
     for (;;) {
-        pci = PCI_search2(ac97_match_pci_device);
+        pci = pci_search(ac97_match_pci_device, NULL);
         if (pci == NULL)
             break;
         // kprintf(0, "Found %s (PCI.%02d.%02d)\n", AC97_NAME, pci->bus, pci->slot);

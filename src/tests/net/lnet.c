@@ -62,7 +62,7 @@ int lnet_send(ifnet_t *ifnet, skb_t *skb)
     eth_stringfy(mac1, source->ifnet->hwaddr);
     eth_stringfy(mac2, target->ifnet->hwaddr);
     printf("Packet send from <%s> to <%s> :: %s \n", mac1, mac2, skb->log);
-    net_recv(target->ifnet, skb->buf, skb->len);
+    net_skb_recv(target->ifnet, skb->buf, skb->len);
     return 0;
 }
 

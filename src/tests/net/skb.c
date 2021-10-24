@@ -22,7 +22,7 @@
 int eth_receive(skb_t *);
 int lo_receive(skb_t *);
 
-void net_recv(ifnet_t *ifnet, const void *buf, size_t len)
+void net_skb_recv(ifnet_t *ifnet, const void *buf, size_t len)
 {
     skb_t *skb = kalloc(sizeof(skb_t) + len);
     skb->size = len;

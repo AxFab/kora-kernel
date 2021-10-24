@@ -321,8 +321,8 @@ inode_t *isofs_mount(inode_t *dev, const char *options)
 
 void isofs_setup()
 {
-    vfs_addfs("isofs", isofs_mount);
-    vfs_addfs("iso", isofs_mount);
+    vfs_addfs("isofs", isofs_mount, NULL);
+    vfs_addfs("iso", isofs_mount, NULL);
 }
 
 void isofs_teardown()

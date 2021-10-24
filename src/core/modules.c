@@ -21,6 +21,7 @@
 #include <kernel/mods.h>
 #include <kernel/irq.h>
 #include <kernel/vfs.h>
+#include <kernel/net.h>
 #include <kernel/memory.h>
 #include <kernel/dlib.h>
 #include <kernel/tasks.h>
@@ -104,6 +105,7 @@ void module_init(vfs_t *vfs, mspace_t *vm)
     kernel_export_symbol(rand32);
     kernel_export_symbol(xtime_read);
     kernel_export_symbol(sztoa_r);
+    kernel_export_symbol(mmu_read); // !?
 
     // String.h
     kernel_export_symbol(memchr);
@@ -161,10 +163,16 @@ void module_init(vfs_t *vfs, mspace_t *vm)
     kernel_export_symbol(irq_disable);
     kernel_export_symbol(irq_register);
     kernel_export_symbol(irq_unregister);
+    kernel_export_symbol(irq_ack);
 
     // Memory
     // Tasks
     kernel_export_symbol(itimer_create);
+    kernel_export_symbol(sleep_timer);
+
+    // NET
+    // kernel_export_symbol(net_alloc);
+    // kernel_export_symbol(net_skb_recv);
 
 }
 
@@ -191,6 +199,7 @@ int module_load(fsnode_t *file)
         dlib_unload(__kernel_proc, __kernel_proc->mspace, dlib);
         kfree(dlib);
         // TODO -- Clean dynlib!
+        kprintf(KL_MSG, "Driver load fails \033[90m%s\033[0m, unresolved symbols, by \033[90m#%d\033[0m\n", dlib->name, __current->pid);
         return -1;
     }
     // kprintf(-1, "Open module %s (%s)\n", filename, sztoa(file->ino->length));
@@ -198,12 +207,14 @@ int module_load(fsnode_t *file)
 
     // Look for kernel module references
     dynsym_t *symbol;
+    int mods = 0;
     for ll_each(&dlib->intern_symbols, symbol, dynsym_t, node) {
         if (memcmp(symbol->name, "kmodule_", 8) == 0) {
             // TODO -- Check version
             kmodule_t *mod = (kmodule_t *)symbol->address;
             kprintf(KL_MSG, "Loading driver \033[90m%s\033[0m by \033[90m#%d\033[0m\n", mod->name, __current->pid);
             mod->setup();
+            mods++;
             // splock_lock(&__kmodules_lock);
             // mod->dlib = dlib;
             // ll_enqueue(&__kmodules_list, &mod->node);
@@ -211,7 +222,9 @@ int module_load(fsnode_t *file)
         }
     }
 
-    return 0;
+    if (mods == 0)
+        kprintf(KL_MSG, "Driver load fails \033[90m%s\033[0m, no module found, by \033[90m#%d\033[0m\n", dlib->name, __current->pid);
+    return mods != 0 ? 0 : -1;
 }
 
 
@@ -227,7 +240,8 @@ struct mtask {
 
 llhead_t mtask_queue = INIT_LLHEAD;
 splock_t mtask_lock = INIT_SPLOCK;
-atomic_int mtask_step = 0;
+atomic_int mtask_step1 = 0;
+atomic_int mtask_step2 = 0;
 
 void module_new_task(int type, void *ptr)
 {
@@ -241,6 +255,7 @@ void module_new_task(int type, void *ptr)
 
 void module_do_dir(fsnode_t *directory)
 {
+    kprintf(-1, "Kernel task %d reading directory (cpu:%d) \n", __current->pid, cpu_no());
     void *ctx = vfs_opendir(directory, NULL);
     for (;;) {
         fsnode_t *file = vfs_readdir(directory, ctx);
@@ -255,12 +270,14 @@ void module_do_dir(fsnode_t *directory)
 
 void module_do_file(fsnode_t *file)
 {
+    kprintf(-1, "Kernel task %d loading module (cpu:%d) \n", __current->pid, cpu_no());
     module_load(file);
     vfs_close_fsnode(file);
 }
 
 void module_do_proc(char *cmd)
 {
+    kprintf(-1, "Kernel task %d starting process (cpu:%d) \n", __current->pid, cpu_no());
     fsnode_t *root = vfs_mount(__current->vfs, "sdC", "iso", "/mnt/cdrom", "");
     vfs_close_fsnode(root);
     vfs_chdir(__current->vfs, "/mnt/cdrom", true);
@@ -273,27 +290,40 @@ void module_do_proc(char *cmd)
     kfree(cmd);
 }
 
-_Noreturn void module_loader()
+int module_predefined_tasks()
 {
-    int val = atomic_xchg(&mtask_step, 1);
+    int val;
+    // Check presence of initrd module
+    val = atomic_xchg(&mtask_step1, 1);
     if (val == 0) {
         fsnode_t *directory = vfs_search(__current->vfs, "/mnt/boot0", NULL, true);
         if (directory == NULL)
             kprintf(KL_MSG, "Unable to find kernel modules");
         else
             module_new_task(1, directory);
+        return 0;
     }
 
+    val = atomic_xchg(&mtask_step2, 1);
+    if (val == 0) {
+        module_new_task(3, strdup("krish"));
+        return 0;
+    }
+
+    return -1;
+}
+
+_Noreturn void module_loader()
+{
     for (;;) {
         splock_lock(&mtask_lock);
         mtask_t *mt = ll_dequeue(&mtask_queue, mtask_t, node);
         splock_unlock(&mtask_lock);
         if (mt == NULL) {
-            val = atomic_xchg(&mtask_step, 2);
-            // if (val == 1)
-            //     module_new_task(3, strdup("krish"));
-            kprintf(-1, "Hello from task %d (cpu:%d) \n", __current->pid, cpu_no());
-            sleep_timer(500000);
+            if (module_predefined_tasks() == 0)
+                continue;
+            kprintf(-1, "Sleeping kernel task %d (cpu:%d) \n", __current->pid, cpu_no());
+            sleep_timer(500);
             continue;
         } else if (mt->type == 1)
             module_do_dir(mt->ptr);

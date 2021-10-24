@@ -29,6 +29,12 @@ hmap_t fs_hmap;
 
 inode_t *devfs_setup();
 
+struct fsreg {
+    char name[16];
+    fsmount_t mount;
+    fsformat_t format;
+};
+
 void devfs_sweep();
 void devfs_register(inode_t *ino, const char *name);
 
@@ -105,19 +111,36 @@ void vfs_rmdev(const char *name)
 {
 }
 
-void vfs_addfs(const char *name, fsmount_t mount)
+
+void vfs_addfs(const char *name, fsmount_t mount, fsformat_t format)
 {
-    hmp_put(&fs_hmap, name, strlen(name), mount);
+    fsreg_t *reg = kalloc(sizeof(struct fsreg));
+    strncpy(reg->name, name, 16);
+    reg->mount = mount;
+    reg->format = format;
+    hmp_put(&fs_hmap, name, strlen(name), reg);
 }
 
 void vfs_rmfs(const char *name)
 {
+    fsreg_t *fs = hmp_get(&fs_hmap, name, strlen(name));
+    if (fs == NULL)
+        return;
     hmp_remove(&fs_hmap, name, strlen(name));
+    kfree(fs);
 }
 
-fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *path, const char *options)
+int vfs_format(const char *name, inode_t *dev, const char *options)
 {
-    assert(fs != NULL && path != NULL);
+    fsreg_t *fs = hmp_get(&fs_hmap, name, strlen(name));
+    if (fs == NULL)
+        return -2;
+    return fs->format(dev, options);
+}
+
+fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fsname, const char *path, const char *options)
+{
+    assert(fsname != NULL && path != NULL);
     fsnode_t *node = vfs_search(vfs, path, NULL, false);
     if (node == NULL)
         return NULL;
@@ -135,8 +158,8 @@ fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char 
         return NULL;
     }
 
-    fsmount_t mount = (fsmount_t)hmp_get(&fs_hmap, fs, strlen(fs));
-    if (mount == NULL) {
+    fsreg_t *fs = hmp_get(&fs_hmap, fsname, strlen(fsname));
+    if (fs == NULL || fs->mount == NULL) {
         mtx_unlock(&node->mtx);
         vfs_close_fsnode(node);
         errno = ENOSYS;
@@ -155,7 +178,7 @@ fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char 
         }
     }
 
-    inode_t *ino = mount(dev ? dev->ino : NULL, options);
+    inode_t *ino = fs->mount(dev ? dev->ino : NULL, options);
     vfs_close_fsnode(dev);
     if (ino == NULL) {
         mtx_unlock(&node->mtx);
@@ -198,6 +221,7 @@ fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char 
 //     // vfs_close_inode(ino, X_OK);
 //     return 0;
 // }
+
 
 int vfs_chdir(vfs_t *vfs, const char *path, bool root)
 {

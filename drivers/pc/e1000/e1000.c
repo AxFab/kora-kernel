@@ -138,7 +138,7 @@ int e1000_irq_handler(e1000_device_t *ifnet)
             uint8_t *buffer = ifnet->rx_virt[ifnet->rx_index];
             uint16_t length = ifnet->rx_base[ifnet->rx_index].length;
             kprintf(KL_DBG, "RECEIVE NETWORK PACKET (%d bytes)\n", length);
-            net_recv(&ifnet->dev, NULL/*Ethernet_protocol*/, buffer, length);
+            net_skb_recv(&ifnet->dev, buffer, length);
             ifnet->rx_base[ifnet->rx_index].status = 0;
             PCI_wr32(pci, 0, REG_RDT, ifnet->rx_index);
         }
@@ -201,7 +201,7 @@ void e1000_init_hw(e1000_device_t *ifnet)
     struct PCI_device *pci = ifnet->pci;
 
     /* Wait */
-    sleep_timer(SEC_TO_KTIME(1)); // 1 sec
+    sleep_timer(SEC_TO_USEC(1)); // 1 sec
 
     uint32_t status = PCI_rd32(pci, 0, REG_CTRL);
     status |= (1 << 5);   /* set auto speed detection */
@@ -223,7 +223,7 @@ void e1000_init_hw(e1000_device_t *ifnet)
     PCI_wr32(pci, 0, REG_CTRL, status);
 
     /* Wait */
-    sleep_timer(SEC_TO_KTIME(1)); // 1 sec
+    sleep_timer(SEC_TO_USEC(1)); // 1 sec
 
     // kprintf(0, "Check E1000 IRQ = %d\n", PCI_cfg_rd16(pci, PCI_INTERRUPT_LINE) & 0xFF);
     irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
@@ -276,7 +276,7 @@ void e1000_init_hw(e1000_device_t *ifnet)
     PCI_wr32(pci, 0, REG_IMS, _B(0) | _B(1) | _B(2) | _B(6) | _B(7));
 
     /* Wait */
-    sleep_timer(SEC_TO_KTIME(1)); // 1 sec
+    sleep_timer(SEC_TO_USEC(1)); // 1 sec
 
     status = PCI_rd32(pci, 0, REG_STATUS); // & (1 << 1);
     if (status & (1 << 1)) {

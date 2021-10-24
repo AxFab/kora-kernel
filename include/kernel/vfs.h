@@ -42,10 +42,12 @@ typedef struct path path_t;
 typedef enum ftype ftype_t;
 typedef struct diterator diterator_t;
 typedef enum fnode_status fnode_status_t;
+typedef struct fsreg fsreg_t;
 
 // typedef struct acl acl_t;
 
 typedef inode_t *(*fsmount_t)(inode_t *dev, const char *options);
+typedef int (*fsformat_t)(inode_t *dev, const char *options);
 
 enum ftype {
     FL_INVAL = 0,
@@ -190,6 +192,7 @@ vfs_t *vfs_open_vfs(vfs_t *vfs);
 vfs_t *vfs_clone_vfs(vfs_t *vfs);
 void vfs_sweep(vfs_t *vfs);
 fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *name, const char *options);
+int vfs_format(const char *name, inode_t *dev, const char *options);
 // unmount
 char *vfs_inokey(inode_t *ino, char *buf);
 
@@ -200,7 +203,7 @@ void vfs_close_inode(inode_t *ino);
 
 int vfs_mkdev(inode_t *ino, const char *name);
 void vfs_rmdev(const char *name);
-void vfs_addfs(const char *name, fsmount_t mount);
+void vfs_addfs(const char *name, fsmount_t mount, fsformat_t format);
 void vfs_rmfs(const char *name);
 
 fsnode_t *vfs_mknod(fsnode_t *parent, const char *name, int devno);

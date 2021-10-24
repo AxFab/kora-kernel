@@ -86,6 +86,8 @@ _Static_assert(sizeof(long long) == 8, "Unsupported, long long must be 64 bits")
 # define __STDC_END
 #endif
 #ifndef KORA_KRN
+# undef __asm_irq_on_
+# undef __asm_irq_off_
 # define __asm_irq_on_  ((void)0)
 # define __asm_irq_off_  ((void)0)
 #endif

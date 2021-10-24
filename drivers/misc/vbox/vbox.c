@@ -162,7 +162,7 @@ void vbox_setup()
     struct PCI_device *pci = NULL;
 
     for (;;) {
-        pci = PCI_search2(vbox_match_pci_device);
+        pci = pci_search(vbox_match_pci_device, NULL);
         if (pci == NULL)
             break;
         vbox_startup(pci);

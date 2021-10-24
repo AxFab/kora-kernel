@@ -31,7 +31,7 @@ int counter[10];
 void task_count(long arg)
 {
     for (;;) {
-        async_wait(NULL, NULL, MSEC_TO_KTIME(50));
+        async_wait(NULL, NULL, MSEC_TO_USEC(50));
         counter[arg]++;
     }
 }
