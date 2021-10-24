@@ -138,9 +138,9 @@ startup:
 
 align 4
   .gdt_regs:
-    dw 0x7F8, 0, 0, 0
+    dw 0x800, 0, 0, 0
   .idt_regs:
-    dw 0x7F8, 0x800, 0, 0
+    dw 0x800, 0x800, 0, 0
 
 
 
