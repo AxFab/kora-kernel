@@ -123,3 +123,10 @@ void mtx_destroy(mtx_t *mutex)
 {
     (void)mutex;
 }
+
+EXPORT_SYMBOL(mtx_init, 0);
+EXPORT_SYMBOL(mtx_lock, 0);
+EXPORT_SYMBOL(mtx_timedlock, 0);
+EXPORT_SYMBOL(mtx_trylock, 0);
+EXPORT_SYMBOL(mtx_unlock, 0);
+EXPORT_SYMBOL(mtx_destroy, 0);

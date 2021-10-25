@@ -124,7 +124,7 @@ void ip4_setip(ifnet_t *net, const uint8_t *ip, const uint8_t *submsk, const uin
         arp_whois(net, info->gateway);
 }
 
-void ip4_setup(netstack_t *stack)
+void ip4_start(netstack_t *stack)
 {
     eth_handshake(stack, ETH_IP4, ip4_receive);
     eth_handshake(stack, ETH_ARP, arp_receive);
@@ -183,3 +183,17 @@ socket_t *ip4_lookfor_socket(ifnet_t *net, uint16_t port, bool stream, const uin
     // Inform `client` of the new socket !
     return NULL;
 }
+
+void ip4_setup()
+{
+#ifdef KORA_KRN
+    ip4_start(net_stack());
+#endif
+}
+
+void ip4_teardown()
+{
+}
+
+EXPORT_MODULE(ip4, ip4_setup, ip4_teardown);
+

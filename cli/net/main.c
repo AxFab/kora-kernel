@@ -26,7 +26,7 @@
 
 void ip4_checkup(ifnet_t* net);
 void ip4_config(ifnet_t* net, const char* str);
-void ip4_setup(netstack_t* stack);
+void ip4_start(netstack_t* stack);
 int ip4_readip(uint8_t* ip, const char* str);
 
 typedef struct ip4_route ip4_route_t;
@@ -98,7 +98,7 @@ netstack_t* fakeLan_node(const char* name, int ports)
     // Create a NETWORK STACK instance
     netstack_t* stack = net_setup();
     stack->hostname = strdup(name);
-    ip4_setup(stack);
+    ip4_start(stack);
 
     int i;
     for (i = 0; i < ports; ++i) {

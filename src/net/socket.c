@@ -88,3 +88,7 @@ int net_socket_recv(socket_t *socket, skb_t *skb, int length)
 {
     return -1;
 }
+
+
+EXPORT_SYMBOL(net_socket_recv, 0);
+

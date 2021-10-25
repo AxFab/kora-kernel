@@ -19,6 +19,7 @@
  */
 #include <kora/bbtree.h>
 #include <assert.h>
+#include <kernel/mods.h>
 
 typedef struct bbrm bbrm_t;
 
@@ -325,3 +326,12 @@ int bbtree_check(bbnode_t *node)
     }
     return count;
 }
+
+EXPORT_SYMBOL(bbtree_init, 0);
+EXPORT_SYMBOL(bbtree_insert, 0);
+EXPORT_SYMBOL(bbtree_remove, 0);
+EXPORT_SYMBOL(bbtree_left_, 0);
+EXPORT_SYMBOL(bbtree_right_, 0);
+EXPORT_SYMBOL(bbtree_next_, 0);
+EXPORT_SYMBOL(bbtree_previous_, 0);
+EXPORT_SYMBOL(bbtree_search_, 0);

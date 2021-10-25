@@ -58,9 +58,9 @@ typedef struct dhcp_lease dhcp_lease_t;
 struct dhcp_info {
     int mode;
     uint32_t transaction;
-    time_t last_request;
-    time_t expire;
-    time_t renewal;
+    xtime_t last_request;
+    xtime_t expire;
+    xtime_t renewal;
     splock_t lock;
 
     dhcp_lease_t *lease_range[16];
@@ -102,7 +102,7 @@ struct dhcp_msg {
 struct dhcp_lease {
     uint8_t ip[4];
     uint8_t sr[4];
-    time_t expired;
+    xtime_t expired;
 };
 
 static char dhcp2boot[] = {
@@ -309,7 +309,7 @@ int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode, dhcp_l
     net_skb_write(skb, opcode == BOOT_REQUEST ? net->hwaddr : route->addr, ETH_ALEN);
 
     const char *vendor = "KoraOS";
-    dhcp_option_buf(skb, DHCP_OPT_VENDOR, strlen(vendor), vendor);
+    dhcp_option_buf(skb, DHCP_OPT_VENDOR, (uint8_t)strlen(vendor), vendor);
 
     if (opcode == BOOT_REQUEST)
         dhcp_opts_write_req(net, skb, lease);
@@ -355,7 +355,7 @@ void dhcp_on_discovery(ifnet_t *net, dhcp_msg_t *msg)
     lease = kalloc(sizeof(dhcp_lease_t));
     memcpy(lease->ip, ip4->ip, IP4_ALEN);
     lease->ip[3] = idx + 4;
-    lease->expired = time(NULL) + DHCP_LEASE_DURATION;
+    lease->expired = xtime_read(XTIME_CLOCK) + SEC_TO_USEC(DHCP_LEASE_DURATION);
     info->lease_range[idx] = lease;
 
     splock_unlock(&info->lock);
@@ -381,7 +381,7 @@ void dhcp_on_offer(ifnet_t *net, dhcp_msg_t *msg)
 
     splock_lock(&info->lock);
     info->mode = DHCP_REQUEST;
-    info->last_request = time(NULL);
+    info->last_request = xtime_read(XTIME_CLOCK);
     splock_unlock(&info->lock);
 
     dhcp_lease_t lease;
@@ -422,9 +422,9 @@ void dhcp_on_ack(ifnet_t *net, dhcp_msg_t *msg)
 
     ip4_setip(net, msg->yiaddr, msg->submsk, msg->gateway);
     info->mode = DHCP_PACK;
-    info->last_request = time(NULL);
-    info->expire = info->last_request + msg->lease_time;
-    info->renewal = info->last_request + msg->lease_time / 2;
+    info->last_request = xtime_read(XTIME_CLOCK);
+    info->expire = info->last_request + SEC_TO_USEC(msg->lease_time);
+    info->renewal = info->last_request + SEC_TO_USEC(msg->lease_time / 2);
 }
 
 void dhcp_on_nack(ifnet_t *net, dhcp_msg_t *msg)
@@ -445,14 +445,14 @@ int dhcp_discovery(ifnet_t *net)
     /* Check if this is relevant */
     dhcp_info_t *info = dhcp_readinfo(net);
     splock_lock(&info->lock);
-    if (info->last_request > time(NULL) - DHCP_DELAY || info->mode > DHCP_DISCOVER) {
+    if (info->last_request > xtime_read(XTIME_CLOCK) - SEC_TO_USEC(DHCP_DELAY) || info->mode > DHCP_DISCOVER) {
         splock_unlock(&info->lock);
         return -1;
     }
 
     // Send the packet DHCP_DISCOVER
     info->mode = DHCP_DISCOVER;
-    info->last_request = time(NULL);
+    info->last_request = xtime_read(XTIME_CLOCK);
     info->transaction = rand32();
     splock_unlock(&info->lock);
     return dhcp_packet(net, ip4_route_broadcast(net), info->transaction, DHCP_DISCOVER, NULL);

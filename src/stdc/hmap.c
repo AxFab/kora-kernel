@@ -20,6 +20,7 @@
 #include <kora/hmap.h>
 #include <string.h>
 #include <assert.h>
+#include <kernel/mods.h>
 
 void *malloc(size_t);
 void free(void *);
@@ -183,3 +184,11 @@ void hmp_remove(hmap_t *map, const char *key, int lg)
         entry = entry->next;
     }
 }
+
+
+EXPORT_SYMBOL(hmp_init, 0);
+EXPORT_SYMBOL(hmp_destroy, 0);
+EXPORT_SYMBOL(hmp_put, 0);
+EXPORT_SYMBOL(hmp_get, 0);
+EXPORT_SYMBOL(hmp_remove, 0);
+

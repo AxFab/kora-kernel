@@ -106,3 +106,10 @@ void cnd_destroy(cnd_t *cond)
 {
     (void)cond;
 }
+
+EXPORT_SYMBOL(cnd_init, 0);
+EXPORT_SYMBOL(cnd_signal, 0);
+EXPORT_SYMBOL(cnd_broadcast, 0);
+EXPORT_SYMBOL(cnd_wait, 0);
+EXPORT_SYMBOL(cnd_timedwait, 0);
+EXPORT_SYMBOL(cnd_destroy, 0);

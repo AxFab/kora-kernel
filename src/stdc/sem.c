@@ -20,6 +20,7 @@
 #include <threads.h>
 #include <sys/sem.h>
 #include <assert.h>
+#include <kernel/mods.h>
 
 int sem_init(sem_t *sem, int count)
 {
@@ -104,3 +105,12 @@ int sem_drain(sem_t *sem)
     mtx_unlock(&sem->mtx);
     return count;
 }
+
+EXPORT_SYMBOL(sem_init, 0);
+EXPORT_SYMBOL(sem_destroy, 0);
+EXPORT_SYMBOL(sem_acquire, 0);
+EXPORT_SYMBOL(sem_acquire_many, 0);
+EXPORT_SYMBOL(sem_tryacquire, 0);
+EXPORT_SYMBOL(sem_release, 0);
+EXPORT_SYMBOL(sem_release_many, 0);
+EXPORT_SYMBOL(sem_drain, 0);

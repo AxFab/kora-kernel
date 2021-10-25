@@ -74,7 +74,7 @@ int ip4_readip(uint8_t *ip, const char *str);
 char *ip4_writeip(const uint8_t *ip, char *buf, int len);
 void ip4_setip(ifnet_t *net, const uint8_t *ip, const uint8_t *submsk, const uint8_t *gateway);
 void ip4_config(ifnet_t *net, const char *str);
-void ip4_setup(netstack_t *stack);
+void ip4_start(netstack_t *stack);
 
 // Private -----
 

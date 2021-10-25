@@ -107,6 +107,6 @@ int arp_receive(skb_t *skb)
     else if (header->opcode == ARP_REPLY)
         ip4_route_add(skb->ifnet, source_ip, source_mac);
 
-    free(skb);
+    kfree(skb);
     return 0;
 }

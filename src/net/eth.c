@@ -120,3 +120,9 @@ int eth_receive(skb_t *skb)
 
     return recv(skb);
 }
+
+
+EXPORT_SYMBOL(eth_writemac, 0);
+EXPORT_SYMBOL(eth_handshake, 0);
+EXPORT_SYMBOL(eth_header, 0);
+

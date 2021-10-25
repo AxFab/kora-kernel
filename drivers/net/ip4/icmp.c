@@ -41,7 +41,7 @@ struct icmp_ping {
     cnd_t cnd;
     uint32_t data;
     uint16_t id;
-    time_t time;
+    xtime_t time;
     char *buf;
     int len;
     bool received;
@@ -82,7 +82,7 @@ int icmp_packet(ifnet_t *net, ip4_route_t *route, int type, int code, uint32_t d
     header->code = code;
     header->data = data;
     header->checksum = 0;
-    header->checksum = ip4_checksum(header, sizeof(icmp_header_t));
+    header->checksum = ip4_checksum((void*)header, sizeof(icmp_header_t));
     if (len > 0)
         net_skb_write(skb, buf, len);
     return net_skb_send(skb);
@@ -102,7 +102,7 @@ icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, int len)
     }
     ping->id = id;
     ping->data = data;
-    ping->time = time(NULL);
+    ping->time = xtime_read(XTIME_CLOCK);
     ping->received = false;
     mtx_init(&ping->mtx, mtx_plain);
     cnd_init(&ping->cnd);
@@ -155,6 +155,6 @@ int icmp_receive(skb_t *skb, int length)
         }
     }
 
-    free(skb);
+    kfree(skb);
     return 0;
 }

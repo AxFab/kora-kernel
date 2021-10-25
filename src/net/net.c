@@ -116,6 +116,7 @@ netstack_t *net_setup()
 }
 
 
+#ifdef KORA_KRN
 netstack_t *__netstack;
 extern net_ops_t loopback_ops;
 
@@ -123,7 +124,6 @@ void net_init()
 {
     __netstack = net_setup();
     __netstack->hostname = strdup("vmdev");
-    // kthread(net_deamon, stack);
     net_alloc(__netstack, NET_AF_LBK, NULL, &loopback_ops, NULL);
 
     task_start("Network stack deamon", net_deamon, __netstack);
@@ -134,6 +134,8 @@ netstack_t* net_stack()
     return __netstack;
 }
 
+EXPORT_SYMBOL(net_stack, 0);
+#endif
 
 EXPORT_SYMBOL(net_alloc, 0);
-EXPORT_SYMBOL(net_stack, 0);
+EXPORT_SYMBOL(net_interface, 0);

@@ -90,7 +90,7 @@ LFLAGS_dr += -lc
 # DRV = vfat ext2 isofs
 DRV  = fs/vfat fs/isofs fs/ext2
 DRV += pc/ata pc/e1000 pc/ps2 pc/vga
-DRV += misc/vbox
+DRV += misc/vbox net/ip4
 # DRV += pc/ac97 pc/sb16
 
 include $(foreach dir,$(DRV),$(topdir)/drivers/$(dir)/Makefile)

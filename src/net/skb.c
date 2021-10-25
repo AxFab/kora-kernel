@@ -124,5 +124,11 @@ void *net_skb_reserve(skb_t *skb, unsigned len)
     return ptr;
 }
 
+EXPORT_SYMBOL(net_packet, 0);
 EXPORT_SYMBOL(net_skb_recv, 0);
+EXPORT_SYMBOL(net_skb_send, 0);
+EXPORT_SYMBOL(net_skb_trash, 0);
+EXPORT_SYMBOL(net_skb_read, 0);
+EXPORT_SYMBOL(net_skb_write, 0);
+EXPORT_SYMBOL(net_skb_reserve, 0);
 
