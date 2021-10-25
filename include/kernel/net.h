@@ -20,6 +20,7 @@
 #ifndef _KORA_NET_H
 #define _KORA_NET_H 1
 
+#include <bits/atomic.h>
 #include <kora/llist.h>
 #include <kora/splock.h>
 #include <stdint.h>
@@ -27,6 +28,7 @@
 #include <sys/sem.h>
 
 
+#define NET_AF_LBK 0
 #define NET_AF_ETH 1
 #define NET_AF_IP4 2
 #define NET_AF_IP6 3
@@ -51,7 +53,6 @@ typedef struct dhcp_info dhcp_info_t;
 typedef struct icmp_info icmp_info_t;
 
 // Network stack
-netstack_t *__netstack;
 
 struct netstack {
     char *hostname;
@@ -63,7 +64,7 @@ struct netstack {
     llhead_t rx_list;
     splock_t rx_lock;
 
-    int idMax;
+    atomic_int idMax;
 
     // protocol info
     eth_info_t *eth;
@@ -142,6 +143,9 @@ enum {
     NET_OVERFILL = (1 << 2),
 };
 
+void net_init();
+netstack_t* net_setup();
+netstack_t* net_stack();
 
 
 // Socket kernel buffer

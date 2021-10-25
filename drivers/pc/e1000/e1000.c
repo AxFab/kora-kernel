@@ -226,7 +226,7 @@ void e1000_init_hw(e1000_device_t *ifnet)
     sleep_timer(SEC_TO_USEC(1)); // 1 sec
 
     // kprintf(0, "Check E1000 IRQ = %d\n", PCI_cfg_rd16(pci, PCI_INTERRUPT_LINE) & 0xFF);
-    irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
+
 
 
     /* Clear Multicast Table Array (MTA). */
@@ -304,8 +304,7 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     ifnet->name = strdup(name);
     splock_init(&ifnet->lock);
 
-    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7,
-                                      VM_PHYSIQ);
+    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VM_RW | VM_PHYSIQ);
     // kprintf(KL_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
 
     ifnet->rx_base = kmap(4096, NULL, 0, VM_RW | VM_RESOLVE);
@@ -334,6 +333,7 @@ void e1000_startup(struct PCI_device *pci, const char *name)
         ifnet->tx_base[i].cmd = (1 << 0);
     }
 
+
     /* PCI Init command */
     uint16_t cmd = PCI_cfg_rd16(pci, PCI_COMMAND);
     cmd |= (1 << 2) | (1 << 0);
@@ -347,7 +347,10 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     /* initialize */
     PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
 
-    ifnet_t *net = net_alloc(__netstack, NET_AF_ETH, hwaddr, &e1000_ops, ifnet);
+    ifnet_t *net = net_alloc(net_stack(), NET_AF_ETH, hwaddr, &e1000_ops, ifnet);
+    net->mtu = 1500;
+    if (net != NULL)
+        irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
 
     // ifnet->dev->mtu = 1500;
     // ifnet->dev.send = (void *)e1000_send;

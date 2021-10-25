@@ -21,6 +21,7 @@
 #include <kernel/tasks.h>
 #include <kernel/memory.h>
 #include <kernel/vfs.h>
+#include <kernel/net.h>
 #include <kernel/core.h>
 
 extern int __cpu_count;
@@ -39,9 +40,9 @@ void kernel_start()
     kprintf(KL_MSG, "\n");
 
     kprintf(KL_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
-    clock_init(2, now); // TODO -- 0 without, 2 or x with APIC...
+    clock_init(0, now); // TODO -- 0 without, 2 or x with APIC...
     vfs_t *vfs = vfs_init();
-    // Network
+
     module_init(vfs, kMMU.kspace);
 
     platform_start();
@@ -54,6 +55,8 @@ void kernel_start()
         task_start(tmp, module_loader, NULL);
     }
 
+    // Network
+    net_init();
     irq_reset(true);
 }
 

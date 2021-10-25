@@ -26,6 +26,8 @@
 _Noreturn void __assert_fail(const char *expr, const char *file, unsigned line, const char *func)
 {
     kprintf(KL_ERR, "Assertion failed CPU%d (%s) at %s:%d -- %s\n", cpu_no(), expr, file, line);
+    mspace_display(NULL);
+    stackdump(12);
     for (;;);
 }
 

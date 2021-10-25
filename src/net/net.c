@@ -61,18 +61,34 @@ void net_deamon(netstack_t *stack)
 
 ifnet_t *net_alloc(netstack_t *stack, int protocol, uint8_t *hwaddr, net_ops_t *ops, void *driver)
 {
+    int hwlen = 0;
+    char buf[50];
+    int uid = atomic_xadd(&stack->idMax, 1);
+    if (protocol == NET_AF_LBK) {
+        kprintf(-1, "New endpoint \e[35m%s:lo:%i\e[0m\n", stack->hostname, uid);
+    } else if (protocol == NET_AF_ETH) {
+        hwlen = ETH_ALEN;
+        eth_writemac(hwaddr, buf, 50);
+        kprintf(-1, "New endpoint \e[35m%s:eth:%i (MAC %s)\e[0m\n", stack->hostname, uid, buf);
+    } else {
+        kprintf(-1, "\e[31mUnable to allocate network interface: unknown protocol %d\e[0m\n", protocol);
+        return NULL;
+    }
+
     ifnet_t *net = kalloc(sizeof(ifnet_t));
     net->protocol = protocol;
     net->mtu = 1500;
-    memcpy(net->hwaddr, hwaddr, ETH_ALEN);
+    if (hwlen != 0)
+        memcpy(net->hwaddr, hwaddr, ETH_ALEN);
 
     splock_lock(&stack->lock);
-    net->idx = stack->idMax++;
+    net->idx = uid;
     net->stack = stack;
     net->ops = ops;
     net->drv_data = driver;
     ll_append(&stack->list, &net->node);
     splock_unlock(&stack->lock);
+
     return net;
 }
 
@@ -96,6 +112,24 @@ netstack_t *net_setup()
     sem_init(&stack->rx_sem, 0);
     splock_init(&stack->rx_lock);
     splock_init(&stack->lock);
-    // kthread(net_deamon, stack);
     return stack;
+}
+
+
+netstack_t *__netstack;
+extern net_ops_t loopback_ops;
+
+void net_init()
+{
+    __netstack = net_setup();
+    __netstack->hostname = strdup("vmdev");
+    // kthread(net_deamon, stack);
+    net_alloc(__netstack, NET_AF_LBK, NULL, &loopback_ops, NULL);
+
+    task_start("Network stack deamon", net_deamon, __netstack);
+}
+
+netstack_t* net_stack()
+{
+    return __netstack;
 }

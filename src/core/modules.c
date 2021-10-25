@@ -171,8 +171,9 @@ void module_init(vfs_t *vfs, mspace_t *vm)
     kernel_export_symbol(sleep_timer);
 
     // NET
-    // kernel_export_symbol(net_alloc);
-    // kernel_export_symbol(net_skb_recv);
+    kernel_export_symbol(net_alloc);
+    kernel_export_symbol(net_skb_recv);
+    kernel_export_symbol(net_stack);
 
 }
 
@@ -304,11 +305,11 @@ int module_predefined_tasks()
         return 0;
     }
 
-    val = atomic_xchg(&mtask_step2, 1);
-    if (val == 0) {
-        module_new_task(3, strdup("krish"));
-        return 0;
-    }
+    // val = atomic_xchg(&mtask_step2, 1);
+    // if (val == 0) {
+    //     module_new_task(3, strdup("krish"));
+    //     return 0;
+    // }
 
     return -1;
 }
@@ -323,7 +324,7 @@ _Noreturn void module_loader()
             if (module_predefined_tasks() == 0)
                 continue;
             kprintf(-1, "Sleeping kernel task %d (cpu:%d) \n", __current->pid, cpu_no());
-            sleep_timer(500);
+            sleep_timer(50000);
             continue;
         } else if (mt->type == 1)
             module_do_dir(mt->ptr);

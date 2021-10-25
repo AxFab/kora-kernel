@@ -418,7 +418,7 @@ void cpu_setup(xtime_t *now)
     *now = rtc_time();
     // kprintf(0, "Unix Epoch: %lld \n", now);
     irq_reset(false);
-    apic_setup();
+    // apic_setup(); // Will push other CPU !
     tss_setup();
     // hpet_setup();
     //   save prepare cpus

@@ -209,9 +209,9 @@ void elf_symbol(dynsym_t *symbol, elf_sym32_t *sym, dynlib_t *lib, elf_dynamic_t
     }
     symbol->size = sym->size;
     symbol->flags = 0;
-    if (sym->info >= 32)
+    if (sym->info >= 32 || sym->shndx > 0x7fff)
         symbol->flags |= 0x80;
-    // kprintf(-1, "S: %06x  %s [%d]\n", symbol->address, symbol->name, sym->info);
+    // kprintf(-1, "S: %06x  %s [%d-%d-%d-%d]\n", symbol->address, symbol->name, sym->size, sym->info, sym->other, sym->shndx);
 }
 
 void elf_relocation(dynrel_t *reloc, uint32_t *rel, llhead_t *symbols)
