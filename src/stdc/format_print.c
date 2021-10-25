@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include <kora/mcrs.h>
 #include <bits/libio.h>
+#include <kernel/mods.h>
 
 int write(int, const char *, size_t);
 
@@ -230,3 +231,6 @@ int asprintf(char **str, const char *format, ...)
 }
 
 #endif
+
+EXPORT_SYMBOL(snprintf, 0);
+EXPORT_SYMBOL(vsnprintf, 0);

@@ -14,6 +14,9 @@ SECTIONS
     {
         *(.data);
         *(.rodata);
+        PROVIDE(ksymbols_start = .);
+        *(.ksymbols);
+        PROVIDE(ksymbols_end = .);
     }
     .bss :
     {

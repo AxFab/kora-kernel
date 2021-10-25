@@ -80,6 +80,9 @@ void *memset32(void *dest, uint32_t val, size_t lg)
     return dest;
 }
 
+EXPORT_SYMBOL(memcpy32, 0);
+EXPORT_SYMBOL(memset32, 0);
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -159,3 +162,4 @@ framebuffer_t *framebuffer_create()
     // splock_init(&fb->lock);
     return fb;
 }
+

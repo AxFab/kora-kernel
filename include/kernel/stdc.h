@@ -27,6 +27,7 @@
 #include <string.h>
 #include <bits/cdefs.h>
 #include <kora/time.h>
+#include <kernel/mods.h>
 
 #define VM_RD 04
 #define VM_WR 02

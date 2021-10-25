@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <stddef.h>
+#include <kernel/mods.h>
 
 void *malloc(size_t);
 // #include <stdlib.h>
@@ -359,3 +360,26 @@ int strnicoll(const char *s1, const char *s2, size_t maxlen);
 
 /* String transformation */
 size_t strxfrm(char *dest, const char *src, size_t n);
+
+
+
+
+EXPORT_SYMBOL(memchr, 0);
+EXPORT_SYMBOL(memcmp, 0);
+EXPORT_SYMBOL(memcpy, 0);
+EXPORT_SYMBOL(memmove, 0);
+EXPORT_SYMBOL(memset, 0);
+
+EXPORT_SYMBOL(strcat, 0);
+EXPORT_SYMBOL(strchr, 0);
+EXPORT_SYMBOL(strcmp, 0);
+EXPORT_SYMBOL(strcpy, 0);
+EXPORT_SYMBOL(strlen, 0);
+EXPORT_SYMBOL(strncat, 0);
+EXPORT_SYMBOL(strncmp, 0);
+EXPORT_SYMBOL(strncpy, 0);
+EXPORT_SYMBOL(strnlen, 0);
+EXPORT_SYMBOL(strrchr, 0);
+// EXPORT_SYMBOL(strstr, 0);
+EXPORT_SYMBOL(strtok_r, 0);
+EXPORT_SYMBOL(strdup, 0);

@@ -19,10 +19,10 @@
  */
 #include <kernel/stdc.h>
 #include <kernel/mods.h>
-#include <kernel/irq.h>
-#include <kernel/vfs.h>
-#include <kernel/net.h>
-#include <kernel/memory.h>
+// #include <kernel/irq.h>
+// #include <kernel/vfs.h>
+// #include <kernel/net.h>
+// #include <kernel/memory.h>
 #include <kernel/dlib.h>
 #include <kernel/tasks.h>
 
@@ -81,7 +81,9 @@ void module_symbol(const char *name, void *ptr)
 }
 
 
-int *__errno_location();
+extern char ksymbols_start[];
+extern char ksymbols_end[];
+EXPORT_SYMBOL(mmu_read, 0);
 
 void module_init(vfs_t *vfs, mspace_t *vm)
 {
@@ -92,89 +94,13 @@ void module_init(vfs_t *vfs, mspace_t *vm)
     memset(&__kernel_lib, 0, sizeof(__kernel_lib));
     ll_append(&__kernel_proc->libraries, &__kernel_lib.node);
 
-    // Kernel routines
-    kernel_export_symbol(__errno_location);
-    kernel_export_symbol(kalloc);
-    kernel_export_symbol(kfree);
-    kernel_export_symbol(kmap);
-    kernel_export_symbol(kunmap);
-    kernel_export_symbol(kprintf);
-    kernel_export_symbol(__assert_fail);
-    kernel_export_symbol(rand8);
-    kernel_export_symbol(rand16);
-    kernel_export_symbol(rand32);
-    kernel_export_symbol(xtime_read);
-    kernel_export_symbol(sztoa_r);
-    kernel_export_symbol(mmu_read); // !?
-
-    // String.h
-    kernel_export_symbol(memchr);
-    kernel_export_symbol(memcmp);
-    kernel_export_symbol(memcpy);
-    kernel_export_symbol(memmove);
-    kernel_export_symbol(memset);
-
-    kernel_export_symbol(strcat);
-    kernel_export_symbol(strchr);
-    kernel_export_symbol(strcmp);
-    kernel_export_symbol(strcpy);
-    kernel_export_symbol(strlen);
-    kernel_export_symbol(strncat);
-    kernel_export_symbol(strncmp);
-    kernel_export_symbol(strncpy);
-    kernel_export_symbol(strnlen);
-    kernel_export_symbol(strrchr);
-    // kernel_export_symbol(strstr);
-    kernel_export_symbol(strtok_r);
-    kernel_export_symbol(strdup);
-
-    kernel_export_symbol(memcpy32);
-    kernel_export_symbol(memset32);
-
-    // Formating
-    kernel_export_symbol(atoi);
-    kernel_export_symbol(atol);
-    kernel_export_symbol(strtoul);
-    kernel_export_symbol(strtol);
-    // kernel_export_symbol(sscanf);
-    // kernel_export_symbol(vsscanf);
-    kernel_export_symbol(snprintf);
-    kernel_export_symbol(vsnprintf);
-
-    // Time
-    kernel_export_symbol(mktime);
-    kernel_export_symbol(gmtime_r);
-    // kernel_export_symbol(asctime_r);
-
-    // VFS
-    kernel_export_symbol(vfs_inode);
-    kernel_export_symbol(vfs_open_inode);
-    kernel_export_symbol(vfs_close_inode);
-    kernel_export_symbol(vfs_mkdev);
-    kernel_export_symbol(vfs_rmdev);
-    kernel_export_symbol(vfs_addfs);
-    kernel_export_symbol(vfs_rmfs);
-    kernel_export_symbol(vfs_read);
-    kernel_export_symbol(vfs_write);
-    kernel_export_symbol(vfs_fcntl);
-
-    // IRQ
-    kernel_export_symbol(irq_enable);
-    kernel_export_symbol(irq_disable);
-    kernel_export_symbol(irq_register);
-    kernel_export_symbol(irq_unregister);
-    kernel_export_symbol(irq_ack);
-
-    // Memory
-    // Tasks
-    kernel_export_symbol(itimer_create);
-    kernel_export_symbol(sleep_timer);
-
-    // NET
-    kernel_export_symbol(net_alloc);
-    kernel_export_symbol(net_skb_recv);
-    kernel_export_symbol(net_stack);
-
+    kprintf(-1, "KSymbols [%p-%p]\n", &ksymbols_start, &ksymbols_end);
+    kapi_t **sym = ((kapi_t**)ksymbols_start);
+    for (;sym < (kapi_t**)ksymbols_end; ++sym) {
+        kapi_t *s = *sym;
+        // kprintf(-1, " - %p] %s\n", s->sym, s->name);
+        module_symbol(s->name, s->sym);
+    }
 }
 
 

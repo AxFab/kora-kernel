@@ -26,7 +26,7 @@
 
 
 typedef struct kmodule kmodule_t;
-// typedef struct kapi kapi_t;
+typedef struct kapi kapi_t;
 
 struct kmodule {
     const char *name;
@@ -36,10 +36,11 @@ struct kmodule {
     llnode_t node;
 };
 
-// struct kapi {
-//     const char *name;
-//     void *sym;
-// };
+struct kapi {
+    const char *name;
+    void *sym;
+    int flags;
+};
 
 #define EXPORT_MODULE(n,s,t) \
     kmodule_t kmodule_##n = { \
@@ -51,9 +52,18 @@ struct kmodule {
 #define REQUIRE_MODULE(n) \
     const char *kdepsmodule_##n __attribute__(section(".kmod"), used) = #n
 
-#define EXPORT_SYMBOL(n) \
-    kapi_t _ksym_##n __attribute__(section(".ksymbols"), used) \
-    { .name = #n, .sym = n }
+
+#ifdef KORA_KRN
+# define EXPORT_SYMBOL(n,s) \
+    kapi_t _ksym_##n = \
+    { .name = #n, .sym = n, .flags = (s) }; \
+    const kapi_t __attribute__((section(".ksymbols"))) \
+    * _kpsym_##n = &_ksym_##n
+#else
+# define EXPORT_SYMBOL(n,s) \
+    kapi_t _ksym_##n = \
+    { .name = #n, .sym = n, .flags = (s) };
+#endif
 
 
 #define kernel_export_symbol(x) module_symbol(#x,(void*)(x));

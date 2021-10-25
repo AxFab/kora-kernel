@@ -417,3 +417,11 @@ int vfs_access(fsnode_t *node, int access)
 {
     return 0;
 }
+
+
+
+EXPORT_SYMBOL(vfs_inode, 0);
+EXPORT_SYMBOL(vfs_open_inode, 0);
+EXPORT_SYMBOL(vfs_close_inode, 0);
+EXPORT_SYMBOL(vfs_open_fsnode, 0);
+EXPORT_SYMBOL(vfs_close_fsnode, 0);

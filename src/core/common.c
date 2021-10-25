@@ -41,6 +41,9 @@ int *__errno_location()
     return &__errno;
 }
 
+EXPORT_SYMBOL(__errno_location, 0);
+EXPORT_SYMBOL(__assert_fail, 0);
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void *kmap(size_t length, void *ino, xoff_t offset, int flags)
@@ -62,6 +65,8 @@ void kunmap(void *address, size_t length)
     mspace_unmap(kMMU.kspace, (size_t)address, length);
 }
 
+EXPORT_SYMBOL(kmap, 0);
+EXPORT_SYMBOL(kunmap, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 void *malloc(size_t size);
@@ -87,6 +92,9 @@ void kfree(void *ptr)
     free(ptr);
 }
 
+EXPORT_SYMBOL(kalloc, 0);
+EXPORT_SYMBOL(kfree, 0);
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 char __buf[1024];
@@ -110,6 +118,10 @@ xtime_t xtime_read(xtime_name_t name)
 {
     return clock_read(&__clock, name);
 }
+
+
+EXPORT_SYMBOL(kprintf, 0);
+EXPORT_SYMBOL(xtime_read, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -135,3 +147,7 @@ uint32_t rand32()
            ((rand_r(&__rseed) & 0xff) << 16) |
            ((rand_r(&__rseed) & 0xff) << 24);
 }
+
+EXPORT_SYMBOL(rand8, 0);
+EXPORT_SYMBOL(rand16, 0);
+EXPORT_SYMBOL(rand32, 0);

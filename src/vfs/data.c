@@ -135,3 +135,9 @@ int vfs_seek(inode_t *ino, xoff_t off)
 
     return ino->fops->seek(ino, off);
 }
+
+
+EXPORT_SYMBOL(vfs_read, 0);
+EXPORT_SYMBOL(vfs_write, 0);
+EXPORT_SYMBOL(vfs_truncate, 0);
+EXPORT_SYMBOL(vfs_fcntl, 0);

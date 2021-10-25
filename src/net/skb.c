@@ -123,3 +123,6 @@ void *net_skb_reserve(skb_t *skb, unsigned len)
         skb->length = skb->pen;
     return ptr;
 }
+
+EXPORT_SYMBOL(net_skb_recv, 0);
+

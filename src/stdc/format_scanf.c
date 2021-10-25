@@ -22,6 +22,7 @@
 #include <limits.h>
 #include <kora/mcrs.h>
 #include <bits/libio.h>
+#include <kernel/mods.h>
 
 
 /* All of those methods are bind over vfscanf
@@ -104,3 +105,6 @@ int vsscanf(const char *str, const char *format, va_list ap)
     fp.lock_ = -1;
     return vfscanf(&fp, format, ap);
 }
+
+// EXPORT_SYMBOL(sscanf, 0);
+// EXPORT_SYMBOL(vsscanf, 0);

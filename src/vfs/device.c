@@ -342,3 +342,9 @@ fsnode_t *vfs_mknod(fsnode_t *parent, const char *name, int devno)
     mtx_unlock(&node->mtx);
     return node;
 }
+
+
+EXPORT_SYMBOL(vfs_mkdev, 0);
+EXPORT_SYMBOL(vfs_rmdev, 0);
+EXPORT_SYMBOL(vfs_addfs, 0);
+EXPORT_SYMBOL(vfs_rmfs, 0);

@@ -20,6 +20,7 @@
 #include <time.h>
 #include <assert.h>
 #include <errno.h>
+#include <kernel/mods.h>
 
 int snprintf(char *, size_t, const char *, ...);
 #if defined(_WIN32)
@@ -322,3 +323,8 @@ struct tm *localtime(const time_t *timep)
     time_t local_time = *timep + __timezone;
     return gmtime(&local_time);
 }
+
+EXPORT_SYMBOL(mktime, 0);
+EXPORT_SYMBOL(gmtime, 0);
+EXPORT_SYMBOL(gmtime_r, 0);
+// EXPORT_SYMBOL(asctime_r, 0);

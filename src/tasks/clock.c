@@ -347,3 +347,8 @@ void clock_handler(masterclock_t *clock)
     clock_ticks(clock, 10000);
     scheduler_switch(TS_READY);
 }
+
+
+EXPORT_SYMBOL(itimer_create, 0);
+EXPORT_SYMBOL(sleep_timer, 0);
+

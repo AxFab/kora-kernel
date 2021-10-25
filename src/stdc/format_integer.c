@@ -22,6 +22,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <kora/mcrs.h>
+#include <kernel/mods.h>
 
 typedef unsigned long long __ulong;
 
@@ -369,3 +370,9 @@ char *_PRT(itoa)(int value, char *str, int base)
     _utoa(value, str, base, _utoa_digits);
     return ptr;
 }
+
+EXPORT_SYMBOL(atoi, 0);
+EXPORT_SYMBOL(atol, 0);
+EXPORT_SYMBOL(strtoul, 0);
+EXPORT_SYMBOL(strtol, 0);
+

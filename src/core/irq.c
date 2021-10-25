@@ -309,3 +309,10 @@ long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5)
 
     return ret;
 }
+
+
+EXPORT_SYMBOL(irq_enable, 0);
+EXPORT_SYMBOL(irq_disable, 0);
+EXPORT_SYMBOL(irq_register, 0);
+EXPORT_SYMBOL(irq_unregister, 0);
+EXPORT_SYMBOL(irq_ack, 0);

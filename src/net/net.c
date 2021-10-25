@@ -133,3 +133,7 @@ netstack_t* net_stack()
 {
     return __netstack;
 }
+
+
+EXPORT_SYMBOL(net_alloc, 0);
+EXPORT_SYMBOL(net_stack, 0);
