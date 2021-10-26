@@ -134,6 +134,7 @@ startup:
     call kernel_start
     PUTC 0x27, 'E', 'd'
     sti
+    hlt
     jmp $
 
 align 4
@@ -236,4 +237,6 @@ ap_boot:
     ; ...
     call ap_setup
 
+    sti
+    hlt
     jmp $

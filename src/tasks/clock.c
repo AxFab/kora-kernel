@@ -283,7 +283,7 @@ xtime_t sleep_timer(long timeout)
 
 void clock_handler();
 
-masterclock_t *clock_init(int irq, xtime_t now)
+masterclock_t *clock_init(xtime_t now)
 {
     // masterclock_t*clock = kalloc(sizeof(masterclock_t));
     splock_init(&__clock.lock);
@@ -292,7 +292,6 @@ masterclock_t *clock_init(int irq, xtime_t now)
     llist_init(&__clock.list);
     __clock.wall = now;
 
-    irq_register(irq, (irq_handler_t)clock_handler, &__clock);
     return &__clock;
 }
 
@@ -341,9 +340,10 @@ void clock_ticks(masterclock_t *clock, unsigned elapsed)
     }
 }
 
-
 void clock_handler(masterclock_t *clock)
 {
+    if (clock == NULL)
+        clock = &__clock;
     clock_ticks(clock, 10000);
     scheduler_switch(TS_READY);
 }

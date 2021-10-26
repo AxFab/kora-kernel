@@ -30,6 +30,7 @@ global int_irq18, int_irq19, int_irq20, int_irq21, int_irq22, int_irq23
 global int_irq24, int_irq25, int_irq26, int_irq27, int_irq28, int_irq29
 global int_irq30, int_irq31, int_irqLT
 
+global int_isr123, int_isr124, int_isr125, int_isr126, int_isr127
 
 extern x86_fault, x86_error, irq_enter, x86_syscall, x86_pgflt
 
@@ -223,3 +224,53 @@ int_irq31:
 
 int_irqLT:
     IRQ_HANDLER  250
+
+
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+extern apic_regs
+
+; Acknowledge IPI
+%macro ACK_IPI 0
+    push ebx
+    push eax
+    mov ebx, [apic_regs]
+    add ebx, 0xb0
+    xor eax, eax
+    mov [ebx], eax
+    pop eax
+    pop ebx
+%endmacro
+
+; TMR - Clock interrupt for other processors
+int_isr123:
+    ACK_IPI
+    FAULT_HANDLER 123
+
+; PERF - Bad TLB shootdown
+int_isr124:
+    push ebx
+    mov ebx, cr3
+    mov cr3, ebx
+    pop ebx
+    ACK_IPI
+    FAULT_HANDLER 124
+
+; LINT0 - Halts everyone - FATAL
+int_isr125:
+    ACK_IPI
+    FAULT_HANDLER 125
+    ; cli
+    ; hlt
+    ; jmp int_isr125
+
+; LINT1 - Does nothing, used to exit wait-for-interrupt sleep
+int_isr126:
+    ACK_IPI
+    FAULT_HANDLER 126
+
+; ERR - Legacy system call entry point, called by userspace
+int_isr127:
+    ACK_IPI
+    FAULT_HANDLER 127
+

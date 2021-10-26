@@ -172,7 +172,7 @@ void itimer_create(inode_t *ino, long delay, long interval);
 xtime_t sleep_timer(long timeout);
 
 
-masterclock_t *clock_init(int irq, xtime_t now);
+masterclock_t *clock_init(xtime_t now);
 void clock_adjtime(masterclock_t *clock, xtime_t now);
 xtime_t clock_read(masterclock_t *clock, xtime_name_t name);
 void clock_ticks(masterclock_t *clock, unsigned elapsed);

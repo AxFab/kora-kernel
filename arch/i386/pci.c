@@ -362,4 +362,7 @@ void platform_start()
     kernel_export_symbol(__moddi3);
     kernel_export_symbol(__udivdi3);
     kernel_export_symbol(__umoddi3);
+
+    // Clock timer
+    pit_init();
 }

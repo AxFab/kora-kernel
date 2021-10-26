@@ -33,7 +33,7 @@ $(1): $(libdir)/$(1).ko
 $(libdir)/$(1).ko: $(call fn_objs,$(1)_SRCS,dr)
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    LD  $$@"
-	$(V) $(LDC) -shared -o $$@ $$^ $($(1)_LFLAGS_dr)
+	$(V) $(LDC) -shared -nostdlib -o $$@ $$^ $($(1)_LFLAGS_dr)
 $(prefix)/boot/mods/$(1).ko: $(libdir)/$(1).ko
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    INSTALL  $$@"

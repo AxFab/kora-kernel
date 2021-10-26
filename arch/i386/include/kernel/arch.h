@@ -85,7 +85,8 @@ void mboot_memory();
   0x....2000      8 Kb      4 Kb     K pages dir
   0x....3000     12 Kb      4 Kb     K pages tbl0
   0x....4000     16 Kb    112 Kb     -
-  0x...20000    128 Kb    608 Kb     Kernel code
+  0x...20000    128 Kb    512 Kb     Kernel code
+  0x...A0000    640 Kb     96 Kb     -
   0x...B8000    736 Kb    288 Kb     Hardware
   0x..100000   1024 Kb    128 Kb     Kernel initial Stack (x32 each CPU)
   0x..120000   1152 Kb    128 Kb     Pages bitmap

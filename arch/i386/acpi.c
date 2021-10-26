@@ -40,14 +40,14 @@ static int acpi_checksum(acpi_head_t *header)
     return sum;
 }
 
-void acpi_fadt_setup(acpi_fadt_t *fadt)
+static void acpi_fadt_setup(acpi_fadt_t *fadt)
 {
     kprintf(KL_DBG, "FADT Table at %p\n", fadt);
 }
 
 int __cpu_count = 1;
 
-void acpi_madt_setup(acpi_madt_t *madt)
+static void acpi_madt_setup(acpi_madt_t *madt)
 {
     kprintf(KL_DBG, "MADT Table at %p\n", madt);
     apic_mmio = madt->local_apic;
@@ -88,6 +88,20 @@ void acpi_madt_setup(acpi_madt_t *madt)
         ptr += lapic->size;
     }
 }
+
+// static acpi_head_t *acpi_scan(const char *name, int idx)
+// {
+//     int i, j = 0;
+//     int n = (rsdt->header.length - sizeof(acpi_head_t)) / sizeof(uint32_t);
+//     for (i = 0; i < n; ++i) {
+//         acpi_head_t *head = (acpi_head_t *)rsdt->tables[i];
+//         if (memcpy(head->signature, name, 4) != 0)
+//             continue;
+//         if (j++ == idx)
+//             return head;
+//     }
+//     return NULL;
+// }
 
 
 void acpi_setup()
@@ -147,18 +161,4 @@ void acpi_setup()
             break;
         }
     }
-}
-
-acpi_head_t *acpi_scan(const char *name, int idx)
-{
-    int i, j = 0;
-    int n = (rsdt->header.length - sizeof(acpi_head_t)) / sizeof(uint32_t);
-    for (i = 0; i < n; ++i) {
-        acpi_head_t *head = (acpi_head_t *)rsdt->tables[i];
-        if (memcpy(head->signature, name, 4) != 0)
-            continue;
-        if (j++ == idx)
-            return head;
-    }
-    return NULL;
 }

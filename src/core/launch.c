@@ -27,6 +27,8 @@
 extern int __cpu_count;
 void module_init(vfs_t *vfs, mspace_t *vm);
 
+int __smp_lock;
+
 /* Kernel entry point, must be reach by a single CPU */
 void kernel_start()
 {
@@ -40,7 +42,8 @@ void kernel_start()
     kprintf(KL_MSG, "\n");
 
     kprintf(KL_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
-    clock_init(0, now); // TODO -- 0 without, 2 or x with APIC...
+    __smp_lock = 1;
+    clock_init(now);
     vfs_t *vfs = vfs_init();
 
     module_init(vfs, kMMU.kspace);
@@ -57,13 +60,18 @@ void kernel_start()
 
     // Network
     net_init();
+    __smp_lock = 0;
     irq_reset(true);
+    cpu_halt();
 }
 
 /* Kernel secondary entry point, must be reach by additional CPUs */
 void kernel_ready()
 {
+    irq_reset(false);
     // Setup cpu clock and per-cpu memory
     kprintf(KL_MSG, "\033[32mCpu %d is waiting...\033[0m\n", cpu_no());
-    for (;;);
+    while (__smp_lock);
+    irq_reset(true);
+    cpu_halt();
 }

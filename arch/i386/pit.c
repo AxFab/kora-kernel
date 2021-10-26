@@ -19,21 +19,24 @@
  */
 #include <kernel/stdc.h>
 #include <kernel/arch.h>
+#include <kernel/irq.h>
 #include <kora/mcrs.h>
 
+#define PIT_SCALE 1193180
 
 #define PIT_CH0   0x40  /**< Channel 0 data port (read/write) */
 #define PIT_CH1   0x41  /**< Channel 1 data port (read/write) */
 #define PIT_CH2   0x42  /**< Channel 2 data port (read/write) */
 #define PIT_CMD   0x43  /**< Mode/Command register (write only, a read is ignored) */
+#define PIT_SET   0x34
 
 void pit_interval(unsigned freq_hz)
 {
-    unsigned divisor = 1193180 / freq_hz; /* Calculate our divisor */
+    unsigned divisor = PIT_SCALE / freq_hz; /* Calculate our divisor */
     divisor = MIN(65536, MAX(1, divisor));
 
-    unsigned pit_frequency = 1193180 / divisor;
-    outb(PIT_CMD, 0x34);             /* Set our command byte 0x36 */
+    unsigned pit_frequency = PIT_SCALE / divisor;
+    outb(PIT_CMD, PIT_SET);   /* Set our command byte 0x36 */
     outb(PIT_CH0, divisor & 0xff);   /* Set low byte of divisor */
     outb(PIT_CH0, (divisor >> 8) & 0xff);     /* Set high byte of divisor */
 
@@ -45,3 +48,20 @@ void pit_stop()
     outb(PIT_CMD, 0x30);
     outb(PIT_CH0, 0xFF);
 }
+
+void pit_handler(int no)
+{
+    irq_ack(no);
+    if (no == 2)
+        apic_restart_timer();
+    kprintf(KL_MSG, "CPU%d, IRQ%d\n", cpu_no(), no);
+    clock_handler(NULL);
+}
+
+void pit_init()
+{
+    irq_register(0, (irq_handler_t)pit_handler, 0);
+    irq_register(2, (irq_handler_t)pit_handler, 2);
+    pit_interval(HZ);
+}
+

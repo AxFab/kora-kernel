@@ -87,6 +87,12 @@ void int_irq30();
 void int_irq31();
 void int_irqLT();
 
+void int_isr123();
+void int_isr124();
+void int_isr125();
+void int_isr126();
+void int_isr127();
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 PACK(struct x86_gdt {
@@ -235,7 +241,6 @@ void cpuid_setup()
     all_features[2] &= cpu_table[cpu_no()].features[2];
     all_features[3] &= cpu_table[cpu_no()].features[3];
 
-
     char *tmp = kalloc(1024);
     tmp[0] = 0;
     if (x86_FEATURES_FPU(all_features))
@@ -349,7 +354,11 @@ void cpuid_setup()
     if (x86_FEATURES_AVX(all_features))
         strcat(tmp, "AVX, ");
 
-    kprintf(KL_DBG, "CPU(%d) :: %s :: %s\n", cpu_no(), &cpu_name[1], tmp);
+    int model = (all_features[0] >> 4) & 0xf;
+    int family = (all_features[0] >> 8) & 0xf;
+
+    kprintf(KL_DBG, "CPU(%d) :: %s :: Model: %d, Family: %d\n", cpu_no(), &cpu_name[1], model, family);
+    kprintf(KL_DBG, "CPU(%d) :: %s\n", cpu_no(), tmp);
     kfree(tmp);
 
     /*
@@ -418,7 +427,7 @@ void cpu_setup(xtime_t *now)
     *now = rtc_time();
     // kprintf(0, "Unix Epoch: %lld \n", now);
     irq_reset(false);
-    // apic_setup(); // Will push other CPU !
+    apic_setup();
     tss_setup();
     // hpet_setup();
     //   save prepare cpus
@@ -525,5 +534,11 @@ void cpu_early_init() // GDT & IDT
 
     IDT(0x40, 0x08, (uint32_t)int_syscall, TRAPGATE);
 
-    IDT(0xFF, 0x08, (uint32_t)int_irqLT, INTGATE);
+    IDT(0x7B, 0x08, (uint32_t)int_isr123, INTGATE);
+    IDT(0x7C, 0x08, (uint32_t)int_isr124, INTGATE);
+    IDT(0x7D, 0x08, (uint32_t)int_isr125, INTGATE);
+    IDT(0x7E, 0x08, (uint32_t)int_isr126, INTGATE);
+    IDT(0x7F, 0x08, (uint32_t)int_isr127, INTGATE_USER);
+
+    IDT(0xFF, 0x08, (uint32_t)int_irqLT, INTGATE); // | 0x60
 }

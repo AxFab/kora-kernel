@@ -120,12 +120,21 @@ void irq_unmask(int no)
 
 void x86_fault(int no, regs_t *regs)
 {
-    kprintf(-1, "REGS Fault %d\n", no);
-    kprintf(-1, "  eax:%08x, ecx:%08x, edx:%08x, ebx:%08x, \n", regs->eax, regs->ecx, regs->edx, regs->ebx);
-    kprintf(-1, "  ebp:%08x, esp:%08x, esi:%08x, edi:%08x, \n", regs->ebp, regs->esp, regs->esi, regs->edi);
-    kprintf(-1, "  cs:%02x, ds:%02x, eip:%08x, eflags:%08x \n", regs->cs, regs->ds, regs->eip, regs->eflags);
-    fault_t *fault = &x86_exceptions[MIN(0x17, (unsigned)no)];
-    irq_fault(fault->name, fault->raise);
+    if (no < 32) {
+        kprintf(-1, "REGS Fault %d\n", no);
+        kprintf(-1, "  eax:%08x, ecx:%08x, edx:%08x, ebx:%08x, \n", regs->eax, regs->ecx, regs->edx, regs->ebx);
+        kprintf(-1, "  ebp:%08x, esp:%08x, esi:%08x, edi:%08x, \n", regs->ebp, regs->esp, regs->esi, regs->edi);
+        kprintf(-1, "  cs:%02x, ds:%02x, eip:%08x, eflags:%08x \n", regs->cs, regs->ds, regs->eip, regs->eflags);
+        fault_t *fault = &x86_exceptions[MIN(0x17, (unsigned)no)];
+        irq_fault(fault->name, fault->raise);
+    } else if (no == 126) {
+        kprintf(-1, "CPU%d Interrupt %d\n", cpu_no(), no);
+        // apic_start_timer();
+        // clock_handler(NULL);
+    } else {
+        // Proc Error ?
+        kprintf(-1, "CPU%d Interrupt %d\n", cpu_no(), no);
+    }
 }
 
 void x86_error(int no, int code, regs_t *regs)

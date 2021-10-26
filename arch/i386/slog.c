@@ -43,7 +43,6 @@ void pit_interval(int hz);
 
 xtime_t cpu_time()
 {
-    pit_interval(HZ);
     return rtc_time();
 }
 

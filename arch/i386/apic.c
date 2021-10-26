@@ -129,6 +129,7 @@ void apic_override_register(madt_override_t *info)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+uint32_t ticksIn10ms;
 void apic_start_timer()
 {
     /* Tell APIC timer to use divider 16 */
@@ -136,11 +137,18 @@ void apic_start_timer()
     apic_regs[APIC_TM_INC] = 0xffffffff;
     x86_delay(100 * 1000);
     apic_regs[APIC_LVT_TMR] = 0x10000;
-    uint32_t ticksIn10ms = 0xffffffff - apic_regs[APIC_TM_CUC];
+    ticksIn10ms = 0xffffffff - apic_regs[APIC_TM_CUC];
     apic_regs[APIC_LVT_TMR] = 0x20 | 0x20000;
     apic_regs[APIC_TM_DIV] = 0x3;
     apic_regs[APIC_TM_INC] = ticksIn10ms;
     kprintf(0, "APIC timer ticks in 10ms: %d \n", ticksIn10ms);
+}
+
+void apic_restart_timer()
+{
+    apic_regs[APIC_LVT_TMR] = 0x20 | 0x20000;
+    apic_regs[APIC_TM_DIV] = 0x3;
+    apic_regs[APIC_TM_INC] = ticksIn10ms;
 }
 
 void ap_start();
@@ -149,12 +157,15 @@ void GDT(int no, uint32_t base, uint32_t limit, int access, int other);
 void apic_init()
 {
     apic_regs[APIC_TPR] = 0;
-    apic_regs[APIC_SVR] = 0x1FF;
+    apic_regs[APIC_SVR] = 0x127; //0x1FF;
     apic_regs[APIC_DFR] = 0xFFFFFFFF;
     apic_regs[APIC_LDR] = 0xFF000000;
     apic_regs[APIC_EOI] = 0;
 
-    apic_start_timer();
+    if (cpu_no() == 0)
+        apic_start_timer();
+    else
+        apic_restart_timer();
 
     /* Local vector table register
         0-7     The vector number
@@ -166,11 +177,11 @@ void apic_init()
         16      Set to mask
                 Reserved
      */
-    // apic_regs[APIC_LVT_TMR] = 32 + 23;
-    // apic_regs[APIC_LVT_PERF] = 32 + 24;
-    // apic_regs[APIC_LVT_LINT0] = 32 + 25;
-    // apic_regs[APIC_LVT_LINT1] = 32 + 26; //) | (4 << 8);
-    // apic_regs[APIC_LVT_ERR] = 32 + 27;
+    // apic_regs[APIC_LVT_TMR] = 123;
+    apic_regs[APIC_LVT_PERF] = 124;
+    apic_regs[APIC_LVT_LINT0] = 125;
+    apic_regs[APIC_LVT_LINT1] = 126;
+    apic_regs[APIC_LVT_ERR] = 127;
 
     pic_mask_off();
 }
@@ -197,8 +208,7 @@ void apic_setup()
     apic_regs[APIC_ICR_LOW] = sipi_ipi;
     x86_delay(500); // 50-millisecond delay loop.
 
-    // pic_mask_off();
-    apic_init();
+    // apic_init();
 
     // kunmap(apic_mmio, PAGE_SIZE);
 }
@@ -207,15 +217,16 @@ void apic_setup()
 void ap_setup()
 {
     irq_reset(false);
-    for (;;);
+    // for (;;);
     kprintf(KL_DBG, "CPU%d is awake !\n", cpu_no());
     // assert(kCPU.irq_semaphore == 1);
     cpuid_setup();
-    apic_init();
+    // apic_init();
     tss_setup();
 
+    kernel_ready();
     // assert(kCPU.irq_semaphore == 1);
-    irq_reset(false);
-    cpu_halt();
-    for (;;);
+    // irq_reset(false);
+    // cpu_halt();
+    // for (;;);
 }

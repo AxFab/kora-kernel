@@ -85,7 +85,7 @@ $(bindir)/$(kname): $(call fn_objs,SRCS_kr,kr)
 CFLAGS_dr += $(CFLAGS)
 CFLAGS_dr += -ffreestanding -fPIC $(CFLAGS_inc) $(CFLAGS_def)
 
-LFLAGS_dr += -lc
+LFLAGS_dr += -nostdlib
 
 # DRV = vfat ext2 isofs
 DRV  = fs/vfat fs/isofs fs/ext2
