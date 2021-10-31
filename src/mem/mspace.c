@@ -193,11 +193,16 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length, int(
 /* Map a memory area inside the provided address space. */
 void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, xoff_t offset, int flags)
 {
-    assert((address & (PAGE_SIZE - 1)) == 0);
-    assert((length & (PAGE_SIZE - 1)) == 0);
-    assert(ino == NULL || (offset & (PAGE_SIZE - 1)) == 0);
+    /* Check parameters */
+    if ((address & (PAGE_SIZE - 1)) != 0 || (length & (PAGE_SIZE - 1)) != 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+    if (ino != NULL && (offset & (PAGE_SIZE - 1)) != 0) {
+        errno = EINVAL;
+        return NULL;
+    }
 
-    /* Check some parameters */
     int vflags = mspace_set_flags(flags, mspace == kMMU.kspace);
     if (length == 0 || length > kMMU.max_vma_size || vflags == 0) {
         errno = EINVAL;
