@@ -49,7 +49,7 @@ ino_ops_t ps2_ino_ops = {
 void PS2_setup()
 {
     PS2_mouse_setup();
-    PS2_kdb_setup();
+    PS2_kbd_setup();
 
     kdb_ino = vfs_inode(1, FL_CHR, NULL, &ps2_ino_ops);
     kdb_ino->dev->block = sizeof(evmsg_t);
@@ -68,7 +68,7 @@ void PS2_setup()
     vfs_mkdev(mouse_ino, "mouse");
     vfs_close_inode(mouse_ino);
 
-    irq_register(1, (irq_handler_t)PS2_kdb_handler, NULL);
+    irq_register(1, (irq_handler_t)PS2_kbd_handler, NULL);
     irq_register(12, (irq_handler_t)PS2_mouse_handler, NULL);
 }
 

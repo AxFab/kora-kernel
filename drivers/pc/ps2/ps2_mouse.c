@@ -80,6 +80,8 @@ int mseY = 0;
 void PS2_mouse_handler()
 {
     evmsg_t msg;
+    msg.window = 0;
+    msg.param2 = 0;
 
     uint8_t status = inb(MOUSE_STATUS);
     while (status & MOUSE_DATA_BIT && status & MOUSE_F_BIT) {
@@ -112,9 +114,7 @@ void PS2_mouse_handler()
                 mseY = MIN(780, MAX(0, mseY + mouse_y / 2));
 
                 msg.param1 = mseX | (mseY << 16); //mouse_x;
-                // msg.param2 = mouse_y;
                 msg.message = GFX_EV_MOUSEMOVE;
-                // kprintf(-1, "Mouse pos {%d, %d} - %02x %02x %02x\n", mseX, mseY, mouse_byte[0], mouse_byte[1], mouse_byte[2]);
                 vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
 
             }

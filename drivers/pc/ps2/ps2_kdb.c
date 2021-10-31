@@ -41,7 +41,7 @@ static void PS2_kbd_led(uint8_t status)
     outb(0x60, status & 7);
 }
 
-void PS2_kdb_setup()
+void PS2_kbd_setup()
 {
     while ((inb(0x64) & 0x01))
         inb(0x60);
@@ -50,7 +50,7 @@ void PS2_kdb_setup()
 }
 
 
-void PS2_kdb_handler()
+void PS2_kbd_handler()
 {
     evmsg_t msg;
     char c = 0;
@@ -116,5 +116,6 @@ void PS2_kdb_handler()
         msg.message = GFX_EV_KEYUP;
     }
 
+    msg.window = 0;
     vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
 }
