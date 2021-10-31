@@ -59,8 +59,9 @@ masterclock_t __clock;
 
 void advent_register(masterclock_t *clock, advent_t *advent, long timeout, long interval)
 {
+    assert(__current != NULL);
+    advent->task = __current;
     if (timeout > 0) {
-        advent->task = __current;
         // ll_append(&advent.task->alist, &advent.anode);
         advent->repeat = MAX(0, interval);
         advent->until = clock->monotonic + timeout;
@@ -69,8 +70,11 @@ void advent_register(masterclock_t *clock, advent_t *advent, long timeout, long 
         splock_lock(&clock->lock);
         ll_append(&clock->list, &advent->tm_node);
         splock_unlock(&clock->lock);
-    } else
+    } else {
+        advent->repeat = 0;
         advent->until = 0;
+    }
+    // TODO -- Register inside the task, to close on exit
 }
 
 void advent_unregister(masterclock_t *clock, advent_t *advent)
@@ -85,7 +89,7 @@ void advent_unregister(masterclock_t *clock, advent_t *advent)
 void advent_pause_task(masterclock_t *clock, advent_t *advent, long timeout)
 {
     assert(irq_ready());
-    advent_register(clock, advent, MAX(1, timeout), 0);
+    advent_register(clock, advent, timeout, 0);
     scheduler_switch(TS_BLOCKED);
     assert(irq_ready());
 }
@@ -240,7 +244,8 @@ int futex_wake(int *addr, int val, int flags)
 
 static void itimer_wake_advent(masterclock_t *clock, advent_t *advent)
 {
-    evmsg_t msg = { 0 };
+    evmsg_t msg;
+    memset(&msg, 0, sizeof(evmsg_t));
     msg.message = GFX_EV_TIMER;
     inode_t *ino = advent->object;
     vfs_write(ino, (void *)&msg, sizeof(msg), 0, IO_ATOMIC | IO_NOBLOCK);
