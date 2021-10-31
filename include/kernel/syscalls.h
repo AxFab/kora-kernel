@@ -89,14 +89,14 @@ enum syscall_no {
     SYS_CLOSE,
     SYS_OPENDIR,
     SYS_READDIR,
-    SYS_SEEK,
-    SYS_READ, // 16
-    SYS_WRITE,
+    SYS_SEEK, // 17
+    SYS_READ, // 18
+    SYS_WRITE, // 19
     SYS_ACCESS,
-    SYS_FCNTL, // 19
+    SYS_FCNTL, // 21
 
-    SYS_PIPE,
-    SYS_WINDOW,
+    SYS_PIPE, // 22
+    SYS_WINDOW, // 23
     SYS_FSTAT,
 
     SYS_XTIME,

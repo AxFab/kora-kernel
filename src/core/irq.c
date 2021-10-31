@@ -135,11 +135,16 @@ void irq_enter(int no)
     assert(no >= 0 && no < IRQ_COUNT);
     assert(irq_ready());
     irq_disable();
+    task_t *task = __current;
+    // __current = NULL; // We need it on scheduler_switch!
+
     // clock_elapsed(CPU_IRQ);
 
     irq_record_t *record;
     if (irqv[no].list.count_ == 0)
         kprintf(KL_IRQ, "Received IRQ%d, on CPU%d: no handlers.\n", no, cpu_no());
+    // else if (no != 0)
+    //     kprintf(KL_IRQ, "Received IRQ%d, on CPU%d: %d handler(s).\n", no, cpu_no(), irqv[no].list.count_);
 
     irq_ack(no);
     for ll_each(&irqv[no].list, record, irq_record_t, node)
@@ -147,6 +152,8 @@ void irq_enter(int no)
 
     //clock_elapsed(prev);
     irq_zero();
+    assert(__current == task);
+    __current = task;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -190,7 +197,7 @@ syscall_info_t __syscalls_info[] = {
     [SYS_OPEN] = SCALL_ENTRY(open, ARG_FD, ARG_STR, ARG_FLG, ARG_FLG, 0, ARG_FD, 4),
     [SYS_CLOSE] = SCALL_ENTRY(close, ARG_FD, 0, 0, 0, 0, ARG_INT, 1),
     [SYS_READDIR] = SCALL_ENTRY(readdir, ARG_FD, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
-    // [SYS_SEEK] = SCALL_ENTRY(seek, ),
+    [SYS_SEEK] = SCALL_ENTRY(seek, ARG_FD, ARG_LEN, ARG_LEN, ARG_INT, 0, ARG_INT, 4),
     [SYS_READ] = SCALL_ENTRY(read, ARG_FD, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
     [SYS_WRITE] = SCALL_ENTRY(write, ARG_FD, ARG_PTR, ARG_LEN, 0, 0, ARG_INT, 1),
     // [SYS_ACCESS] = SCALL_ENTRY(access, ),

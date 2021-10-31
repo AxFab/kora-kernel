@@ -128,10 +128,12 @@ int vfs_fcntl(inode_t *ino, int cmd, void **args)
 int vfs_seek(inode_t *ino, xoff_t off)
 {
     assert(ino != NULL);
-    if (ino->fops == NULL || ino->fops->fcntl == NULL) {
+    if (ino->fops == NULL) {
         errno = ENOSYS;
         return -1;
     }
+    if (ino->fops->seek == NULL)
+        return off;
 
     return ino->fops->seek(ino, off);
 }
@@ -141,3 +143,4 @@ EXPORT_SYMBOL(vfs_read, 0);
 EXPORT_SYMBOL(vfs_write, 0);
 EXPORT_SYMBOL(vfs_truncate, 0);
 EXPORT_SYMBOL(vfs_fcntl, 0);
+
