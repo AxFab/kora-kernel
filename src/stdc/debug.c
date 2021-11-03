@@ -32,11 +32,14 @@ void stackdump(size_t frame)
     char buf[30];
     size_t *bp = &frame - 2;
     size_t kstack = (size_t)bp & STACK_MASK;
+#ifdef KORA_KRN
     if (__current == NULL)
         kprintf(KL_DBG, "CPU.%d / Stack trace: [bp:%x]\n", cpu_no(), (size_t)bp);
     else
         kprintf(KL_DBG, "CPU.%d / Task.%d / Stack trace: [bp:%x]\n", cpu_no(), __current->pid, (size_t)bp);
-
+#else
+    kprintf(KL_DBG, "Stack trace: [bp:%x]\n", (size_t)bp);
+#endif
     size_t ip = bp[1];
 
     while (frame-- > 0) {
