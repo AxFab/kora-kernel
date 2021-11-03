@@ -66,27 +66,23 @@ ip4_info_t *ip4_readinfo(ifnet_t *ifnet)
 
 ip4_master_t *ip4_readmaster(netstack_t *stack)
 {
-    ip4_master_t *master = stack->ipv4;
-    if (master == NULL) {
-        splock_lock(&stack->lock);
-        master = kalloc(sizeof(ip4_master_t));
-        stack->ipv4 = master;
-        hmp_init(&master->tcp_ports, 8);
-        hmp_init(&master->udp_ports, 8);
-        hmp_init(&master->routes, 8);
-        splock_unlock(&stack->lock);
-    }
+    splock_lock(&stack->lock);
+    nproto_t* proto = bbtree_search_eq(&stack->protocols, NET_AF_IP4, nproto_t, bnode);
+    ip4_master_t *master = proto->data;
+    splock_unlock(&stack->lock);
     return master;
 }
 
-void ip4_checkup(ifnet_t *net) // TODO - How this can be called
+void ip4_checkup(ifnet_t *net, int event, int param) 
 {
-    if (!(net->flags & NET_CONNECTED))
+    if (event != NET_EV_LINK || !(net->flags & NET_CONNECTED))
         return;
 
     ip4_info_t *info = ip4_readinfo(net);
     if (info->ip[0] == 0)
         dhcp_discovery(net);
+    else
+        arp_whois(net, info->ip);
 }
 
 
@@ -124,10 +120,36 @@ void ip4_setip(ifnet_t *net, const uint8_t *ip, const uint8_t *submsk, const uin
         arp_whois(net, info->gateway);
 }
 
-void ip4_start(netstack_t *stack)
+//nproto_t ip4_tcp_proto = {
+//};
+
+int ip4_start(netstack_t *stack)
 {
+    nproto_t* proto = net_protocol(stack, NET_AF_IP4);
+    if (proto != NULL)
+        return -1;
+
+    proto = kalloc(sizeof(nproto_t));
+    ip4_master_t* master = kalloc(sizeof(ip4_master_t));
+    proto->data = master;
+    hmp_init(&master->tcp_ports, 8);
+    hmp_init(&master->udp_ports, 8);
+    hmp_init(&master->routes, 8);
+    net_set_protocol(stack, NET_AF_IP4, proto);
+
     eth_handshake(stack, ETH_IP4, ip4_receive);
     eth_handshake(stack, ETH_ARP, arp_receive);
+    net_handler(stack, ip4_checkup);
+
+    nproto_t* proto_tcp = kalloc(sizeof(nproto_t));
+    tcp_proto(proto_tcp);
+    net_set_protocol(stack, NET_AF_TCP, proto_tcp);
+
+    nproto_t* proto_udp = kalloc(sizeof(nproto_t));
+    udp_proto(proto_udp);
+    net_set_protocol(stack, NET_AF_UDP, proto_udp);
+
+    return 0;
 }
 
 void ip4_config(ifnet_t *net, const char *str)
@@ -184,14 +206,16 @@ socket_t *ip4_lookfor_socket(ifnet_t *net, uint16_t port, bool stream, const uin
     return NULL;
 }
 
-void ip4_setup()
+int ip4_setup()
 {
+    int ret = 0;
 #ifdef KORA_KRN
-    ip4_start(net_stack());
+    ret = ip4_start(net_stack());
 #endif
+    return ret;
 }
 
-void ip4_teardown()
+int ip4_teardown()
 {
 }
 

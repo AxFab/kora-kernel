@@ -39,6 +39,7 @@ void net_skb_recv(ifnet_t *net, uint8_t *buf, unsigned len)
     skb->ifnet = net;
     memcpy(skb->buf, buf, len);
     skb->length = len;
+    skb->protocol = net->protocol;
     net->rx_packets++;
     net->rx_bytes += len;
 
@@ -56,10 +57,11 @@ int net_skb_send(skb_t *skb)
     if (skb->err)
         return net_skb_trash(skb);
     skb->ifnet->tx_packets++;
-    skb->ifnet->tx_bytes += skb->length;
     int ret = skb->ifnet->ops->send(skb->ifnet, skb);
     if (ret != 0)
         skb->ifnet->tx_errors++;
+    else
+        skb->ifnet->tx_bytes += skb->length;
     kfree(skb);
     return ret;
 }

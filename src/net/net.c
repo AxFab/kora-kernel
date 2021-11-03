@@ -23,6 +23,68 @@
 #include <kernel/net.h>
 #include <kernel/core.h>
 
+void net_event(ifnet_t* net, int event, int param)
+{
+    int len = 2 * sizeof(int);
+    skb_t* skb = kalloc(sizeof(skb_t) + len);
+    skb->ifnet = net;
+    skb->size = len;
+    skb->protocol = NET_AF_EVT;
+    int* ptr = net_skb_reserve(skb, len);
+    skb->pen = 0;
+    ptr[0] = event;
+    ptr[1] = param;
+
+    netstack_t* stack = net->stack;
+    splock_lock(&stack->rx_lock);
+    ll_enqueue(&stack->rx_list, &skb->node);
+    splock_unlock(&stack->rx_lock);
+    sem_release(&stack->rx_sem);
+}
+
+void net_handle_event(skb_t* skb)
+{
+    int len = 2 * sizeof(int);
+    netstack_t* stack = skb->ifnet->stack;
+    int* ptr = net_skb_reserve(skb, len);
+    splock_lock(&stack->lock);
+    nhandler_t *hnode = ll_first(&stack->handlers, nhandler_t, node);
+    splock_unlock(&stack->lock);
+    while (hnode) {
+        hnode->handler(skb->ifnet, ptr[0], ptr[1]);
+        splock_lock(&stack->lock);
+        hnode = ll_next(&hnode->node, nhandler_t, node);
+        splock_unlock(&stack->lock);
+    }
+    kfree(skb);
+}
+
+void net_handler(netstack_t* stack, void(*handler)(ifnet_t *, int, int))
+{
+    nhandler_t* hnode = kalloc(sizeof(nhandler_t));
+    hnode->handler = handler;
+    splock_lock(&stack->lock);
+    ll_append(&stack->handlers, &hnode->node);
+    splock_unlock(&stack->lock);
+}
+
+
+nproto_t *net_protocol(netstack_t* stack, int protocol)
+{
+    splock_lock(&stack->lock);
+    nproto_t* proto = bbtree_search_eq(&stack->protocols, protocol, nproto_t, bnode);
+    splock_unlock(&stack->lock);
+    return proto;
+}
+
+void net_set_protocol(netstack_t* stack, int protocol, nproto_t* proto)
+{
+    splock_lock(&stack->lock);
+    proto->bnode.value_ = protocol;
+    bbtree_insert(&stack->protocols, &proto->bnode);
+    splock_unlock(&stack->lock);
+}
+
 void net_deamon(netstack_t *stack)
 {
 #ifdef _WIN32
@@ -39,20 +101,27 @@ void net_deamon(netstack_t *stack)
 
         sem_acquire(&stack->rx_sem);
 
+        // Look for incoming packet
         splock_lock(&stack->rx_lock);
         skb = ll_dequeue(&stack->rx_list, skb_t, node);
         splock_unlock(&stack->rx_lock);
         if (skb == NULL)
             continue;
 
-        kprintf(-1, "Rx %s\n", skb->ifnet->stack->hostname);
+        if (skb->protocol == NET_AF_EVT) {
+            net_handle_event(skb);
+            continue;
+        }
+
+        skb->ifnet->rx_packets++;
+        kprintf(-1, "Rx %s:%d\n", skb->ifnet->stack->hostname, skb->ifnet->idx);
         // kdump(skb->buf, skb->length);
 
-        net_recv_t recv = NULL;
-        if (skb->ifnet->protocol == NET_AF_ETH)
-            recv = eth_receive;
+        splock_lock(&stack->lock);
+        nproto_t* proto = bbtree_search_eq(&stack->protocols, skb->protocol, nproto_t, bnode);
+        splock_unlock(&stack->lock);
 
-        if (recv == NULL || recv(skb) != 0) {
+        if (proto == NULL || proto->receive == NULL || proto->receive(skb) != 0)  {
             skb->ifnet->rx_dropped++;
             kfree(skb);
         }
@@ -65,13 +134,13 @@ ifnet_t *net_alloc(netstack_t *stack, int protocol, uint8_t *hwaddr, net_ops_t *
     char buf[50];
     int uid = atomic_xadd(&stack->idMax, 1);
     if (protocol == NET_AF_LBK) {
-        kprintf(-1, "New endpoint \e[35m%s:lo:%i\e[0m\n", stack->hostname, uid);
+        kprintf(-1, "New endpoint \033[35m%s:lo:%i\033[0m\n", stack->hostname, uid);
     } else if (protocol == NET_AF_ETH) {
         hwlen = ETH_ALEN;
         eth_writemac(hwaddr, buf, 50);
-        kprintf(-1, "New endpoint \e[35m%s:eth:%i (MAC %s)\e[0m\n", stack->hostname, uid, buf);
+        kprintf(-1, "New endpoint \033[35m%s:eth:%i (MAC %s)\033[0m\n", stack->hostname, uid, buf);
     } else {
-        kprintf(-1, "\e[31mUnable to allocate network interface: unknown protocol %d\e[0m\n", protocol);
+        kprintf(-1, "\033[31mUnable to allocate network interface: unknown protocol %d\033[0m\n", protocol);
         return NULL;
     }
 
@@ -112,6 +181,7 @@ netstack_t *net_setup()
     sem_init(&stack->rx_sem, 0);
     splock_init(&stack->rx_lock);
     splock_init(&stack->lock);
+    bbtree_init(&stack->protocols);
     return stack;
 }
 

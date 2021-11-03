@@ -416,7 +416,7 @@ void do_img_create(vfs_t* vfs, size_t* param)
         hdSize = hdSize << 40;
     
     if (hdSize > (2ULL << 40)) {
-        printf("\033[31mImage disk is too big, max is 2Tb!\033[0m\n", __func__);
+        printf("\033[31mImage disk is too big, max is 2Tb at %s!\033[0m\n", __func__);
         return;
     }
 

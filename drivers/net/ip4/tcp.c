@@ -76,11 +76,31 @@ int tcp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset)
     socket_t *socket = ip4_lookfor_socket(skb->ifnet, port, true, NULL);
     if (socket == NULL)
         return -1;
-    return net_socket_recv(socket, skb, length);
+
+    // net_socket_push(socket, skb, length);
+    return -1;
 }
 
 
-int tcp_socket(socket_t *socket)
+long tcp_socket_send(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, int flags)
 {
     return -1;
 }
+
+long tcp_socket_recv(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, int flags)
+{
+    return -1;
+}
+
+
+
+void tcp_proto(nproto_t* proto)
+{
+    proto->addrlen = 6;
+    // proto->bind = ip4_tcp_bind;
+    // proto->connect = ip4_tcp_connect;
+    proto->send = tcp_socket_send;
+    proto->recv = tcp_socket_recv;
+    // proto->close = ip4_tcp_close;
+}
+

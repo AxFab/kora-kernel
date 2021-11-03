@@ -23,17 +23,18 @@
 #include <bits/atomic.h>
 #include <kora/llist.h>
 #include <kora/splock.h>
+#include <kora/bbtree.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/sem.h>
 
-
-#define NET_AF_LBK 0
-#define NET_AF_ETH 1
-#define NET_AF_IP4 2
-#define NET_AF_IP6 3
-#define NET_AF_TCP 4
-#define NET_AF_UDP 5
+#define NET_AF_EVT 0
+#define NET_AF_LBK 1
+#define NET_AF_ETH 2
+#define NET_AF_IP4 3
+#define NET_AF_IP6 4
+#define NET_AF_TCP 5
+#define NET_AF_UDP 6
 
 
 typedef struct netstack netstack_t;
@@ -42,6 +43,7 @@ typedef struct ifnet ifnet_t;
 typedef struct skb skb_t;
 typedef struct socket socket_t;
 typedef struct nproto nproto_t;
+typedef struct netmsg netmsg_t;
 
 typedef int (*net_recv_t)(skb_t *);
 typedef int (*net_sock_t)(socket_t *);
@@ -66,9 +68,8 @@ struct netstack {
 
     atomic_int idMax;
 
-    // protocol info
-    eth_info_t *eth;
-    ip4_master_t *ipv4;
+    bbtree_t protocols;
+    llhead_t handlers;
 };
 
 struct net_ops {
@@ -104,7 +105,7 @@ struct ifnet {
     long tx_dropped;
 
 
-    // protocol info
+    // protocol info -- To remove !!!
     ip4_info_t *ipv4;
     dhcp_info_t *dhcp;
     icmp_info_t *icmp;
@@ -113,6 +114,7 @@ struct ifnet {
 // Socket kernel buffer
 struct skb {
     int err;
+    int protocol;
     unsigned pen;
     unsigned length;
     unsigned size;
@@ -123,24 +125,62 @@ struct skb {
 };
 
 struct nproto {
-    int protocol;
+    bbnode_t bnode;
+    unsigned addrlen;
+    int (*receive)(skb_t*);
     int(*bind)(socket_t *, uint8_t *, size_t);
     int(*connect)(socket_t *, uint8_t *, size_t);
+    long (*send)(socket_t*, const uint8_t*, const uint8_t*, size_t, int);
+    long (*recv)(socket_t*, uint8_t*, uint8_t*, size_t, int);
+    int(*close)(socket_t*);
+    void* data;
 };
 
 struct socket {
-    netstack_t *net;
-    nproto_t *protocol;
+    netstack_t *stack;
+    nproto_t * proto;
     uint8_t laddr[32];
     uint8_t raddr[32];
+    mtx_t lock;
+    cnd_t incm;
+    int flags;
+    llhead_t lskb;
 };
 
+typedef struct nhandler nhandler_t;
+struct nhandler {
+    void(*handler)(ifnet_t*, int, int);
+    llnode_t node;
+};
 
+typedef struct iovec {
+    uint8_t* buf;
+    size_t len;
+} iovec_t;
+
+struct netmsg {
+    unsigned addrlen;
+    uint8_t addr[32];
+    unsigned iolven;
+    iovec_t iov[0];
+};
+
+#define NET_IOVLEN_MAX 64
 
 enum {
     NET_CONNECTED = (1 << 0),
 
     NET_OVERFILL = (1 << 2),
+
+
+
+    NET_ADDR_BINDED = (1 << 16),
+    NET_ADDR_CONNECTED = (1 << 17),
+};
+
+enum {
+    NET_EV_LINK = 1,
+    NET_EV_MAX,
 };
 
 void net_init();
@@ -168,19 +208,31 @@ int net_skb_write(skb_t *skb, const void *buf, unsigned len);
 void *net_skb_reserve(skb_t *skb, unsigned len);
 
 ifnet_t *net_alloc(netstack_t *stack, int protocol, uint8_t *hwaddr, net_ops_t *ops, void *driver);
+void net_event(ifnet_t* net, int event, int param);
+void net_handler(netstack_t* stack, void(*handler)(ifnet_t*, int, int));
+
+
+nproto_t *net_protocol(netstack_t* stack, int protocol);
+void net_set_protocol(netstack_t* stack, int protocol, nproto_t* proto);
 
 #define net_skb_log(s,m)  strncat((s)->log,(m),64)
 
 
 // Socket
 socket_t *net_socket(netstack_t *stack, int protocol);
-int net_socket_bind(socket_t *sock, uint8_t *addr, size_t len);
+int net_socket_close(socket_t* sock);
+int net_socket_bind(socket_t* sock, uint8_t* addr, size_t len);
 int net_socket_connect(socket_t *sock, uint8_t *addr, size_t len);
-int net_socket_close(socket_t *sock);
-socket_t *net_socket_accept(socket_t *sock, bool block);
-int net_socket_write(socket_t *sock, const char *buf, size_t len);
-int net_socket_read(socket_t *sock, const char *buf, size_t len);
-int net_socket_recv(socket_t* socket, skb_t* skb, int length);
+long net_socket_send(socket_t* sock, const netmsg_t* msg, int flags);
+long net_socket_recv(socket_t* sock, const netmsg_t* msg, int flags);
+long net_socket_write(socket_t *sock, const char *buf, size_t len, int flags);
+long net_socket_read(socket_t *sock, char *buf, size_t len, int flags);
+
+socket_t* net_socket_accept(socket_t* sock, bool block);
+
+int net_socket_push(socket_t* sock, skb_t* skb, int length);
+
+// int net_socket_recv(socket_t* socket, skb_t* skb, int length);
 
 
 // Ethernet
@@ -189,6 +241,7 @@ int net_socket_recv(socket_t* socket, skb_t* skb, int length);
 #define ETH_IP6 htonw(0x86DD)
 #define ETH_ARP htonw(0x0806)
 
+int eth_setup(netstack_t* stack);
 char *eth_writemac(const uint8_t *mac, char *buf, int len);
 int eth_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv);
 int eth_header(skb_t *skb, const uint8_t *addr, uint16_t protocol);

@@ -26,6 +26,7 @@
 #include <bits/cdefs.h>
 #include <kernel/net.h>
 #include <kora/hmap.h>
+#include <kora/mcrs.h>
 
 #define IP4_ALEN 4
 
@@ -49,10 +50,12 @@ uint16_t ip4_checksum(uint16_t *ptr, int len);
 // TCP
 int tcp_header(skb_t *skb, ip4_route_t *route, int length, int port, int src, uint16_t identifier, uint16_t offset);
 int tcp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset);
+void tcp_proto(nproto_t* proto);
 
 // UDP
 int udp_header(skb_t *skb, ip4_route_t *route, int length, int port, int src, uint16_t identifier, uint16_t offset);
 int udp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset);
+void udp_proto(nproto_t* proto);
 // skb_t* udp_packet(ifnet_t* net);
 
 // ICMP
@@ -74,7 +77,7 @@ int ip4_readip(uint8_t *ip, const char *str);
 char *ip4_writeip(const uint8_t *ip, char *buf, int len);
 void ip4_setip(ifnet_t *net, const uint8_t *ip, const uint8_t *submsk, const uint8_t *gateway);
 void ip4_config(ifnet_t *net, const char *str);
-void ip4_start(netstack_t *stack);
+int ip4_start(netstack_t *stack);
 
 // Private -----
 

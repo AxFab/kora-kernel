@@ -38,14 +38,10 @@ const uint8_t eth_broadcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 static eth_info_t *eth_readinfo(netstack_t *stack)
 {
-    eth_info_t *info = stack->eth;
-    if (info == NULL) {
-        splock_lock(&stack->lock);
-        info = kalloc(sizeof(eth_info_t));
-        stack->eth = info;
-        hmp_init(&info->recv_map, 8);
-        splock_unlock(&stack->lock);
-    }
+    splock_lock(&stack->lock);
+    nproto_t* proto = bbtree_search_eq(&stack->protocols, NET_AF_ETH, nproto_t, bnode);
+    eth_info_t* info = proto->data;
+    splock_unlock(&stack->lock);
     return info;
 }
 
@@ -121,6 +117,39 @@ int eth_receive(skb_t *skb)
     return recv(skb);
 }
 
+
+int eth_setup(netstack_t* stack)
+{
+    nproto_t* proto = net_protocol(stack, NET_AF_ETH);
+    if (proto != NULL)
+        return -1;
+
+    proto = kalloc(sizeof(nproto_t));
+    eth_info_t *info = kalloc(sizeof(eth_info_t));
+    hmp_init(&info->recv_map, 8);
+    proto->receive = eth_receive;
+    proto->data = info;
+    net_set_protocol(stack, NET_AF_ETH, proto);
+    return 0;
+}
+
+int eth_teardown(netstack_t* stack)
+{
+    splock_lock(&stack->lock);
+    nproto_t* proto = bbtree_search_eq(&stack->protocols, NET_AF_ETH, nproto_t, bnode);
+    eth_info_t *info = proto->data;
+    if (info->recv_map.count > 0) {
+        splock_unlock(&stack->lock);
+        return -1;
+    }
+
+    bbtree_remove(&stack->protocols, NET_AF_ETH);
+    // Warning, no RCU ?
+    kfree(proto->data);
+    kfree(proto);
+    splock_unlock(&stack->lock);
+    return 0;
+}
 
 EXPORT_SYMBOL(eth_writemac, 0);
 EXPORT_SYMBOL(eth_handshake, 0);

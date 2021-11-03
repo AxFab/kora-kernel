@@ -29,7 +29,7 @@ PACK(struct udp_header {
 });
 
 
-int udp_header(skb_t *skb, ip4_route_t *route, int length, int port, int src, uint16_t identifier, uint16_t offset)
+int udp_header(skb_t *skb, ip4_route_t *route, int length, int rport, int lport, uint16_t identifier, uint16_t offset)
 {
     if (ip4_header(skb, route, IP4_UDP, length + sizeof(udp_header_t), identifier, offset) != 0)
         return -1;
@@ -41,8 +41,8 @@ int udp_header(skb_t *skb, ip4_route_t *route, int length, int port, int src, ui
         return -1;
     }
 
-    header->src_port = htonw(src);
-    header->dest_port = htonw(port);
+    header->src_port = htonw(lport);
+    header->dest_port = htonw(rport);
     header->length = htonw(length + sizeof(udp_header_t));
     header->checksum = 0;
     header->checksum = ip4_checksum((uint16_t *)skb->buf, sizeof(udp_header_t) + 8);
@@ -76,15 +76,67 @@ int udp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset)
     socket_t *socket = ip4_lookfor_socket(skb->ifnet, port, false, NULL);
     if (socket == NULL)
         return -1;
-    return net_socket_recv(socket, skb, length);
+    return -1;
+    // net_socket_psuh(socket, skb, identifier, offset, length);
 }
 
-int udp_socket(socket_t *socket)
+
+long udp_socket_send(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, int flags)
 {
-    //    socket->connect = udp_connect;
-    //    socket->bind = udp_bind;
-    //    socket->accept = udp_accept;
-    //    socket->listen = udp_listen;
-    //    socket->send = udp_send;
+    // First find a ip4 route !
+    // Check if we already have a port -- if not take ephemeral UDP port !
+    // Select an IP identifier
+    ip4_route_t* route = ip4_route(sock->stack, addr);
+    uint16_t ip_id = 0;
+    uint16_t lport = 0;
+    uint16_t rport = ntohw((addr[4] << 8) | (addr[5]));
+
+    int packsize = 1500 - (14 + 20 + 8 + 8); // route->head_size;
+    int count = len / packsize;
+    int rem = len % packsize;
+    while (rem > 0 && rem < count) {
+        packsize--;
+        count = len / packsize;
+        rem = len % packsize;
+    }
+
+    if (route == NULL || lport == 0 || rport == 0)
+        return -1;
+
+    uint16_t off = 0;
+    while (len > 0) {
+        int pack = MIN(packsize, len);
+        skb_t* skb = net_packet(route->net);
+        if (udp_header(skb, route, pack, rport, lport, ip_id, off) != 0)
+            return net_skb_trash(skb);
+
+        void* ptr = net_skb_reserve(skb, pack);
+        if (ptr == NULL)
+            return net_skb_trash(skb);
+
+        memcpy(ptr, buf, pack);
+        if (net_skb_send(skb) != 0)
+            return -1;
+        len -= pack;
+        buf += pack;
+        off++;
+    }
+    return 0;
+}
+
+long udp_socket_recv(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, int flags)
+{
+    // Wait for recv packet (sleep on sock->incm - may be use a semaphore !?);
+    // If data are available read it -- Build and store ip4 route !?
     return -1;
 }
+
+
+void udp_proto(nproto_t* proto)
+{
+    proto->addrlen = 6;
+    proto->send = udp_socket_send;
+    proto->recv = udp_socket_recv;
+    // proto->close = udp_close;
+}
+
