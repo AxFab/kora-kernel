@@ -18,56 +18,51 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/stdc.h>
+#include <kernel/tasks.h>
 #include <kora/mcrs.h>
 
-#define STACK_MASK (~(PAGE_SIZE - 1))
+#define STACK_MASK (~((PAGE_SIZE << 2) - 1))
 
 const char *ksymbol(void *ip, char *buf, int lg);
 
 void stackdump(size_t frame)
 {
+    static const char *pad = "        ";
     int usermode = 0;
     char buf[30];
-    size_t *ebp = &frame - 2;
-    size_t *args;
-    size_t stack = (size_t)ebp & STACK_MASK;
-    kprintf(KL_DBG, "Stack trace: [%x]\n", (size_t)ebp);
+    size_t *bp = &frame - 2;
+    size_t kstack = (size_t)bp & STACK_MASK;
+    if (__current == NULL)
+        kprintf(KL_DBG, "CPU.%d / Stack trace: [bp:%x]\n", cpu_no(), (size_t)bp);
+    else
+        kprintf(KL_DBG, "CPU.%d / Task.%d / Stack trace: [bp:%x]\n", cpu_no(), __current->pid, (size_t)bp);
+
+    size_t ip = bp[1];
 
     while (frame-- > 0) {
-        size_t eip = ebp[1];
-        if (eip == 0) {
-            // No caller on stack
-            break;
-        }
 
-        // Unwind to previous stack frame
-        ebp = (size_t *)(ebp[0]);
-        if (stack != (ebp[0] & STACK_MASK)) {
-            if (usermode++ == 0) {
-                kprintf(KL_DBG, "  0x%x - %s ()     no standard call\n", eip,
-                        ksymbol((void *)eip, buf, 30));
-                if (ebp[2] == 0x23 && ebp[5] == 0x33)
-                    ebp = (size_t *)ebp[4];
-                else if (ebp[3] == 0x23 && ebp[6] == 0x33)
-                    ebp = (size_t *)ebp[5];
-                else
-                    break;
-                stack = (size_t)ebp & STACK_MASK;
-                while (stack != (ebp[0] & STACK_MASK) && stack == ((size_t)ebp & STACK_MASK))
-                    ebp++;
-                if (stack == ((size_t)ebp & STACK_MASK))
-                    continue;
-            } else {
-                kprintf(KL_DBG, "  0x%x - %s ()     top of user stack\n", eip,
-                        ksymbol((void *)eip, buf, 30));
+        bp = (size_t *)(bp[0]);
+        ksymbol((void *)ip, buf, 30);
+        kprintf(KL_DBG, "  0x%x - %s() %s[bp: %x] \n", ip, buf, pad, (size_t)bp);
+
+        // Check we won't change of stack
+        if (usermode == 0 && (bp[0] & STACK_MASK) != kstack) {
+            usermode++;
+            ip = 0;
+            for (int i = 1; i < 15 && ip == 0;++i) {
+                if (bp[i + 1] == 0x23 && bp[i + 4] == 0x33)
+                    ip = bp[i];
             }
-            break;
+
+            if (ip == 0) // Error or end of stack
+                break;
+            continue;
         }
 
-        args = &ebp[2];
-        kprintf(KL_DBG, "  0x%x - %s ()         [args: %x] \n", eip,
-                ksymbol((void *)eip, buf, 30),
-                (size_t)args);
+        // Get previous frame
+        ip = bp[1];
+        if (ip == 0) // Error or end of stack
+            break;
     }
 }
 

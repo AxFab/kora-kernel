@@ -47,7 +47,7 @@ const char *ksymbol(void *ip, char *buf, int lg)
             proc = task->proc;
     }
     for ll_each(&proc->libraries, lib, dynlib_t, node) {
-        if ((size_t)ip < lib->base || (size_t)ip > lib->base + lib->length)
+        if (lib->length != 0 && ((size_t)ip < lib->base || (size_t)ip > lib->base + lib->length))
             continue;
         for ll_each(&lib->intern_symbols, symbol, dynsym_t, node) {
             if (symbol->address > (size_t)ip)
@@ -169,6 +169,7 @@ llhead_t mtask_queue = INIT_LLHEAD;
 splock_t mtask_lock = INIT_SPLOCK;
 atomic_int mtask_step1 = 0;
 atomic_int mtask_step2 = 0;
+atomic_int mtask_count = 0;
 
 void module_new_task(int type, void *ptr)
 {
@@ -193,6 +194,7 @@ void module_do_dir(fsnode_t *directory)
     }
     vfs_closedir(directory, ctx);
     vfs_close_fsnode(directory);
+    atomic_inc(&mtask_count);
 }
 
 void module_do_file(fsnode_t *file)
@@ -200,6 +202,7 @@ void module_do_file(fsnode_t *file)
     kprintf(-1, "Kernel task %d loading module (cpu:%d) \n", __current->pid, cpu_no());
     module_load(file);
     vfs_close_fsnode(file);
+    atomic_inc(&mtask_count);
 }
 
 void module_do_proc(char *cmd)
@@ -215,6 +218,7 @@ void module_do_proc(char *cmd)
     fsnode_t *nodes[3] = { NULL };
     task_spawn(cmd, args, nodes);
     kfree(cmd);
+    atomic_inc(&mtask_count);
 }
 
 int module_predefined_tasks()
@@ -231,11 +235,13 @@ int module_predefined_tasks()
         return 0;
     }
 
-    // val = atomic_xchg(&mtask_step2, 1);
-    // if (val == 0) {
-    //     module_new_task(3, strdup("krish"));
-    //     return 0;
-    // }
+    if (mtask_count > 3) {
+        val = atomic_xchg(&mtask_step2, 1);
+        if (val == 0) {
+            module_new_task(3, strdup("krish"));
+            return 0;
+        }
+    }
 
     return -1;
 }
@@ -250,7 +256,7 @@ _Noreturn void module_loader()
             if (module_predefined_tasks() == 0)
                 continue;
             kprintf(-1, "Sleeping kernel task %d (cpu:%d) \n", __current->pid, cpu_no());
-            sleep_timer(50000);
+            sleep_timer(5000000);
             continue;
         } else if (mt->type == 1)
             module_do_dir(mt->ptr);
