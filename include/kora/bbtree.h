@@ -24,6 +24,7 @@
 
 typedef struct bbtree bbtree_t;
 typedef struct bbnode bbnode_t;
+typedef struct bbslot bbslot_t;
 
 #ifndef itemof
 #  undef offsetof
@@ -37,18 +38,26 @@ static inline void *itemof_(void *ptr, int off)
 
 
 /* BBTree (self-balancing binary tree) head */
-struct bbtree {
+struct bbtree 
+{
     bbnode_t *root_;
     int count_;
 };
 
 /* BBTree (self-balancing binary tree) node */
-struct bbnode {
+struct bbnode 
+{
     bbnode_t *parent_;
     bbnode_t *left_;
     bbnode_t *right_;
     size_t value_;
     int level_;
+};
+
+struct bbslot
+{
+    bbnode_t node;
+    void *data;
 };
 
 void bbtree_init(bbtree_t *tree);

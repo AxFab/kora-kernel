@@ -20,6 +20,7 @@
 #include "ip4.h"
 #include <time.h>
 #include <kernel/core.h>
+#include <assert.h>
 
 #define BOOT_REQUEST 1
 #define BOOT_REPLY 2
@@ -65,7 +66,6 @@ struct dhcp_info {
 
     dhcp_lease_t *lease_range[16];
 };
-
 
 PACK(struct dhcp_header {
     uint8_t opcode;
@@ -117,17 +117,20 @@ static char dhcp2boot[] = {
     BOOT_REQUEST, // DHCP_INFORM  8
 };
 
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-static dhcp_info_t *dhcp_readinfo(ifnet_t *net)
+/* Gets DHCP information linked to a specific device */
+static dhcp_info_t *dhcp_readinfo(ifnet_t *ifnet)
 {
-    dhcp_info_t *info = net->dhcp;
+    ip4_info_t *ipinfo = ip4_readinfo(ifnet);
+    assert(ipinfo != NULL);
+    dhcp_info_t *info = ipinfo->dhcp;
     if (info == NULL) {
         info = kalloc(sizeof(dhcp_info_t));
         info->mode = 0;
         info->last_request = 0;
         splock_init(&info->lock);
-        net->dhcp = info;
+        ipinfo->dhcp = info;
     }
     return info;
 }
@@ -188,7 +191,7 @@ static void dhcp_clean_msg(dhcp_msg_t *msg)
 
 }
 
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 static void dhcp_option_value(skb_t *skb, uint8_t typ, uint8_t len, uint8_t val)
 {
@@ -267,7 +270,10 @@ static int dhcp_opts_write_res(ifnet_t *net, skb_t *skb, dhcp_lease_t *lease)
     return 0;
 }
 
-int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode, dhcp_lease_t *lease)
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+/* Build and send a new DHCP packet */
+static int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode, dhcp_lease_t *lease)
 {
     int opcode = dhcp2boot[mode];
 
@@ -322,9 +328,10 @@ int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode, dhcp_l
     return net_skb_send(skb);
 }
 
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-void dhcp_on_discovery(ifnet_t *net, dhcp_msg_t *msg)
+/* As a server, handle a DHCP_DISCOVERY message and propose an IP addresses */
+static void dhcp_on_discovery(ifnet_t *net, dhcp_msg_t *msg)
 {
     dhcp_info_t *info = dhcp_readinfo(net);
     ip4_info_t *ip4 = ip4_readinfo(net);
@@ -368,15 +375,38 @@ void dhcp_on_discovery(ifnet_t *net, dhcp_msg_t *msg)
     dhcp_packet(net, &route, msg->uid, DHCP_OFFER, lease);
 }
 
-void dhcp_on_offer(ifnet_t *net, dhcp_msg_t *msg)
+/* As a server, handle DHCP_REQUEST and give lease for the requested IP */
+static void dhcp_on_request(ifnet_t *net, dhcp_msg_t *msg)
+{
+    dhcp_info_t *info = dhcp_readinfo(net);
+    ip4_info_t *ip4 = ip4_readinfo(net);
+
+    dhcp_lease_t *lease = info->lease_range[msg->yiaddr[3] - 4];
+    if (lease == NULL) {
+        dhcp_packet(net, ip4_route_broadcast(net), msg->uid, DHCP_PNACK, NULL);
+        return;
+    }
+
+    // TODO -- Get lease, check it's been proposed, check time is OK, check the state is at proposal...
+
+    ip4_route_t route;
+    memcpy(route.ip, lease->ip, IP4_ALEN);
+    memcpy(route.addr, msg->chaddr, ETH_ALEN);
+    route.ttl = ip4->ttl;
+    route.net = net;
+    dhcp_packet(net, &route, msg->uid, DHCP_PACK, lease);
+}
+
+/* As client, handle the recepion of a DHCP_OFFER message which propose an IP address */
+static void dhcp_on_offer(ifnet_t *net, dhcp_msg_t *msg)
 {
     dhcp_info_t *info = dhcp_readinfo(net);
 
-    /* Ignore unsolicited packets */
+    // Ignore unsolicited packets
     if (msg->uid != info->transaction || info->mode != DHCP_DISCOVER) // || REQUEST
         return;
 
-    /* Check proposal validity */
+    // TODO -- Check proposal validity
     // TODO -- If not interested, decline ASAP
 
     splock_lock(&info->lock);
@@ -390,33 +420,13 @@ void dhcp_on_offer(ifnet_t *net, dhcp_msg_t *msg)
     dhcp_packet(net, ip4_route_broadcast(net), msg->uid, DHCP_REQUEST, &lease);
 }
 
-void dhcp_on_request(ifnet_t *net, dhcp_msg_t *msg)
+/* As client, handle the recepion of a DHCP_NACK message by taking the proposed lease */
+static void dhcp_on_ack(ifnet_t *net, dhcp_msg_t *msg)
 {
     dhcp_info_t *info = dhcp_readinfo(net);
     ip4_info_t *ip4 = ip4_readinfo(net);
 
-    dhcp_lease_t *lease = info->lease_range[msg->yiaddr[3] - 4];
-    if (lease == NULL) {
-        dhcp_packet(net, ip4_route_broadcast(net), msg->uid, DHCP_PNACK, NULL);
-        return;
-    }
-
-    // Get lease, check it's been proposed, check time is OK, check the state is at proposal...
-
-    ip4_route_t route;
-    memcpy(route.ip, lease->ip, IP4_ALEN);
-    memcpy(route.addr, msg->chaddr, ETH_ALEN);
-    route.ttl = ip4->ttl;
-    route.net = net;
-    dhcp_packet(net, &route, msg->uid, DHCP_PACK, lease);
-}
-
-void dhcp_on_ack(ifnet_t *net, dhcp_msg_t *msg)
-{
-    dhcp_info_t *info = dhcp_readinfo(net);
-    ip4_info_t *ip4 = ip4_readinfo(net);
-
-    /* Ignore unsolicited packets */
+    // Ignore unsolicited packets
     if (msg->uid != info->transaction || info->mode != DHCP_REQUEST)
         return;
 
@@ -427,23 +437,25 @@ void dhcp_on_ack(ifnet_t *net, dhcp_msg_t *msg)
     info->renewal = info->last_request + SEC_TO_USEC(msg->lease_time / 2);
 }
 
-void dhcp_on_nack(ifnet_t *net, dhcp_msg_t *msg)
+/* As client, handle the recepion of a DHCP_NACK message */
+static void dhcp_on_nack(ifnet_t *net, dhcp_msg_t *msg)
 {
     dhcp_info_t *info = dhcp_readinfo(net);
 
-    /* Ignore unsolicited packets */
+    // Ignore unsolicited packets
     if (msg->uid != info->transaction || info->mode != DHCP_REQUEST)
         return;
 
     info->mode = DHCP_DISCOVER;
 }
 
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-int dhcp_discovery(ifnet_t *net)
+/* Start the discovery process of a DHCP client in order to set IP address */
+int dhcp_discovery(ifnet_t *ifnet)
 {
     /* Check if this is relevant */
-    dhcp_info_t *info = dhcp_readinfo(net);
+    dhcp_info_t *info = dhcp_readinfo(ifnet);
     splock_lock(&info->lock);
     if (info->last_request > xtime_read(XTIME_CLOCK) - SEC_TO_USEC(DHCP_DELAY) || info->mode > DHCP_DISCOVER) {
         splock_unlock(&info->lock);
@@ -455,11 +467,13 @@ int dhcp_discovery(ifnet_t *net)
     info->last_request = xtime_read(XTIME_CLOCK);
     info->transaction = rand32();
     splock_unlock(&info->lock);
-    return dhcp_packet(net, ip4_route_broadcast(net), info->transaction, DHCP_DISCOVER, NULL);
+    return dhcp_packet(ifnet, ip4_route_broadcast(ifnet), info->transaction, DHCP_DISCOVER, NULL);
 }
 
+/* Handle the reception of a DHCP packet */
 int dhcp_receive(skb_t *skb, int length)
 {
+    assert(skb && skb->ifnet);
     net_log(skb, ",dhcp");
     dhcp_header_t *header = net_skb_reserve(skb, sizeof(dhcp_header_t));
     if (header == NULL) {

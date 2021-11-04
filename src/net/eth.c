@@ -131,6 +131,7 @@ int eth_receive(skb_t *skb)
 
     // TODO - Firewall -- Black listed MAC
     memcpy(skb->addr, header->source, ETH_ALEN);
+    skb->addrlen = ETH_ALEN;
 
     netstack_t *stack = skb->ifnet->stack;
     net_recv_t recv = eth_receiver(stack, header->protocol);

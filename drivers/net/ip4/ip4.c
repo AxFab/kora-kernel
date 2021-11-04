@@ -22,7 +22,6 @@
 
 typedef struct ip4_header ip4_header_t;
 
-
 PACK(struct ip4_header {
     uint8_t header_length : 4;
     uint8_t version : 4;
@@ -37,6 +36,7 @@ PACK(struct ip4_header {
     uint8_t target[IP4_ALEN];
 });
 
+/* Compute the checksum of a IP4 header */
 uint16_t ip4_checksum(uint16_t *ptr, unsigned len)
 {
     // TODO -- Do checksum the right way!
@@ -48,6 +48,7 @@ uint16_t ip4_checksum(uint16_t *ptr, unsigned len)
     return htons(~(sum & 0xFFFF) & 0xFFFF);
 }
 
+/* Write a IP header on the socket buffer */
 int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, unsigned length, uint16_t identifier, uint16_t offset)
 {
     switch (route->net->protocol) {
@@ -55,6 +56,9 @@ int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, unsigned length, ui
         if (eth_header(skb, route->addr, ETH_IP4) != 0)
             return -1;
         break;
+    case NET_AF_LO:
+        if (lo_header(skb, ETH_IP4, 0) != 0)
+            return -1;
     default:
         net_log(skb, "ipv4:Unknown protocol");
         return -1;
@@ -84,7 +88,7 @@ int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, unsigned length, ui
     return 0;
 }
 
-
+/* Handle the reception of an IP4 packet */
 int ip4_receive(skb_t *skb)
 {
     net_log(skb, ",ipv4");
@@ -105,9 +109,17 @@ int ip4_receive(skb_t *skb)
         return -1;
     }
 
-    // TODO -- If that's not for me, should I re-route !?
+    // TODO -- Check I'm the target 
+    // TODO -- If router is configure, reroute the package (TTL-1)
+    // TODO -- Save remote address ?
 
-    // TODO - Save remote address ?
+
+    // Check that is not a raw socket
+    socket_t *sock = ip4_lookfor_socket(skb->ifnet, 0, header->protocol, NULL);
+    if (sock != NULL)
+        return net_socket_push(sock, skb);
+
+    // Transfer to upper layer protocol
     switch (header->protocol) {
     case IP4_TCP:
         return tcp_receive(skb, length, header->identifier, header->offset);
@@ -120,4 +132,34 @@ int ip4_receive(skb_t *skb)
         return -1;
     }
 }
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+int ip4_socket(socket_t *sock, int method)
+{
+    return -1;
+}
+
+long ip4_socket_send(socket_t *sock, const uint8_t *addr, const uint8_t *buf, size_t len, int flags)
+{
+    return -1;
+}
+
+long ip4_socket_recv(socket_t *sock, uint8_t *addr, uint8_t *buf, size_t len, int flags)
+{
+    return -1;
+}
+
+/* Fill-out the prototype structure for IP4 */
+void ip4_proto(nproto_t *proto)
+{
+    proto->addrlen = 6;
+    proto->socket = ip4_socket;
+    // proto->bind = ip4_tcp_bind;
+    // proto->connect = ip4_tcp_connect;
+    proto->send = ip4_socket_send;
+    proto->recv = ip4_socket_recv;
+    // proto->close = ip4_tcp_close;
+}
+
 

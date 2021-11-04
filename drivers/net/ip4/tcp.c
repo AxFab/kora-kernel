@@ -73,11 +73,12 @@ int tcp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offse
     length -= sizeof(tcp_header_t);
 
     uint16_t port = htons(header->dest_port);
-    socket_t *socket = ip4_lookfor_socket(skb->ifnet, port, true, NULL);
-    if (socket == NULL)
+    socket_t *sock = ip4_lookfor_socket(skb->ifnet, port, IP4_TCP, NULL);
+    if (sock == NULL)
         return -1;
 
-    // net_socket_push(socket, skb, length);
+    // TODO -- Add sock->data (length / offset / identifier / options)
+    net_socket_push(sock, skb);
     return -1;
 }
 

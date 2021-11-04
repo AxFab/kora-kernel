@@ -46,7 +46,8 @@ struct dns_header {
 
 #define DNS_CLASS_IN 0x0001 // Internet
 
-skb_t *dns_packet(ifnet_t* net, ip4_route_t* route, int length, uint16_t lport, dns_header_t** phead)
+/* Prepare a DNS packet */
+static skb_t *dns_packet(ifnet_t* net, ip4_route_t* route, int length, uint16_t lport, dns_header_t** phead)
 {
     length += sizeof(dns_header_t);
     skb_t* skb = net_packet(net);
@@ -62,7 +63,7 @@ skb_t *dns_packet(ifnet_t* net, ip4_route_t* route, int length, uint16_t lport, 
     return skb;
 }
 
-
+/* Send a basic DNS request */
 int dns_query_ip4(ifnet_t *net, const char *domain, uint16_t lport, uint16_t transac)
 {
     int len = strlen(domain); 

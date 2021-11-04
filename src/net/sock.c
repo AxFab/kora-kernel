@@ -30,6 +30,7 @@ static socket_t *net_socket_from(socket_t *model, skb_t *skb)
     socket_t *sock = kalloc(sizeof(socket_t));
     sock->stack = model->stack;
     sock->proto = model->proto;
+    sock->protocol = model->protocol;
     mtx_init(&sock->lock, mtx_plain);
     sem_init(&sock->rsem, 0);
     llist_init(&sock->lskb);
@@ -63,6 +64,7 @@ socket_t *net_socket(netstack_t *stack, int protocol, int method)
     socket_t *sock = kalloc(sizeof(socket_t));
     sock->stack = stack;
     sock->proto = proto;
+    sock->protocol = protocol;
     mtx_init(&sock->lock, mtx_plain);
     sem_init(&sock->rsem, 0);
     llist_init(&sock->lskb);

@@ -76,7 +76,7 @@ int lo_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv)
 
 
 /* Writes a loopback header on a tx packet */
-int lo_header(skb_t *skb, const uint8_t *addr, uint16_t protocol, uint16_t port)
+int lo_header(skb_t *skb, uint16_t protocol, uint16_t port)
 {
     net_log(skb, "lo");
     if (skb->ifnet->protocol != NET_AF_LO) {
@@ -105,6 +105,7 @@ int lo_receive(skb_t *skb)
     uint16_t port;
     net_skb_read(skb, &port, sizeof(uint16_t));
     net_skb_read(skb, &protocol, sizeof(uint16_t));
+    skb->addrlen = 0;
 
     netstack_t *stack = skb->ifnet->stack;
     net_recv_t recv = lo_receiver(stack, protocol);

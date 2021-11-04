@@ -27,6 +27,17 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/sem.h>
+#include <bits/cdefs.h>
+
+#define IOVLEN_MAX 64
+
+ // IO vector
+typedef struct iovec
+{
+    uint8_t *buf;
+    size_t len;
+} iovec_t;
+
 
 typedef struct netstack netstack_t;
 typedef struct net_ops net_ops_t;
@@ -37,7 +48,7 @@ typedef struct nproto nproto_t;
 typedef struct netmsg netmsg_t;
 typedef struct nhandler nhandler_t;
 
-typedef int (*net_recv_t)(skb_t *); // TODO -- should we remove this !
+typedef int (*net_recv_t)(skb_t *);
 
 #define NET_AF_EVT 0
 #define NET_AF_LO 1
@@ -50,14 +61,6 @@ typedef int (*net_recv_t)(skb_t *); // TODO -- should we remove this !
 #define NET_MAX_HWADRLEN 16
 #define NET_MAX_LOG 64
 #define NET_MAX_PROTONAME 8
-
-#define IOVLEN_MAX 64
-
-// IO vector
-typedef struct iovec {
-    uint8_t* buf;
-    size_t len;
-} iovec_t;
 
 
 // Network stack
@@ -110,12 +113,6 @@ struct ifnet {
     long tx_broadcast;
     long tx_errors;
     long tx_dropped;
-
-
-    // protocol info -- To remove !!!
-    void *ipv4;
-    void *dhcp;
-    void *icmp;
 };
 
 // Socket kernel buffer
@@ -128,7 +125,8 @@ struct skb {
     ifnet_t *ifnet;
     llnode_t node;
     char log[NET_MAX_LOG];
-    uint8_t addr[NET_MAX_HWADRLEN];
+    uint8_t addr[NET_MAX_HWADRLEN * 2];
+    unsigned addrlen;
     void *data;
     uint8_t buf[0];
 };
@@ -155,6 +153,7 @@ struct nproto {
 struct socket {
     netstack_t *stack;
     nproto_t * proto;
+    int protocol;
     uint8_t laddr[NET_MAX_HWADRLEN];
     uint8_t raddr[NET_MAX_HWADRLEN];
     mtx_t lock;
@@ -277,28 +276,25 @@ int net_socket_push(socket_t* sock, skb_t* skb);
 /* Registers a new protocol capable of using loopback */
 int lo_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv);
 /* Writes a loopback header on a tx packet */
-int lo_header(skb_t *skb, const uint8_t *addr, uint16_t protocol, uint16_t port);
+int lo_header(skb_t *skb, uint16_t protocol, uint16_t port);
 /* Entry point of the loopback module */
 int lo_setup(netstack_t *stack);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-#ifdef LITTLE_ENDIAN
-#define __swap16(w) ((uint16_t)((((w) & 0xFF00) >> 8) | (((w) & 0xFF) << 8)))
+#define __swap16(s) ((uint16_t)((((s) & 0xFF00) >> 8) | (((s) & 0xFF) << 8)))
 #define __swap32(l) ((uint32_t)((((l) & 0xFF000000) >> 24) | (((l) & 0xFF0000) >> 8) | (((l) & 0xFF00) << 8) | (((l) & 0xFF) << 24)))
 
-#define htons(w) __swap16(w)
-#define ntohs(w) __swap16(w)
-
-#define htonl(l) __swap32(l)
-#define ntohl(w) __swap32(l)
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+# define htons(s) __swap16(s)
+# define ntohs(s) __swap16(s)
+# define htonl(l) __swap32(l)
+# define ntohl(w) __swap32(l)
 #else
-#define htons(w) (w)
-#define ntohs(w) (w)
-
-#define htonl(l) (l)
-#define ntohl(w) (l)
-
+# define htons(s) (s)
+# define ntohs(s) (s)
+# define htonl(l) (l)
+# define ntohl(w) (l)
 #endif
 
 #endif /* _KORA_NET_H */

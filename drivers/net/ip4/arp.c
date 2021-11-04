@@ -37,48 +37,46 @@ PACK(struct arp_header {
     uint16_t opcode;
 });
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-int arp_packet(ifnet_t *net, const uint8_t *mac, const uint8_t *ip, int opcode)
+/* Send an ARP packet from local and provided parameters */
+static int arp_packet(ifnet_t *ifnet, const uint8_t *mac, const uint8_t *ip, int opcode)
 {
-    skb_t *skb = net_packet(net);
+    assert(ifnet != NULL && ifnet->stack != NULL && ifnet->proto != NULL);
+    if (ifnet->protocol != NET_AF_ETH)
+        return - 1;
+
+    skb_t *skb = net_packet(ifnet);
     if (unlikely(skb == NULL))
         return -1;
-    if (eth_header(skb, mac, ETH_ARP) != 0)
+    if (unlikely(eth_header(skb, mac, ETH_ARP) != 0))
         return net_skb_trash(skb);
 
     net_log(skb, ",arp");
     arp_header_t *header = net_skb_reserve(skb, sizeof(arp_header_t));
-    if (header == NULL) {
+    if (unlikely(header == NULL)) {
         net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
-    ip4_info_t *info = ip4_readinfo(skb->ifnet);
+    ip4_info_t *info = ip4_readinfo(ifnet);
+    assert(info != NULL);
     header->hardware = ARP_HW_ETH;
     header->protocol = ARP_PC_IP;
     header->hw_length = ETH_ALEN;
     header->pc_length = IP4_ALEN;
     header->opcode = opcode;
-    net_skb_write(skb, net->hwaddr, ETH_ALEN);
+    net_skb_write(skb, ifnet->hwaddr, ETH_ALEN);
     net_skb_write(skb, info->ip, IP4_ALEN);
     net_skb_write(skb, mac, ETH_ALEN);
     net_skb_write(skb, ip, IP4_ALEN);
-
     return net_skb_send(skb);
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-int arp_whois(ifnet_t *net, const uint8_t *ip)
-{
-    uint8_t broadcast[ETH_ALEN];
-    memset(broadcast, 0xff, ETH_ALEN);
-    return arp_packet(net, broadcast, ip, ARP_REQUEST);
-}
-
+/* Handle an ARP package, respond to request and save result of response */
 int arp_receive(skb_t *skb)
 {
+    assert(skb && skb->ifnet);
     net_log(skb, ",arp");
     arp_header_t *header = net_skb_reserve(skb, sizeof(arp_header_t));
     if (header == NULL) {
@@ -102,11 +100,24 @@ int arp_receive(skb_t *skb)
     net_skb_read(skb, target_ip, IP4_ALEN);
 
     ip4_info_t *info = ip4_readinfo(skb->ifnet);
+    assert(info);
     if (header->opcode == ARP_REQUEST && memcmp(info->ip, target_ip, IP4_ALEN) == 0)
         arp_packet(skb->ifnet, source_mac, source_ip, ARP_REPLY);
     else if (header->opcode == ARP_REPLY)
+        // TODO -- Check this is not unsollisited packet
+        // TODO -- Protect aggainst ARP poisonning
         ip4_route_add(skb->ifnet, source_ip, source_mac);
 
     kfree(skb);
     return 0;
+}
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+/* Send an ARP request to look for harware address of the following ip */
+int arp_whois(ifnet_t *net, const uint8_t *ip)
+{
+    uint8_t broadcast[ETH_ALEN];
+    memset(broadcast, 0xff, ETH_ALEN);
+    return arp_packet(net, broadcast, ip, ARP_REQUEST);
 }

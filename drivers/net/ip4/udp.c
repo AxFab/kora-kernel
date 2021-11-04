@@ -73,11 +73,12 @@ int udp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offse
     //if (port == IP4_PORT_NTP && info->use_ntp)
     //    return ntp_receive(skb, length);
 
-    socket_t *socket = ip4_lookfor_socket(skb->ifnet, port, false, NULL);
-    if (socket == NULL)
+    socket_t *sock = ip4_lookfor_socket(skb->ifnet, port, IP4_UDP, NULL);
+    if (sock == NULL)
         return -1;
-    return -1;
-    // net_socket_psuh(socket, skb, identifier, offset, length);
+
+    // TODO -- Add sock->data (length / offset / identifier / options)
+    return net_socket_push(sock, skb);
 }
 
 
