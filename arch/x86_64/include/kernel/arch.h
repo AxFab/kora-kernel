@@ -96,23 +96,23 @@ void mboot_memory();
 typedef struct regs regs_t;
 struct regs {
     uint16_t gs, unused_g;
-    uint16_t fs, unused_f;
-    uint16_t es, unused_e;
-    uint16_t ds, unused_d;
-    uint32_t edi;
-    uint32_t esi;
-    uint32_t ebp;
-    uint32_t tmp;
-    uint32_t ebx;
-    uint32_t edx;
-    uint32_t ecx;
-    uint32_t eax;
-    uint32_t eip;
-    uint16_t cs, unused_c;
-    uint32_t eflags;
-    /* ESP and SS are only pop on priviledge change  */
-    uint32_t esp;
-    uint32_t ss;
+    // uint16_t fs, unused_f;
+    // uint16_t es, unused_e;
+    // uint16_t ds, unused_d;
+    // uint32_t edi;
+    // uint32_t esi;
+    // uint32_t ebp;
+    // uint32_t tmp;
+    // uint32_t ebx;
+    // uint32_t edx;
+    // uint32_t ecx;
+    // uint32_t eax;
+    // uint32_t eip;
+    // uint16_t cs, unused_c;
+    // uint32_t eflags;
+    // /* ESP and SS are only pop on priviledge change  */
+    // uint32_t esp;
+    // uint32_t ss;
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
