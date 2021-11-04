@@ -19,11 +19,11 @@
  */
 #include "ip4.h"
 
-#define ARP_HW_ETH htonw(1)
-#define ARP_PC_IP htonw(0x0800)
+#define ARP_HW_ETH htons(1)
+#define ARP_PC_IP htons(0x0800)
 
-#define ARP_REQUEST htonw(1)
-#define ARP_REPLY htonw(2)
+#define ARP_REQUEST htons(1)
+#define ARP_REPLY htons(2)
 
 #define ARP_TIMEOUT 10
 
@@ -47,10 +47,10 @@ int arp_packet(ifnet_t *net, const uint8_t *mac, const uint8_t *ip, int opcode)
     if (eth_header(skb, mac, ETH_ARP) != 0)
         return net_skb_trash(skb);
 
-    net_skb_log(skb, ",arp");
+    net_log(skb, ",arp");
     arp_header_t *header = net_skb_reserve(skb, sizeof(arp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
@@ -79,16 +79,16 @@ int arp_whois(ifnet_t *net, const uint8_t *ip)
 
 int arp_receive(skb_t *skb)
 {
-    net_skb_log(skb, ",arp");
+    net_log(skb, ",arp");
     arp_header_t *header = net_skb_reserve(skb, sizeof(arp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
     if (header->hardware != ARP_HW_ETH || header->protocol != ARP_PC_IP
         || header->hw_length != ETH_ALEN || header->pc_length != IP4_ALEN) {
-        net_skb_log(skb, ":Unsupported format");
+        net_log(skb, ":Unsupported format");
         return -1;
     }
 

@@ -71,10 +71,10 @@ int icmp_packet(ifnet_t *net, ip4_route_t *route, int type, int code, uint32_t d
     if (ip4_header(skb, route, IP4_ICMP, len + sizeof(icmp_header_t), 0, 0) != 0)
         return net_skb_trash(skb);
 
-    net_skb_log(skb, ",icmp");
+    net_log(skb, ",icmp");
     icmp_header_t *header = net_skb_reserve(skb, sizeof(icmp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
@@ -89,7 +89,7 @@ int icmp_packet(ifnet_t *net, ip4_route_t *route, int type, int code, uint32_t d
 }
 
 
-icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, int len)
+icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, unsigned len)
 {
     uint16_t id = rand16();
     short seq = 1;
@@ -122,12 +122,12 @@ icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, int len)
     return NULL;
 }
 
-int icmp_receive(skb_t *skb, int length)
+int icmp_receive(skb_t *skb, unsigned length)
 {
-    net_skb_log(skb, ",icmp");
+    net_log(skb, ",icmp");
     icmp_header_t *header = net_skb_reserve(skb, sizeof(icmp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 

@@ -50,10 +50,12 @@ skb_t *dns_packet(ifnet_t* net, ip4_route_t* route, int length, uint16_t lport, 
 {
     length += sizeof(dns_header_t);
     skb_t* skb = net_packet(net);
-    if (udp_header(skb, route, length, IP4_PORT_DNS_SRV, lport, 0, 0) != 0)
-        return net_skb_trash(skb);
+    if (udp_header(skb, route, length, IP4_PORT_DNS_SRV, lport, 0, 0) != 0) {
+        net_skb_trash(skb);
+        return NULL;
+    }
 
-    net_skb_log(skb, ",dns");
+    net_log(skb, ",dns");
     dns_header_t *head = net_skb_reserve(skb, sizeof(dns_header_t));
     memset(head, 0, sizeof(dns_header_t));
     *phead = head;
@@ -76,11 +78,11 @@ int dns_query_ip4(ifnet_t *net, const char *domain, uint16_t lport, uint16_t tra
     head->qdcount = 1;
 
     uint8_t l;
-    l = strlen(domain);
+    l = (uint8_t)strlen(domain);
     net_skb_write(skb, &l, 1);
     net_skb_write(skb, domain, l);
 
-    l = strlen(domain);
+    l = (uint8_t)strlen(domain);
     net_skb_write(skb, &l, 1);
     net_skb_write(skb, domain, l);
 

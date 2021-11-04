@@ -33,21 +33,21 @@ PACK(struct tcp_header {
 });
 
 
-int tcp_header(skb_t *skb, ip4_route_t *route, int length, int port, int src, uint16_t identifier, uint16_t offset)
+int tcp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, uint16_t lport, uint16_t identifier, uint16_t offset)
 {
     if (ip4_header(skb, route, IP4_TCP, length + sizeof(tcp_header_t), identifier, offset) != 0)
         return -1;
 
-    net_skb_log(skb, ",tcp");
+    net_log(skb, ",tcp");
     tcp_header_t *header = net_skb_reserve(skb, sizeof(tcp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
     memset(header, 0, sizeof(tcp_header_t));
-    header->src_port = htonw(src);
-    header->dest_port = htonw(port);
+    header->src_port = htons(lport);
+    header->dest_port = htons(rport);
     //header->seq_no = seq;
     //header->ack_no = ack;
     //header->flags = flags;
@@ -60,19 +60,19 @@ int tcp_header(skb_t *skb, ip4_route_t *route, int length, int port, int src, ui
 }
 
 
-int tcp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset)
+int tcp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offset)
 {
-    net_skb_log(skb, ",tcp");
+    net_log(skb, ",tcp");
     tcp_header_t *header = net_skb_reserve(skb, sizeof(tcp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
     // TODO - ip options
     length -= sizeof(tcp_header_t);
 
-    uint16_t port = htonw(header->dest_port);
+    uint16_t port = htons(header->dest_port);
     socket_t *socket = ip4_lookfor_socket(skb->ifnet, port, true, NULL);
     if (socket == NULL)
         return -1;
@@ -82,7 +82,7 @@ int tcp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset)
 }
 
 
-long tcp_socket_send(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, int flags)
+long tcp_socket_send(socket_t* sock, const uint8_t* addr, const uint8_t* buf, size_t len, int flags)
 {
     return -1;
 }

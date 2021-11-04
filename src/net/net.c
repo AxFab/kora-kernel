@@ -17,36 +17,18 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifdef _WIN32
-#include <threads.h>
-#endif
 #include <kernel/net.h>
 #include <kernel/core.h>
+#include <assert.h>
 
-void net_event(ifnet_t* net, int event, int param)
+/* Dispatch an event to registered listener (see net_handler) */
+static void net_handle_event(skb_t *skb)
 {
     int len = 2 * sizeof(int);
-    skb_t* skb = kalloc(sizeof(skb_t) + len);
-    skb->ifnet = net;
-    skb->size = len;
-    skb->protocol = NET_AF_EVT;
-    int* ptr = net_skb_reserve(skb, len);
-    skb->pen = 0;
-    ptr[0] = event;
-    ptr[1] = param;
-
-    netstack_t* stack = net->stack;
-    splock_lock(&stack->rx_lock);
-    ll_enqueue(&stack->rx_list, &skb->node);
-    splock_unlock(&stack->rx_lock);
-    sem_release(&stack->rx_sem);
-}
-
-void net_handle_event(skb_t* skb)
-{
-    int len = 2 * sizeof(int);
-    netstack_t* stack = skb->ifnet->stack;
-    int* ptr = net_skb_reserve(skb, len);
+    assert(skb && skb->ifnet && skb->ifnet->stack); // Handling of corrupted event packet
+    netstack_t *stack = skb->ifnet->stack;
+    int *ptr = net_skb_reserve(skb, len);
+    assert(skb->err == 0); // Unable to read an event packet
     splock_lock(&stack->lock);
     nhandler_t *hnode = ll_first(&stack->handlers, nhandler_t, node);
     splock_unlock(&stack->lock);
@@ -59,113 +41,78 @@ void net_handle_event(skb_t* skb)
     kfree(skb);
 }
 
-void net_handler(netstack_t* stack, void(*handler)(ifnet_t *, int, int))
+/* Push an event on an interface device (connected/disconnected) */
+int net_event(ifnet_t *net, int event, int param)
 {
-    nhandler_t* hnode = kalloc(sizeof(nhandler_t));
+    // TODO -- If paranoid, should check network is registered
+    if (net == NULL)
+        return -1;
+    assert(net->stack != NULL);
+    int len = 2 * sizeof(int);
+    skb_t *skb = kalloc(sizeof(skb_t) + len);
+    skb->ifnet = net;
+    skb->size = len;
+    skb->protocol = NET_AF_EVT;
+    int *ptr = net_skb_reserve(skb, len);
+    if (ptr == NULL)
+        return net_skb_trash(skb);
+    skb->pen = 0; // Rewind for reading
+    ptr[0] = event;
+    ptr[1] = param;
+
+    // Push on receiving list, don't count as `rx_packets`
+    netstack_t *stack = net->stack;
+    splock_lock(&stack->rx_lock);
+    ll_enqueue(&stack->rx_list, &skb->node);
+    splock_unlock(&stack->rx_lock);
+    sem_release(&stack->rx_sem);
+    return 0;
+}
+
+/* Register an handler to listen to network interface events */
+void net_handler(netstack_t *stack, void(*handler)(ifnet_t *, int, int))
+{
+    assert(stack != NULL);
+    if (handler == NULL)
+        return;
+    nhandler_t *hnode = kalloc(sizeof(nhandler_t));
     hnode->handler = handler;
     splock_lock(&stack->lock);
     ll_append(&stack->handlers, &hnode->node);
     splock_unlock(&stack->lock);
 }
 
-
-nproto_t *net_protocol(netstack_t* stack, int protocol)
+/* Search of a protocol registered on the network stack */
+nproto_t *net_protocol(netstack_t *stack, int protocol)
 {
+    assert(stack != NULL);
     splock_lock(&stack->lock);
-    nproto_t* proto = bbtree_search_eq(&stack->protocols, protocol, nproto_t, bnode);
+    nproto_t *proto = bbtree_search_eq(&stack->protocols, protocol, nproto_t, bnode);
     splock_unlock(&stack->lock);
     return proto;
 }
 
-void net_set_protocol(netstack_t* stack, int protocol, nproto_t* proto)
+/* Register a new protocol on the stack */
+void net_set_protocol(netstack_t *stack, int protocol, nproto_t *proto)
 {
+    assert(stack != NULL);
+    if (proto == NULL)
+        return;
     splock_lock(&stack->lock);
     proto->bnode.value_ = protocol;
     bbtree_insert(&stack->protocols, &proto->bnode);
     splock_unlock(&stack->lock);
+    kprintf(-1, "New protocol for %s: %d (%s)\n", stack->hostname, protocol, proto->name);
 }
 
-void net_deamon(netstack_t *stack)
-{
-#ifdef _WIN32
-    char buf[128];
-    wchar_t wbuf[128];
-    snprintf(buf, 128, "Deamon-%s", stack->hostname);
-    size_t len;
-    mbstowcs_s(&len, wbuf, 128, buf, 128);
-    SetThreadDescription(GetCurrentThread(), wbuf);
-#endif
-
-    for (;;) {
-        skb_t *skb;
-
-        sem_acquire(&stack->rx_sem);
-
-        // Look for incoming packet
-        splock_lock(&stack->rx_lock);
-        skb = ll_dequeue(&stack->rx_list, skb_t, node);
-        splock_unlock(&stack->rx_lock);
-        if (skb == NULL)
-            continue;
-
-        if (skb->protocol == NET_AF_EVT) {
-            net_handle_event(skb);
-            continue;
-        }
-
-        skb->ifnet->rx_packets++;
-        kprintf(-1, "Rx %s:%d\n", skb->ifnet->stack->hostname, skb->ifnet->idx);
-        // kdump(skb->buf, skb->length);
-
-        splock_lock(&stack->lock);
-        nproto_t* proto = bbtree_search_eq(&stack->protocols, skb->protocol, nproto_t, bnode);
-        splock_unlock(&stack->lock);
-
-        if (proto == NULL || proto->receive == NULL || proto->receive(skb) != 0)  {
-            skb->ifnet->rx_dropped++;
-            kfree(skb);
-        }
-    }
-}
-
-ifnet_t *net_alloc(netstack_t *stack, int protocol, uint8_t *hwaddr, net_ops_t *ops, void *driver)
-{
-    int hwlen = 0;
-    char buf[50];
-    int uid = atomic_xadd(&stack->idMax, 1);
-    if (protocol == NET_AF_LBK) {
-        kprintf(-1, "New endpoint \033[35m%s:lo:%i\033[0m\n", stack->hostname, uid);
-    } else if (protocol == NET_AF_ETH) {
-        hwlen = ETH_ALEN;
-        eth_writemac(hwaddr, buf, 50);
-        kprintf(-1, "New endpoint \033[35m%s:eth:%i (MAC %s)\033[0m\n", stack->hostname, uid, buf);
-    } else {
-        kprintf(-1, "\033[31mUnable to allocate network interface: unknown protocol %d\033[0m\n", protocol);
-        return NULL;
-    }
-
-    ifnet_t *net = kalloc(sizeof(ifnet_t));
-    net->protocol = protocol;
-    net->mtu = 1500;
-    if (hwlen != 0)
-        memcpy(net->hwaddr, hwaddr, ETH_ALEN);
-
-    splock_lock(&stack->lock);
-    net->idx = uid;
-    net->stack = stack;
-    net->ops = ops;
-    net->drv_data = driver;
-    ll_append(&stack->list, &net->node);
-    splock_unlock(&stack->lock);
-
-    return net;
-}
-
+/* Search for an network interface */
 ifnet_t *net_interface(netstack_t *stack, int protocol, int idx)
 {
     ifnet_t *net;
+    assert(stack != NULL);
     splock_lock(&stack->lock);
-    for ll_each(&stack->list, net, ifnet_t, node) {
+    for ll_each(&stack->list, net, ifnet_t, node)
+    {
         if (net->protocol == protocol && net->idx == idx) {
             splock_unlock(&stack->lock);
             return net;
@@ -175,7 +122,55 @@ ifnet_t *net_interface(netstack_t *stack, int protocol, int idx)
     return NULL;
 }
 
-netstack_t *net_setup()
+/* Register a new network interface */
+ifnet_t *net_device(netstack_t *stack, int protocol, uint8_t *hwaddr, net_ops_t *ops, void *driver)
+{
+    char buf[64];
+    assert(stack != NULL);
+    nproto_t *proto = net_protocol(stack, protocol);
+    int hwlen = proto->addrlen;
+    if (proto == NULL) {
+        kprintf(-1, "\033[31mUnsupported protocol %d\033[0m\n", protocol);
+        return NULL;
+    } else if (proto->receive == NULL || proto->addrlen > NET_MAX_HWADRLEN) {
+        kprintf(-1, "\033[31mProtocol is not capable to receive packet%d\033[0m\n", protocol);
+        return NULL;
+    } else if (ops == NULL || ops->send == NULL) {
+        kprintf(-1, "\033[31mNetwork device doesn't provide `send` operation method%d\033[0m\n");
+        return NULL;
+    } else if (hwlen != 0 && hwaddr == NULL) {
+        kprintf(-1, "Missing address to register device with this protocol %d\n", protocol);
+        return NULL;
+    }
+
+    // Allocate the new interface
+    int uid = atomic_xadd(&stack->id_max, 1);
+    ifnet_t *net = kalloc(sizeof(ifnet_t));
+    net->protocol = protocol;
+    net->mtu = 1500;
+    net->idx = uid;
+    net->stack = stack;
+    net->ops = ops;
+    net->drv_data = driver;
+    net->proto = proto;
+    if (hwlen != 0)
+        memcpy(net->hwaddr, hwaddr, hwlen);
+
+    // Register the new interface
+    splock_lock(&stack->lock);
+    ll_append(&stack->list, &net->node);
+    splock_unlock(&stack->lock);
+
+    // Log the creation of the new interface
+    // TODO -- Name and address display must be provided on `nproto_t`
+    kprintf(-1, "New endpoint \033[35m%s:%s:%i (%s)\033[0m\n", stack->hostname, proto->name, uid, proto->paddr(hwaddr, buf, 64));
+    return net;
+}
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+/* Create the network stack (non static only for testing) */
+netstack_t *net_create_stack()
 {
     netstack_t *stack = kalloc(sizeof(netstack_t));
     sem_init(&stack->rx_sem, 0);
@@ -185,27 +180,64 @@ netstack_t *net_setup()
     return stack;
 }
 
+/* Deamon thread to watch over incoming package and other
+   device events (non static only for testing) */
+void net_deamon(netstack_t *stack)
+{
+    for (;;) {
+        // Wait for some new content
+        sem_acquire(&stack->rx_sem);
 
-#ifdef KORA_KRN
+        // Look for incoming packet
+        splock_lock(&stack->rx_lock);
+        skb_t *skb = ll_dequeue(&stack->rx_list, skb_t, node);
+        splock_unlock(&stack->rx_lock);
+        if (skb == NULL)
+            continue;
+
+        // Special handling of device events
+        if (skb->protocol == NET_AF_EVT) {
+            net_handle_event(skb);
+            continue;
+        }
+
+        // Transfer to handler protocol
+        assert(skb->ifnet != NULL);
+        nproto_t *proto = skb->ifnet->proto;
+        assert(proto != NULL && proto->receive != NULL);
+        kprintf(-1, "Rx %s:%s%d\n", skb->ifnet->stack->hostname, proto->name, skb->ifnet->idx);
+        if (proto->receive(skb) != 0) {
+            skb->ifnet->rx_dropped++;
+            kfree(skb);
+        }
+    }
+}
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 netstack_t *__netstack;
 extern net_ops_t loopback_ops;
 
-void net_init()
+/* Accessor for the kernel network stack */
+netstack_t *net_stack()
 {
-    __netstack = net_setup();
-    __netstack->hostname = strdup("vmdev");
-    net_alloc(__netstack, NET_AF_LBK, NULL, &loopback_ops, NULL);
-
-    task_start("Network stack deamon", net_deamon, __netstack);
-}
-
-netstack_t* net_stack()
-{
+    assert(__netstack != NULL);
     return __netstack;
 }
 
-EXPORT_SYMBOL(net_stack, 0);
-#endif
+/* Setup of the kernel network stack */
+void net_setup()
+{
+    __netstack = net_create_stack();
+    __netstack->hostname = strdup("vmdev");
+    lo_setup(__netstack);
+    task_start("Network stack deamon", net_deamon, __netstack);
+}
 
-EXPORT_SYMBOL(net_alloc, 0);
+EXPORT_SYMBOL(net_event, 0);
+EXPORT_SYMBOL(net_handler, 0);
+EXPORT_SYMBOL(net_protocol, 0);
+EXPORT_SYMBOL(net_set_protocol, 0);
 EXPORT_SYMBOL(net_interface, 0);
+EXPORT_SYMBOL(net_device, 0);
+EXPORT_SYMBOL(net_stack, 0);

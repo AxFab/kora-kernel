@@ -347,7 +347,7 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     /* initialize */
     PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
 
-    ifnet_t *net = net_alloc(net_stack(), NET_AF_ETH, hwaddr, &e1000_ops, ifnet);
+    ifnet_t *net = net_device(net_stack(), NET_AF_ETH, hwaddr, &e1000_ops, ifnet);
     net->mtu = 1500;
     if (net != NULL)
         irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);

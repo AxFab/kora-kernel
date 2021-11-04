@@ -208,15 +208,12 @@ socket_t *ip4_lookfor_socket(ifnet_t *net, uint16_t port, bool stream, const uin
 
 int ip4_setup()
 {
-    int ret = 0;
-#ifdef KORA_KRN
-    ret = ip4_start(net_stack());
-#endif
-    return ret;
+    return ip4_start(net_stack());
 }
 
 int ip4_teardown()
 {
+    return -1;
 }
 
 EXPORT_MODULE(ip4, ip4_setup, ip4_teardown);

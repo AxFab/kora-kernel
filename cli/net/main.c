@@ -24,19 +24,17 @@
 #include <kernel/net.h>
 #include <math.h>
 
-void ip4_checkup(ifnet_t* net);
+#define ETH_ALEN 6
+
 void ip4_config(ifnet_t* net, const char* str);
 void ip4_start(netstack_t* stack);
 int ip4_readip(uint8_t* ip, const char* str);
 
 typedef struct ip4_route ip4_route_t;
 typedef struct icmp_ping icmp_ping_t;
-icmp_ping_t *icmp_ping(ip4_route_t* route, const char* buf, int len);
+icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, unsigned len);
 ip4_route_t* ip4_route(netstack_t* stack, const uint8_t* ip);
 
-netstack_t* net_setup();
-void net_deamon(netstack_t* stack);
-ifnet_t* net_interface(netstack_t* stack, int protocol, int idx);
 
 // ======================================================
 
@@ -92,16 +90,30 @@ void fakeEth_setup(netstack_t* stack)
     for (int i = 1; i < 6; ++i)
         hwaddr[i] = rand();
     
-    ifnet_t* net = net_alloc(stack, NET_AF_ETH, hwaddr, &fakeEth_ops, NULL);
+    ifnet_t* net = net_device(stack, NET_AF_ETH, hwaddr, &fakeEth_ops, NULL);
     net->mtu = 1500;
 }
 
 // ======================================================
 
+static void fakeLan_deamon(netstack_t* stack)
+{
+#ifdef _WIN32
+    char buf[128];
+    wchar_t wbuf[128];
+    snprintf(buf, 128, "Deamon-%s", stack->hostname);
+    size_t len;
+    mbstowcs_s(&len, wbuf, 128, buf, 128);
+    SetThreadDescription(GetCurrentThread(), wbuf);
+#endif
+
+    net_deamon(stack);
+}
+
 netstack_t* fakeLan_node(const char* name, int ports)
 {
     // Create a NETWORK STACK instance
-    netstack_t* stack = net_setup();
+    netstack_t* stack = net_create_stack();
     stack->hostname = strdup(name);
     eth_setup(stack);
     ip4_start(stack);
@@ -112,7 +124,7 @@ netstack_t* fakeLan_node(const char* name, int ports)
     }
 
     thrd_t netThrd;
-    thrd_create(&netThrd, net_deamon, stack);
+    thrd_create(&netThrd, fakeLan_deamon, stack);
     return stack;
 }
 
@@ -183,7 +195,7 @@ int test_service()
 
 
     // Alice open a IP4/UDP socket
-    socket_t *alice_srv = net_socket(ndAlice, NET_AF_UDP);
+    socket_t *alice_srv = net_socket(ndAlice, NET_AF_UDP, 0);
     if (alice_srv == NULL)
         return -1;
 
@@ -197,15 +209,15 @@ int test_service()
     net_socket_accept(alice_srv, false);
 
     // Bob open a IP4/UDP socket
-    socket_t* bob_cnx = net_socket(ndBob, NET_AF_UDP);
+    socket_t* bob_cnx = net_socket(ndBob, NET_AF_UDP, 0);
 
     // Bob connect to UDP port 7003 on 192.168.0.1
     ipaddr[0] = 192;
     ipaddr[1] = 168;
     ipaddr[2] = 0;
     ipaddr[3] = 1;
-    ipaddr[4] = htonw(7003) >> 8;
-    ipaddr[5] = htonw(7003) & 0xff;
+    ipaddr[4] = htons(7003) >> 8;
+    ipaddr[5] = htons(7003) & 0xff;
     net_socket_connect(bob_cnx, ipaddr, 6);
 
     // Check Alice have a connection (TCP)

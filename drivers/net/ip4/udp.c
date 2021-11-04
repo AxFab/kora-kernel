@@ -29,21 +29,21 @@ PACK(struct udp_header {
 });
 
 
-int udp_header(skb_t *skb, ip4_route_t *route, int length, int rport, int lport, uint16_t identifier, uint16_t offset)
+int udp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, uint16_t lport, uint16_t identifier, uint16_t offset)
 {
     if (ip4_header(skb, route, IP4_UDP, length + sizeof(udp_header_t), identifier, offset) != 0)
         return -1;
 
-    net_skb_log(skb, ",udp");
+    net_log(skb, ",udp");
     udp_header_t *header = net_skb_reserve(skb, sizeof(udp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
-    header->src_port = htonw(lport);
-    header->dest_port = htonw(rport);
-    header->length = htonw(length + sizeof(udp_header_t));
+    header->src_port = htons(lport);
+    header->dest_port = htons(rport);
+    header->length = htons(length + sizeof(udp_header_t));
     header->checksum = 0;
     header->checksum = ip4_checksum((uint16_t *)skb->buf, sizeof(udp_header_t) + 8);
     // TODO - ip options
@@ -51,21 +51,21 @@ int udp_header(skb_t *skb, ip4_route_t *route, int length, int rport, int lport,
 }
 
 
-int udp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset)
+int udp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offset)
 {
-    net_skb_log(skb, ",udp");
+    net_log(skb, ",udp");
     udp_header_t *header = net_skb_reserve(skb, sizeof(udp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
     // TODO - ip options
-    if (length != htonw(header->length))
+    if (length != htons(header->length))
         return -1;
     length -= sizeof(udp_header_t);
 
-    uint16_t port = htonw(header->dest_port);
+    uint16_t port = htons(header->dest_port);
     ip4_info_t *info = ip4_readinfo(skb->ifnet);
 
     if ((port == IP4_PORT_DHCP || port == IP4_PORT_DHCP_SRV) && info->use_dhcp)
@@ -81,7 +81,7 @@ int udp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset)
 }
 
 
-long udp_socket_send(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, int flags)
+long udp_socket_send(socket_t* sock, const uint8_t* addr, const uint8_t* buf, size_t len, int flags)
 {
     // First find a ip4 route !
     // Check if we already have a port -- if not take ephemeral UDP port !
@@ -89,9 +89,9 @@ long udp_socket_send(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, in
     ip4_route_t* route = ip4_route(sock->stack, addr);
     uint16_t ip_id = 0;
     uint16_t lport = 0;
-    uint16_t rport = ntohw((addr[4] << 8) | (addr[5]));
+    uint16_t rport = ntohs((addr[4] << 8) | (addr[5]));
 
-    int packsize = 1500 - (14 + 20 + 8 + 8); // route->head_size;
+    unsigned packsize = 1500 - (14 + 20 + 8 + 8); // route->head_size;
     int count = len / packsize;
     int rem = len % packsize;
     while (rem > 0 && rem < count) {
@@ -105,7 +105,7 @@ long udp_socket_send(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, in
 
     uint16_t off = 0;
     while (len > 0) {
-        int pack = MIN(packsize, len);
+        unsigned pack = MIN(packsize, len);
         skb_t* skb = net_packet(route->net);
         if (udp_header(skb, route, pack, rport, lport, ip_id, off) != 0)
             return net_skb_trash(skb);

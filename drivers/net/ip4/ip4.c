@@ -37,17 +37,18 @@ PACK(struct ip4_header {
     uint8_t target[IP4_ALEN];
 });
 
-uint16_t ip4_checksum(uint16_t *ptr, int len)
+uint16_t ip4_checksum(uint16_t *ptr, unsigned len)
 {
+    // TODO -- Do checksum the right way!
     int i, sum = 0;
     for (i = -(int)(len / 2); i < 0; ++i)
-        sum += ntohw(ptr[i]);
+        sum += ntohs(ptr[i]);
     if (sum > 0xFFFF)
         sum = (sum >> 16) + (sum & 0xFFFF);
-    return htonw(~(sum & 0xFFFF) & 0xFFFF);
+    return htons(~(sum & 0xFFFF) & 0xFFFF);
 }
 
-int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, int length, uint16_t identifier, uint16_t offset)
+int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, unsigned length, uint16_t identifier, uint16_t offset)
 {
     switch (route->net->protocol) {
     case NET_AF_ETH:
@@ -55,15 +56,15 @@ int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, int length, uint16_
             return -1;
         break;
     default:
-        net_skb_log(skb, "ipv4:Unknown protocol");
+        net_log(skb, "ipv4:Unknown protocol");
         return -1;
     }
 
-    net_skb_log(skb, ",ipv4");
+    net_log(skb, ",ipv4");
     ip4_info_t *info = ip4_readinfo(skb->ifnet);
     ip4_header_t *header = net_skb_reserve(skb, sizeof(ip4_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
@@ -71,7 +72,7 @@ int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, int length, uint16_
     header->version = 4; // Ipv4
     header->header_length = 5; // No option
     header->service_type = 0; // No features
-    header->length = htonw(sizeof(ip4_header_t) + length);
+    header->length = htons(sizeof(ip4_header_t) + length);
     header->identifier = identifier;
     header->offset = offset;
     header->ttl = route->ttl;
@@ -86,21 +87,21 @@ int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, int length, uint16_
 
 int ip4_receive(skb_t *skb)
 {
-    net_skb_log(skb, ",ipv4");
+    net_log(skb, ",ipv4");
     ip4_info_t *info = ip4_readinfo(skb->ifnet);
     ip4_header_t *header = net_skb_reserve(skb, sizeof(ip4_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
     uint16_t checksum = header->checksum;
-    uint16_t length = htonw(header->length) - sizeof(ip4_header_t);
+    uint16_t length = htons(header->length) - sizeof(ip4_header_t);
     header->checksum = 0;
 
     header->checksum = ip4_checksum((uint16_t *)header, sizeof(ip4_header_t));
     if (checksum != header->checksum) {
-        net_skb_log(skb, ":Bad checksum");
+        net_log(skb, ":Bad checksum");
         return -1;
     }
 
@@ -115,7 +116,7 @@ int ip4_receive(skb_t *skb)
     case IP4_ICMP:
         return icmp_receive(skb, length);
     default:
-        net_skb_log(skb, ":Unknown protocol");
+        net_log(skb, ":Unknown protocol");
         return -1;
     }
 }

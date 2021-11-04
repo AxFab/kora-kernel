@@ -281,10 +281,10 @@ int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode, dhcp_l
     if (udp_header(skb, route, packet_length, IP4_PORT_DHCP_SRV, IP4_PORT_DHCP, 0, 0) != 0)
         return net_skb_trash(skb);
 
-    net_skb_log(skb, ",dhcp");
+    net_log(skb, ",dhcp");
     dhcp_header_t *header = net_skb_reserve(skb, sizeof(dhcp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
@@ -460,10 +460,10 @@ int dhcp_discovery(ifnet_t *net)
 
 int dhcp_receive(skb_t *skb, int length)
 {
-    net_skb_log(skb, ",dhcp");
+    net_log(skb, ",dhcp");
     dhcp_header_t *header = net_skb_reserve(skb, sizeof(dhcp_header_t));
     if (header == NULL) {
-        net_skb_log(skb, ":Unexpected end of data");
+        net_log(skb, ":Unexpected end of data");
         return -1;
     }
 
@@ -472,7 +472,7 @@ int dhcp_receive(skb_t *skb, int length)
 
     ip4_info_t *ip4 = ip4_readinfo(skb->ifnet);
     if (header->opcode == BOOT_REQUEST && !ip4->use_dhcp_server) {
-        net_skb_log(skb, ":No server");
+        net_log(skb, ":No server");
         return -1;
     }
 

@@ -24,8 +24,10 @@
 /* Create a new tx packet */
 skb_t *net_packet(ifnet_t *net)
 {
+    if (net == NULL)
+        return NULL;
     int len = MAX(1500, net->mtu);
-    skb_t *skb = (skb_t *)kalloc(sizeof(skb_t) + len);
+    skb_t *skb = kalloc(sizeof(skb_t) + len);
     skb->ifnet = net;
     skb->size = len;
     return skb;
@@ -34,7 +36,9 @@ skb_t *net_packet(ifnet_t *net)
 /* Create a new rx packet and push it into received queue */
 void net_skb_recv(ifnet_t *net, uint8_t *buf, unsigned len)
 {
-    skb_t *skb = (skb_t *)kalloc(sizeof(skb_t) + len);
+    assert(net != NULL && net->stack != NULL && buf != NULL);
+    netstack_t *stack = net->stack;
+    skb_t *skb = kalloc(sizeof(skb_t) + len);
     skb->size = len;
     skb->ifnet = net;
     memcpy(skb->buf, buf, len);
@@ -43,8 +47,7 @@ void net_skb_recv(ifnet_t *net, uint8_t *buf, unsigned len)
     net->rx_packets++;
     net->rx_bytes += len;
 
-    /* Push on packets queue */
-    netstack_t *stack = net->stack;
+    // Push on packets queue
     splock_lock(&stack->rx_lock);
     ll_enqueue(&stack->rx_list, &skb->node);
     splock_unlock(&stack->rx_lock);
@@ -54,6 +57,8 @@ void net_skb_recv(ifnet_t *net, uint8_t *buf, unsigned len)
 /* Send a tx packet to the network card */
 int net_skb_send(skb_t *skb)
 {
+    assert(skb && skb->ifnet);
+    assert(skb->ifnet->ops && skb->ifnet->ops->send);
     if (skb->err)
         return net_skb_trash(skb);
     skb->ifnet->tx_packets++;
@@ -69,6 +74,8 @@ int net_skb_send(skb_t *skb)
 /* Trash a faulty tx packet */
 int net_skb_trash(skb_t *skb)
 {
+    assert(skb && skb->ifnet);
+    assert(skb->data == NULL);
     kprintf(-1, "Error on packet %s \n", skb->log);
     skb->ifnet->tx_packets++;
     skb->ifnet->tx_dropped++;
@@ -79,6 +86,7 @@ int net_skb_trash(skb_t *skb)
 /* Read data from a packet */
 int net_skb_read(skb_t *skb, void *buf, unsigned len)
 {
+    assert(skb && skb->ifnet);
     if (skb->err)
         return -1;
     if (skb->length < skb->pen + len) {
@@ -94,6 +102,7 @@ int net_skb_read(skb_t *skb, void *buf, unsigned len)
 /* Write data on a packet */
 int net_skb_write(skb_t *skb, const void *buf, unsigned len)
 {
+    assert(skb && skb->ifnet);
     if (skb->err)
         return -1;
     if (skb->pen + len > skb->ifnet->mtu) {
@@ -112,6 +121,7 @@ int net_skb_write(skb_t *skb, const void *buf, unsigned len)
 /* Get pointer on data from a packet and move cursor */
 void *net_skb_reserve(skb_t *skb, unsigned len)
 {
+    assert(skb && skb->ifnet);
     if (skb->err)
         return NULL;
     if (skb->pen + len > skb->size) {

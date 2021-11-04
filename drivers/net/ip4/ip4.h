@@ -25,8 +25,22 @@
 #include <kora/llist.h>
 #include <bits/cdefs.h>
 #include <kernel/net.h>
+#include <kernel/stdc.h>
 #include <kora/hmap.h>
 #include <kora/mcrs.h>
+
+
+ // Ethernet
+#define ETH_ALEN 6
+#define ETH_IP4 htons(0x0800)
+#define ETH_IP6 htons(0x86DD)
+#define ETH_ARP htons(0x0806)
+char *eth_writemac(const uint8_t *mac, char *buf, int len);
+int eth_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv);
+int eth_header(skb_t *skb, const uint8_t *addr, uint16_t protocol);
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 #define IP4_ALEN 4
 
@@ -37,30 +51,34 @@
 #define IP4_PORT_DHCP 67
 #define IP4_PORT_DHCP_SRV 68
 
+typedef struct ip4_master ip4_master_t;
+typedef struct ipv4_info ip4_info_t;
+typedef struct dhcp_info dhcp_info_t;
+typedef struct icmp_info icmp_info_t;
 
 typedef struct ip4_route ip4_route_t;
 typedef struct ip4_port ip4_port_t;
 typedef struct icmp_ping icmp_ping_t;
 
 // IPv4
-int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, int length, uint16_t identifier, uint16_t offset);
+int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, unsigned length, uint16_t identifier, uint16_t offset);
 int ip4_receive(skb_t *skb);
-uint16_t ip4_checksum(uint16_t *ptr, int len);
+uint16_t ip4_checksum(uint16_t *ptr, unsigned len);
 
 // TCP
-int tcp_header(skb_t *skb, ip4_route_t *route, int length, int port, int src, uint16_t identifier, uint16_t offset);
-int tcp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset);
+int tcp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, uint16_t lport, uint16_t identifier, uint16_t offset);
+int tcp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offset);
 void tcp_proto(nproto_t* proto);
 
 // UDP
-int udp_header(skb_t *skb, ip4_route_t *route, int length, int port, int src, uint16_t identifier, uint16_t offset);
-int udp_receive(skb_t *skb, int length, uint16_t identifier, uint16_t offset);
+int udp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, uint16_t lport, uint16_t identifier, uint16_t offset);
+int udp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offset);
 void udp_proto(nproto_t* proto);
 // skb_t* udp_packet(ifnet_t* net);
 
 // ICMP
-int icmp_receive(skb_t *skb, int length);
-icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, int len);
+int icmp_receive(skb_t *skb, unsigned length);
+icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, unsigned len);
 
 // DHCP
 #define DHCP_DELAY 15

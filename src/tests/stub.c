@@ -242,6 +242,40 @@ bool irq_ready()
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+#include <threads.h>
+
+struct task_data_start {
+    char* name[64];
+    void (*func)(void*);
+    void* arg;
+};
+
+static _task_impl_start(void* arg)
+{
+    struct task_data_start* data = arg;
+#ifdef _WIN32
+    wchar_t wbuf[128];
+    size_t len;
+    mbstowcs_s(&len, wbuf, 128, data->name, 128);
+    SetThreadDescription(GetCurrentThread(), wbuf);
+#endif
+    void(*func)(void*) = data->func;
+    void* param = data->arg;
+    free(data);
+    func(param);
+}
+
+void task_start(const char* name, void(*deamon)(void*), void* arg)
+{
+    thrd_t thrd;
+    struct task_data_start* data = malloc(sizeof(struct task_data_start));
+    strncpy(data->name, name, 64);
+    data->func = deamon;
+    data->arg = arg;
+    thrd_create(&thrd, _task_impl_start, data);
+}
+
+
 // thread_local int __cpu_no = 0;
 // atomic_int __cpu_inc = 1;
 
