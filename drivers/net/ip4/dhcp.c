@@ -256,9 +256,9 @@ static int dhcp_opts_write_res(ifnet_t *net, skb_t *skb, dhcp_lease_t *lease)
     dhcp_info_t *info = dhcp_readinfo(net);
     ip4_info_t *ip4 = ip4_readinfo(net);
 
-    dhcp_option_buf(skb, DHCP_OPT_SERVERIP, IP4_ALEN, ip4->ip);
-    dhcp_option_buf(skb, DHCP_OPT_SUBNETMASK, IP4_ALEN, ip4->submsk);
-    dhcp_option_buf(skb, DHCP_OPT_ROUTER, IP4_ALEN, ip4->gateway);
+    dhcp_option_buf(skb, DHCP_OPT_SERVERIP, IP4_ALEN, ip4->subnet.address);
+    dhcp_option_buf(skb, DHCP_OPT_SUBNETMASK, IP4_ALEN, ip4->subnet.submask);
+    dhcp_option_buf(skb, DHCP_OPT_ROUTER, IP4_ALEN, ip4->subnet.gateway);
 
     // TODO - Add the domain if we have one.
 
@@ -301,10 +301,10 @@ static int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode,
     header->xid = uid;
 
     ip4_info_t *info = ip4_readinfo(skb->ifnet);
-    memcpy(header->ciaddr, info->ip, IP4_ALEN);
+    memcpy(header->ciaddr, info->subnet.address, IP4_ALEN);
     if (opcode == BOOT_REPLY)
         memcpy(header->yiaddr, lease->ip, IP4_ALEN);
-    memcpy(header->siaddr, opcode == BOOT_REQUEST ? route->ip : info->ip, IP4_ALEN);
+    memcpy(header->siaddr, opcode == BOOT_REQUEST ? route->ip : info->subnet.address, IP4_ALEN);
     memcpy(&header->chaddr, opcode == BOOT_REQUEST ? net->hwaddr : route->addr, ETH_ALEN);
     header->magic = DHCP_MAGIC;
 
@@ -360,7 +360,7 @@ static void dhcp_on_discovery(ifnet_t *net, dhcp_msg_t *msg)
 
     // If not create a lease on new IP
     lease = kalloc(sizeof(dhcp_lease_t));
-    memcpy(lease->ip, ip4->ip, IP4_ALEN);
+    memcpy(lease->ip, ip4->subnet.address, IP4_ALEN);
     lease->ip[3] = idx + 4;
     lease->expired = xtime_read(XTIME_CLOCK) + SEC_TO_USEC(DHCP_LEASE_DURATION);
     info->lease_range[idx] = lease;
@@ -383,7 +383,9 @@ static void dhcp_on_request(ifnet_t *net, dhcp_msg_t *msg)
 
     dhcp_lease_t *lease = info->lease_range[msg->yiaddr[3] - 4];
     if (lease == NULL) {
-        dhcp_packet(net, ip4_route_broadcast(net), msg->uid, DHCP_PNACK, NULL);
+        ip4_route_t route;
+        ip4_broadcast_route(net->stack, &route, net);
+        dhcp_packet(net, &route, msg->uid, DHCP_PNACK, NULL);
         return;
     }
 
@@ -417,20 +419,23 @@ static void dhcp_on_offer(ifnet_t *net, dhcp_msg_t *msg)
     dhcp_lease_t lease;
     memcpy(lease.ip, msg->yiaddr, IP4_ALEN);
     memcpy(lease.sr, msg->siaddr, IP4_ALEN);
-    dhcp_packet(net, ip4_route_broadcast(net), msg->uid, DHCP_REQUEST, &lease);
+
+    ip4_route_t route;
+    ip4_broadcast_route(net->stack, &route, net);
+    dhcp_packet(net, &route, msg->uid, DHCP_REQUEST, &lease);
 }
 
 /* As client, handle the recepion of a DHCP_NACK message by taking the proposed lease */
-static void dhcp_on_ack(ifnet_t *net, dhcp_msg_t *msg)
+static void dhcp_on_ack(ifnet_t *ifnet, dhcp_msg_t *msg)
 {
-    dhcp_info_t *info = dhcp_readinfo(net);
-    ip4_info_t *ip4 = ip4_readinfo(net);
+    dhcp_info_t *info = dhcp_readinfo(ifnet);
+    ip4_info_t *ip4 = ip4_readinfo(ifnet);
 
     // Ignore unsolicited packets
     if (msg->uid != info->transaction || info->mode != DHCP_REQUEST)
         return;
 
-    ip4_setip(net, msg->yiaddr, msg->submsk, msg->gateway);
+    ip4_setip(ifnet, msg->yiaddr, msg->submsk, msg->gateway);
     info->mode = DHCP_PACK;
     info->last_request = xtime_read(XTIME_CLOCK);
     info->expire = info->last_request + SEC_TO_USEC(msg->lease_time);
@@ -467,7 +472,10 @@ int dhcp_discovery(ifnet_t *ifnet)
     info->last_request = xtime_read(XTIME_CLOCK);
     info->transaction = rand32();
     splock_unlock(&info->lock);
-    return dhcp_packet(ifnet, ip4_route_broadcast(ifnet), info->transaction, DHCP_DISCOVER, NULL);
+
+    ip4_route_t route;
+    ip4_broadcast_route(ifnet->stack, &route, ifnet);
+    return dhcp_packet(ifnet, &route, info->transaction, DHCP_DISCOVER, NULL);
 }
 
 /* Handle the reception of a DHCP packet */
@@ -520,5 +528,22 @@ int dhcp_receive(skb_t *skb, int length)
 
     dhcp_clean_msg(&msg);
     kfree(skb);
+    return 0;
+}
+
+
+int dhcmp_clear(ifnet_t *ifnet, ip4_info_t *info)
+{
+    info->use_dhcp = false;
+    info->use_dhcp_server = false;
+    dhcp_info_t *dinfo = info->dhcp;
+    info->dhcp = NULL;
+    for (int i = 0; i < 16; ++i) {
+        if (dinfo->lease_range[i] != NULL) {
+            kfree(dinfo->lease_range[i]);
+            dinfo->lease_range[i] = NULL;
+        }
+    }
+    kfree(dinfo);
     return 0;
 }

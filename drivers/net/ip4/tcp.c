@@ -33,6 +33,23 @@ PACK(struct tcp_header {
 });
 
 
+/* Look for an ephemeral port on TCP */
+uint16_t tcp_ephemeral_port(socket_t *sock)
+{
+    ip4_master_t *master = ip4_readmaster(sock->stack);
+    return ip4_ephemeral_port(master, &master->tcp_ports, sock);
+}
+
+/* Look for a socket binded to this port */
+static socket_t *tcp_lookfor_socket(ifnet_t *ifnet, uint16_t port)
+{
+    ip4_master_t *master = ip4_readmaster(ifnet->stack);
+    return ip4_lookfor_socket(master, &master->tcp_ports, ifnet, port);
+}
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+/* Write an TCP header on a packet using the provided parameters */
 int tcp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, uint16_t lport, uint16_t identifier, uint16_t offset)
 {
     if (ip4_header(skb, route, IP4_TCP, length + sizeof(tcp_header_t), identifier, offset) != 0)
@@ -59,7 +76,7 @@ int tcp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, 
     return -1;
 }
 
-
+/* Handle the reception of a TCP packet */
 int tcp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offset)
 {
     net_log(skb, ",tcp");
@@ -73,12 +90,44 @@ int tcp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offse
     length -= sizeof(tcp_header_t);
 
     uint16_t port = htons(header->dest_port);
-    socket_t *sock = ip4_lookfor_socket(skb->ifnet, port, IP4_TCP, NULL);
+    ip4_info_t *info = ip4_readinfo(skb->ifnet);
+
+    memcpy(&skb->addr[skb->addrlen], &header->src_port, sizeof(uint16_t));
+    skb->addrlen += sizeof(uint16_t);
+
+    socket_t *sock = tcp_lookfor_socket(skb->ifnet, port);
     if (sock == NULL)
         return -1;
 
     // TODO -- Add sock->data (length / offset / identifier / options)
     net_socket_push(sock, skb);
+    return -1;
+}
+
+int tcp_socket_bind(socket_t *sock, const uint8_t *addr, size_t len)
+{
+    if (len < 6)
+        return -1;
+    ip4_master_t *master = ip4_readmaster(sock->stack);
+    return ip4_socket_bind(master, &master->udp_ports, sock, addr);
+}
+
+int tcp_socket_connect(socket_t *sock, const uint8_t *addr, size_t len)
+{
+    ip4_master_t *master = ip4_readmaster(sock->stack);
+    // Start handshake
+    return -1;
+}
+
+
+int tcp_socket_accept(socket_t *sock, socket_t *model, skb_t *skb)
+{
+    ip4_master_t *master = ip4_readmaster(sock->stack);
+    if (ip4_socket_accept(master, &master->udp_ports, sock, model, skb) != 0)
+        return -1;
+
+    // Read skb / must be an handshake...
+
     return -1;
 }
 
@@ -93,15 +142,16 @@ long tcp_socket_recv(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, in
     return -1;
 }
 
-
-
+/* Fill-out the prototype structure for TCP */
 void tcp_proto(nproto_t* proto)
 {
     proto->addrlen = 6;
-    // proto->bind = ip4_tcp_bind;
-    // proto->connect = ip4_tcp_connect;
+    proto->name = "tcp/ipv4";
+    proto->bind = tcp_socket_bind;
+    // proto->connect = tcp_socket_connect;
+    // proto->accept = tcp_socket_accept;
     proto->send = tcp_socket_send;
     proto->recv = tcp_socket_recv;
-    // proto->close = ip4_tcp_close;
+    // proto->close = tcp_close;
 }
 

@@ -21,14 +21,16 @@
 #include <kernel/core.h>
 #include <assert.h>
 
+void eth_setup(netstack_t *);
+
 /* Dispatch an event to registered listener (see net_handler) */
 static void net_handle_event(skb_t *skb)
 {
     int len = 2 * sizeof(int);
-    assert(skb && skb->ifnet && skb->ifnet->stack); // Handling of corrupted event packet
+    assert(skb && skb->ifnet && skb->ifnet->stack); 
     netstack_t *stack = skb->ifnet->stack;
     int *ptr = net_skb_reserve(skb, len);
-    assert(skb->err == 0); // Unable to read an event packet
+    assert(skb->err == 0);
     splock_lock(&stack->lock);
     nhandler_t *hnode = ll_first(&stack->handlers, nhandler_t, node);
     splock_unlock(&stack->lock);
@@ -82,6 +84,27 @@ void net_handler(netstack_t *stack, void(*handler)(ifnet_t *, int, int))
     splock_unlock(&stack->lock);
 }
 
+/* Unregister an handler from the network interface events */
+void net_unregister(netstack_t *stack, void(*handler)(ifnet_t *, int, int))
+{
+    assert(stack != NULL);
+    if (handler == NULL)
+        return;
+    nhandler_t *hnode;
+    splock_lock(&stack->lock);
+    for ll_each(&stack->handlers, hnode, nhandler_t, node) {
+        if (hnode->handler == handler)
+            break;
+    }
+
+    if (hnode != NULL) {
+        ll_remove(&stack->handlers, &hnode->node);
+        kfree(hnode);
+    }
+
+    splock_unlock(&stack->lock);
+}
+
 /* Search of a protocol registered on the network stack */
 nproto_t *net_protocol(netstack_t *stack, int protocol)
 {
@@ -103,6 +126,15 @@ void net_set_protocol(netstack_t *stack, int protocol, nproto_t *proto)
     bbtree_insert(&stack->protocols, &proto->bnode);
     splock_unlock(&stack->lock);
     kprintf(-1, "New protocol for %s: %d (%s)\n", stack->hostname, protocol, proto->name);
+}
+
+/* Unregister a protocol oF the stack */
+void net_rm_protocol(netstack_t *stack, int protocol)
+{
+    assert(stack != NULL);
+    splock_lock(&stack->lock);
+    bbtree_remove(&stack->protocols, protocol);
+    splock_unlock(&stack->lock);
 }
 
 /* Search for an network interface */
@@ -163,7 +195,10 @@ ifnet_t *net_device(netstack_t *stack, int protocol, uint8_t *hwaddr, net_ops_t 
 
     // Log the creation of the new interface
     // TODO -- Name and address display must be provided on `nproto_t`
-    kprintf(-1, "New endpoint \033[35m%s:%s:%i (%s)\033[0m\n", stack->hostname, proto->name, uid, proto->paddr(hwaddr, buf, 64));
+    if (proto->paddr)
+        kprintf(-1, "New endpoint \033[35m%s:%s:%i (%s)\033[0m\n", stack->hostname, proto->name, uid, proto->paddr(hwaddr, buf, 64));
+    else
+        kprintf(-1, "New endpoint \033[35m%s:%s:%i\033[0m\n", stack->hostname, proto->name, uid);
     return net;
 }
 
@@ -177,14 +212,95 @@ netstack_t *net_create_stack()
     splock_init(&stack->rx_lock);
     splock_init(&stack->lock);
     bbtree_init(&stack->protocols);
+    stack->running = 1;
     return stack;
+}
+
+int net_destroy_ifnet(netstack_t *stack, ifnet_t *ifnet)
+{
+    splock_lock(&stack->lock);
+    nproto_t *proto = bbtree_first(&stack->protocols, nproto_t, bnode);
+    while (proto) {
+        splock_unlock(&stack->lock);
+        if (proto->clear && proto->clear(stack, ifnet) != 0)
+            return -1;
+
+        splock_lock(&stack->lock);
+        proto = bbtree_next(&proto->bnode, nproto_t, bnode);
+    }
+    splock_unlock(&stack->lock);
+    if (ifnet->ops->close && ifnet->ops->close(ifnet) != 0)
+        return -1;
+    kfree(ifnet);
+    return 0;
+}
+
+int net_destroy_stack(netstack_t *stack)
+{
+    // Remove all interfaces
+    for (;;) {
+        splock_lock(&stack->lock);
+        ifnet_t *ifnet = ll_dequeue(&stack->list, ifnet_t, node);
+        splock_unlock(&stack->lock);
+        if (ifnet == NULL)
+            break;
+
+        if (net_destroy_ifnet(stack, ifnet) != 0) {
+            splock_lock(&stack->lock);
+            ll_enqueue(&stack->list, &ifnet->node);
+            splock_unlock(&stack->lock);
+            return -1;
+        }
+    }
+
+    // Send kill message to deamon
+    stack->running = 0;
+    sem_release(&stack->rx_sem);
+
+    // Removing all protocols
+    splock_lock(&stack->lock);
+    nproto_t *proto = bbtree_last(&stack->protocols, nproto_t, bnode);
+    splock_unlock(&stack->lock);
+    if (proto != NULL) {
+        for (;;) {
+            if (proto->teardown && proto->teardown(stack) == 0) {
+                splock_lock(&stack->lock);
+                proto = bbtree_last(&stack->protocols, nproto_t, bnode);
+                splock_unlock(&stack->lock);
+                if (proto == NULL)
+                    break;
+                continue;
+            }
+
+            splock_lock(&stack->lock);
+            proto = bbtree_previous(&proto->bnode, nproto_t, bnode);
+            splock_unlock(&stack->lock);
+        }
+    }
+
+    if (stack->protocols.count_ > 0)
+        return -1;
+
+    // Check deamon is stopped
+    while (stack->running != -1) {
+        // TODO -- sleep 
+        kprintf(-1, "Waiting...\n");
+    }
+
+    // Release all memory
+    if (stack->hostname)
+        kfree(stack->hostname);
+    if (stack->domain)
+        kfree(stack->domain);
+    kfree(stack);
+    return 0;
 }
 
 /* Deamon thread to watch over incoming package and other
    device events (non static only for testing) */
 void net_deamon(netstack_t *stack)
 {
-    for (;;) {
+    while (stack->running) {
         // Wait for some new content
         sem_acquire(&stack->rx_sem);
 
@@ -211,6 +327,7 @@ void net_deamon(netstack_t *stack)
             kfree(skb);
         }
     }
+    stack->running = -1;
 }
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -229,8 +346,9 @@ netstack_t *net_stack()
 void net_setup()
 {
     __netstack = net_create_stack();
-    __netstack->hostname = strdup("vmdev");
+    __netstack->hostname = kstrdup("vmdev");
     lo_setup(__netstack);
+    eth_setup(__netstack);
     task_start("Network stack deamon", net_deamon, __netstack);
 }
 

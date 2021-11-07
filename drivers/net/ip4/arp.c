@@ -39,6 +39,13 @@ PACK(struct arp_header {
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+static void arp_forget_with(ip4_info_t *info, net_qry_t *qry)
+{
+    splock_lock(&info->qry_lock);
+    bbtree_remove(&info->qry_arps, qry->bnode.value_);
+    splock_unlock(&info->qry_lock);
+}
+
 /* Send an ARP packet from local and provided parameters */
 static int arp_packet(ifnet_t *ifnet, const uint8_t *mac, const uint8_t *ip, int opcode)
 {
@@ -67,7 +74,8 @@ static int arp_packet(ifnet_t *ifnet, const uint8_t *mac, const uint8_t *ip, int
     header->pc_length = IP4_ALEN;
     header->opcode = opcode;
     net_skb_write(skb, ifnet->hwaddr, ETH_ALEN);
-    net_skb_write(skb, info->ip, IP4_ALEN);
+    // TODO -- Check subnet is configured
+    net_skb_write(skb, info->subnet.address, IP4_ALEN);
     net_skb_write(skb, mac, ETH_ALEN);
     net_skb_write(skb, ip, IP4_ALEN);
     return net_skb_send(skb);
@@ -101,12 +109,36 @@ int arp_receive(skb_t *skb)
 
     ip4_info_t *info = ip4_readinfo(skb->ifnet);
     assert(info);
-    if (header->opcode == ARP_REQUEST && memcmp(info->ip, target_ip, IP4_ALEN) == 0)
+    // TODO -- Check subnet is configured
+    if (memcmp(info->subnet.address, target_ip, IP4_ALEN) != 0)
+        return -1;
+    if (header->opcode == ARP_REQUEST)
         arp_packet(skb->ifnet, source_mac, source_ip, ARP_REPLY);
-    else if (header->opcode == ARP_REPLY)
+    else if (header->opcode == ARP_REPLY) {
+        if (info->subnet.ifnet == NULL)
+            return -1;
         // TODO -- Check this is not unsollisited packet
         // TODO -- Protect aggainst ARP poisonning
-        ip4_route_add(skb->ifnet, source_ip, source_mac);
+        if (memcmp(info->subnet.gateway, source_ip, IP4_ALEN) == 0)
+            memcpy(info->subnet.gateway_addr, source_mac, ETH_ALEN);
+
+        // TODO -- Should we populate the IP cache
+        splock_lock(&info->qry_lock);
+        net_qry_t *qry = bbtree_search_eq(&info->qry_arps, *((uint32_t *)&source_ip), net_qry_t, bnode);
+        if (qry != NULL)
+            bbtree_remove(&info->qry_arps, qry->bnode.value_);
+        splock_unlock(&info->qry_lock);
+
+        if (qry != NULL) {
+            qry->elapsed = xtime_read(XTIME_CLOCK) - qry->start;
+            memcpy(qry->res, source_mac, ETH_ALEN);
+            qry->len = ETH_ALEN;
+            mtx_lock(&qry->mtx);
+            qry->received = qry->success = true;
+            cnd_signal(&qry->cnd);
+            mtx_unlock(&qry->mtx);
+        }
+    }
 
     kfree(skb);
     return 0;
@@ -115,9 +147,35 @@ int arp_receive(skb_t *skb)
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 /* Send an ARP request to look for harware address of the following ip */
-int arp_whois(ifnet_t *net, const uint8_t *ip)
+int arp_whois(ifnet_t *net, const uint8_t *ip, net_qry_t *qry)
 {
-    uint8_t broadcast[ETH_ALEN];
-    memset(broadcast, 0xff, ETH_ALEN);
-    return arp_packet(net, broadcast, ip, ARP_REQUEST);
+    ip4_info_t *info = NULL;
+    if (qry != NULL) {
+        info = ip4_readinfo(net);
+        memset(qry, 0, sizeof(net_qry_t));
+        cnd_init(&qry->cnd);
+        mtx_init(&qry->mtx, mtx_plain);
+        qry->start = xtime_read(XTIME_CLOCK);
+
+        splock_lock(&info->qry_lock);
+        qry->bnode.value_ = *((uint32_t *)ip);
+        bbtree_insert(&info->qry_arps, &qry->bnode);
+        splock_unlock(&info->qry_lock);
+    }
+
+    int ret = arp_packet(net, eth_broadcast, ip, ARP_REQUEST);
+    if (ret == 0)
+        return ret;
+
+    if (qry != NULL)
+        arp_forget_with(info, qry);
+    return -1;
+}
+
+/* Unregistered a timedout ARP query */
+void arp_forget(ifnet_t *net, net_qry_t *qry)
+{
+    ip4_info_t *info = ip4_readinfo(net);
+    assert(info != NULL && qry != NULL);
+    arp_forget_with(info, qry);
 }

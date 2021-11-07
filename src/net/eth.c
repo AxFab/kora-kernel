@@ -27,21 +27,24 @@
 #define ETH_IP6 htons(0x86DD)
 #define ETH_ARP htons(0x0806)
 
-static_assert(ETH_ALEN <= NET_MAX_HWADRLEN, "Ethernet addresses are bigger than allowed");
-
 /* Print as a readable string a MAC address */
 char *eth_writemac(const uint8_t *mac, char *buf, int len);
 /* Registers a new protocol capable of using Ethernet */
 int eth_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv);
+/* Unregisters a protocol capable of using Ethernet */
+int eth_unregister(netstack_t *stack, uint16_t protocol, net_recv_t recv);
 /* Writes a ethernet header on a tx packet */
 int eth_header(skb_t *skb, const uint8_t *addr, uint16_t protocol);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+static_assert(ETH_ALEN <= NET_MAX_HWADRLEN, "Ethernet addresses are bigger than allowed");
+
 typedef struct eth_info eth_info_t;
 typedef struct eth_header eth_header_t;
 
 struct eth_info {
+    splock_t lock;
     hmap_t recv_map;
 };
 
@@ -56,7 +59,7 @@ const uint8_t eth_broadcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 /* Gets protocol driver data store */
 static eth_info_t *eth_readinfo(netstack_t *stack)
 {
-    nproto_t *proto = net_protocol(stack, NET_AF_ETH);
+    const nproto_t *proto = net_protocol(stack, NET_AF_ETH);
     assert(proto != NULL && proto->data);
     eth_info_t* info = proto->data;
     return info;
@@ -83,7 +86,26 @@ int eth_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv)
     if (recv == NULL)
         return -1;
     eth_info_t *info = eth_readinfo(stack);
+    splock_lock(&info->lock);
     hmp_put(&info->recv_map, (char *)&protocol, sizeof(uint16_t), recv);
+    splock_unlock(&info->lock);
+    return 0;
+}
+
+/* Unregisters a protocol capable of using Ethernet */
+int eth_unregister(netstack_t *stack, uint16_t protocol, net_recv_t recv)
+{
+    if (recv == NULL)
+        return -1;
+    eth_info_t *info = eth_readinfo(stack);
+    splock_lock(&info->lock);
+    net_recv_t prev = hmp_get(&info->recv_map, (char *)&protocol, sizeof(uint16_t));
+    if (prev != recv) {
+        splock_unlock(&info->lock);
+        return -1;
+    }
+    hmp_remove(&info->recv_map, (char *)&protocol, sizeof(uint16_t));
+    splock_unlock(&info->lock);
     return 0;
 }
 
@@ -143,6 +165,35 @@ int eth_receive(skb_t *skb)
     return recv(skb);
 }
 
+
+int eth_destroy(netstack_t *stack)
+{
+    nproto_t *proto = net_protocol(stack, NET_AF_ETH);
+    eth_info_t *info = proto->data;
+    if (info->recv_map.count > 0)
+        return -1;
+    kfree(info);
+    hmp_destroy(&info->recv_map);
+    kfree(proto);
+    return 0;
+}
+
+/* Exit point of the ethernet module */
+int eth_teardown(netstack_t *stack)
+{
+    nproto_t *proto = net_protocol(stack, NET_AF_ETH);
+    if (proto == NULL)
+        return -1;
+    eth_info_t *info = proto->data;
+    if (info->recv_map.count > 0)
+        return -1;
+
+    net_rm_protocol(stack, NET_AF_ETH);
+    kfree(proto->data);
+    kfree(proto);
+    return 0;
+}
+
 /* Entry point of the ethernet module */
 int eth_setup(netstack_t* stack)
 {
@@ -155,29 +206,11 @@ int eth_setup(netstack_t* stack)
     hmp_init(&info->recv_map, 8);
     proto->receive = eth_receive;
     proto->data = info;
-    strcpy(proto->name, "eth");
+    proto->name = "eth";
     proto->addrlen = ETH_ALEN;
     proto->paddr = eth_writemac;
+    proto->teardown = eth_teardown;
     net_set_protocol(stack, NET_AF_ETH, proto);
-    return 0;
-}
-
-/* Exit point of the ethernet module */
-int eth_teardown(netstack_t* stack)
-{
-    splock_lock(&stack->lock);
-    nproto_t* proto = bbtree_search_eq(&stack->protocols, NET_AF_ETH, nproto_t, bnode);
-    eth_info_t *info = proto->data;
-    if (info->recv_map.count > 0) {
-        splock_unlock(&stack->lock);
-        return -1;
-    }
-
-    bbtree_remove(&stack->protocols, NET_AF_ETH);
-    // Warning, no RCU ?
-    kfree(proto->data);
-    kfree(proto);
-    splock_unlock(&stack->lock);
     return 0;
 }
 

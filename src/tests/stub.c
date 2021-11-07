@@ -44,22 +44,76 @@ thread_local int __irq_semaphore = 0;
 
 int kallocCount = 0;
 int kmapCount = 0;
-
-void *kalloc(size_t len)
+bool ktrack_init = false;
+bbtree_t ktrack_tree;
+splock_t ktrack_lock;
+struct ktrack
 {
+    void *ptr;
+    size_t len;
+    const char *msg;
+    bbnode_t bnode;
+};
+
+void *kalloc_(size_t len, const char *msg)
+{
+    if (!ktrack_init) {
+        bbtree_init(&ktrack_tree);
+        splock_init(&ktrack_lock);
+        ktrack_init = true;
+    }
     kallocCount++;
     void *ptr = calloc(len, 1);
-    // kprintf(-1, "+ alloc (%p, %d)\n", ptr, len);
+    splock_lock(&ktrack_lock);
+    struct ktrack *tr = malloc(sizeof(struct ktrack));
+    tr->ptr = ptr;
+    tr->len = len;
+    tr->msg = msg;
+    tr->bnode.value_ = (size_t)ptr;
+    bbtree_insert(&ktrack_tree, &tr->bnode);
+    splock_unlock(&ktrack_lock);
+    kprintf(-1, "\033[96m+ alloc (%p, %d) %s\033[0m\n", ptr, len, msg);
     return ptr;
 }
 
 void kfree(void *ptr)
 {
     kallocCount--;
-    // kprintf(-1, "- free (%p)\n", ptr);
+    splock_lock(&ktrack_lock);
+    bbtree_remove(&ktrack_tree, (size_t)ptr);
+    splock_unlock(&ktrack_lock);
+    kprintf(-1, "\033[96m- free (%p)\033[0m\n", ptr);
     free(ptr);
 }
 
+void kalloc_check()
+{
+    splock_lock(&ktrack_lock);
+    struct ktrack *tr = bbtree_first(&ktrack_tree, struct ktrack, bnode);
+    while (tr) {
+        kprintf(-1, "- \033[31mMemory leak\033[0m at %p(%d) %s\n", tr->ptr, tr->len, tr->msg);
+        tr = bbtree_next(&tr->bnode, struct ktrack, bnode);
+    }
+
+    splock_unlock(&ktrack_lock);
+}
+
+char *kstrdup(const char *str)
+{
+    int len = strlen(str) + 1;
+    char *ptr = kalloc_(len, "strdup");
+    strncpy(ptr, str, len);
+    return ptr;
+}
+
+char *kstrndup(const char *str, size_t max)
+{
+    int len = strnlen(str, max) + 1;
+    char *ptr = kalloc_(len, "strndup");
+    strncpy(ptr, str, len);
+    ptr[len] = '\0';
+    return ptr;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -178,20 +232,26 @@ const char *ksymbol(void *ip, char *buf, int lg)
 }
 
 
+splock_t kplock = INIT_SPLOCK;
+char kpbuf[1024];
+
 void kprintf(int log, const char *msg, ...)
 {
+    splock_lock(&kplock);
     va_list ap;
     va_start(ap, msg);
-    vprintf(msg, ap);
+    int lg = vsnprintf(kpbuf, 1024, msg, ap);
     va_end(ap);
+    write(1, kpbuf, lg);
+    splock_unlock(&kplock);
 }
 
-
+/* Return the current time in the 1-microsecond precision */
 xtime_t xtime_read(xtime_name_t name)
 {
 #if defined(_WIN32)
     FILETIME tm;
-    GetSystemTimePreciseAsFileTime(&tm);
+    GetSystemTimePreciseAsFileTime(&tm); // 100-nanosecond
     uint64_t cl = (uint64_t)tm.dwHighDateTime << 32 | tm.dwLowDateTime;
     return cl / 10LL - SEC_TO_USEC(11644473600LL);
 #else
@@ -265,14 +325,15 @@ static _task_impl_start(void* arg)
     func(param);
 }
 
-void task_start(const char* name, void(*deamon)(void*), void* arg)
+int task_start(const char* name, void *func, void* arg)
 {
     thrd_t thrd;
     struct task_data_start* data = malloc(sizeof(struct task_data_start));
     strncpy(data->name, name, 64);
-    data->func = deamon;
+    data->func = func;
     data->arg = arg;
     thrd_create(&thrd, _task_impl_start, data);
+    return 0;
 }
 
 

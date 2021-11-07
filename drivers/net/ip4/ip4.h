@@ -28,15 +28,23 @@
 #include <kernel/stdc.h>
 #include <kora/hmap.h>
 #include <kora/mcrs.h>
+#include <kora/time.h>
 
  // Ethernet
 #define ETH_ALEN 6
 #define ETH_IP4 htons(0x0800)
 #define ETH_IP6 htons(0x86DD)
 #define ETH_ARP htons(0x0806)
+extern const uint8_t eth_broadcast[6];
+/* Print as a readable string a MAC address */
 char *eth_writemac(const uint8_t *mac, char *buf, int len);
+/* Registers a new protocol capable of using Ethernet */
 int eth_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv);
+/* Unregisters a protocol capable of using Ethernet */
+int eth_unregister(netstack_t *stack, uint16_t protocol, net_recv_t recv);
+/* Writes a ethernet header on a tx packet */
 int eth_header(skb_t *skb, const uint8_t *addr, uint16_t protocol);
+
 
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -56,7 +64,8 @@ typedef struct dhcp_info dhcp_info_t;
 typedef struct icmp_info icmp_info_t;
 typedef struct ip4_route ip4_route_t;
 typedef struct ip4_port ip4_port_t;
-typedef struct icmp_ping icmp_ping_t;
+typedef struct ip4_subnet ip4_subnet_t;
+typedef struct ip4_class ip4_class_t;
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // IPv4
@@ -71,6 +80,8 @@ void ip4_proto(nproto_t *proto);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // TCP
+/* Look for an ephemeral port on TCP */
+uint16_t tcp_ephemeral_port(socket_t *sock);
 /* Handle the reception of a TCP packet */
 int tcp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offset);
 /* Fill-out the prototype structure for TCP */
@@ -78,6 +89,10 @@ void tcp_proto(nproto_t* proto);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // UDP
+/* Look for an ephemeral port on UDP */
+uint16_t udp_ephemeral_port(socket_t *sock);
+/* Write an UDP header on a packet using the provided parameters */
+int udp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, uint16_t lport, uint16_t identifier, uint16_t offset);
 /* Handle the reception of a UDP packet */
 int udp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offset);
 /* Fill-out the prototype structure for UDP */
@@ -87,25 +102,32 @@ void udp_proto(nproto_t* proto);
 // ICMP
 /* Handle an ICMP package and respond if required */
 int icmp_receive(skb_t *skb, unsigned length);
+/* Write an TCP header on a packet using the provided parameters */
+int tcp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, uint16_t lport, uint16_t identifier, uint16_t offset);
 /* Send a PING request to the following IP route */
-icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, unsigned len);
+int icmp_ping(ip4_route_t *route, const char *buf, unsigned len, net_qry_t *qry);
+/* Unregistered a timedout ARP query */
+void icmp_forget(ip4_route_t *route, net_qry_t *qry);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // DHCP
 #define DHCP_DELAY 15
 #define DHCP_LEASE_DURATION 900
-/* Start the discovery process of a DHCP client in order to set IP address */
-int dhcp_discovery(ifnet_t* net);
 /* Handle the reception of a DHCP packet */
 int dhcp_receive(skb_t *skb, int length);
-
+/* Start the discovery process of a DHCP client in order to set IP address */
+int dhcp_discovery(ifnet_t* net);
+/* - */
+int dhcmp_clear(ifnet_t *ifnet, ip4_info_t *info);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // ARP
-/* Send an ARP request to look for harware address of the following ip */
-int arp_whois(ifnet_t *net, const uint8_t *ip);
 /* Handle an ARP package, respond to request and save result of response */
 int arp_receive(skb_t *skb);
+/* Send an ARP request to look for harware address of the following ip */
+int arp_whois(ifnet_t *net, const uint8_t *ip, net_qry_t *qry);
+/* Unregistered a timedout ARP query */
+void arp_forget(ifnet_t *net, net_qry_t *qry);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -116,27 +138,76 @@ struct ip4_route {
     int ttl;
 };
 
+struct ip4_subnet
+{
+    llnode_t node;
+    ifnet_t *ifnet;
+    uint8_t address[IP4_ALEN];
+    uint8_t submask[IP4_ALEN];
+    uint8_t gateway[IP4_ALEN];
+    uint8_t broadcast[IP4_ALEN];
+    uint8_t gateway_addr[NET_MAX_HWADRLEN];
+};
+
 struct ip4_info {
     int ttl;
-    uint8_t ip[IP4_ALEN];
-    uint8_t submsk[IP4_ALEN];
-    uint8_t gateway[IP4_ALEN];
     bool use_dhcp;
     bool use_dhcp_server;
     bool use_routing;
-    ip4_route_t broadcast;
     splock_t lock;
 
     dhcp_info_t *dhcp;
-    icmp_info_t *icmp;
+    ip4_subnet_t subnet;
+
+    splock_t qry_lock;
+    bbtree_t qry_arps;
+    bbtree_t qry_pings;
 };
 
 struct ip4_master {
-    hmap_t sockets;
-    hmap_t routes;
-    hmap_t ifinfos;
+    splock_t plock;
+    bbtree_t udp_ports;
+    bbtree_t tcp_ports;
+
     splock_t lock;
+    hmap_t ifinfos;
+    
+    splock_t rlock;
+    llhead_t rtable;
+    llhead_t subnets;
 };
+
+struct ip4_class
+{
+    const char *label;
+    uint8_t mask[IP4_ALEN];
+};
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Routing
+/* Identify the IP class of an IP address */
+int ip4_identify(const uint8_t *ip);
+/* Find a route for broadcast */
+int ip4_broadcast_route(netstack_t *stack, ip4_route_t *route, ifnet_t *ifnet);
+/* Find a route for an IP */
+int ip4_find_route(netstack_t *stack, ip4_route_t *route, const uint8_t *ip);
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Generic socket handling
+/* Bind a socket to a local port in order to redirect incoming packet */
+int ip4_socket_bind(ip4_master_t *master, bbtree_t *tree, socket_t *sock, const uint8_t *addr);
+/* Look for an ephemeral port on UDP or TCP */
+uint16_t ip4_ephemeral_port(ip4_master_t *master, bbtree_t *tree, socket_t *sock);
+/* Check if a socket is listen a port */
+socket_t *ip4_lookfor_socket(ip4_master_t *master, bbtree_t *tree, ifnet_t *ifnet, uint16_t port);
+
+int ip4_socket_accept(ip4_master_t *master, bbtree_t *tree, socket_t *sock, socket_t *model, skb_t *skb);
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+
+
 
 
 int ip4_readip(uint8_t *ip, const char *str);
@@ -148,10 +219,6 @@ int ip4_start(netstack_t *stack);
 
 ip4_info_t *ip4_readinfo(ifnet_t *ifnet);
 ip4_master_t* ip4_readmaster(netstack_t* stack);
-ip4_route_t *ip4_route_broadcast(ifnet_t *net);
-ip4_route_t *ip4_route(netstack_t *stack, const uint8_t *ip);
-void ip4_route_add(ifnet_t *net, const uint8_t *ip, const uint8_t *mac);
 
-socket_t* ip4_lookfor_socket(ifnet_t* net, uint16_t port, uint16_t method, const uint8_t* ip);
 
 #endif /* _SRC_IP4_H */

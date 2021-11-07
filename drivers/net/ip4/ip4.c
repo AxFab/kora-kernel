@@ -51,6 +51,7 @@ uint16_t ip4_checksum(uint16_t *ptr, unsigned len)
 /* Write a IP header on the socket buffer */
 int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, unsigned length, uint16_t identifier, uint16_t offset)
 {
+    assert(route && route->net && route->net->proto);
     switch (route->net->protocol) {
     case NET_AF_ETH:
         if (eth_header(skb, route->addr, ETH_IP4) != 0)
@@ -81,7 +82,8 @@ int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, unsigned length, ui
     header->offset = offset;
     header->ttl = route->ttl;
     header->protocol = protocol;
-    memcpy(header->source, info->ip, IP4_ALEN);
+    // TODO -- Check subnet is configured
+    memcpy(header->source, info->subnet.address, IP4_ALEN);
     memcpy(header->target, route->ip, IP4_ALEN);
 
     header->checksum = ip4_checksum((uint16_t *)header, sizeof(ip4_header_t));
@@ -112,12 +114,13 @@ int ip4_receive(skb_t *skb)
     // TODO -- Check I'm the target 
     // TODO -- If router is configure, reroute the package (TTL-1)
     // TODO -- Save remote address ?
+    memcpy(&skb->addr[skb->addrlen], header->source, IP4_ALEN);
+    skb->addrlen += IP4_ALEN;
 
-
-    // Check that is not a raw socket
-    socket_t *sock = ip4_lookfor_socket(skb->ifnet, 0, header->protocol, NULL);
-    if (sock != NULL)
-        return net_socket_push(sock, skb);
+    // TODO -- Check if ithat's a raw socket
+    //socket_t *sock = ip4_lookfor_socket(skb->ifnet, 0, header->protocol, NULL);
+    //if (sock != NULL)
+    //    return net_socket_push(sock, skb);
 
     // Transfer to upper layer protocol
     switch (header->protocol) {
@@ -150,15 +153,40 @@ long ip4_socket_recv(socket_t *sock, uint8_t *addr, uint8_t *buf, size_t len, in
     return -1;
 }
 
+
+int ip4_clear(netstack_t * stack, ifnet_t * ifnet)
+{
+    ip4_master_t *master = ip4_readmaster(stack);
+    ip4_info_t *info = ip4_readinfo(ifnet);
+    if (info->qry_arps.count_ > 0)
+        return -1;
+    if (info->qry_pings.count_ > 0)
+        return -1;
+    if (info->dhcp != NULL)
+        dhcmp_clear(ifnet, info);
+
+    char key[8];
+    int lg = snprintf(key, 8, "%s.%d", ifnet->proto->name, ifnet->idx);
+    splock_lock(&master->lock);
+    if (ll_contains(&master->subnets, &info->subnet.node))
+        ll_remove(&master->subnets, &info->subnet.node);
+    hmp_remove(&master->ifinfos, key, lg);
+    splock_unlock(&master->lock);
+    kfree(info);
+    return 0;
+}
+
 /* Fill-out the prototype structure for IP4 */
 void ip4_proto(nproto_t *proto)
 {
     proto->addrlen = 6;
+    proto->name = "ipv4";
     proto->socket = ip4_socket;
     // proto->bind = ip4_tcp_bind;
     // proto->connect = ip4_tcp_connect;
     proto->send = ip4_socket_send;
     proto->recv = ip4_socket_recv;
+    proto->clear = ip4_clear;
     // proto->close = ip4_tcp_close;
 }
 

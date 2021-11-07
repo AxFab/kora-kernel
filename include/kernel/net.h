@@ -24,6 +24,7 @@
 #include <kora/llist.h>
 #include <kora/splock.h>
 #include <kora/bbtree.h>
+#include <kora/time.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/sem.h>
@@ -34,7 +35,7 @@
  // IO vector
 typedef struct iovec
 {
-    uint8_t *buf;
+    char *buf;
     size_t len;
 } iovec_t;
 
@@ -47,6 +48,7 @@ typedef struct socket socket_t;
 typedef struct nproto nproto_t;
 typedef struct netmsg netmsg_t;
 typedef struct nhandler nhandler_t;
+typedef struct net_qry net_qry_t;
 
 typedef int (*net_recv_t)(skb_t *);
 
@@ -60,11 +62,11 @@ typedef int (*net_recv_t)(skb_t *);
 
 #define NET_MAX_HWADRLEN 16
 #define NET_MAX_LOG 64
-#define NET_MAX_PROTONAME 8
-
+#define NET_MAX_RESPONSE 128
 
 // Network stack
 struct netstack {
+    int running;
     char *hostname;
     char *domain;
     llhead_t list;
@@ -84,6 +86,7 @@ struct netstack {
 struct net_ops {
     void (*link)(ifnet_t *);
     int (*send)(ifnet_t *, skb_t *);
+    int(*close)(ifnet_t *);
 };
 
 // Network interface
@@ -135,17 +138,19 @@ struct skb {
 struct nproto {
     // TODO -- If we use a generic struct(void*, bbnode), no need to alloc proto!
     bbnode_t bnode;
-    char name[NET_MAX_PROTONAME];
+    const char *name;
     unsigned addrlen;
     int (*socket)(socket_t*, int);
     int (*receive)(skb_t*);
-    int (*accept)(socket_t *, socket_t *);
-    int(*bind)(socket_t *, uint8_t *, size_t);
-    int(*connect)(socket_t *, uint8_t *, size_t);
-    long (*send)(socket_t*, const uint8_t*, const uint8_t*, size_t, int);
-    long (*recv)(socket_t*, uint8_t*, uint8_t*, size_t, int);
+    int (*accept)(socket_t *, socket_t *, skb_t *);
+    int(*bind)(socket_t *, const uint8_t *, size_t);
+    int(*connect)(socket_t *, const uint8_t *, size_t);
+    long (*send)(socket_t*, const uint8_t*, const char*, size_t, int);
+    long (*recv)(socket_t*, uint8_t*, char*, size_t, int);
     int(*close)(socket_t*);
     char *(*paddr)(const uint8_t*, char *, int);
+    int (*clear)(netstack_t *, ifnet_t *);
+    int (*teardown)(netstack_t *);
     void* data;
 };
 
@@ -177,6 +182,21 @@ struct netmsg {
     iovec_t iov[0];
 };
 
+// Generic network query holder
+struct net_qry
+{
+    cnd_t cnd;
+    mtx_t mtx;
+    bool received;
+    bool success;
+    xtime_t start;
+    xtime_t elapsed;
+    llnode_t lnode;
+    bbnode_t bnode;
+    size_t len;
+    uint8_t res[NET_MAX_RESPONSE];
+};
+
 
 // List of flags for ifnet, skb or socket
 enum {
@@ -196,6 +216,7 @@ enum {
 // List of defined device event
 enum {
     NET_EV_LINK = 1,
+    NET_EV_UNLINK,
     NET_EV_MAX,
 };
 
@@ -208,10 +229,14 @@ enum {
 int net_event(ifnet_t* net, int event, int param);
 /* Register an handler to listen to network interface events */
 void net_handler(netstack_t* stack, void(*handler)(ifnet_t*, int, int));
+/* Unregister an handler from the network interface events */
+void net_unregister(netstack_t *stack, void(*handler)(ifnet_t *, int, int));
 /* Search of a protocol registered on the network stack */
 nproto_t* net_protocol(netstack_t* stack, int protocol);
 /* Register a new protocol on the stack */
 void net_set_protocol(netstack_t* stack, int protocol, nproto_t* proto);
+/* Unregister a protocol oF the stack */
+void net_rm_protocol(netstack_t *stack, int protocol);
 /* Search for an network interface */
 ifnet_t* net_interface(netstack_t* stack, int protocol, int idx);
 /* Register a new network interface */
@@ -264,9 +289,9 @@ long net_socket_write(socket_t* sock, const char* buf, size_t len, int flags);
 /* Reading data from a socket */
 long net_socket_read(socket_t* sock, char* buf, size_t len, int flags);
 /* Turn the socket into listening mode and look for a client socket */
-socket_t* net_socket_accept(socket_t* sock, bool block);
+socket_t* net_socket_accept(socket_t* sock, xtime_t timeout);
 /* Wait for an incoming packet on this socket */
-skb_t* net_socket_pull(socket_t* sock, uint8_t* addr, int length, bool block);
+skb_t* net_socket_pull(socket_t* sock, uint8_t* addr, int length, xtime_t timeout);
 /* Signal an incoming packet on this socket */
 int net_socket_push(socket_t* sock, skb_t* skb);
 
@@ -275,6 +300,8 @@ int net_socket_push(socket_t* sock, skb_t* skb);
 
 /* Registers a new protocol capable of using loopback */
 int lo_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv);
+/* Unregisters a protocol capable of using loopback */
+int lo_unregister(netstack_t *stack, uint16_t protocol, net_recv_t recv);
 /* Writes a loopback header on a tx packet */
 int lo_header(skb_t *skb, uint16_t protocol, uint16_t port);
 /* Entry point of the loopback module */
@@ -289,12 +316,12 @@ int lo_setup(netstack_t *stack);
 # define htons(s) __swap16(s)
 # define ntohs(s) __swap16(s)
 # define htonl(l) __swap32(l)
-# define ntohl(w) __swap32(l)
+# define ntohl(l) __swap32(l)
 #else
 # define htons(s) (s)
 # define ntohs(s) (s)
 # define htonl(l) (l)
-# define ntohl(w) (l)
+# define ntohl(l) (l)
 #endif
 
 #endif /* _KORA_NET_H */

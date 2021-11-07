@@ -26,6 +26,9 @@ static socket_t *net_socket_from(socket_t *model, skb_t *skb)
     assert(model != NULL && model->stack != NULL && model->proto != NULL);
     assert(skb != NULL);
 
+    if (model->proto->accept == NULL)
+        return NULL;
+
     // Allocate the socket
     socket_t *sock = kalloc(sizeof(socket_t));
     sock->stack = model->stack;
@@ -35,16 +38,8 @@ static socket_t *net_socket_from(socket_t *model, skb_t *skb)
     sem_init(&sock->rsem, 0);
     llist_init(&sock->lskb);
 
-    // Bind socket
-    memcpy(sock->laddr, model->laddr, model->proto->addrlen);
-    sock->flags |= NET_ADDR_BINDED;
-
-    // Connect socket
-    memcpy(sock->raddr, skb->addr, model->proto->addrlen);
-    sock->flags |= NET_ADDR_CONNECTED;
-
     // Check with protocol
-    if (model->proto->accept && model->proto->accept(sock, model) != 0) {
+    if (model->proto->accept(sock, model, skb) != 0) {
         kfree(sock);
         return NULL;
     }
@@ -81,24 +76,23 @@ socket_t *net_socket(netstack_t *stack, int protocol, int method)
 /* Close a socket endpoint */
 int net_socket_close(socket_t *sock)
 {
-    // TODO -- Check and unregister from everywhere or use RCU ?
     int ret = 0;
     mtx_lock(&sock->lock);
     if (sock->proto->close)
         ret = sock->proto->close(sock);
-
     mtx_unlock(&sock->lock);
-    if (ret == 0) {
+    if (sock->lskb.count_ > 0)
+        return -1;
+    if (ret == 0)
         kfree(sock);
-        // free all
-    }
-
     return ret;
 }
 
 /* Bind a name to a socket - set its local address */
 int net_socket_bind(socket_t *sock, uint8_t *addr, size_t len)
 {
+    if (sock->flags & NET_ADDR_BINDED)
+        return -1;
     if (sock->proto->addrlen != len)
         return -1;
     mtx_lock(&sock->lock);
@@ -116,6 +110,8 @@ int net_socket_bind(socket_t *sock, uint8_t *addr, size_t len)
 /* Connect a socket with a single address - set its remote address */
 int net_socket_connect(socket_t *sock, uint8_t *addr, size_t len)
 {
+    if (sock->flags & NET_ADDR_CONNECTED)
+        return -1;
     if (sock->proto->addrlen != len)
         return -1;
     mtx_lock(&sock->lock);
@@ -132,8 +128,8 @@ int net_socket_connect(socket_t *sock, uint8_t *addr, size_t len)
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-/* Wrapper to preapre socker request and ask protocol for data exchange */
-static int net_socket_xchg(socket_t *sock, const netmsg_t *msg, int flags, long (*xchg)(socket_t *, uint8_t *, uint8_t *, size_t, int))
+/* Wrapper to preapre socket request and ask protocol for data exchange */
+static int net_socket_xchg(socket_t *sock, const netmsg_t *msg, int flags, long (*xchg)(socket_t *, uint8_t *, char *, size_t, int))
 {
     uint8_t addr[NET_MAX_HWADRLEN];
     if (msg == NULL || msg->iolven > IOVLEN_MAX)
@@ -143,10 +139,10 @@ static int net_socket_xchg(socket_t *sock, const netmsg_t *msg, int flags, long 
 
     // Look for the address
     if (sock->flags & NET_ADDR_CONNECTED)
-        memcpy(addr, sock->laddr, sock->proto->addrlen);
+        memcpy(addr, sock->raddr, sock->proto->addrlen);
     else if (sock->proto->addrlen != msg->addrlen)
         memcpy(addr, msg->addr, sock->proto->addrlen);
-    else if (xchg == sock->proto->send) {
+    else if (xchg == (void *)sock->proto->send) {
         mtx_unlock(&sock->lock);
         return -1;
     }
@@ -174,7 +170,7 @@ long net_socket_send(socket_t *sock, const netmsg_t *msg, int flags)
 {
     assert(sock != NULL && sock->proto != NULL);
     assert(sock->proto->send != NULL);
-    return net_socket_xchg(sock, msg, flags, sock->proto->send);
+    return net_socket_xchg(sock, msg, flags, (void *)sock->proto->send);
 }
 
 /* Receiving a series of data from an address */
@@ -208,7 +204,7 @@ long net_socket_read(socket_t *sock, char *buf, size_t len, int flags)
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 /* Turn the socket into listening mode and look for a client socket */
-socket_t *net_socket_accept(socket_t *sock, bool block)
+socket_t *net_socket_accept(socket_t *sock, xtime_t timeout)
 {
     // TODO -- Check the socket is elligble
     if ((sock->flags & NET_ADDR_BINDED) == 0)
@@ -217,26 +213,31 @@ socket_t *net_socket_accept(socket_t *sock, bool block)
     do {
         // Listen for incoming packet
         sock->flags |= NET_SOCK_LISTING;
-        skb_t *skb = net_socket_pull(sock, NULL, 0, block);
+        skb_t *skb = net_socket_pull(sock, NULL, 0, timeout);
         if (skb == NULL)
             continue;
 
         // Create client socket
         socket_t *client = net_socket_from(sock, skb);
-        if (client != NULL)
+        if (client != NULL) {
+            net_socket_push(client, skb);
             return client;
+        }
 
-    } while (block);
+    } while (timeout < 0);
     return NULL;
 }
 
 /* Wait for an incoming packet on this socket */
-skb_t *net_socket_pull(socket_t *sock, uint8_t *addr, int length, bool block)
+skb_t *net_socket_pull(socket_t *sock, uint8_t *addr, int length, xtime_t timeout)
 {
-    if (block)
+    struct timespec xt = { .tv_sec = timeout / 1000000LL, .tv_nsec = (timeout % 1000000LL) * 1000 };
+    if (timeout < 0)
         sem_acquire(&sock->rsem);
-    else if (sem_tryacquire(&sock->rsem) == thrd_busy)
+    else if (timeout == 0 && sem_tryacquire(&sock->rsem) == thrd_busy)
         return NULL;
+    else if (timeout > 0 && sem_timedacquire(&sock->rsem, &xt) == thrd_busy)
+        return NULL; // TODO -- sem_timedacquire();
 
     splock_lock(&sock->rlock);
     skb_t *skb = ll_dequeue(&sock->lskb, skb_t, node);

@@ -342,6 +342,7 @@ void __umoddi3();
 void mboot_load_modules();
 void csl_setup();
 void com_setup();
+void pit_init();
 
 void platform_start()
 {

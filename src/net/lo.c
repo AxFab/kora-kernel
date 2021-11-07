@@ -45,6 +45,7 @@ typedef struct lo_info lo_info_t;
 
 struct lo_info
 {
+    splock_t lock;
     hmap_t recv_map;
 };
 
@@ -70,10 +71,28 @@ int lo_handshake(netstack_t *stack, uint16_t protocol, net_recv_t recv)
     if (recv == NULL)
         return -1;
     lo_info_t *info = lo_readinfo(stack);
+    splock_lock(&info->lock);
     hmp_put(&info->recv_map, (char *)&protocol, sizeof(uint16_t), recv);
+    splock_unlock(&info->lock);
     return 0;
 }
 
+/* Unregisters a protocol capable of using loopback */
+int lo_unregister(netstack_t *stack, uint16_t protocol, net_recv_t recv)
+{
+    if (recv == NULL)
+        return -1;
+    lo_info_t *info = lo_readinfo(stack);
+    splock_lock(&info->lock);
+    net_recv_t prev = hmp_get(&info->recv_map, (char *)&protocol, sizeof(uint16_t));
+    if (prev != recv) {
+        splock_unlock(&info->lock);
+        return -1;
+    }
+    hmp_remove(&info->recv_map, (char *)&protocol, sizeof(uint16_t));
+    splock_unlock(&info->lock);
+    return 0;
+}
 
 /* Writes a loopback header on a tx packet */
 int lo_header(skb_t *skb, uint16_t protocol, uint16_t port)
@@ -117,7 +136,34 @@ int lo_receive(skb_t *skb)
     return recv(skb);
 }
 
+int lo_destroy(netstack_t *stack)
+{
+    nproto_t *proto = net_protocol(stack, NET_AF_LO);
+    lo_info_t *info = proto->data;
+    if (info->recv_map.count > 0)
+        return -1;
+    kfree(info);
+    hmp_destroy(&info->recv_map);
+    kfree(proto);
+    return 0;
+}
+
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+int lo_teardown(netstack_t *stack)
+{
+    nproto_t *proto = net_protocol(stack, NET_AF_LO);
+    if (proto == NULL)
+        return -1;
+    lo_info_t *info = proto->data;
+    if (info->recv_map.count > 0)
+        return -1;
+    net_rm_protocol(stack, NET_AF_LO);
+    hmp_destroy(&info->recv_map);
+    kfree(info);
+    kfree(proto);
+    return 0;
+}
 
 /* Entry point of the loopback module */
 int lo_setup(netstack_t *stack)
@@ -131,8 +177,9 @@ int lo_setup(netstack_t *stack)
     hmp_init(&info->recv_map, 8);
     proto->receive = lo_receive;
     proto->data = info;
-    strcpy(proto->name, "lo");
+    proto->name = "lo";
     proto->addrlen = 0;
+    proto->teardown = lo_teardown;
     net_set_protocol(stack, NET_AF_LO, proto);
 
     net_device(stack, NET_AF_LO, NULL, &lo_ops, NULL);

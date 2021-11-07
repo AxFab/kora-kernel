@@ -65,6 +65,15 @@ enum klog {
 /* Memory allocation */
 void *kalloc(size_t len);
 void kfree(void *ptr);
+#ifndef KORA_KRN
+# define kalloc(n) kalloc_(n,#n)
+void *kalloc_(size_t len, const char *);
+char *kstrdup(const char *str);
+char *kstrndup(const char *str, size_t max);
+#else
+# define kstrdup strdup
+# define kstrndup strndup
+#endif
 
 void *kmap(size_t len, void *ino, xoff_t off, int access);
 void kunmap(void *ptr, size_t len);

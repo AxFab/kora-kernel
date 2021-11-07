@@ -51,6 +51,21 @@ void sem_acquire(sem_t *sem)
     mtx_unlock(&sem->mtx);
 }
 
+int sem_timedacquire(sem_t *sem, const struct timespec *restrict xt)
+{
+    assert(sem != NULL);
+    mtx_lock(&sem->mtx);
+    while (sem->count == 0) {
+        if (cnd_timedwait(&sem->cv, &sem->mtx, xt) == thrd_busy) {
+            mtx_unlock(&sem->mtx);
+            return thrd_busy;
+        }
+    }
+    --sem->count;
+    mtx_unlock(&sem->mtx);
+    return thrd_success;
+}
+
 void sem_acquire_many(sem_t *sem, int count)
 {
     assert(sem != NULL);
@@ -89,7 +104,7 @@ void sem_release_many(sem_t *sem, int count)
     assert(sem != NULL);
     mtx_lock(&sem->mtx);
     sem->count += count;
-    cnd_signal(&sem->cv);
+    cnd_broadcast(&sem->cv);
     mtx_unlock(&sem->mtx);
 }
 
@@ -101,7 +116,7 @@ int sem_drain(sem_t *sem)
     count = sem->count;
     sem->count = 0;
     if (count < 0)
-        cnd_signal(&sem->cv);
+        cnd_broadcast(&sem->cv);
     mtx_unlock(&sem->mtx);
     return count;
 }

@@ -33,6 +33,7 @@ struct sem {
 int sem_init(sem_t *sem, int count);
 void sem_destroy(sem_t *sem);
 void sem_acquire(sem_t *sem);
+int sem_timedacquire(sem_t *sem, const struct timespec *restrict time_point);
 void sem_acquire_many(sem_t *sem, int count);
 int sem_tryacquire(sem_t *sem);
 void sem_release(sem_t *sem);

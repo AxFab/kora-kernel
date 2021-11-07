@@ -59,7 +59,7 @@ void kernel_start()
     }
 
     // Network
-    net_init();
+    net_setup();
     __smp_lock = 0;
     irq_reset(true);
     cpu_halt();

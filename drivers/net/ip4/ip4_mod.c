@@ -21,7 +21,7 @@
 #include "ip4.h"
 #include <kernel/core.h>
 
-
+ /* - */
 int ip4_readip(uint8_t *ip, const char *str)
 {
     int i;
@@ -40,12 +40,39 @@ int ip4_readip(uint8_t *ip, const char *str)
     return 0;
 }
 
+/* - */
+int ip4_readaddr(uint8_t *addr, const char *str)
+{
+    int i;
+    char *p;
+    uint8_t buf[4];
+    for (i = 0; i < IP4_ALEN; ++i) {
+        long v = strtol(str, &p, 10);
+        if (v < 0 || v > 255)
+            return -1;
+        buf[i] = (uint8_t)v;
+        if (p == str || (i != IP4_ALEN - 1 && *p != '.'))
+            return -1;
+        str = p + 1;
+    }
+    memcpy(addr, buf, IP4_ALEN);
+    uint16_t port = 0;
+    if (*p == ':') {
+        p++;
+        port = htons(strtol(str, &p, 10));
+        memcpy(&addr[4], &port, 2);
+    }
+    return 0;
+}
+
+/* - */
 char *ip4_writeip(const uint8_t *ip, char *buf, int len)
 {
     snprintf(buf, len, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
     return buf;
 }
 
+/* - */
 ip4_info_t *ip4_readinfo(ifnet_t *ifnet)
 {
     assert(ifnet && ifnet->stack && ifnet->proto);
@@ -58,16 +85,21 @@ ip4_info_t *ip4_readinfo(ifnet_t *ifnet)
         info = kalloc(sizeof(ip4_info_t));
         info->ttl = 128;
         info->use_dhcp = true;
-        memset(info->broadcast.ip, 0xff, IP4_ALEN);
+        /*memset(info->broadcast.ip, 0xff, IP4_ALEN);
         memset(info->broadcast.addr, 0xff, ETH_ALEN);
         info->broadcast.net = ifnet;
-        info->broadcast.ttl = info->ttl;
+        info->broadcast.ttl = info->ttl;*/
+        splock_init(&info->lock);
+        splock_init(&info->qry_lock);
+        bbtree_init(&info->qry_arps);
+        bbtree_init(&info->qry_pings);
         hmp_put(&master->ifinfos, key, lg, info);
     }
     splock_unlock(&master->lock);
     return info;
 }
 
+/* - */
 ip4_master_t *ip4_readmaster(netstack_t *stack)
 {
     assert(stack);
@@ -77,188 +109,160 @@ ip4_master_t *ip4_readmaster(netstack_t *stack)
     return master;
 }
 
-void ip4_checkup(ifnet_t *net, int event, int param) 
+
+/* - */
+void ip4_checkup(ifnet_t *net, int event, int param)
 {
     if (event != NET_EV_LINK || !(net->flags & NET_CONNECTED))
         return;
 
     ip4_info_t *info = ip4_readinfo(net);
-    if (info->ip[0] == 0)
+    if (info->subnet.ifnet == NULL)
         dhcp_discovery(net);
     else
-        arp_whois(net, info->ip);
+        arp_whois(net, info->subnet.address, NULL);
 }
 
+ip4_class_t ip4_classes[] = {
+    { "Any", { 0, 0, 0, 0} },
+    { "Class A", { 255, 0, 0, 0} },
+    { "Class B", { 255, 255, 0, 0} },
+    { "Class C", { 255, 255, 255, 0} },
+    { "Class D", { 255, 255, 255, 255} },
+    { "Class E", { 255, 255, 255, 255} },
+    { "Localhost", { 255, 0, 0, 0} },
+};
 
+/* - */
 void ip4_setip(ifnet_t *net, const uint8_t *ip, const uint8_t *submsk, const uint8_t *gateway)
 {
     char tmp[16];
+    ip4_master_t *master = ip4_readmaster(net->stack);
     ip4_info_t *info = ip4_readinfo(net);
     splock_lock(&info->lock);
 
-    memcpy(info->ip, ip, IP4_ALEN);
+    int ipclass = ip4_identify(ip);
+    assert(ipclass <= 6);
+    if (ipclass < 0)
+        return; // Invalid IP -- TODO trigger an error
 
-    if (gateway != NULL)
-        memcpy(info->gateway, gateway, IP4_ALEN);
-
-    info->submsk[0] = 0;
-    if (submsk != NULL)
-        memcpy(info->submsk, submsk, IP4_ALEN);
-    if (info->submsk[0] != 0xff) {
-        memset(info->submsk, 0xff, IP4_ALEN);
-        info->submsk[3] = 0;
-        if (info->ip[0] < 192)
-            info->submsk[2] = 0;
-        if (info->ip[0] < 128) // unlikely, 127 should not be allowed!
-            info->submsk[1] = 0;
-    }
-
+    memcpy(info->subnet.address, ip, IP4_ALEN);
+    memcpy(info->subnet.submask, ip4_classes[ipclass].mask, IP4_ALEN);
     for (int i = 0; i < IP4_ALEN; ++i)
-        info->broadcast.ip[i] = info->ip[i] | ~info->submsk[i];
+        info->subnet.broadcast[i] = info->subnet.address[i] | ~info->subnet.submask[i];
+    if (gateway != NULL)
+        memcpy(info->subnet.gateway, gateway, IP4_ALEN);
+    else
+        memset(info->subnet.gateway, 0, IP4_ALEN);
+    splock_lock(&master->lock);
+    if (info->subnet.ifnet != NULL)
+        ll_remove(&master->subnets, &info->subnet.node);
+    info->subnet.ifnet = net;
+    ll_append(&master->subnets, &info->subnet.node);
+    splock_unlock(&master->lock);
 
-    kprintf(-1, "Setup IP %s:%d, %s\n", net->stack->hostname, net->idx, ip4_writeip(info->ip, tmp, 16));
+    ip4_writeip(ip, tmp, 16);
+    kprintf(-1, "Setup IP %s:%d, %s\n", net->stack->hostname, net->idx, tmp);
     splock_unlock(&info->lock);
 
-    arp_whois(net, info->ip);
-    if (info->gateway[0] != 0 && memcmp(info->ip, info->gateway, IP4_ALEN) != 0)
-        arp_whois(net, info->gateway);
+    arp_whois(net, ip, NULL);
+    if (gateway != 0 && memcmp(ip, gateway, IP4_ALEN) != 0)
+        arp_whois(net, gateway, NULL);
 }
 
-//nproto_t ip4_tcp_proto = {
-//};
+/* - */
+int ip4_teardown_stack(netstack_t *stack)
+{
+    nproto_t *proto = net_protocol(stack, NET_AF_IP4);
+    nproto_t *tcp_proto = net_protocol(stack, NET_AF_TCP);
+    nproto_t *udp_proto = net_protocol(stack, NET_AF_UDP);
+    ip4_master_t *info = proto->data;
+    if (info->ifinfos.count > 0)
+        return -1;
+    if (info->tcp_ports.count_ > 0)
+        return -1;
+    if (info->udp_ports.count_ > 0)
+        return -1;
 
+    net_unregister(stack, ip4_checkup);
+    net_rm_protocol(stack, NET_AF_TCP);
+    net_rm_protocol(stack, NET_AF_UDP);
+    net_rm_protocol(stack, NET_AF_IP4);
+
+    eth_unregister(stack, ETH_IP4, ip4_receive);
+    eth_unregister(stack, ETH_ARP, arp_receive);
+    lo_unregister(stack, ETH_IP4, ip4_receive);
+
+    hmp_destroy(&info->ifinfos);
+    kfree(info);
+    kfree(proto);
+    kfree(tcp_proto);
+    kfree(udp_proto);
+    return 0;
+}
+
+
+/* - */
 int ip4_start(netstack_t *stack)
 {
-    nproto_t* proto = net_protocol(stack, NET_AF_IP4);
+    nproto_t *proto = net_protocol(stack, NET_AF_IP4);
     if (proto != NULL)
         return -1;
 
     proto = kalloc(sizeof(nproto_t));
-    ip4_master_t* master = kalloc(sizeof(ip4_master_t));
-    hmp_init(&master->sockets, 8);
-    hmp_init(&master->routes, 8);
+    ip4_master_t *master = kalloc(sizeof(ip4_master_t));
+    splock_init(&master->plock);
+    splock_init(&master->lock);
+    splock_init(&master->rlock);
+    bbtree_init(&master->udp_ports);
+    bbtree_init(&master->tcp_ports);
+    hmp_init(&master->ifinfos, 8);
     proto->data = master;
     ip4_proto(proto);
+    proto->teardown = ip4_teardown_stack;
     net_set_protocol(stack, NET_AF_IP4, proto);
+
+    nproto_t *proto_tcp = kalloc(sizeof(nproto_t));
+    tcp_proto(proto_tcp);
+    net_set_protocol(stack, NET_AF_TCP, proto_tcp);
+
+    nproto_t *proto_udp = kalloc(sizeof(nproto_t));
+    udp_proto(proto_udp);
+    net_set_protocol(stack, NET_AF_UDP, proto_udp);
 
     eth_handshake(stack, ETH_IP4, ip4_receive);
     eth_handshake(stack, ETH_ARP, arp_receive);
     lo_handshake(stack, ETH_IP4, ip4_receive);
     net_handler(stack, ip4_checkup);
-
-    nproto_t* proto_tcp = kalloc(sizeof(nproto_t));
-    tcp_proto(proto_tcp);
-    net_set_protocol(stack, NET_AF_TCP, proto_tcp);
-
-    nproto_t* proto_udp = kalloc(sizeof(nproto_t));
-    udp_proto(proto_udp);
-    net_set_protocol(stack, NET_AF_UDP, proto_udp);
-
     return 0;
 }
 
+/* - */
 void ip4_config(ifnet_t *net, const char *str)
 {
     uint8_t buf[IP4_ALEN];
     char *ptr;
     char *arg;
-    char *cpy = strdup(str);
+    char *cpy = kstrdup(str);
     ip4_info_t *info = ip4_readinfo(net);
-    splock_lock(&net->lock);
     for (arg = strtok_r(cpy, " \t\n", &ptr); arg != NULL; arg = strtok_r(NULL, " \t\n", &ptr)) {
         if (strcmp(arg, "dhcp-server") == 0) {
             info->use_dhcp_server = true;
-            if (info->ip[0] == 0) {
+            if (info->subnet.address[0] == 0) {
                 ip4_readip(buf, "192.168.0.1");
                 ip4_setip(net, buf, NULL, buf);
             } else
-                ip4_setip(net, info->ip, NULL, info->ip);
+                ip4_setip(net, info->subnet.address, NULL, info->subnet.address);
         } else if (memcmp(arg, "ip=", 3) == 0) {
             ip4_readip(buf, arg + 3);
             ip4_setip(net, buf, NULL, NULL);
         }
-
     }
 
     kfree(cpy);
 }
 
-
-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-struct ip4_port
-{
-    bbtree_t connected;
-};
-
-int ip4_bind_key(char *key, uint16_t port, uint16_t method)
-{
-    memcpy(key, &port, sizeof(uint16_t));
-    memcpy(&key[sizeof(uint16_t)], &method, sizeof(uint16_t));
-    return 2 * sizeof(uint16_t);
-}
-
-/* Bind a socket to a local port in order to redirect incoming packet */
-int ip4_bind_socket(socket_t *sock)
-{
-    char key[8];
-    uint16_t port = *((uint16_t *)&sock->laddr[4]);
-    uint16_t method = 0;
-    if (sock->protocol == NET_AF_TCP)
-        method = IP4_TCP;
-    else if (sock->protocol == NET_AF_UDP)
-        method = NET_AF_UDP;
-    else if (sock->protocol == NET_AF_IP4) {
-        // TODO -- look on socket->data...
-        method == 0;
-    }
-
-    int len = ip4_bind_key(key, port, method);
-    ip4_master_t *master = ip4_readmaster(sock->stack);
-    splock_lock(&master->lock);
-    ip4_port_t *iport = hmp_get(&master->sockets, key, len);
-    if (iport == NULL) {
-        iport = kalloc(sizeof(ip4_port_t));
-        bbtree_init(&iport->connected);
-        hmp_put(&master->sockets, key, len, sock);
-    }
-    uint32_t ipval = *((uint32_t *)sock->laddr);
-    bbslot_t *slot = bbtree_search_eq(&iport->connected, ipval, bbslot_t, node);
-    if (slot != NULL) {
-        splock_unlock(&master->lock);
-        return -1;
-    }
-
-    // TODO -- Check address is not of a server !?
-
-    slot = kalloc(sizeof(bbslot_t));
-    slot->data = sock;
-    slot->node.value_ = ipval;
-    bbtree_insert(&iport->connected, slot);
-    splock_unlock(&master->lock);
-    return 0;
-}
-
-socket_t *ip4_lookfor_socket(ifnet_t *net, uint16_t port, uint16_t method, const uint8_t *ip)
-{
-    char key[8];
-    int len = ip4_bind_key(key, port, method);
-    ip4_master_t *master = ip4_readmaster(net->stack);
-    splock_lock(&master->lock);
-    ip4_port_t *iport = hmp_get(&master->sockets, key, len);
-    if (iport == NULL) {
-        splock_unlock(&master->lock);
-        return NULL;
-    }
-
-    uint32_t ipval = *((uint32_t *)ip);
-    bbslot_t *slot = bbtree_search_eq(&iport->connected, ipval, bbslot_t, node);
-    socket_t *sock = slot ? slot->data : NULL;
-    // TODO -- Look for server too
-    splock_unlock(&master->lock);
-    return sock;
-}
 
 int ip4_setup()
 {

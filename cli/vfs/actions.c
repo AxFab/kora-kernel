@@ -35,8 +35,9 @@ void imgdk_create(const char* name, size_t size);
 void vhd_create_dyn(const char* name, uint64_t size);
 
 
-void do_dump(vfs_t* vfs, size_t* param)
+void do_dump(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     fsnode_t* node  = vfs->root;
     int indent = 0;
     char buf[256], tmp[16];
@@ -49,8 +50,9 @@ void do_dump(vfs_t* vfs, size_t* param)
     printf("%s\n", buf);
 }
 
-void do_ls(vfs_t* vfs, size_t* param)
+void do_ls(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char* path = (char*)param[0];
     fsnode_t* dir = vfs_search(vfs, path, NULL, true);
     fsnode_t* node;
@@ -66,19 +68,19 @@ void do_ls(vfs_t* vfs, size_t* param)
         return;
     }
 
-    void* ctx = vfs_opendir(dir, NULL);
-    if (!ctx) {
+    void* dctx = vfs_opendir(dir, NULL);
+    if (!dctx) {
         vfs_close_fsnode(dir);
         printf("Error during directory reading\n");
         return;
     }
 
-    while ((node = vfs_readdir(dir, ctx)) != NULL) {
+    while ((node = vfs_readdir(dir, dctx)) != NULL) {
         printf("    %s (%s)\n", node->name, vfs_inokey(node->ino, tmp));
         vfs_close_fsnode(node);
     }
 
-    vfs_closedir(dir, ctx);
+    vfs_closedir(dir, dctx);
     vfs_close_fsnode(dir);
 }
 
@@ -91,8 +93,9 @@ const char* vfs_timestr(xtime_t clock, char *tmp)
     return tmp;
 }
 
-void do_stat(vfs_t *vfs, size_t* param)
+void do_stat(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char* path = (char*)param[0];
     fsnode_t* root = (fsnode_t*)param[1];
     fsnode_t* node = vfs_search(vfs, path, NULL, true);
@@ -113,24 +116,27 @@ void do_stat(vfs_t *vfs, size_t* param)
     vfs_close_fsnode(node);
 }
 
-void do_cd(vfs_t *vfs, size_t* param)
+void do_cd(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char* path = (char*)param[0];
     int ret = vfs_chdir(vfs, path, false);
     if (ret != 0)
         printf("Error on changing working directory (%d: %s)\n", errno, strerror(errno));
 }
 
-void do_chroot(vfs_t *vfs, size_t* param)
+void do_chroot(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char* path = (char*)param[0];
     int ret = vfs_chdir(vfs, path, true);
     if (ret != 0)
         printf("Error on changing root directory (%d: %s)\n", errno, strerror(errno));
 }
 
-void do_pwd(vfs_t* vfs, size_t* param)
+void do_pwd(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char buf[4096];
     int ret = vfs_readlink(vfs, vfs->pwd, buf, 4096, false);
     if (ret == 0)
@@ -139,23 +145,24 @@ void do_pwd(vfs_t* vfs, size_t* param)
         printf("Readlink failure (%d: %s)\n", errno, strerror(errno));
 }
 
-void do_open(vfs_t *vfs, size_t* param)
+void do_open(vfs_t **ctx, size_t* param)
 {
     printf("\033[31mNot implemented: %s!\033[0m\n", __func__);
 }
 
-void do_close(vfs_t *vfs, size_t* param)
+void do_close(vfs_t **ctx, size_t* param)
 {
     printf("\033[31mNot implemented: %s!\033[0m\n", __func__);
 }
 
-void do_look(vfs_t *vfs, size_t* param)
+void do_look(vfs_t **ctx, size_t* param)
 {
     printf("\033[31mNot implemented: %s!\033[0m\n", __func__);
 }
 
-void do_create(vfs_t *vfs, size_t* param)
+void do_create(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char* name = (char*)param[0];
     fsnode_t* node = vfs_search(vfs, name, NULL, false);
     if (node == NULL) {
@@ -166,13 +173,14 @@ void do_create(vfs_t *vfs, size_t* param)
         printf("\033[31mUnable to create file %s: [%d - %s]\033[0m\n", name, errno, strerror(errno));
 }
 
-void do_unlink(vfs_t *vfs, size_t* param)
+void do_unlink(vfs_t **ctx, size_t* param)
 {
     printf("\033[31mNot implemented: %s!\033[0m\n", __func__);
 }
 
-void do_mkdir(vfs_t *vfs, size_t* param)
+void do_mkdir(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char* name = (char*)param[0];
     fsnode_t* node = vfs_search(vfs, name, NULL, false);
     if (node == NULL) {
@@ -184,13 +192,14 @@ void do_mkdir(vfs_t *vfs, size_t* param)
     vfs_close_fsnode(node);
 }
 
-void do_rmdir(vfs_t* vfs, size_t* param)
+void do_rmdir(vfs_t **ctx, size_t* param)
 {
     printf("\033[31mNot implemented: %s!\033[0m\n", __func__);
 }
 
-void do_dd(vfs_t* vfs, size_t* param)
+void do_dd(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     const char* dst = (char*)param[0];
     const char* src = (char*)param[1];
     size_t len = param[2];
@@ -237,8 +246,9 @@ void do_dd(vfs_t* vfs, size_t* param)
     vfs_close_fsnode(dstNode);
 }
 
-void do_mount(vfs_t *vfs, size_t* param)
+void do_mount(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char* dev = (char*)param[0];
     char* fstype = (char*)param[1];
     char* name = (char*)param[2];
@@ -249,13 +259,14 @@ void do_mount(vfs_t *vfs, size_t* param)
         vfs_close_fsnode(node);
 }
 
-void do_unmount(vfs_t *vfs, size_t* param)
+void do_unmount(vfs_t **ctx, size_t* param)
 {
     printf("\033[31mNot implemented: %s!\033[0m\n", __func__);
 }
 
-void do_extract(vfs_t* vfs, size_t* param)
+void do_extract(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char* path = (char*)param[0];
     char* out = (char*)param[1];
     fsnode_t* node = vfs_search(vfs, path, NULL, true);
@@ -349,8 +360,9 @@ uint32_t crc32_r(uint32_t checksum, const void* buf, size_t len)
 }
 
 
-void do_checksum(vfs_t* vfs, size_t* param)
+void do_checksum(vfs_t **ctx, size_t* param)
 {
+    vfs_t *vfs = *ctx;
     char* path = (char*)param[0];
     // char* out = (char*)param[1];
     fsnode_t* node = vfs_search(vfs, path, NULL, true);
@@ -389,7 +401,7 @@ void do_checksum(vfs_t* vfs, size_t* param)
     vfs_close_fsnode(node);
 }
 
-void do_img_open(vfs_t *vfs, size_t* param)
+void do_img_open(vfs_t **ctx, size_t* param)
 {
     char* path = (char*)param[0];
     char* name = (char*)param[1];
@@ -398,7 +410,7 @@ void do_img_open(vfs_t *vfs, size_t* param)
         printf("\033[31mUnable to open disk image '%s': [%d - %s]\033[0m\n", path, errno, strerror(errno));
 }
 
-void do_img_create(vfs_t* vfs, size_t* param)
+void do_img_create(vfs_t **ctx, size_t* param)
 {
     char* path = (char*)param[0];
     char* size = (char*)param[1];
@@ -431,7 +443,7 @@ void do_img_create(vfs_t* vfs, size_t* param)
     }
 }
 
-void do_img_remove(vfs_t* vfs, size_t* param)
+void do_img_remove(vfs_t** ctx, size_t* param)
 {
     char* path = (char*)param[0];
     errno = 0;
@@ -446,7 +458,7 @@ void do_img_remove(vfs_t* vfs, size_t* param)
 
 #pragma warning(disable : 4996)
 
-void do_img_copy(vfs_t* vfs, size_t* param)
+void do_img_copy(vfs_t **ctx, size_t* param)
 {
     char* src = (char*)param[0];
     char* dst = (char*)param[1];
@@ -490,7 +502,7 @@ void do_img_copy(vfs_t* vfs, size_t* param)
     close(fdst);
 }
 
-void do_tar_mount(vfs_t* vfs, size_t* param)
+void do_tar_mount(vfs_t **ctx, size_t* param)
 {
     char* path = (char*)param[0];
     char* name = (char*)param[1];
@@ -512,8 +524,9 @@ void do_tar_mount(vfs_t* vfs, size_t* param)
 int fatfs_format(inode_t* bdev, const char* options);
 int ext2_format(inode_t* bdev, const char* options);
 
-void do_format(vfs_t *vfs, size_t *param)
+void do_format(vfs_t **ctx, size_t *param)
 {
+    vfs_t *vfs = *ctx;
     char* fs = (char*)param[0];
     char* path = (char*)param[1];
     char* options = (char*)param[2];

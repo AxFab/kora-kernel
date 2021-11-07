@@ -28,7 +28,23 @@ PACK(struct udp_header {
     uint16_t checksum;
 });
 
+/* Look for an ephemeral port on UDP */
+uint16_t udp_ephemeral_port(socket_t *sock)
+{
+    ip4_master_t *master = ip4_readmaster(sock->stack);
+    return ip4_ephemeral_port(master, &master->udp_ports, sock);
+}
 
+/* Look for a socket binded to this port */
+static socket_t *udp_lookfor_socket(ifnet_t *ifnet, uint16_t port)
+{
+    ip4_master_t *master = ip4_readmaster(ifnet->stack);
+    return ip4_lookfor_socket(master, &master->udp_ports, ifnet, port);
+}
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+/* Write an UDP header on a packet using the provided parameters */
 int udp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, uint16_t lport, uint16_t identifier, uint16_t offset)
 {
     if (ip4_header(skb, route, IP4_UDP, length + sizeof(udp_header_t), identifier, offset) != 0)
@@ -50,7 +66,7 @@ int udp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, 
     return 0;
 }
 
-
+/* Handle the reception of a UDP packet */
 int udp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offset)
 {
     net_log(skb, ",udp");
@@ -73,7 +89,10 @@ int udp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offse
     //if (port == IP4_PORT_NTP && info->use_ntp)
     //    return ntp_receive(skb, length);
 
-    socket_t *sock = ip4_lookfor_socket(skb->ifnet, port, IP4_UDP, NULL);
+    memcpy(&skb->addr[skb->addrlen], &header->src_port, sizeof(uint16_t));
+    skb->addrlen += sizeof(uint16_t);
+
+    socket_t *sock = udp_lookfor_socket(skb->ifnet, port);
     if (sock == NULL)
         return -1;
 
@@ -81,34 +100,58 @@ int udp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offse
     return net_socket_push(sock, skb);
 }
 
+int udp_socket_bind(socket_t *sock, const uint8_t *addr, size_t len)
+{
+    if (len < 6)
+        return -1;
+    ip4_master_t *master = ip4_readmaster(sock->stack);
+    return ip4_socket_bind(master, &master->udp_ports, sock, addr);
+}
+
+
+int udp_socket_accept(socket_t *sock, socket_t *model, skb_t *skb)
+{
+    ip4_master_t *master = ip4_readmaster(sock->stack);
+    return ip4_socket_accept(master, &master->udp_ports, sock, model, skb);
+}
 
 long udp_socket_send(socket_t* sock, const uint8_t* addr, const uint8_t* buf, size_t len, int flags)
 {
-    // First find a ip4 route !
-    // Check if we already have a port -- if not take ephemeral UDP port !
-    // Select an IP identifier
-    ip4_route_t* route = ip4_route(sock->stack, addr);
-    uint16_t ip_id = 0;
+    assert(sock && addr && buf);
+    
+    // Look for a route
+    uint16_t rport = ntohs(*((uint16_t *)&addr[4]));
+    if (rport == 0)
+        return -1;
+    ip4_route_t route;
+    if (ip4_find_route(sock->stack, &route, addr) != 0)
+        return -1;
     uint16_t lport = 0;
-    uint16_t rport = ntohs((addr[4] << 8) | (addr[5]));
+    if (sock->flags & NET_ADDR_BINDED)
+        lport = htons(*((uint16_t *)&sock->laddr[4]));
+    else
+        lport = udp_ephemeral_port(sock);
+    if (lport == 0)
+        return -1;
 
-    unsigned packsize = 1500 - (14 + 20 + 8 + 8); // route->head_size;
-    int count = len / packsize;
-    int rem = len % packsize;
-    while (rem > 0 && rem < count) {
+    // Select an IP identifier
+    uint16_t ip_id = 0;
+
+    // Compute the optimal packet size
+    unsigned packsize = 1500 - (14 + 20 + 8 + 8); // TOOD -- Better estimation
+    unsigned count = len / packsize;
+    unsigned rem = len % packsize;
+    while (rem > 0 && rem < count && (packsize - rem) > count) {
         packsize--;
         count = len / packsize;
         rem = len % packsize;
     }
 
-    if (route == NULL || lport == 0 || rport == 0)
-        return -1;
-
     uint16_t off = 0;
     while (len > 0) {
         unsigned pack = MIN(packsize, len);
-        skb_t* skb = net_packet(route->net);
-        if (udp_header(skb, route, pack, rport, lport, ip_id, off) != 0)
+        skb_t* skb = net_packet(route.net);
+        if (udp_header(skb, &route, pack, rport, lport, ip_id, off) != 0)
             return net_skb_trash(skb);
 
         void* ptr = net_skb_reserve(skb, pack);
@@ -127,17 +170,57 @@ long udp_socket_send(socket_t* sock, const uint8_t* addr, const uint8_t* buf, si
 
 long udp_socket_recv(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, int flags)
 {
+    while (len > 0) {
+        skb_t *skb = net_socket_pull(sock, addr, 6, -1);
+        if (skb == NULL)
+            continue;
+    
+        unsigned lg = skb->length - skb->pen;
+        void *ptr = net_skb_reserve(skb, lg);
+        if (len < lg) {
+            kfree(skb);
+            return -1;
+        }
+        memcpy(buf, ptr, lg);
+        // Can we continue!?
+        kfree(skb);
+        return lg;
+    }
     // Wait for recv packet (sleep on sock->incm - may be use a semaphore !?);
     // If data are available read it -- Build and store ip4 route !?
     return -1;
 }
 
+int udp_socket_close(socket_t *sock)
+{
+    ip4_master_t *master = ip4_readmaster(sock->stack);
+    // Unbind the socket
+    if (sock->flags & NET_ADDR_BINDED) {
+        if (ip4_socket_close(master, &master->udp_ports, sock) != 0)
+            return -1;
+    }
+    
+    // Trash all unprocessed rx packet 
+    while (sock->lskb.count_ > 0) {
+        skb_t *skb = ll_dequeue(&sock->lskb, skb_t, node);
+        kfree(skb);
+    }
 
+    return 0;
+}
+
+
+
+/* Fill-out the prototype structure for UDP */
 void udp_proto(nproto_t* proto)
 {
     proto->addrlen = 6;
+    proto->name = "udp/ipv4";
+    proto->bind = udp_socket_bind;
+    // TODO -- Connect at least to check this is a valid address!
+    proto->accept = udp_socket_accept;
     proto->send = udp_socket_send;
     proto->recv = udp_socket_recv;
-    // proto->close = udp_close;
+    proto->close = udp_socket_close;
 }
 

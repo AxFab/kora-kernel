@@ -69,6 +69,7 @@ void mmu_destroy_uspace(mspace_t *mspace);
 void platform_start();
 /* - */
 void module_loader();
-
+/* - */
+int task_start(const char *name, void *func, void *arg);
 
 #endif  /* _KERNEL_CORE_H */

@@ -28,10 +28,9 @@
 #endif
 
 void *memrchr(const void *s, int c, size_t n);
-int tty_rows(void);
-int tty_cols(void);
 
-typedef void(*parsa_t)(void *, unsigned char);
+typedef void(*parsa_t)(void *, int, char *);
+typedef int(*parsn_t)(void *, char *);
 
 typedef struct opt {
     unsigned char sh;
@@ -40,13 +39,14 @@ typedef struct opt {
     char *desc;
 } opt_t;
 
-#define VERSION "1.0.0"
+#define VERSION "0.1"
 #define COPYRIGHT "Copyright 2015-2020 KoraOS\nLicense AGPL <http://gnu.org/licenses/agpl.html>"
 #define HELP "Enter the command \"%s --help\" for more information\n"
 
 #define OPT_HELP (0xff)
 #define OPT_VERS (0xfe)
 #define OPTION(s,l,d) {s,0,l,d}
+#define OPTION_A(s,l,d) {s,1,l,d}
 #define END_OPTION(d) \
     OPTION(OPT_HELP, "help", "Display help and leave the program"), \
     OPTION(OPT_VERS, "version", "Display version information and leave the program"), \
@@ -60,7 +60,7 @@ typedef struct opt {
 #endif
 
 
-int tty_cols(void)
+static inline int tty_cols(void)
 {
     int cols = 80;
     // int lines = 24;
@@ -82,7 +82,7 @@ int tty_cols(void)
     return cols;
 }
 
-int tty_rows(void)
+static inline int tty_rows(void)
 {
     // int cols = 80;
     int lines = 24;
@@ -111,6 +111,31 @@ static inline unsigned char *arg_long(char *arg, opt_t *opts)
             return &opts->sh;
     }
     return (unsigned char *)"";
+}
+
+static inline opt_t *arg_long_(char *arg, opt_t *opts)
+{
+    int len = strlen(arg);
+    for (; opts->sh; opts++) {
+        if (opts->lgopt == NULL)
+            continue;
+        int oln = strlen(opts->lgopt);
+        int l = len < oln ? len : oln;
+        if (l == len && memcmp(arg, opts->lgopt, l) == 0 && (opts->lgopt[l] == '\0' || opts->lgopt[l] == '='))
+            return opts;
+    }
+    return NULL;
+}
+
+static inline opt_t *arg_short(char arg, opt_t *opts)
+{
+    for (; opts->sh; opts++) {
+        if (opts->sh <= 0 || opts->sh >= 128)
+            continue;
+        if (opts->sh == arg)
+            return opts;
+    }
+    return NULL;
 }
 
 static inline void arg_usage(char *program, opt_t *opts, char **usages)
@@ -166,22 +191,136 @@ static inline void arg_version(char *program)
     printf("%s (Kora system) %s\n%s\n", program, VERSION, COPYRIGHT);
 }
 
-static inline int arg_parse(int argc, char **argv, parsa_t func, void *params, opt_t *opts)
+static inline int arg_handle(int argc, char **argv, parsa_t func, void *params, opt_t *options, char **usages, int o, opt_t *opt)
+{
+    if (opt == NULL) {
+        printf("Option %s non recognized.\n", argv[o]);
+        return -1;
+    } else if (opt->sh == OPT_HELP) {
+        arg_usage(argv[0], options, usages);
+        exit(0);
+    } else if (opt->sh == OPT_VERS) {
+        arg_version(argv[0]);
+        exit(0);
+    }
+
+    if (opt->resv == 0) {
+        if (func)
+            func(params, opt->sh, NULL);
+        return 0;
+    }
+
+    if (o + 1 >= argc)
+        return -1;
+    if (func)
+        func(params, opt->sh, argv[o + 1]);
+    return 1;
+}
+
+static inline int arg_parse(int argc, char **argv, parsa_t func, void *params, opt_t *options, char **usages)
 {
     int o, n = 0;
     for (o = 1; o < argc; ++o) {
-        if (argv[o][0] != '-') {
+        if (argv[o][0] != '-' || argv[o][1] == '\0') {
             n++;
             continue;
         }
 
         unsigned char *opt = (unsigned char *)&argv[o][1];
-        if (*opt == '-')
-            opt = arg_long(&argv[o][2], opts);
-        for (; *opt; ++opt)
-            func(params, *opt);
+        opt_t *op = NULL;
+        if (*opt == '-') {
+            op = arg_long_(&argv[o][2], options);
+            int p = arg_handle(argc, argv, func, params, options, usages, o, op);
+            if (p < 0)
+                return -1;
+            o += p;
+        } else {
+            for (; *opt; ++opt) {
+                op = arg_short(*opt, options);
+                if (op == NULL) {
+                    printf("Option -%c non recognized.\n", *opt);
+                    return -1;
+                }
+                int p = arg_handle(argc, argv, func, params, options, usages, o, op);
+                if (p < 0)
+                    return -1;
+                o += p;
+            }
+        }
     }
     return n;
+}
+
+static inline int arg_names(int argc, char **argv, parsn_t func, void *params, opt_t *options)
+{
+    int o;
+    for (o = 1; o < argc; ++o) {
+        if (argv[o][0] != '-' || argv[o][1] == '\0') {
+            int ret = func(params, argv[o]);
+            if (ret != 0)
+                return ret;
+            continue;
+        }
+
+        unsigned char *opt = (unsigned char *)&argv[o][1];
+        opt_t *op = NULL;
+        if (*opt == '-') {
+            op = arg_long_(&argv[o][2], options);
+            int p = arg_handle(argc, argv, NULL, NULL, options, NULL, o, op);
+            if (p < 0)
+                return 0;
+            o += p;
+        } else {
+            for (; *opt; ++opt) {
+                op = arg_short(*opt, options);
+                if (op == NULL) {
+                    printf("Option -%c non recognized.\n", *opt);
+                    return -1;
+                }
+                int p = arg_handle(argc, argv, NULL, NULL, options, NULL, o, op);
+                if (p < 0)
+                    return 0;
+                o += p;
+            }
+        }
+    }
+    return 0;
+}
+
+static inline char *arg_index(int argc, char **argv, int idx, opt_t *options)
+{
+    int o, n = 0;
+    for (o = 1; o < argc; ++o) {
+        if (argv[o][0] != '-' || argv[o][1] == '\0') {
+            n++;
+            if (n == idx)
+                return argv[o];
+            continue;
+        }
+
+        unsigned char *opt = (unsigned char *)&argv[o][1];
+        opt_t *op = NULL;
+        if (*opt == '-') {
+            op = arg_long_(&argv[o][2], options);
+            int p = arg_handle(argc, argv, NULL, NULL, options, NULL, o, op);
+            if (p < 0)
+                return NULL;
+            o += p;
+        } else {
+            for (; *opt; ++opt) {
+                op = arg_short(*opt, options);
+                if (op == NULL) {
+                    printf("Option -%c non recognized.\n", *opt);
+                    return NULL;
+                }
+                int p = arg_handle(argc, argv, NULL, NULL, options, NULL, o, op);
+                if (p < 0)
+                    return NULL;
+                o += p;
+            }
+        }
+    }
+    return NULL;
 }
 
 #endif /* __UTILS_H */

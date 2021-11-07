@@ -214,6 +214,8 @@ void apic_setup()
 }
 
 
+void kernel_ready();
+
 void ap_setup()
 {
     irq_reset(false);

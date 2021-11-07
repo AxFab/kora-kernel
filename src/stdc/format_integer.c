@@ -30,7 +30,6 @@ typedef unsigned long long __ulong;
 #define LONG_MIN  (-LONG_MAX - 1)
 #define ULONG_MAX  (2UL * LONG_MAX + 1)
 
-#define SIZE_MAX ULONG_MAX
 /* TODO define somewhere else */
 #define UNSIGNED_MINUS(v)  ((~(v))+1)
 

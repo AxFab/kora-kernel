@@ -22,6 +22,7 @@
 
 #include <stddef.h>
 #include <bits/types.h>
+#include <bits/timespec.h>
 
 #ifndef CLOCK_MONOTONIC
 #  define CLOCK_MONOTONIC  0
@@ -40,11 +41,6 @@ typedef __clock_t clock_t;
 
 #define CLOCKS_PER_SEC  1000000L
 
-
-struct timespec {
-    time_t tv_sec;
-    long tv_nsec;
-};
 
 /* Used by other time functions.  */
 struct tm {

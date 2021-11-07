@@ -23,12 +23,6 @@
 
 typedef struct icmp_header icmp_header_t;
 
-struct icmp_info
-{
-    hmap_t pings;
-    splock_t lock;
-};
-
 PACK(struct icmp_header {
     uint8_t type;
     uint8_t code;
@@ -52,21 +46,12 @@ struct icmp_ping {
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-/* Gets ICMP information linked to a specific device */
-static icmp_info_t *icmp_readinfo(ifnet_t *ifnet)
+static void icmp_forget_with(ip4_info_t *info, net_qry_t *qry)
 {
-    ip4_info_t *ipinfo = ip4_readinfo(ifnet);
-    assert(ipinfo != NULL);
-    icmp_info_t *info = ipinfo->icmp;
-    if (info == NULL) {
-        info = kalloc(sizeof(icmp_info_t));
-        hmp_init(&info->pings, 8);
-        ipinfo->icmp = info;
-    }
-    return info;
+    splock_lock(&info->qry_lock);
+    bbtree_remove(&info->qry_pings, qry->bnode.value_);
+    splock_unlock(&info->qry_lock);
 }
-
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 /* Build and send an ICMP packet from provided parameters */
 static int icmp_packet(ifnet_t *ifnet, ip4_route_t *route, int type, int code, uint32_t data, const char *buf, int len)
@@ -112,21 +97,42 @@ int icmp_receive(skb_t *skb, unsigned length)
         buf = net_skb_reserve(skb, length);
 
     if (header->type == ICMP_PING) {
-        // TODO - Find who to send it to ?
-        // icmp_packet(skb->ifnet, NULL, ICMP_PONG, 0, header->data, buf, length);
+        ip4_route_t route;
+        memcpy(route.ip, &skb->addr[skb->addrlen - IP4_ALEN], IP4_ALEN);
+        route.net = skb->ifnet;
+        if (route.net->protocol == NET_AF_ETH)
+            memcpy(route.addr, skb->addr, ETH_ALEN);
+        else if (route.net->protocol == NET_AF_LO)
+            return -1;
+        icmp_packet(skb->ifnet, &route, ICMP_PONG, 0, header->data, buf, length);
+
     } else if (header->type == ICMP_PONG) {
-        icmp_info_t *info = icmp_readinfo(skb->ifnet);
+        ip4_info_t *info = ip4_readinfo(skb->ifnet);
         uint16_t id = header->data & 0xFFFF;
-        icmp_ping_t *ping = hmp_get(&info->pings, (char *)&id, sizeof(uint16_t));
-        if (ping != NULL) {
-            // TODO - Check the payload!
-            mtx_lock(&ping->mtx);
-            splock_lock(&info->lock);
-            hmp_remove(&info->pings, (char *)&id, sizeof(uint16_t));
-            splock_unlock(&info->lock);
-            ping->received = true;
-            cnd_signal(&ping->cnd);
-            mtx_unlock(&ping->mtx);
+        uint32_t data = header->data;
+        splock_lock(&info->qry_lock);
+        net_qry_t *qry = bbtree_search_eq(&info->qry_pings, header->data, net_qry_t, bnode);
+        if (qry != NULL)
+            bbtree_remove(&info->qry_pings, qry->bnode.value_);
+        splock_unlock(&info->qry_lock);
+
+        if (qry != NULL) {
+            // Check the payload!
+            bool match = true;
+            if (qry->len > 0) {
+                int len = MIN3(qry->len, length, NET_MAX_RESPONSE);
+                match = length == len && buf != NULL && memcmp(qry->res, buf, len) == 0;
+                qry->len = len;
+                if (buf != NULL)
+                    memcpy(qry->res, buf, len);
+                else
+                    qry->len = 0;
+            }
+            mtx_lock(&qry->mtx);
+            qry->received = true;
+            qry->success = match;
+            cnd_signal(&qry->cnd);
+            mtx_unlock(&qry->mtx);
         }
     }
 
@@ -137,35 +143,47 @@ int icmp_receive(skb_t *skb, unsigned length)
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 /* Send a PING request to the following IP route */
-icmp_ping_t *icmp_ping(ip4_route_t *route, const char *buf, unsigned len)
+int icmp_ping(ip4_route_t *route, const char *buf, unsigned len, net_qry_t *qry)
 {
+    if (route == NULL)
+        return -1;
     uint16_t id = rand16();
     short seq = 1;
     uint32_t data = id | (seq << 16);
-    icmp_ping_t *ping = kalloc(sizeof(icmp_ping_t));
-    if (len > 0) {
-        ping->len = len;
-        ping->buf = kalloc(len);
-        memcpy(ping->buf, buf, len);
+    ip4_info_t *info = ip4_readinfo(route->net);
+
+    if (qry != NULL) {
+        memset(qry, 0, sizeof(net_qry_t));
+        cnd_init(&qry->cnd);
+        mtx_init(&qry->mtx, mtx_plain);
+        qry->start = xtime_read(XTIME_CLOCK);
+        if (len > 0) {
+            len = MIN(len, NET_MAX_RESPONSE);
+            qry->len = len;
+            memcpy(qry->res, buf, len);
+        }
+
+        splock_lock(&info->qry_lock);
+        qry->bnode.value_ = data;
+        bbtree_insert(&info->qry_pings, &qry->bnode);
+        splock_unlock(&info->qry_lock);
     }
-    ping->id = id;
-    ping->data = data;
-    ping->time = xtime_read(XTIME_CLOCK);
-    ping->received = false;
-    mtx_init(&ping->mtx, mtx_plain);
-    cnd_init(&ping->cnd);
-    icmp_info_t *info = icmp_readinfo(route->net);
-    splock_lock(&info->lock);
-    hmp_put(&info->pings, (char *)&ping->id, sizeof(uint16_t), ping);
-    splock_unlock(&info->lock);
+
     int ret = icmp_packet(route->net, route, ICMP_PING, 0, data, buf, len);
     if (ret == 0)
-        return ping;
+        return 0;
 
-    splock_lock(&info->lock);
-    hmp_remove(&info->pings, (char *)&id, sizeof(uint16_t));
-    splock_unlock(&info->lock);
-    kfree(ping->buf);
-    kfree(ping);
-    return NULL;
+    if (qry != NULL)
+        icmp_forget_with(info, qry);
+
+    return -1;
 }
+
+/* Unregistered a timedout ARP query */
+void icmp_forget(ip4_route_t *route, net_qry_t *qry)
+{
+    ip4_info_t *info = ip4_readinfo(route->net);
+    assert(info != NULL && qry != NULL);
+    icmp_forget_with(info, qry);
+}
+
