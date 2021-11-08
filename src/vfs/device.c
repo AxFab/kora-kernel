@@ -114,7 +114,7 @@ void vfs_rmdev(const char *name)
 
 void vfs_addfs(const char *name, fsmount_t mount, fsformat_t format)
 {
-    fsreg_t *reg = kalloc(sizeof(struct fsreg));
+    fsreg_t *reg = kalloc(sizeof(fsreg_t));
     strncpy(reg->name, name, 16);
     reg->mount = mount;
     reg->format = format;

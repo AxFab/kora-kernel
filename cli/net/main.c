@@ -422,7 +422,7 @@ int do_recv(void *cfg, size_t *params)
     if (buffer == NULL)
         buffer = malloc(3 * sizeof(size_t));
     else
-        free(buffer[0]);
+        free((void *)buffer[0]);
     buffer[0] = malloc(1500);
     buffer[1] = 1500;
     buffer[2] = 1;
