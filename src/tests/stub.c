@@ -72,7 +72,7 @@ void *kalloc_(size_t len, const char *msg)
     tr->bnode.value_ = (size_t)ptr;
     bbtree_insert(&ktrack_tree, &tr->bnode);
     splock_unlock(&ktrack_lock);
-    kprintf(-1, "\033[96m+ alloc (%p, %d) %s\033[0m\n", ptr, len, msg);
+    // kprintf(-1, "\033[96m+ alloc (%p, %d) %s\033[0m\n", ptr, len, msg);
     return ptr;
 }
 
@@ -82,7 +82,7 @@ void kfree(void *ptr)
     splock_lock(&ktrack_lock);
     bbtree_remove(&ktrack_tree, (size_t)ptr);
     splock_unlock(&ktrack_lock);
-    kprintf(-1, "\033[96m- free (%p)\033[0m\n", ptr);
+    // kprintf(-1, "\033[96m- free (%p)\033[0m\n", ptr);
     free(ptr);
 }
 

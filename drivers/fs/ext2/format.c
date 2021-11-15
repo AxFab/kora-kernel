@@ -24,26 +24,6 @@
 #include <errno.h>
 #include "ext2.h"
 
-typedef struct ext2_dir_hack ext2_dir_hack_t;
-
-struct ext2_dir_hack {
-    uint32_t ino1;
-    uint16_t rec_len1;
-    uint8_t name_len1;
-    uint8_t file_type1;
-    char name1[4];
-    uint32_t ino2;
-    uint16_t rec_len2;
-    uint8_t name_len2;
-    uint8_t file_type2;
-    char name2[4];
-    uint32_t ino3;
-    uint16_t rec_len3;
-    uint8_t name_len3;
-    uint8_t file_type3;
-    char name3[12];
-};
-
 static uint32_t uint_log2(uint32_t value) {
     unsigned log = 0;
     while (value > 1) {

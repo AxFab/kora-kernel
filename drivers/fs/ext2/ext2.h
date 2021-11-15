@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kora/mcrs.h>
+#include <kernel/vfs.h>
 
 // https://wiki.osdev.org/Ext2#Directory_Entry_Type_Indicators
 // http://web.mit.edu/tytso/www/linux/ext2intro.html
@@ -164,11 +165,13 @@ struct ext2_dir_iter {
     // int last;
     // uint8_t *cur_block;
 
-    void *emap;
+    //void *emap;
+    struct bkmap bki;
     ext2_ino_t *entry;
 
     // size_t off;
     size_t lba;
+    struct bkmap bkm;
     void *cmap;
 };
 
@@ -178,6 +181,27 @@ struct ext2_dir_en {
     uint8_t name_len;
     uint8_t type;
     char name[0];
+};
+
+
+typedef struct ext2_dir_hack ext2_dir_hack_t;
+
+struct ext2_dir_hack {
+    uint32_t ino1;
+    uint16_t rec_len1;
+    uint8_t name_len1;
+    uint8_t file_type1;
+    char name1[4];
+    uint32_t ino2;
+    uint16_t rec_len2;
+    uint8_t name_len2;
+    uint8_t file_type2;
+    char name2[4];
+    uint32_t ino3;
+    uint16_t rec_len3;
+    uint8_t name_len3;
+    uint8_t file_type3;
+    char name3[12];
 };
 
 
@@ -223,3 +247,47 @@ struct ext2_dir_en {
 #define EXT2_FT_DIR  2   
 
 int ext2_format(inode_t* dev, const char* options);
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// File operations
+/* Copy into the buffer data from mapped area of the underlying block device */
+int ext2_read(inode_t* ino, char* buffer, size_t length, xoff_t offset, int flags);
+/* Copy the buffer data into mapped area of the underlying block device */
+int ext2_write(inode_t* ino, const char* buffer, size_t length, xoff_t offset, int flags);
+/* Change the size of a file inode and allocate or release blocks */
+int ext2_truncate(inode_t* ino, xoff_t offset);
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Directory operations
+/* Open a directory context for browsing files */
+ext2_dir_iter_t *ext2_opendir(inode_t *dir);
+/* Find the next inode on a directory context */
+uint32_t ext2_nextdir(inode_t *dir, char *name, ext2_dir_iter_t *it);
+/* Look for the next entry on a directoy context */
+inode_t *ext2_readdir(inode_t *dir, char *name, ext2_dir_iter_t *it);
+/* Close a directory context */
+int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it);
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Symlink operations
+
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+uint32_t ext2_alloc_block(ext2_volume_t *vol);
+int ext2_release_block(ext2_volume_t *vol, uint32_t block);
+int ext2_getblock_direct(ext2_volume_t *vol, uint32_t *table, int len, int offset, uint32_t *buf, int cnt, int off);
+int ext2_getblock_indirect(ext2_volume_t *vol, uint32_t block, int offset, uint32_t *buf, int cnt, int off, int depth);
+uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk);
+void ext2_truncate_direct(ext2_volume_t *vol, uint32_t *table, int len, int bcount, int offset);
+uint32_t ext2_truncate_indirect(ext2_volume_t *vol, uint32_t block, int bcount, int offset, int depth);
+
+
+
+
+
+ext2_ino_t* ext2_entry(struct bkmap* bk, ext2_volume_t* vol, unsigned no, int flg);
+

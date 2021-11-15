@@ -277,7 +277,8 @@ static inline void *bkmap(struct bkmap *bm, size_t blkno, size_t blksize, size_t
 
 static inline void bkunmap(struct bkmap *bm)
 {
-    kunmap(bm->map, bm->len);
+    if (bm->map)
+        kunmap(bm->map, bm->len);
     bm->map = 0;
 }
 
