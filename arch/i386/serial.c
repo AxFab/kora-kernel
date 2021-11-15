@@ -17,12 +17,10 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/stdc.h>
 #include <kernel/arch.h>
 #include <kernel/vfs.h>
 #include <kernel/irq.h>
 #include <errno.h>
-
 
 #define PORT_COM1 0x3f8   /* COM1 */
 #define PORT_COM2 0x2f8   /* COM2 */
@@ -31,25 +29,12 @@
 
 int serial_ports[] = { PORT_COM1, PORT_COM2, PORT_COM3, PORT_COM4 };
 inode_t *serial_inos[] = { NULL, NULL, NULL, NULL };
+const char *devnames[] = { "COM1", "COM2", "COM3", "COM4", };
 
-/*
-  On PORT+3
-  bits: 0-1 give data length form 5 to 8
-        2  number of stop bits (1 or more)
-        3-4 Parity bits NONE / ODD / EVENT
-        5   -- Parity wierd
 
-  On PORT+5
-  bits: 0 -- Data available
-        1 -- Transmitter empty
-        2 -- Error
-        3 -- Status change
-*/
-
-// You use IRQ #4 for COM ports 1 or 3, and IRQ #3 for COM ports 2 or 4
-
-static void com_init(int port)
+void serial_init(int no)
 {
+    int port = serial_ports[no];
     outb(port + 1, 0x00);  // Disable all interrupts
     outb(port + 3, 0x80);  // Enable DLAB (set baud rate divisor)
     outb(port + 0, 0x03);  // Set divisor to 3 (lo byte) 38400 baud
@@ -60,8 +45,27 @@ static void com_init(int port)
     outb(port + 4, 0x0B);  // IRQs enabled, RTS/DSR set
 }
 
-static int com_input(int port, inode_t *ino)
+void serial_early_init()
 {
+    int i;
+    for (i = 0; i < 4; ++i)
+        serial_init(i);
+}
+
+int serial_send(int no, const char *buf, size_t len)
+{
+    int port = serial_ports[no];
+    for (; len-- > 0; buf++) {
+        // Wait transmition is clear
+        while ((inb(port + 5) & 0x20) == 0);
+        outb(port, *buf);
+    }
+    return 0;
+}
+
+int serial_recv(int no)
+{
+    int port = serial_ports[no];
     char byte;
     if ((inb(port + 5) & 1) != 0) {
         while ((inb(port + 5) & 1) != 0) {
@@ -74,83 +78,55 @@ static int com_input(int port, inode_t *ino)
     return -1;
 }
 
-int com_output(int no, const char *buf, int len)
+
+void serial_irq(int o)
 {
-    int port = serial_ports[no];
-    for (; len-- > 0; buf++) {
-        // Wait transmition is clear
-        while ((inb(port + 5) & 0x20) == 0);
-        outb(port, *buf);
-    }
-    errno = 0;
-    return 0;
+    serial_recv(o);
+    serial_recv(o + 1);
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-void com_early_init()
+int serial_write(inode_t *ino, const char *buf, size_t len, int flags)
 {
-    int i;
-    for (i = 0; i < 4; ++i)
-        com_init(serial_ports[i]);
+    return serial_send(ino->no - 1, buf, len);
 }
 
-
-void com_irq(int o)
-{
-    com_input(serial_ports[o], serial_inos[o]);
-    com_input(serial_ports[o + 2], serial_inos[o + 2]);
-}
-
-int com_write(inode_t *ino, const char *buf, size_t len, int flags)
-{
-    return com_output(ino->no - 1, buf, len);
-}
-
-
-int com_ioctl(inode_t *ino, int cmd, void **params)
+int serial_ioctl(inode_t *ino, int cmd, void **params)
 {
     errno = ENOSYS;
     return -1;
 }
 
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-ino_ops_t com_fops = {
-    .write = (void *)com_write,
-    .ioctl = com_ioctl,
+ino_ops_t serial_fops = {
+    .write = serial_write,
+    .ioctl = serial_ioctl,
 };
 
-// irq_register(int, irq_handler_t, void*);
 
-
-const char *devnames[] = {
-    "COM1", "COM2", "COM3", "COM4",
-};
-
-void com_setup()
+void serial_setup()
 {
     int i;
     char name[8];
     for (i = 0; i < 4; ++i) {
         snprintf(name, 8, "com%d", i + 1);
-        inode_t *ino = vfs_inode(i + 1, FL_CHR, NULL, &com_fops);
+        inode_t *ino = vfs_inode(i + 1, FL_CHR, NULL, &serial_fops);
         ino->dev->devclass = strdup("Serial port");
         ino->dev->devname = strdup((char *)devnames[i]);
         vfs_mkdev(ino, name);
+        serial_inos[i] = ino;
     }
-    irq_register(3, (irq_handler_t)com_irq, (void *)1);
-    irq_register(4, (irq_handler_t)com_irq, (void *)0);
+    irq_register(3, (irq_handler_t)serial_irq, (void *)1);
+    irq_register(4, (irq_handler_t)serial_irq, (void *)0);
 }
 
-void com_teardown()
+void serial_teardown()
 {
     int i;
-    irq_unregister(3, (irq_handler_t)com_irq, (void *)1);
-    irq_unregister(4, (irq_handler_t)com_irq, (void *)0);
+    irq_unregister(3, (irq_handler_t)serial_irq, (void *)1);
+    irq_unregister(4, (irq_handler_t)serial_irq, (void *)0);
     for (i = 0; i < 4; ++i)
         vfs_close_inode(serial_inos[i]);
 }
-
-// MODULE(serial, com_setup, com_teardown);

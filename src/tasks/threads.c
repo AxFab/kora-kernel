@@ -160,7 +160,7 @@ int task_spawn(const char *program, const char **args, fsnode_t **nodes)
     }
 
     // Schedule
-    cpu_setjmp(&task->jmpbuf, task->stack, task_usermode, info);
+    cpu_prepare(&task->jmpbuf, task->stack, task_usermode, info);
     scheduler_add(&__scheduler, task);
     return task->pid;
 }
@@ -178,7 +178,7 @@ int task_thread(const char *name, void *entry, void *params, size_t len, int fla
     info->len = len;
 
     // Schedule
-    cpu_setjmp(&task->jmpbuf, task->stack, task_usermode, info);
+    cpu_prepare(&task->jmpbuf, task->stack, task_usermode, info);
     scheduler_add(&__scheduler, task);
     return task->pid;
 }
@@ -193,7 +193,7 @@ int task_start(const char *name, void *func, void *arg)
     task_t *parent = __current;
     task_t *task = task_create(sch, parent, name, 0);
 
-    cpu_setjmp(&task->jmpbuf, task->stack, func, arg);
+    cpu_prepare(&task->jmpbuf, task->stack, func, arg);
     scheduler_add(sch, task);
     return task->pid;
 }

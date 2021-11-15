@@ -108,8 +108,6 @@ int e1000_irq_handler(e1000_device_t *ifnet)
     struct PCI_device *pci = ifnet->pci;
     uint32_t status = PCI_rd32(pci, 0, 0xc0);
 
-    irq_ack(pci->irq);
-
     if (status == 0)
         return -1;
 

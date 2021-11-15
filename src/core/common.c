@@ -73,6 +73,11 @@ void *malloc(size_t size);
 void free(void *ptr);
 
 
+void *kalloc_(size_t size, const char *expr)
+{
+    return kalloc(size);
+}
+
 void *kalloc(size_t size)
 {
     if (size > PAGE_SIZE) {
@@ -92,8 +97,29 @@ void kfree(void *ptr)
     free(ptr);
 }
 
+#undef kstrdup
+#undef kstrndup
+
+char *kstrdup(const char *str)
+{
+    int len = strlen(str) + 1;
+    void *ptr = kalloc(len);
+    memcpy(ptr, str, len);
+    return ptr;
+}
+
+char *kstrndup(const char *str, size_t len)
+{
+    len = strnlen(str, len) + 1;
+    void *ptr = kalloc(len);
+    memcpy(ptr, str, len);
+    return ptr;
+}
+
+EXPORT_SYMBOL(kalloc_, 0);
 EXPORT_SYMBOL(kalloc, 0);
 EXPORT_SYMBOL(kfree, 0);
+EXPORT_SYMBOL(kstrdup, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

@@ -104,6 +104,6 @@ xtime_t rtc_time()
     } while (memcmp(&last, &date, sizeof(struct tm)) != 0);
 
     cmos_fix_tm(&date);
-    kprintf(0, "RTC clock: %s", asctime(&date));
+    kprintf(-1, "RTC clock: %s", asctime(&date));
     return SEC_TO_USEC(timegm(&date));
 }

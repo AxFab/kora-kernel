@@ -45,6 +45,11 @@ thread_local int __irq_semaphore = 0;
 int kallocCount = 0;
 int kmapCount = 0;
 
+void *kalloc_(size_t len, const char *expr)
+{
+    return kalloc(len);
+}
+
 void *kalloc(size_t len)
 {
     kallocCount++;

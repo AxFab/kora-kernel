@@ -15,28 +15,6 @@
 ;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use32
-; I N T E R U P T -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-global int_default, int_syscall
-global int_exDV, int_exDB, int_exNMI, int_exBP, int_exOF, int_exBR
-global int_exUD, int_exNM, int_exDF, int_exCO, int_exTS, int_exNP
-global int_exSS, int_exGP, int_exPF, int_exMF, int_exAC, int_exMC
-global int_exXF, int_exVE, int_exSX
-
-global int_irq0, int_irq1, int_irq2, int_irq3, int_irq4, int_irq5
-global int_irq6, int_irq7, int_irq8, int_irq9, int_irq10, int_irq11
-global int_irq12, int_irq13, int_irq14, int_irq15, int_irq16, int_irq17
-global int_irq18, int_irq19, int_irq20, int_irq21, int_irq22, int_irq23
-global int_irq24, int_irq25, int_irq26, int_irq27, int_irq28, int_irq29
-global int_irq30, int_irq31, int_irqLT
-
-global int_isr123, int_isr124, int_isr125, int_isr126, int_isr127
-
-extern x86_fault, x86_error, irq_enter, x86_syscall, x86_pgflt
-
-
-; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
 
 ; Macro to save registers on interruption
 %macro SAVE_REGS 0
@@ -76,25 +54,37 @@ extern x86_fault, x86_error, irq_enter, x86_syscall, x86_pgflt
     SAVE_REGS
     push esp
     push %1
-    call irq_enter
+    call x86_irq
     add esp, 8
     LOAD_REGS
     iret
 %endmacro
 
+%macro IPI_HANDLER 1
+    SAVE_REGS
+    push esp
+    push %1
+    call x86_ipi
+    add esp, 8
+    LOAD_REGS
+    iret
+%endmacro
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-int_default:
-    FAULT_HANDLER  -1
-
-int_syscall:
-    SAVE_REGS
-    push esp
-    call x86_syscall
-    add esp, 4
-    LOAD_REGS
-    iret
+extern x86_fault, x86_error, x86_pgflt, x86_irq, x86_ipi, x86_syscall
+global int_exDV, int_exDB, int_exNMI, int_exBP, int_exOF, int_exBR,
+global int_exUD, int_exNM, int_exDF, int_exCO, int_exTS, int_exNP,
+global int_exSS, int_exGP, int_exPF, int_exMF, int_exAC, int_exMC,
+global int_exXF, int_exVE, int_exSX
+global int_irq0, int_irq1, int_irq2, int_irq3, int_irq4, int_irq5
+global int_irq6, int_irq7, int_irq8, int_irq9, int_irq10, int_irq11
+global int_irq12, int_irq13, int_irq14, int_irq15, int_irq16, int_irq17
+global int_irq18, int_irq19, int_irq20, int_irq21, int_irq22, int_irq23
+global int_irq24, int_irq25, int_irq26, int_irq27, int_irq28, int_irq29
+global int_irq30, int_irq31,
+global int_isr123, int_isr124, int_isr125, int_isr126, int_isr127, int_irqLT
+global int_default, int_syscall
 
 int_exDV:
     FAULT_HANDLER  0x0
@@ -122,6 +112,18 @@ int_exNP:
     FAULT_HANDLER  0xB
 int_exSS:
     FAULT_HANDLER  0xC
+int_exMF:
+    FAULT_HANDLER  0x10
+int_exAC:
+    FAULT_HANDLER  0x11
+int_exMC:
+    FAULT_HANDLER  0x12
+int_exXF:
+    FAULT_HANDLER  0x13
+int_exVE:
+    FAULT_HANDLER  0x14
+int_exSX:
+    FAULT_HANDLER  0x15
 int_exGP:
     SAVE_REGS
     push esp
@@ -144,18 +146,6 @@ int_exPF:
     add esp, 4
     iret
 
-int_exMF:
-    FAULT_HANDLER  0x10
-int_exAC:
-    FAULT_HANDLER  0x11
-int_exMC:
-    FAULT_HANDLER  0x12
-int_exXF:
-    FAULT_HANDLER  0x13
-int_exVE:
-    FAULT_HANDLER  0x14
-int_exSX:
-    FAULT_HANDLER  0x15
 
 int_irq0:
     IRQ_HANDLER  0
@@ -222,55 +212,29 @@ int_irq30:
 int_irq31:
     IRQ_HANDLER  31
 
-int_irqLT:
-    IRQ_HANDLER  250
 
-
-
-; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-extern apic_regs
-
-; Acknowledge IPI
-%macro ACK_IPI 0
-    push ebx
-    push eax
-    mov ebx, [apic_regs]
-    add ebx, 0xb0
-    xor eax, eax
-    mov [ebx], eax
-    pop eax
-    pop ebx
-%endmacro
-
-; TMR - Clock interrupt for other processors
 int_isr123:
-    ACK_IPI
-    FAULT_HANDLER 123
-
-; PERF - Bad TLB shootdown
+    IPI_HANDLER 123
 int_isr124:
-    push ebx
-    mov ebx, cr3
-    mov cr3, ebx
-    pop ebx
-    ACK_IPI
-    FAULT_HANDLER 124
-
-; LINT0 - Halts everyone - FATAL
+    IPI_HANDLER 124
 int_isr125:
-    ACK_IPI
-    FAULT_HANDLER 125
-    ; cli
-    ; hlt
-    ; jmp int_isr125
-
-; LINT1 - Does nothing, used to exit wait-for-interrupt sleep
+    IPI_HANDLER 125
 int_isr126:
-    ACK_IPI
-    FAULT_HANDLER 126
-
-; ERR - Legacy system call entry point, called by userspace
+    IPI_HANDLER 126
 int_isr127:
-    ACK_IPI
-    FAULT_HANDLER 127
+    IPI_HANDLER 127
 
+int_irqLT:
+    IPI_HANDLER 128
+
+
+int_default:
+    FAULT_HANDLER  -1
+
+int_syscall:
+    SAVE_REGS
+    push esp
+    call x86_syscall
+    add esp, 4
+    LOAD_REGS
+    iret

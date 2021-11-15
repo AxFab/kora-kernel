@@ -102,7 +102,7 @@ void scheduler_switch(int status)
         irq_zero();
         cpu_halt();
     }
-    // clock_elapsed(CPU_USER);
+    // clock_elapsed(CPU_USER/CPU_SYSTEM);
     if (task->vm != NULL)
         mmu_context(task->vm);
     irq_zero();

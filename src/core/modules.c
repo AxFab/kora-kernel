@@ -83,6 +83,7 @@ void module_symbol(const char *name, void *ptr)
 
 extern char ksymbols_start[];
 extern char ksymbols_end[];
+void mmu_read();
 EXPORT_SYMBOL(mmu_read, 0);
 
 void module_init(vfs_t *vfs, mspace_t *vm)
@@ -96,6 +97,7 @@ void module_init(vfs_t *vfs, mspace_t *vm)
 
     kprintf(-1, "KSymbols [%p-%p]\n", &ksymbols_start, &ksymbols_end);
     kapi_t **sym = ((kapi_t**)ksymbols_start);
+    sym = (void*)ALIGN_UP((size_t)sym, 4);
     for (;sym < (kapi_t**)ksymbols_end; ++sym) {
         kapi_t *s = *sym;
         // kprintf(-1, " - %p] %s\n", s->sym, s->name);

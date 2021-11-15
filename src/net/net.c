@@ -354,8 +354,10 @@ void net_setup()
 
 EXPORT_SYMBOL(net_event, 0);
 EXPORT_SYMBOL(net_handler, 0);
+EXPORT_SYMBOL(net_unregister, 0);
 EXPORT_SYMBOL(net_protocol, 0);
 EXPORT_SYMBOL(net_set_protocol, 0);
+EXPORT_SYMBOL(net_rm_protocol, 0);
 EXPORT_SYMBOL(net_interface, 0);
 EXPORT_SYMBOL(net_device, 0);
 EXPORT_SYMBOL(net_stack, 0);

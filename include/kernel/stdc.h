@@ -92,7 +92,7 @@ int sprintf_s(char *const buf, size_t lg, const char *const msg, ...);
 
 void kprintf(klog_t log, const char *msg, ...);
 // _Noreturn void kpanic(const char *msg);
-void kwrite(const char *buf, int len);
+void kwrite(const char *buf, size_t len);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

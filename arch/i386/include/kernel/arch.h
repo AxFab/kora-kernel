@@ -24,132 +24,149 @@
 #include <stdint.h>
 #include <kora/mcrs.h>
 
-typedef size_t page_t;
-
 typedef size_t cpu_state_t[8];
 
+typedef struct x86_info x86_info_t;
+typedef struct x86_cpu x86_cpu_t;
 
-#define KSTACK  (1 * PAGE_SIZE)
+typedef struct x86_info asys_info_t;
+typedef struct x86_cpu acpu_info_t;
 
-#define IRQ_ON   asm("sti")
-#define IRQ_OFF  asm("cli")
-
-
-
-
-/* Larger page in order to support 36bits physical address.
-typedef unsigned long long page_t; */
-
-#define MMU_USPACE_LOWER  (4 * _Mib_)
-#define MMU_USPACE_UPPER  (512 * _Mib_)
-#define MMU_KSPACE_LOWER  (3072U * _Mib_)
-#define MMU_KSPACE_UPPER  (4088U * _Mib_)
-
-
-#define MMU_UTBL_LOW  (MMU_USPACE_LOWER / (4 * _Mib_))
-#define MMU_UTBL_HIGH  (MMU_USPACE_UPPER / (4 * _Mib_))
-#define MMU_KTBL_LOW  (MMU_KSPACE_LOWER / (4 * _Mib_))
-#define MMU_KTBL_HIGH  (MMU_KSPACE_UPPER / (4 * _Mib_))
-
-
-#define KRN_PG_DIR 0x2000
-#define KRN_PG_TBL 0x3000
-#define KRN_SP_LOWER 3072
-#define KRN_SP_UPPER 4088
-
-/* Page entry flags:
- *  bit0: Is present
- *  bit1: Allow write operations
- *  bit2: Accesible into user mode
- */
-#define MMU_WRITE   2
-#define MMU_USERMD  4
-
-#define MMU_K_RW 3
-#define MMU_K_RO 1
-#define MMU_U_RO 5
-#define MMU_U_RW 7
-
-
-#define MMU_PAGES(s)  (*((page_t*)((0xffc00000 | ((s) >> 10)) & ~3)))
-#define MMU_K_DIR  ((page_t*)0xffbff000)
-#define MMU_U_DIR  ((page_t*)0xfffff000)
-
-void mboot_memory();
-
-/* Kernel memory mapping :: 2 First MB
-
-  0x....0000      0 Kb      2 Kb     GDT
-  0x....0800      2 Kb      2 Kb     IDT
-  0x....1000      4 Kb      4 Kb     TSS (x32, ~128 bytes each CPU)
-  0x....2000      8 Kb      4 Kb     K pages dir
-  0x....3000     12 Kb      4 Kb     K pages tbl0
-  0x....4000     16 Kb    112 Kb     -
-  0x...20000    128 Kb    512 Kb     Kernel code
-  0x...A0000    640 Kb     96 Kb     -
-  0x...B8000    736 Kb    288 Kb     Hardware
-  0x..100000   1024 Kb    128 Kb     Kernel initial Stack (x32 each CPU)
-  0x..120000   1152 Kb    128 Kb     Pages bitmap
-  0x..140000   1280 Kb    256 Kb     -
-  0x..180000   1536 Kb    512 Kb     Initial Heap Area
- */
-
-typedef struct regs regs_t;
-struct regs {
-    uint16_t gs, unused_g;
-    uint16_t fs, unused_f;
-    uint16_t es, unused_e;
-    uint16_t ds, unused_d;
-    uint32_t edi;
-    uint32_t esi;
-    uint32_t ebp;
-    uint32_t tmp;
-    uint32_t ebx;
-    uint32_t edx;
-    uint32_t ecx;
-    uint32_t eax;
-    uint32_t eip;
-    uint16_t cs, unused_c;
-    uint32_t eflags;
-    /* ESP and SS are only pop on priviledge change  */
-    uint32_t esp;
-    uint32_t ss;
+struct x86_info {
+    void *acpi;
+    size_t apic;
 };
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-void x86_enable_mmu();
-void x86_set_cr3(page_t dir);
-page_t x86_get_cr3();
-void x86_set_tss(int no);
-void x86_delay(int cns);
-void x86_cpuid(int, int, int *);
-
-void acpi_setup();
-
-struct x86_tss {
-    uint16_t    previous_task, __previous_task_unused;
-    uint32_t    esp0;
-    uint16_t    ss0, __ss0_unused;
-    uint32_t    esp1;
-    uint16_t    ss1, __ss1_unused;
-    uint32_t    esp2;
-    uint16_t    ss2, __ss2_unused;
-    uint32_t    cr3;
-    uint32_t    eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
-    uint16_t    es, __es_unused;
-    uint16_t    cs, __cs_unused;
-    uint16_t    ss, __ss_unused;
-    uint16_t    ds, __ds_unused;
-    uint16_t    fs, __fs_unused;
-    uint16_t    gs, __gs_unused;
-    uint16_t    ldt_selector, __ldt_sel_unused;
-    uint16_t    debug_flag, io_map;
-    uint16_t    padding[12];
+struct x86_cpu {
+    int max_cpuid;
+    char *vendor;
+    int features[2];
+    int model;
+    int family;
+    int cache_size;
 };
 
-#define TSS_BASE  ((struct x86_tss*)0x1000)
-#define TSS_CPU(i)  (0x1000 + sizeof(struct x86_tss) * i)
+// #define KSTACK  (1 * PAGE_SIZE)
+
+// #define IRQ_ON   asm("sti")
+// #define IRQ_OFF  asm("cli")
+
+
+
+
+// /* Larger page in order to support 36bits physical address.
+// typedef unsigned long long page_t; */
+
+// #define MMU_USPACE_LOWER  (4 * _Mib_)
+// #define MMU_USPACE_UPPER  (512 * _Mib_)
+// #define MMU_KSPACE_LOWER  (3072U * _Mib_)
+// #define MMU_KSPACE_UPPER  (4088U * _Mib_)
+
+
+// #define MMU_UTBL_LOW  (MMU_USPACE_LOWER / (4 * _Mib_))
+// #define MMU_UTBL_HIGH  (MMU_USPACE_UPPER / (4 * _Mib_))
+// #define MMU_KTBL_LOW  (MMU_KSPACE_LOWER / (4 * _Mib_))
+// #define MMU_KTBL_HIGH  (MMU_KSPACE_UPPER / (4 * _Mib_))
+
+
+// #define KRN_PG_DIR 0x2000
+// #define KRN_PG_TBL 0x3000
+// #define KRN_SP_LOWER 3072
+// #define KRN_SP_UPPER 4088
+
+// /* Page entry flags:
+//  *  bit0: Is present
+//  *  bit1: Allow write operations
+//  *  bit2: Accesible into user mode
+//  */
+// #define MMU_WRITE   2
+// #define MMU_USERMD  4
+
+// #define MMU_K_RW 3
+// #define MMU_K_RO 1
+// #define MMU_U_RO 5
+// #define MMU_U_RW 7
+
+
+// #define MMU_PAGES(s)  (*((page_t*)((0xffc00000 | ((s) >> 10)) & ~3)))
+// #define MMU_K_DIR  ((page_t*)0xffbff000)
+// #define MMU_U_DIR  ((page_t*)0xfffff000)
+
+// void mboot_memory();
+
+//  Kernel memory mapping :: 2 First MB
+
+//   0x....0000      0 Kb      2 Kb     GDT
+//   0x....0800      2 Kb      2 Kb     IDT
+//   0x....1000      4 Kb      4 Kb     TSS (x32, ~128 bytes each CPU)
+//   0x....2000      8 Kb      4 Kb     K pages dir
+//   0x....3000     12 Kb      4 Kb     K pages tbl0
+//   0x....4000     16 Kb    112 Kb     -
+//   0x...20000    128 Kb    512 Kb     Kernel code
+//   0x...A0000    640 Kb     96 Kb     -
+//   0x...B8000    736 Kb    288 Kb     Hardware
+//   0x..100000   1024 Kb    128 Kb     Kernel initial Stack (x32 each CPU)
+//   0x..120000   1152 Kb    128 Kb     Pages bitmap
+//   0x..140000   1280 Kb    256 Kb     -
+//   0x..180000   1536 Kb    512 Kb     Initial Heap Area
+
+
+// typedef struct regs regs_t;
+// struct regs {
+//     uint16_t gs, unused_g;
+//     uint16_t fs, unused_f;
+//     uint16_t es, unused_e;
+//     uint16_t ds, unused_d;
+//     uint32_t edi;
+//     uint32_t esi;
+//     uint32_t ebp;
+//     uint32_t tmp;
+//     uint32_t ebx;
+//     uint32_t edx;
+//     uint32_t ecx;
+//     uint32_t eax;
+//     uint32_t eip;
+//     uint16_t cs, unused_c;
+//     uint32_t eflags;
+//     /* ESP and SS are only pop on priviledge change  */
+//     uint32_t esp;
+//     uint32_t ss;
+// };
+
+// /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+// void x86_enable_mmu();
+// void x86_set_cr3(page_t dir);
+// page_t x86_get_cr3();
+// void x86_set_tss(int no);
+// void x86_delay(int cns);
+// void x86_cpuid(int, int, int *);
+
+// void acpi_setup();
+
+// struct x86_tss {
+//     uint16_t    previous_task, __previous_task_unused;
+//     uint32_t    esp0;
+//     uint16_t    ss0, __ss0_unused;
+//     uint32_t    esp1;
+//     uint16_t    ss1, __ss1_unused;
+//     uint32_t    esp2;
+//     uint16_t    ss2, __ss2_unused;
+//     uint32_t    cr3;
+//     uint32_t    eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
+//     uint16_t    es, __es_unused;
+//     uint16_t    cs, __cs_unused;
+//     uint16_t    ss, __ss_unused;
+//     uint16_t    ds, __ds_unused;
+//     uint16_t    fs, __fs_unused;
+//     uint16_t    gs, __gs_unused;
+//     uint16_t    ldt_selector, __ldt_sel_unused;
+//     uint16_t    debug_flag, io_map;
+//     uint16_t    padding[12];
+// };
+
+// #define TSS_BASE  ((struct x86_tss*)0x1000)
+// #define TSS_CPU(i)  (0x1000 + sizeof(struct x86_tss) * i)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

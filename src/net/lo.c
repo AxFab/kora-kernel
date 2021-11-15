@@ -186,3 +186,7 @@ int lo_setup(netstack_t *stack)
     return 0;
 }
 
+
+EXPORT_SYMBOL(lo_handshake, 0);
+EXPORT_SYMBOL(lo_unregister, 0);
+EXPORT_SYMBOL(lo_header, 0);

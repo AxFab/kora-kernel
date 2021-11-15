@@ -23,55 +23,67 @@
 #include <kernel/vfs.h>
 #include <kernel/net.h>
 #include <kernel/core.h>
+#include <bits/atomic.h>
 
-extern int __cpu_count;
 void module_init(vfs_t *vfs, mspace_t *vm);
 
-int __smp_lock;
+
+sys_info_t sysinfo;
 
 /* Kernel entry point, must be reach by a single CPU */
-void kernel_start()
+void kstart()
 {
-    int i;
-    irq_reset(false);
-    kprintf(KL_MSG, "\033[97mKoraOS\033[0m - " __ARCH " - v" _VTAG_ "\nBuild the " __DATE__ ".\n");
+    irq_reset(false /*, KMODE_SYSTEM */);
+    memset(&sysinfo, 0, sizeof(sys_info_t));
+    kprintf(-1, "\033[97mKoraOS\033[0m - " __ARCH " - v" _VTAG_ "\n");
+    kprintf(-1, "Build the " __DATE__ ".\n");
+    cpu_setup(&sysinfo);
 
-    memory_initialize();
-    xtime_t now;
-    cpu_setup(&now);
-    kprintf(KL_MSG, "\n");
+    kprintf(-1, "\n\033[94m  Greetings on KoraOS...\033[0m\n");
 
-    kprintf(KL_MSG, "\033[94m  Greetings on KoraOS...\033[0m\n");
-    __smp_lock = 1;
-    clock_init(now);
+    // Kernel initialization
+    clock_init(sysinfo.uptime);
     vfs_t *vfs = vfs_init();
+    scheduler_init(vfs, NULL);
+    net_setup();
 
+    // Read Symbols
     module_init(vfs, kMMU.kspace);
 
-    platform_start();
+    arch_init();
 
-    scheduler_init(vfs, NULL);
-    int n = __cpu_count == 1 ? 2 : __cpu_count + 2;
-    for (i = 0; i < n; ++i) {
+    for (int i = 0, n = 1; i < n; ++i) {
         char tmp[32];
         snprintf(tmp, 32, "Kernel loader #%d", i + 1);
         task_start(tmp, module_loader, NULL);
     }
 
-    // Network
-    net_setup();
-    __smp_lock = 0;
-    irq_reset(true);
-    cpu_halt();
+    sysinfo.is_ready = 1;
+    irq_zero();
 }
 
 /* Kernel secondary entry point, must be reach by additional CPUs */
-void kernel_ready()
+void kready()
 {
     irq_reset(false);
-    // Setup cpu clock and per-cpu memory
-    kprintf(KL_MSG, "\033[32mCpu %d is waiting...\033[0m\n", cpu_no());
-    while (__smp_lock);
-    irq_reset(true);
-    cpu_halt();
+    cpu_setup(&sysinfo);
+    kprintf(-1, "\033[32mCpu %d ready and waiting...\033[0m\n", cpu_no());
+
+    while (sysinfo.is_ready == 0)
+        atomic_break();
+    irq_zero();
 }
+
+sys_info_t *ksys()
+{
+    return &sysinfo;
+}
+
+cpu_info_t *kcpu()
+{
+    if (sysinfo.is_ready == 0)
+        return NULL;
+    int no = cpu_no();
+    return &sysinfo.cpu_table[no];
+}
+

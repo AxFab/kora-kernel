@@ -14,13 +14,11 @@
 ;  You should have received a copy of the GNU Affero General Public License
 ;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use32
-; S T A R T -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-global _start, start
+global start, _start
 extern code, bss, end
-extern mboot_init, cpu_early_init, kernel_start
-extern apic_regs, cpu_table, ap_setup
+extern x86_gdt, x86_idt, x86_paging
+extern kstart, serial_early_init
+extern apic_ptr, cpu_kstacks, kready
 
 ; Define some constant values
 %define MBOOT_MAGIC1     0x1BADB002
@@ -30,29 +28,14 @@ extern apic_regs, cpu_table, ap_setup
 %define KSTACK0         0x4000
 %define KSTACK_LEN      0x1000
 
-; Segments values
-%define KCS  0x08
-%define KDS  0x10
-%define KSS  0x18
-%define UCS  0x23
-%define UDS  0x2d
-%define USS  0x33
-%define TSS0  0x38
-
-%define SMP_GDT_REG  0x7e8
-%define SMP_CPU_LOCK  0x7f0
-%define SMP_CPU_COUNT  0x7f8
-
-%define KERNEL_PAGE_DIR 0x2000
-
-%macro PUTC 3
-    mov byte [0xB8000 + 154], %2
-    mov byte [0xB8001 + 154], %1
-    mov byte [0xB8002 + 154], %3
-    mov byte [0xB8003 + 154], %1
+%macro DEBUG_WRITE 2
+    mov dword [esp + 4], %2
+    mov dword [esp + 0], %1
+    call clwrite
 %endmacro
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+use32
 section .text.boot
 _start:
     jmp start
@@ -77,166 +60,268 @@ mboot:
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 align 16
+use32
+section .text
 start:
-    cli ; Block interruption
-    mov esp, KSTACK0 + KSTACK_LEN - 4 ; Set stack
-    cmp eax, MBOOT_MAGIC2 ; Check we used a multiboot complient loader (grub)
+    ; Block interruption
+    cli
+    ; Setup kernel stack
+    mov esp, KSTACK0 + KSTACK_LEN - 16
+    ; Check we used a multiboot complient loader (grub)
+    cmp eax, MBOOT_MAGIC2
     jmp .mbootLoader
 
 .unknowLoader:
-    PUTC 0x47, 'U', 'n'
-    jmp .failed
-.errorLoader:
-    PUTC 0x47, 'E', 'r'
-    jmp .failed
-.failed:
+    DEBUG_WRITE 0, msg_unknowLoader
     hlt
     jmp $
 
 .mbootLoader:
-    PUTC 0x17, 'G', 'r'
-    push ebx
-    call mboot_init
-    pop ebx
-    test eax, eax
-    jnz .errorLoader
+    ; Store grub table pointer
+    mov [mboot_table], ebx
 
-; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-startup:
-    ; Clear the first 4 Kb
+    ; Clear console
     xor eax, eax
-    mov edi, eax
-    mov ecx, 2048
+    mov edi, 0xB8000
+    mov ecx, 80 / 2 * 25
     rep stosd
 
-    PUTC 0x17, 'S', 't'
-    cli
-    call cpu_early_init
+    DEBUG_WRITE 0, msg_mbootLoader
 
-    lgdt [.gdt_regs] ; GDT
-    jmp KCS:.reloadCS
+    ; Clear memory [0-16Kb]
+    xor eax, eax
+    mov edi, eax
+    mov ecx, 4096
+    rep stosd
 
-  .reloadCS:
-    mov ax, KDS
+    ; Clear bss
+    mov edi, bss
+    mov ecx, end
+    sub ecx, edi
+    add ecx, 3
+    shr ecx, 2
+    rep stosd
+
+    ; Serial COM init
+    call serial_early_init
+
+    ; Check platform support 32/64bit
+    mov eax, 0x80000001
+    cpuid
+    test edx, 0x20000000
+    ; mov eax, [mboot_data.max_cpuid]
+    ; test eax, 0x80000000
+    jnz .support64
+    DEBUG_WRITE 80, msg_support32
+    jmp .supportDone
+.support64:
+    DEBUG_WRITE 80, msg_support64
+.supportDone:
+
+    ; Setup GDT
+    call x86_gdt
+    lgdt [i386_data.gdt]
+    jmp 0x08:start32
+start32:
+    mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax
 
+    ; Setup IDT
+    call x86_idt
+    lidt [i386_data.idt]
 
-    lidt [.idt_regs] ; IDT
-    ;mov ax, TSS0 ; TSS
-    ;ltr ax
+    ; Setup Paging
+    call x86_paging
+    mov eax, 0x2000
+    mov cr3, eax
+    mov eax, cr0
+    or eax, (1 << 31) ; CR0 31b to activate mmu
+    mov cr0, eax
 
-    PUTC 0x27, 'G', 'o'
-    cli
-    call kernel_start
-    PUTC 0x27, 'E', 'd'
+    ; Call the kernel startup
+    call kstart
+
     sti
     hlt
     jmp $
 
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global x86_delay
+x86_delay:
+    push ecx
+    push edx
+    mov ecx, [esp + 12]
+    mov dx, 0x1fc
+.loop:
+    in al, dx
+    loopnz .loop
+    pop edx
+    pop ecx
+    ret
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global x86_set_tss
+x86_set_tss:
+    mov eax, [esp + 4]
+    shl ax, 3 ; TSS
+    ltr ax
+    ret
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global x86_set_cr3
+x86_set_cr3:
+    mov eax, [esp + 4]
+    mov cr3, eax
+    ret
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global x86_cpuid
+x86_cpuid:
+    push ebp
+    mov ebp, esp
+    push ebx
+    push ecx
+    push edx
+    mov eax, [ebp + 8]
+    mov ecx, [ebp + 12]
+    cpuid
+    mov edi, [ebp + 16]
+    mov [edi], eax
+    mov [edi + 4], ebx
+    mov [edi + 8], edx
+    mov [edi + 12], ecx
+    pop edx
+    pop ecx
+    pop ebx
+    leave
+    ret
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global clwrite
+clwrite:
+    push ebp
+    mov ebp, esp
+    mov edi, 0xB8000
+    mov eax, [ebp + 8]
+    shl eax, 1
+    add edi, eax
+    mov esi, [ebp + 12]
+    mov cl, 0x07
+    mov al, [esi]
+.lp:
+    test al, al
+    jz .done
+    mov [edi], al
+    mov [edi + 1], cl
+    inc esi
+    add edi, 2
+    mov al, [esi]
+    jmp .lp
+.done:
+    leave
+    ret
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+section .data
+global mboot_table
+mboot_table:
+    dd 0
+msg_unknowLoader:
+    db "Unknow Loader ", 0
+msg_mbootLoader:
+    db "Multiboot Loader ", 0
+msg_support32:
+    db "Plateform is 32bits", 0
+msg_support64:
+    db "Plateform is 64bits", 0
+
 align 4
-  .gdt_regs:
+i386_data:
+.gdt:
     dw 0x800, 0, 0, 0
-  .idt_regs:
+.idt:
     dw 0x800, 0x800, 0, 0
 
 
-
-
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+%define SMP_GDT_REG  0x7e0
+%define SMP_CPU_COUNT  0x7f8
+
 section .text
-
-global ap_start
-
 use16
 align 4096
+global ap_start
 ap_start:
     cli
-    ; Reset data segments
     mov ax, 0x0
     mov ds, ax
     mov es, ax
 
-    ; Activate GDT
+    ; Activate GDT (!?)
     mov di, SMP_GDT_REG
     mov word [di], 0xF8
     lgdt [di] ; GDT
 
-    ; Mode protected
+    ; Active protected mode
     mov eax, cr0
     or ax, 1
     mov cr0, eax ; PE flags set
 
     lock inc word [SMP_CPU_COUNT]
     jmp .next
-
 .next:
-    ; Reset segments
-    mov ax, KDS
+    mov ax, 0x10
     mov ds, ax
     mov fs, ax
     mov gs, ax
     mov es, ax
     mov ss, ax
 
-    jmp dword KCS:ap_boot    ; code segment
+    jmp dword 0x08:ap_boot
 
 use32
 align 32
 ap_boot:
-    cli
-    PUTC 0x17, 'O', 'n'
+    ; Reactive the right GDT
+    lgdt [i386_data.gdt]
+    jmp 0x08:.next
+.next:
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
 
-    lidt [startup.idt_regs] ; IDT
+    ; Enable IDT
+    lidt [i386_data.idt]
 
-    ; Lock CPU Initialization Spin-Lock
-;.spinlock:
-;    cmp dword [SMP_CPU_LOCK], 0    ; Check if lock is free
-;    je .getlock
-;    pause
-;    jmp .spinlock
-;.getlock:
-;    mov eax, 1
-;    xchg eax, [SMP_CPU_LOCK]  ; Try to get lock
-;    cmp eax, 0            ; Test is successful
-;    jne .spinlock
-;.criticalsection:
-
-    ; Active paging
-    mov eax, KERNEL_PAGE_DIR
+    ; Enable Paging
+    mov eax, 0x2000
     mov cr3, eax
     mov eax, cr0
     or eax, (1 << 31) ; CR0 31b to activate mmu
     mov cr0, eax
 
     ; Get APIC Id
-    mov edi, [apic_regs]
+    mov edi, [apic_ptr]
     mov ecx, [edi + 0x20] ; Read APIC ID
     shr ecx, 24
     and ecx, 0xf
 
-    ; Compute stack
-    mov ebx, [cpu_table]
-    mov edx, ecx
-    shl edx, 5
-    add ebx, edx
-    add ebx, 12
-    mov eax, [ebx]
-    add eax, 0xFFC
+    ; Get stack pointer
+    mov ebx, [cpu_kstacks]
+    mov eax, [ebx + ecx * 4]
     mov esp, eax
 
-    ; ...
-
-    ; Unlock the spinlock
-;    xor eax, eax
-;    mov [SMP_CPU_LOCK], eax
-
-    ; ...
-    call ap_setup
+    call kready
 
     sti
     hlt
     jmp $
+

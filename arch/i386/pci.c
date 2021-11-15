@@ -331,39 +331,10 @@ struct PCI_device *pci_search(pci_matcher match, int *data)
     return NULL;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void __muldi3();
-void __divdi3();
-void __moddi3();
-void __udivdi3();
-void __umoddi3();
+EXPORT_SYMBOL(pci_config_read8, 0);
+EXPORT_SYMBOL(pci_config_read16, 0);
+EXPORT_SYMBOL(pci_config_read32, 0);
+EXPORT_SYMBOL(pci_config_write32, 0);
+EXPORT_SYMBOL(pci_search, 0);
 
-void mboot_load_modules();
-void csl_setup();
-void com_setup();
-void pit_init();
-
-void platform_start()
-{
-    mboot_load_modules();
-    pci_setup();
-    csl_setup();
-    com_setup();
-
-    kernel_export_symbol(pci_search);
-    kernel_export_symbol(pci_config_write32);
-    kernel_export_symbol(pci_config_read32);
-    // kernel_export_symbol(pci_config_write16);
-    kernel_export_symbol(pci_config_read16);
-
-    // i386-libgcc
-    kernel_export_symbol(__muldi3);
-    kernel_export_symbol(__divdi3);
-    kernel_export_symbol(__moddi3);
-    kernel_export_symbol(__udivdi3);
-    kernel_export_symbol(__umoddi3);
-
-    // Clock timer
-    pit_init();
-}

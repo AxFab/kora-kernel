@@ -17,8 +17,7 @@
 ; C P U   R O U T I N E S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use32
 
-global cpu_no, cpu_save, cpu_restore, cpu_halt, cpu_usermode
-extern apic_regs, cpu_table
+extern apic_ptr, cpu_kstacks
 
 %define KCS 0x8
 %define KDS 0x10
@@ -32,8 +31,11 @@ extern apic_regs, cpu_table
 %define TSS_SHIFT 7
 %define TSS_ESP0 4
 
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global cpu_no
 cpu_no:
-    mov eax, [apic_regs]
+    mov eax, [apic_ptr]
     test eax, eax
     jnz .n
     ret
@@ -43,6 +45,30 @@ cpu_no:
     and eax, 0xf
     ret
 
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global cpu_prepare
+cpu_prepare:
+    push ebp
+    mov ebp, esp
+    push edi
+    mov edi, [ebp + 8] ; Get buffer
+    mov eax, [ebp + 12] ; Read stack
+    mov ecx, [ebp + 16] ; Read entry point
+    add eax, 0xFF0
+    mov [edi + 20], ecx
+    mov [edi + 12], eax
+    mov [edi + 24], eax
+    mov ecx, [ebp + 20] ; Read param
+    sub eax, 4
+    mov [eax], ecx
+    sub eax, 4
+    mov [edi + 16], eax
+    pop edi
+    leave
+    ret
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global cpu_save
 cpu_save:
     mov eax, [esp + 4] ; Get buffer
     mov [eax], ebx ; Store EBX
@@ -56,6 +82,9 @@ cpu_save:
     xor eax, eax
     ret
 
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global cpu_restore
 cpu_restore:
     mov edx, [esp + 4] ; Get buffer
     call cpu_no
@@ -79,6 +108,9 @@ cpu_restore:
     sti
     jmp ecx
 
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global cpu_halt
 cpu_halt:
     cli
     ; Get TSS Address
@@ -88,14 +120,9 @@ cpu_halt:
     add eax, 0x1000
     mov edi, eax
 
-    ; Compute stack
-    mov ebx, [cpu_table]
-    mov edx, ecx
-    shl edx, 5
-    add ebx, edx
-    add ebx, 12
-    mov eax, [ebx]
-    add eax, 0xFF0
+    ; Get stack pointer
+    mov ebx, [cpu_kstacks]
+    mov eax, [ebx + ecx * 4]
     mov esp, eax
 
     ; Prepare stack
@@ -124,7 +151,8 @@ cpu_halt:
     jmp .halt
 
 
-
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+global cpu_usermode
 cpu_usermode:
     cli
     mov ebx, [esp + 4]
@@ -145,13 +173,4 @@ cpu_usermode:
     pop ds
 
     iret
-
-
-; uint64_t cpu_clock()
-global cpu_clock
-
-cpu_clock:
-    rdtsc
-    ret
-
 

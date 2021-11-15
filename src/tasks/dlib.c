@@ -205,6 +205,38 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
         size_t addr = rand32() % (mspace->upper_bound - mspace->lower_bound);
         addr += mspace->lower_bound;
         addr = ALIGN_DW(addr, PAGE_SIZE);
+
+        if (strcmp(lib->name, "vfat.ko") == 0)
+            addr = 0xf8000000;
+        else if (strcmp(lib->name, "isofs.ko") == 0)
+            addr = 0xf7000000;
+        else if (strcmp(lib->name, "ext2.ko") == 0)
+            addr = 0xf6000000;
+        else if (strcmp(lib->name, "ata.ko") == 0)
+            addr = 0xf5000000;
+        else if (strcmp(lib->name, "e1000.ko") == 0)
+            addr = 0xf4000000;
+        else if (strcmp(lib->name, "ps2.ko") == 0)
+            addr = 0xf3000000;
+        else if (strcmp(lib->name, "vga.ko") == 0)
+            addr = 0xf2000000;
+        else if (strcmp(lib->name, "vbox.ko") == 0)
+            addr = 0xf1000000;
+        else if (strcmp(lib->name, "ip4.ko") == 0)
+            addr = 0xf0000000;
+        else if (strcmp(lib->name, "libc.so") == 0)
+            addr = 0x10000000;
+        else if (strcmp(lib->name, "libopenlibm.so.3") == 0)
+            addr = 0x11000000;
+        else if (strcmp(lib->name, "libz.so.1") == 0)
+            addr = 0x12000000;
+        else if (strcmp(lib->name, "libpng.so") == 0)
+            addr = 0x13000000;
+        else if (strcmp(lib->name, "libgfx.so") == 0)
+            addr = 0x14000000;
+        else if (strcmp(lib->name, "libfreetype2.so") == 0)
+            addr = 0x15000000;
+
         base = mspace_map(mspace, addr, lib->length, NULL, 0, VMA_EXEC | VM_RW | VMA_FIXED);
     }
 

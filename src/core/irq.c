@@ -25,22 +25,18 @@
 #include <kora/llist.h>
 #include <sys/signum.h>
 
-
-bool __irq_active = false;
-// int __irq_semaphore = 0; // TODO -- per cpu
+extern sys_info_t sysinfo;
 
 void irq_zero()
 {
-    per_cpu_t *pc = cpu_store();
+    cpu_info_t * pc = kcpu();
     pc->irq_semaphore = 0;
 }
 
 void irq_reset(bool enable)
 {
-    per_cpu_t *pc = cpu_store();
+    cpu_info_t * pc = kcpu();
     assert(pc == NULL || pc->irq_semaphore <= 1);
-    if (pc)
-        __irq_active = true;
     if (enable) {
         if (pc)
             pc->irq_semaphore = 0;
@@ -55,8 +51,8 @@ void irq_reset(bool enable)
 
 bool irq_enable()
 {
-    per_cpu_t *pc = cpu_store();
-    if (pc != NULL && __irq_active) {
+    cpu_info_t * pc = kcpu();
+    if (pc != NULL && sysinfo.is_ready) {
         assert(pc->irq_semaphore > 0);
         if (--pc->irq_semaphore == 0) {
             __asm_irq_on_;
@@ -68,8 +64,8 @@ bool irq_enable()
 
 void irq_disable()
 {
-    per_cpu_t *pc = cpu_store();
-    if (pc != NULL && __irq_active) {
+    cpu_info_t * pc = kcpu();
+    if (pc != NULL && sysinfo.is_ready) {
         __asm_irq_off_;
         ++pc->irq_semaphore;
     }
@@ -77,8 +73,8 @@ void irq_disable()
 
 bool irq_ready()
 {
-    per_cpu_t *pc = cpu_store();
-    if (pc != NULL && __irq_active)
+    cpu_info_t * pc = kcpu();
+    if (pc != NULL && sysinfo.is_ready)
         return pc->irq_semaphore == 0;
     return true;
 }
@@ -93,6 +89,7 @@ typedef struct irq_record irq_record_t;
 
 struct irq_vector {
     llhead_t list;
+    splock_t lock;
     // TODO -- Lock !? what if it doesn't return !
 } irqv[IRQ_COUNT];
 
@@ -112,7 +109,9 @@ void irq_register(int no, irq_handler_t func, void *data)
     irq_record_t *record = (irq_record_t *)kalloc(sizeof(irq_record_t));
     record->func = func;
     record->data = data;
+    splock_lock(&irqv[no].lock);
     ll_append(&irqv[no].list, &record->node);
+    splock_unlock(&irqv[no].lock);
 }
 
 void irq_unregister(int no, irq_handler_t func, void *data)
@@ -120,13 +119,15 @@ void irq_unregister(int no, irq_handler_t func, void *data)
     if (no < 0 || no >= IRQ_COUNT)
         return;
     irq_record_t *record;
+    splock_lock(&irqv[no].lock);
     for ll_each(&irqv[no].list, record, irq_record_t, node) {
         if (record->func == func || record->data == data) {
             ll_remove(&irqv[no].list, &record->node);
             kfree(record);
-            return;
+            break;
         }
     }
+    splock_unlock(&irqv[no].lock);
 }
 
 
@@ -146,7 +147,6 @@ void irq_enter(int no)
     // else if (no != 0)
     //     kprintf(KL_IRQ, "Received IRQ%d, on CPU%d: %d handler(s).\n", no, cpu_no(), irqv[no].list.count_);
 
-    irq_ack(no);
     for ll_each(&irqv[no].list, record, irq_record_t, node)
         record->func(record->data);
 
@@ -322,4 +322,3 @@ EXPORT_SYMBOL(irq_enable, 0);
 EXPORT_SYMBOL(irq_disable, 0);
 EXPORT_SYMBOL(irq_register, 0);
 EXPORT_SYMBOL(irq_unregister, 0);
-EXPORT_SYMBOL(irq_ack, 0);

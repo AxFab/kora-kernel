@@ -35,7 +35,7 @@ $(outdir)/$(1)/%.o: $(topdir)/%.c
 $(outdir)/$(1)/%.d: $(topdir)/%.c
 	$(S) mkdir -p $$(dir $$@)
 	$(Q) echo "    CM  $$<"
-	$(V) $(CC) -M $$< $($(2)) | sed "s%$(notdir $$(@:.d=.o))%$$(@:.d=.o)%" > $$@
+	$(V) $(CC) -M $$< $($(2)) | sed "s%$$(notdir $$(@:.d=.o))%$$(@:.d=.o)%" > $$@
 endef
 
 define link_shared

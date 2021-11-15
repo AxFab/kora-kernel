@@ -215,7 +215,9 @@ int eth_setup(netstack_t* stack)
 }
 
 EXPORT_SYMBOL(eth_writemac, 0);
+EXPORT_SYMBOL(eth_broadcast, 0);
 EXPORT_SYMBOL(eth_handshake, 0);
+EXPORT_SYMBOL(eth_unregister, 0);
 EXPORT_SYMBOL(eth_header, 0);
 
 // EXPORT_MODULE(eth, eth_setup, eth_teardown);

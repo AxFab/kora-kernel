@@ -400,6 +400,10 @@ long sys_write(int fd, const char *buf, int len)
     if (mspace_check(__current->vm, buf, len, VM_RD) != 0)
         return -1;
 
+    if (fd == 1) {
+        kprintf(-1, "Task%d] %s\n", __current->pid, buf);
+    }
+
     fstream_t *strm = stream_get(__current->fset, fd);
     if (strm == NULL)
         return -1;

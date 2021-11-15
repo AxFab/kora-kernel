@@ -235,7 +235,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, 
 
     /* Create the VMA */
     vma_t *vma = vma_create(mspace, address, length, ino, offset, vflags);
-    if (flags & VM_RESOLVE)
+    if (flags & (VM_RESOLVE | VM_PHYSIQ))
         vma_resolve(vma, address, length);
     errno = 0;
     splock_unlock(&mspace->lock);
