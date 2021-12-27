@@ -68,7 +68,7 @@ static _Noreturn void task_usermode(task_params_t *info)
     kfree(info);
 
     kprintf(-1, "Task.%d] Going usermode\n", __current->pid);
-    mspace_display(NULL);
+    // mspace_display(NULL);
     cpu_usermode(start, stack);
 }
 
@@ -233,7 +233,7 @@ void task_fatal(const char *msg, unsigned signum)
 //     fsnode_t *node;
 //     // Try to mount image
 //     for (;;) {
-//         node = vfs_mount(__current->vfs, "sdC", "iso", "/mnt/cdrom", "");
+//         node = vfs_mount(__current->vfs, "sdc", "iso", "/mnt/cdrom", "");
 //         if (node != NULL)
 //             break;
 //         sleep_timer(250000);

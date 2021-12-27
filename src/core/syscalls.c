@@ -24,6 +24,7 @@
 #include <kernel/syscalls.h>
 
 #include <bits/mman.h>
+#include <bits/io.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -238,12 +239,21 @@ long sys_open(int dirfd, const char *path, int flags, int mode)
     if (node == NULL)
         return -1;
 
+    // TODO - Lookup or create !?
     if (vfs_lookup(node) != 0) {
-        errno = ENOENT;
+        if (flags & O_CREAT) {
+            int ret = vfs_create(node, NULL, 0, 0664);
+            if (ret != 0)
+                return -1;
+        } else {
+            errno = ENOENT;
+            return -1;
+        }
+    } else if (flags & O_EXCL) {
+        errno = EEXIST;
         return -1;
     }
 
-    // TODO - Lookup or create !?
     int flg = 0;
     if (flags & 2)
         flg |= VM_WR;
@@ -400,7 +410,7 @@ long sys_write(int fd, const char *buf, int len)
     if (mspace_check(__current->vm, buf, len, VM_RD) != 0)
         return -1;
 
-    if (fd == 1) {
+    if (fd == 1 || fd == 2) {
         kprintf(-1, "Task%d] %s\n", __current->pid, buf);
     }
 
@@ -505,3 +515,52 @@ int sys_xtime(int name, xtime_t *ptime)
     *ptime = xtime_read(name);
     return 0;
 }
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+int sys_mount(const char *device, const char *dir, const char *fstype, const char *options, int flags)
+{
+    if (device && mspace_check_str(__current->vm, device, 4096) != 0)
+        return -1;
+    if (dir && mspace_check_str(__current->vm, dir, 4096) != 0)
+        return -1;
+    if (fstype && mspace_check_str(__current->vm, fstype, 4096) != 0)
+        return -1;
+    if (options && mspace_check_str(__current->vm, options, 4096) != 0)
+        return -1;
+
+    // TODO -- Get fsnode_t for device, and mount point
+    fsnode_t *node = vfs_mount(__current->vfs, device, fstype, dir, options ? options : "");
+    if (node == NULL)
+        // "\033[31mUnable to mount disk '%s': [%d - %s]\033[0m\n", dev, errno, strerror(errno));
+        return -1;
+    vfs_close_fsnode(node);
+    return 0;
+}
+
+int sys_mkfs(const char *device, const char *fstype, const char *options, int flags)
+{
+    if (device && mspace_check_str(__current->vm, device, 4096) != 0)
+        return -1;
+    if (fstype && mspace_check_str(__current->vm, fstype, 4096) != 0)
+        return -1;
+    if (options && mspace_check_str(__current->vm, options, 4096) != 0)
+        return -1;
+
+    fsnode_t* blk = vfs_search(__current->vfs, device, NULL, true);
+    if (blk == NULL)
+        return -1; // "Unable to find the device\n"
+
+    if (blk->ino->type != FL_BLK && blk->ino->type != FL_REG) {
+        // "We can only format block devices\n";
+        vfs_close_fsnode(blk);
+        return -1;
+    }
+
+    int ret = vfs_format(fstype, blk->ino, options);
+    vfs_close_fsnode(blk);
+    return ret;
+}
+

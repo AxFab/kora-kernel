@@ -155,7 +155,7 @@ void test_VDS()
     TTY("\e[90m- Krn :: c1001000-c11d6000 PHYS rw-p\e[0m\n");
     TTY("VGA 800x600x24 <\e[33mscr\e[0m>\n");
     TTY("PS/2 Keyboard  <\e[33mkdb\e[0m>\nPS/2 Mouse  <\e[33mmouse\e[0m>\n");
-    TTY("IDE ATA VBOX HARDDISK 4.00 Mb <\e[33msdA\e[0m>\nIDE ATA VBOX CD-ROM <\e[33msdC\e[0m>\n");
+    TTY("IDE ATA VBOX HARDDISK 4.00 Mb <\e[33msdA\e[0m>\nIDE ATA VBOX CD-ROM <\e[33msdc\e[0m>\n");
     // TTY("PCI.00.00 Intel corporation Host bridge\n");
     // TTY("PCI.00.01 Intel corporation ISA bridge\n");
     // TTY("PCI.00.02 InnoTek VGA-Compatible Controller\n");
@@ -174,7 +174,7 @@ void test_VDS()
     TTY("\e[90m- Krn :: c1001000-c11d6000 BLOCK r--S\e[0m\n");
     TTY("\e[31m#PF\e[0m - c10d2000  BLOCK r--S\n");
     TTY("\e[31m#PF\e[0m - c10d3000  BLOCK r--S\n");
-    TTY("Mount sdC as \e[35mISOIMAGE\e[0m (isofs)\n");
+    TTY("Mount sdc as \e[35mISOIMAGE\e[0m (isofs)\n");
     TTY("\e[90m- Krn :: c11ef000-c11f0000 FILE  r--S\e[0m\n");
     TTY("\e[31m#PF\e[0m - c10d3000  FILE r--S\n");
     TTY("\e[90m- Krn :: c11ef000-c11f0000 ANON  r--S\e[0m\n");

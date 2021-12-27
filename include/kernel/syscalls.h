@@ -100,6 +100,9 @@ enum syscall_no {
     SYS_FSTAT,
 
     SYS_XTIME,
+
+    SYS_MKFS,
+    SYS_MOUNT,
 };
 
 // #define SPW_SHUTDOWN 0xcafe
@@ -149,6 +152,10 @@ long sys_pipe(int *fds, int flags);
 
 
 int sys_xtime(int name, xtime_t *ptime);
+
+int sys_mount(const char *device, const char *dir, const char *fstype, const char *options, int flags);
+int sys_mkfs(const char *device, const char *fstype, const char *options, int flags);
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

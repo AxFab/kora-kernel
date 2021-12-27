@@ -29,7 +29,7 @@
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-const char *sdNames[] = { "sdA", "sdB", "sdC", "sdD" };
+const char *sdNames[] = { "sda", "sdb", "sdc", "sdd" };
 const char *exts[] = { "img", "iso", };
 const char *clazz[] = { "IDE ATA", "IDE ATAPI", };
 const int sdSize[] = { 512, 2048, };

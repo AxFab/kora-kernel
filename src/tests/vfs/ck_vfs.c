@@ -32,7 +32,7 @@ void test_01()
     KSETUP(imgdk);
     KSETUP(isofs);
 
-    inode_t *root = vfs_mount("sdC", "isofs");
+    inode_t *root = vfs_mount("sdc", "isofs");
 
     inode_t *ino = vfs_search(root, NULL, "/bin/init", NULL);
     assert(ino != NULL);
@@ -61,7 +61,7 @@ void test_02()
     KSETUP(isofs);
 
     char name[256];
-    inode_t *root = vfs_mount("sdC", "isofs");
+    inode_t *root = vfs_mount("sdc", "isofs");
 
     void *dir = vfs_opendir(root, NULL);
     for (;;) {

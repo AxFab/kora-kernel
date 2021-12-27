@@ -30,6 +30,16 @@ static inline int isdigit(char a)
     return a >= '0' && a <= '9';
 }
 
+static inline int tolower(char a)
+{
+    return (a >= 'A' && a <= 'Z') ? (a | 0x20) : a;
+}
+
+static inline int toupper(char a)
+{
+    return (a >= 'a' && a <= 'z') ? (a & ~0x20) : a;
+}
+
 // #define isalpha(a) ((((unsigned)(a)|32)-'a') < 26)
 // #define isdigit(a) (((unsigned)(a)-'0') < 10)
 // #define islower(a) (((unsigned)(a)-'a') < 26)

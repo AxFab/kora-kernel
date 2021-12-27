@@ -134,7 +134,7 @@ struct ATA_Drive {
 
 struct ATA_Drive sdx[4];
 
-const char *sdNames[] = { "sdA", "sdB", "sdC", "sdD" };
+const char *sdNames[] = { "sda", "sdb", "sdc", "sdd" };
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

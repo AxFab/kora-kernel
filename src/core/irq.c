@@ -211,6 +211,9 @@ syscall_info_t __syscalls_info[] = {
     // [SYS_SIGRET] = SCALL_ENTRY(sigret, ),
 
     [SYS_XTIME] = SCALL_ENTRY(xtime, ARG_INT, ARG_PTR, 0, 0, 0, ARG_INT, 1),
+
+    [SYS_MOUNT] = SCALL_ENTRY(mount, ARG_STR, ARG_STR, ARG_STR, ARG_STR, ARG_INT, ARG_INT, 5),
+    [SYS_MKFS] = SCALL_ENTRY(mkfs, ARG_STR, ARG_STR, ARG_STR, ARG_INT, 0, ARG_INT, 4),
 };
 
 static void scall_log_arg(task_t *task, char type, long arg)

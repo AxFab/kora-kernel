@@ -166,6 +166,7 @@ static int mspace_interval(mspace_t *mspace, size_t address, size_t length, int(
             vma = vma_split(mspace, vma, address - vma->node.value_);
             if (vma == NULL) {
                 errno = EINVAL;
+                splock_unlock(&mspace->lock);
                 return -1;
             }
         }

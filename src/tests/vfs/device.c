@@ -45,7 +45,7 @@ START_TEST(test_device_001)
     // ck_assert(dev != NULL);
     // // FAT_format(dev->ino);
     // // FAT_mount(dev->ino, dev->name);
-    // dev = vfs_lookup_device("sdC");
+    // dev = vfs_lookup_device("sdc");
     // inode_t *ino = ISOFS_mount(dev->ino, dev->name);
     // ck_assert(ino != NULL && S_ISDIR(ino->mode));
 

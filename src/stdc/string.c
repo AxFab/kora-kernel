@@ -19,6 +19,7 @@
  */
 #include <stddef.h>
 #include <kernel/mods.h>
+#include <ctype.h>
 
 void *malloc(size_t);
 // #include <stdlib.h>
@@ -209,7 +210,15 @@ char *strcpy(char *dest, const char *src)
 size_t strcspn(const char *s1, const char *s2);
 
 /* Performs case-insensitive string comparison. */
-int stricmp(const char *s1, const char *s2);
+int stricmp(const char *s1, const char *s2)
+{
+    while (*s1 && (tolower(*s1) == tolower(*s2))) {
+        ++s1;
+        ++s2;
+    }
+
+    return *s1 - *s2;
+}
 
 /* Calculates length of a string. */
 size_t strlen(const char *str)
@@ -314,13 +323,32 @@ char *strndup(const char *str, size_t maxlen)
 }
 
 /* Convert a string to lowercase. */
-char *strlwr(char *str);
+char *strlwr(char *str)
+{
+    for (char *ptr = str; *ptr; ptr++)
+        *ptr = tolower(*ptr);
+    return str;
+}
 
 /* Convert a string to uppercase. */
-char *strupr(char *string);
+char *strupr(char *str)
+{
+    for (char *ptr = str; *ptr; ptr++)
+        *ptr = toupper(*ptr);
+    return str;
+}
 
 /* Compare characters of two strings without regard to case. */
-int strnicmp(const char *s1, const char *s2, size_t maxlen);
+int strnicmp(const char *s1, const char *s2, size_t maxlen)
+{
+    while (--maxlen && *s1 && (tolower(*s1) == tolower(*s2))) {
+        ++s1;
+        ++s2;
+    }
+
+    return *s1 - *s2;
+}
+
 
 /* Reverse characters of a string. */
 char *strrev(char *string);
@@ -373,10 +401,12 @@ EXPORT_SYMBOL(memset, 0);
 EXPORT_SYMBOL(strcat, 0);
 EXPORT_SYMBOL(strchr, 0);
 EXPORT_SYMBOL(strcmp, 0);
+EXPORT_SYMBOL(stricmp, 0);
 EXPORT_SYMBOL(strcpy, 0);
 EXPORT_SYMBOL(strlen, 0);
 EXPORT_SYMBOL(strncat, 0);
 EXPORT_SYMBOL(strncmp, 0);
+EXPORT_SYMBOL(strnicmp, 0);
 EXPORT_SYMBOL(strncpy, 0);
 EXPORT_SYMBOL(strnlen, 0);
 EXPORT_SYMBOL(strrchr, 0);
