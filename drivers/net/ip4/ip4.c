@@ -39,9 +39,8 @@ PACK(struct ip4_header {
 /* Compute the checksum of a IP4 header */
 uint16_t ip4_checksum(uint16_t *ptr, unsigned len)
 {
-    // TODO -- Do checksum the right way!
     int i, sum = 0;
-    for (i = -(int)(len / 2); i < 0; ++i)
+    for (i = 0; i < len / 2; i++)
         sum += ntohs(ptr[i]);
     if (sum > 0xFFFF)
         sum = (sum >> 16) + (sum & 0xFFFF);
@@ -60,8 +59,9 @@ int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, unsigned length, ui
     case NET_AF_LO:
         if (lo_header(skb, ETH_IP4, 0) != 0)
             return -1;
+        break;
     default:
-        net_log(skb, "ipv4:Unknown protocol");
+        net_log(skb, ":ipv4:Unknown protocol");
         return -1;
     }
 

@@ -81,7 +81,17 @@ void net_handler(netstack_t *stack, void(*handler)(ifnet_t *, int, int))
     hnode->handler = handler;
     splock_lock(&stack->lock);
     ll_append(&stack->handlers, &hnode->node);
+
+    ifnet_t *net = ll_first(&stack->list, ifnet_t, node);
     splock_unlock(&stack->lock);
+    
+    while (net) {
+        if (net->flags & NET_CONNECTED)
+            handler(net, NET_EV_LINK, 1);
+        splock_lock(&stack->lock);
+        net = ll_next(&net->node, ifnet_t, node);
+        splock_unlock(&stack->lock);
+    }
 }
 
 /* Unregister an handler from the network interface events */
@@ -199,6 +209,7 @@ ifnet_t *net_device(netstack_t *stack, int protocol, uint8_t *hwaddr, net_ops_t 
         kprintf(-1, "New endpoint \033[35m%s:%s:%i (%s)\033[0m\n", stack->hostname, proto->name, uid, proto->paddr(hwaddr, buf, 64));
     else
         kprintf(-1, "New endpoint \033[35m%s:%s:%i\033[0m\n", stack->hostname, proto->name, uid);
+
     return net;
 }
 

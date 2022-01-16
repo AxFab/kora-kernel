@@ -113,14 +113,24 @@ ip4_master_t *ip4_readmaster(netstack_t *stack)
 /* - */
 void ip4_checkup(ifnet_t *net, int event, int param)
 {
-    if (event != NET_EV_LINK || !(net->flags & NET_CONNECTED))
+    if (!(net->flags & NET_CONNECTED))
+        return;
+    
+    if (event != NET_EV_LINK)
         return;
 
     ip4_info_t *info = ip4_readinfo(net);
-    if (info->subnet.ifnet == NULL)
-        dhcp_discovery(net);
-    else
-        arp_whois(net, info->subnet.address, NULL);
+
+    if (net->protocol == NET_AF_ETH) {
+        if (info->subnet.ifnet == NULL)
+            dhcp_discovery(net);
+        else
+            arp_whois(net, info->subnet.address, NULL);
+    } else if (net->protocol == NET_AF_LO) {
+        uint32_t localhost = htonl(0x7f000001);
+        uint32_t subnet = htonl(0xff000000);
+        ip4_setip(net, (uint8_t *)&localhost, (uint8_t *)&subnet, NULL);
+    }
 }
 
 ip4_class_t ip4_classes[] = {

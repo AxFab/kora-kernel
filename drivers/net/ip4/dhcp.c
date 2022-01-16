@@ -277,14 +277,14 @@ static int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode,
 {
     int opcode = dhcp2boot[mode];
 
-    int packet_length = sizeof(dhcp_header_t) + 3 + 9 + 1;
+    int packet_length = sizeof(dhcp_header_t) + 3 + 9 + 8 + 1; // MSGTYPE, CLIENT, VENDOR, ?, END
     if (opcode == BOOT_REQUEST)
         packet_length += dhcp_opts_length_req(net, lease);
     else
         packet_length += dhcp_opts_length_res(net, lease);
 
     skb_t *skb = net_packet(net);
-    if (udp_header(skb, route, packet_length, IP4_PORT_DHCP_SRV, IP4_PORT_DHCP, 0, 0) != 0)
+    if (udp_header(skb, route, packet_length, IP4_PORT_DHCP, IP4_PORT_DHCP_SRV, 0, 0) != 0)
         return net_skb_trash(skb);
 
     net_log(skb, ",dhcp");
@@ -304,7 +304,10 @@ static int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode,
     memcpy(header->ciaddr, info->subnet.address, IP4_ALEN);
     if (opcode == BOOT_REPLY)
         memcpy(header->yiaddr, lease->ip, IP4_ALEN);
-    memcpy(header->siaddr, opcode == BOOT_REQUEST ? route->ip : info->subnet.address, IP4_ALEN);
+    if (mode == DHCP_DISCOVER)
+        memset(header->siaddr, 0, IP4_ALEN);
+    else
+        memcpy(header->siaddr, opcode == BOOT_REQUEST ? route->ip : info->subnet.address, IP4_ALEN);
     memcpy(&header->chaddr, opcode == BOOT_REQUEST ? net->hwaddr : route->addr, ETH_ALEN);
     header->magic = DHCP_MAGIC;
 
@@ -325,6 +328,7 @@ static int dhcp_packet(ifnet_t *net, ip4_route_t *route, uint32_t uid, int mode,
     uint8_t end_of_options = 0xFF;
     net_skb_write(skb, &end_of_options, 1);
 
+    udp_checksum(skb, route, packet_length);
     return net_skb_send(skb);
 }
 
@@ -462,7 +466,7 @@ int dhcp_discovery(ifnet_t *ifnet)
     /* Check if this is relevant */
     dhcp_info_t *info = dhcp_readinfo(ifnet);
     splock_lock(&info->lock);
-    if (info->last_request > xtime_read(XTIME_CLOCK) - SEC_TO_USEC(DHCP_DELAY) || info->mode > DHCP_DISCOVER) {
+    if (info->last_request > MAX(0, xtime_read(XTIME_CLOCK) - SEC_TO_USEC(DHCP_DELAY)) || info->mode > DHCP_DISCOVER) {
         splock_unlock(&info->lock);
         return -1;
     }

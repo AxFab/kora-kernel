@@ -89,6 +89,7 @@ int e1000_send(ifnet_t *net, skb_t *skb)
 {
     e1000_device_t *ifnet = net->drv_data;
     kprintf(KL_DBG, "REQUEST SEND NETWORK %s (%d)\n", skb->log, skb->length);
+    kdump2(skb->buf, skb->length);
     splock_lock(&ifnet->lock);
     struct PCI_device *pci = ifnet->pci;
     ifnet->tx_index = PCI_rd32(pci, 0, REG_TDT);
@@ -279,6 +280,7 @@ void e1000_init_hw(e1000_device_t *ifnet)
     status = PCI_rd32(pci, 0, REG_STATUS); // & (1 << 1);
     if (status & (1 << 1)) {
         ifnet->dev->flags |= NET_CONNECTED;
+        net_event(ifnet->dev, NET_EV_LINK, 0);
         kprintf(0, "%s, DONE %x \n", ifnet->name, status);
     }
     int sp = (status >> 6) & 3;
@@ -346,10 +348,15 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
 
     ifnet_t *net = net_device(net_stack(), NET_AF_ETH, hwaddr, &e1000_ops, ifnet);
+    if (net == NULL) {
+        kprintf(-1, "Error creating ethernet device: %s\n", name);
+        kfree(ifnet);
+        return;
+    }
+    ifnet->dev = net;
     net->mtu = 1500;
-    if (net != NULL)
-        irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
-
+    irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
+    e1000_init_hw(ifnet);
     // ifnet->dev->mtu = 1500;
     // ifnet->dev.send = (void *)e1000_send;
     // ifnet->dev.link = (void *)e1000_init_hw;

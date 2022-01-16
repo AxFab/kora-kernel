@@ -20,6 +20,7 @@
 #include "ip4.h"
 
 typedef struct udp_header udp_header_t;
+typedef struct udp_check_header udp_check_header_t;
 
 PACK(struct udp_header {
     uint16_t src_port;
@@ -27,6 +28,15 @@ PACK(struct udp_header {
     uint16_t length;
     uint16_t checksum;
 });
+
+PACK(struct udp_check_header
+{
+    uint8_t source[IP4_ALEN];
+    uint8_t target[IP4_ALEN];
+    uint8_t mbz;
+    uint8_t proto;
+    uint16_t length;
+};)
 
 /* Look for an ephemeral port on UDP */
 uint16_t udp_ephemeral_port(socket_t *sock)
@@ -61,9 +71,35 @@ int udp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, 
     header->dest_port = htons(rport);
     header->length = htons(length + sizeof(udp_header_t));
     header->checksum = 0;
-    header->checksum = ip4_checksum((uint16_t *)skb->buf, sizeof(udp_header_t) + 8);
-    // TODO - ip options
     return 0;
+}
+
+uint16_t udp_do_checksum(udp_check_header_t *check, uint16_t *data, size_t len)
+{
+    int i, sum = 0;
+    uint16_t *cptr = check;
+    for (i = 0; i < sizeof(udp_check_header_t) / 2; i++)
+        sum += ntohs(cptr[i]);
+    for (i = 0; i < len / 2; i++)
+        sum += ntohs(data[i]);
+    if (sum > 0xFFFF)
+        sum = (sum >> 16) + (sum & 0xFFFF);
+    return htons(~(sum & 0xFFFF) & 0xFFFF);
+}
+
+int udp_checksum(skb_t *skb, ip4_route_t *route, unsigned length)
+{
+    udp_header_t *header = (void *)(&skb->buf[skb->pen - length - sizeof(udp_header_t)]);
+    udp_check_header_t check;
+    ip4_info_t *info = ip4_readinfo(skb->ifnet);
+    memcpy(check.source, info->subnet.address, IP4_ALEN);
+    memcpy(check.target, route->ip, IP4_ALEN);
+    check.mbz = 0;
+    check.length = htons(length + sizeof(udp_header_t));
+    check.proto = IP4_UDP;
+    // header->checksum = ip4_checksum((uint16_t *)ADDR_OFF(header, -8), sizeof(udp_header_t) + 8);
+    // header->checksum = ip4_checksum((uint16_t *)ADDR_OFF(header, -12), sizeof(udp_header_t) + 12);
+    header->checksum = udp_do_checksum(&check, (uint16_t *)header, sizeof(udp_header_t) + length);
 }
 
 /* Handle the reception of a UDP packet */
@@ -159,6 +195,7 @@ long udp_socket_send(socket_t* sock, const uint8_t* addr, const uint8_t* buf, si
             return net_skb_trash(skb);
 
         memcpy(ptr, buf, pack);
+        udp_checksum(skb, &route, pack);
         if (net_skb_send(skb) != 0)
             return -1;
         len -= pack;
