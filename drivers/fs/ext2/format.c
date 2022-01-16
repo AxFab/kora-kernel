@@ -139,8 +139,8 @@ int ext2_format(inode_t* dev, const char* options)
 
 
     kprintf(-1, "File system label = %s\n", "");
-    kprintf(-1, "Block size = %d\n", (1024 << block_log_size));
-    kprintf(-1, "Fragment size = %d\n", (1024 << block_log_size));
+    kprintf(-1, "Block size = %d\n", (1024 << (block_log_size - 10)));
+    kprintf(-1, "Fragment size = %d\n", (1024 << (block_log_size - 10)));
     kprintf(-1, "%d inodes, %d blocks\n", inodes_per_group * ngroup, nbr_blocks);
     kprintf(-1, "%d blocks reserved for super user\n", nreserved);
     kprintf(-1, "First data block = %d\n", dc);

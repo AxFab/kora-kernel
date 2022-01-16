@@ -35,7 +35,8 @@
 #endif
 
 
-void do_dump(vfs_t** vfs, size_t* param);
+void do_dump(vfs_t **vfs, size_t *param);
+void do_umask(vfs_t **vfs, size_t *param);
 void do_ls(vfs_t** fs, size_t* param);
 void do_stat(vfs_t** fs, size_t* param);
 void do_cd(vfs_t** fs, size_t* param);
@@ -108,8 +109,9 @@ void do_restart(vfs_t* fs, size_t* param)
 cli_cmd_t __commands[] = {
     { "RESTART", "", { 0, 0, 0, 0, 0 }, do_restart, 1 },
     { "DUMP", "", { 0, 0, 0, 0, 0 }, do_dump, 1 },
+    { "UMASK", "", { ARG_INT, 0, 0, 0, 0 }, do_umask, 1 },
     { "LS", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_ls, 1 },
-    { "STAT", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_stat, 1 },
+    { "STAT", "", { ARG_STR, ARG_STR, ARG_INT, ARG_STR, ARG_STR }, do_stat, 1 },
     { "CD", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_cd, 1 },
     { "CHROOT", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_chroot, 1 },
     { "PWD", "", { 0, 0, 0, 0, 0 }, do_pwd, 0 },
@@ -120,7 +122,7 @@ cli_cmd_t __commands[] = {
     { "CREAT", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_create, 1 },
     { "UNLINK", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_unlink, 1 },
     // LINK, RENAME, SYMLINK, READLINK ...
-    { "MKDIR", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_mkdir, 1 },
+    { "MKDIR", "", { ARG_STR, ARG_INT, 0, 0, 0 }, do_mkdir, 1 },
     { "RMDIR", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_rmdir, 1 },
 
     { "DD", "", { ARG_STR, ARG_STR, ARG_INT, 0, 0 }, do_dd, 3 },

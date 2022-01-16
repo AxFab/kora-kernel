@@ -52,7 +52,7 @@ struct cli_cfg
 
 extern cli_cmd_t __commands[];
 
-void cli_commands(FILE *fp, void *ctx, bool reecho);
+int cli_commands(FILE *fp, void *ctx, bool reecho);
 int cli_main(int argc, char **argv, void *context, void(*initialize)(), void(*teardown)());
 
 void cli_store(char *name, void *obj, int type);

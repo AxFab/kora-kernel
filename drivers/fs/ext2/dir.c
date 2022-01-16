@@ -51,6 +51,7 @@ ext2_dir_iter_t *ext2_opendir(inode_t *dir)
 /* Find the next inode on a directory context */
 uint32_t ext2_nextdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
 {
+    (void)dir;
     // TODO -- If we read above file size, leave
     for (;;) {
 
@@ -62,7 +63,7 @@ uint32_t ext2_nextdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
             // bkunmap(&it->bkm);
             if (it->cmap)
                 kunmap(it->cmap, PAGE_SIZE);
-            it->cmap = kmap(PAGE_SIZE, dir->dev->underlying, lba, VM_RD);
+            it->cmap = kmap(PAGE_SIZE, it->vol->dev->underlying, lba, VM_RD);
             it->lba = lba;
         }
 
@@ -75,8 +76,10 @@ uint32_t ext2_nextdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
         if (entry->type == 0)
             return 0;
 
-        strncpy(name, entry->name, MIN(255, entry->name_len));
-        name[entry->name_len] = '\0';
+        if (name) {
+            strncpy(name, entry->name, MIN(255, entry->name_len));
+            name[entry->name_len] = '\0';
+        }
         return entry->ino;
     }
 }
@@ -103,4 +106,21 @@ int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it)
 
     kfree(it);
     return 0;
+}
+
+int ext2_dir_is_empty(ext2_volume_t *vol, ext2_ino_t *dir)
+{
+    // Open directory
+    ext2_dir_iter_t it;
+    memset(&it, 0, sizeof(ext2_dir_iter_t));
+    it.vol = vol;
+    it.entry = dir;
+    it.idx = 0;
+
+    // Look first entry
+    uint32_t ino = ext2_nextdir(NULL, NULL, &it);
+
+    // Clear
+    bkunmap(&it.bki);
+    return ino == 0 ? 0 : -1;
 }

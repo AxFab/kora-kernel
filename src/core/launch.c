@@ -52,7 +52,7 @@ void kstart()
 
     arch_init();
 
-    for (int i = 0, n = 1; i < n; ++i) {
+    for (int i = 0, n = 2; i < n; ++i) {
         char tmp[32];
         snprintf(tmp, 32, "Kernel loader #%d", i + 1);
         task_start(tmp, module_loader, NULL);

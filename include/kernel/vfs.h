@@ -219,7 +219,8 @@ int vfs_readlink(vfs_t *vfs, fsnode_t *node, char *buf, int len, bool relative);
 
 
 int vfs_create(fsnode_t *node, void *acl, int flags, int mode);
-int vfs_mkdir(fsnode_t *node, int flags, void *acl);
+int vfs_mkdir(fsnode_t *node, int mode, void *acl);
+int vfs_rmdir(fsnode_t *node);
 
 void vfs_usage(fsnode_t *node, int flags, int use);
 

@@ -62,6 +62,7 @@ static int fake_eth_send(ifnet_t *net, skb_t *skb)
     }
 
     printf("Tx %s: %s\n", net->stack->hostname, skb->log);
+    // kdump2(skb->buf, skb->length);
     subnet_t *subnet = (subnet_t *)net->drv_data;
     if (subnet == NULL)
         return -1;

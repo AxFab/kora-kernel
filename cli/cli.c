@@ -35,6 +35,35 @@ static void do_help()
     }
 }
 
+static int do_include(char *str)
+{
+    return -1;
+}
+
+static int do_error(char *str, int *perr)
+{
+    while (str[0] && isspace(str[0]))
+        str++;
+    if (str[0] == 'O') {
+        if (str[1] == 'N') {
+            str[2] = '\0';
+            *perr = -1;
+        } else if (str[1] == 'F' && str[2] == 'F') {
+            str[3] = '\0';
+            *perr = 0;
+        } else
+            return -1;
+    } else if (str[0] == 'E') {
+
+        return -1;
+
+    } else
+        return -1;
+
+    printf("Set error: %s\n", str);
+    return 0;
+}
+
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 static int cli_read_string(const char **line, size_t *ptr)
@@ -84,18 +113,14 @@ static int cli_read_integer(const char **line, size_t *ptr)
     return 0;
 }
 
-static int cli_read_inode(const char **line, size_t *ptr)
-{
-    return 1;
-}
-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-void cli_commands(FILE *fp, void *ctx, bool reecho)
+int cli_commands(FILE *fp, void *ctx, bool reecho)
 {
     int i, n;
     size_t len = 1024;
     char line[1024];
+    int error_handling = 0;
 
     for (;;) {
         // Read per line
@@ -132,7 +157,14 @@ void cli_commands(FILE *fp, void *ctx, bool reecho)
         if (strcmp(cmd, "HELP") == 0) {
             do_help();
             continue;
+        } else if (strcmp(cmd, "INCLUDE") == 0) {
+            do_include(str);
+        } else if (strcmp(cmd, "ERROR") == 0) {
+            if (do_error(str, &error_handling) != 0)
+                return -1;
+            continue;
         }
+
         cli_cmd_t *routine = NULL;
         for (i = 0; __commands[i].name; ++i) {
             if (strcmp(cmd, __commands[i].name) == 0) {
@@ -160,7 +192,7 @@ void cli_commands(FILE *fp, void *ctx, bool reecho)
             else if (routine->params[i] == ARG_INT)
                 n = cli_read_integer(&str, &args[i]);
             else if (routine->params[i] == ARG_INO)
-                n = cli_read_inode(&str, &args[i]);
+                n = 1;
             else
                 n = -1;
             if (n < 0 || (n != 0 && i < routine->min_arg)) {
@@ -178,13 +210,16 @@ void cli_commands(FILE *fp, void *ctx, bool reecho)
         // Run command
         assert(irq_ready());
         int retn = routine->call(ctx, &args[0]);
-        if (retn != 0)
-            return -1;
+        if (retn != 0 && error_handling != 0) {
+            if (error_handling < 0 || error_handling == errno)
+                return -1;
+        }
         // getchar();
         assert(irq_ready());
 
         // printf(" Command '%s' (%x, %x, %x, %x, %x)\n", cmd, args[0], args[1], args[2], args[3], args[4]);
     }
+    return 0;
 }
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -293,10 +328,10 @@ static int cli_exec(void *ptr, char *path)
     FILE *fp = fopen(path, "r");
     if (fp == NULL)
         return -1;
-    cli_commands(fp, cfg->context, true);
+    int ret = cli_commands(fp, cfg->context, true);
     printf("\n");
     fclose(fp);
-    return 0;
+    return ret;
 }
 
 int cli_main(int argc, char **argv, void *context, void(*initialize)(), void(*teardown)())

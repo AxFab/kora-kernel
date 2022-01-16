@@ -145,6 +145,11 @@ int vfs_rmdir(fsnode_t *node)
     }
 
     inode_t *dir = node->parent->ino;
+    if (dir->ops->rmdir == NULL) {
+        mtx_unlock(&node->mtx);
+        errno = ENOSYS;
+        return -1;
+    }
     int ret = dir->ops->rmdir(dir, node->name);
     if (ret == 0) {
         vfs_close_inode(node->ino);

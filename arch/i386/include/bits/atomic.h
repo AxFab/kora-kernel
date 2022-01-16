@@ -40,7 +40,7 @@ static inline int atomic_cmpxchg(atomic_int *p, int t, int s)
 static inline int atomic_xchg(atomic_int *p, int v)
 {
     __asm__ volatile(
-        "xchg %0, %1"
+        "lock ; xchg %0, %1"
         : "=r"(v), "=m"(*p) : "0"(v) : "memory");
     return v;
 }
@@ -92,7 +92,7 @@ static inline void *atomic_ptr_cmpxchg(atomic_ptr *p, void *t, void *s)
 static inline void *atomic_ptr_xchg(atomic_ptr *p, void *v)
 {
     __asm__ volatile(
-        "xchg %0, %1"
+        "lock ; xchg %0, %1"
         : "=r"(v), "=m"(*p) : "0"(v) : "memory");
     return v;
 }

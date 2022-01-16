@@ -291,3 +291,6 @@ uint32_t ext2_truncate_indirect(ext2_volume_t *vol, uint32_t block, int bcount, 
 
 ext2_ino_t* ext2_entry(struct bkmap* bk, ext2_volume_t* vol, unsigned no, int flg);
 
+
+int ext2_dir_is_empty(ext2_volume_t *vol, ext2_ino_t *dir);
+

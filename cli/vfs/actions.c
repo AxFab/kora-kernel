@@ -51,6 +51,18 @@ int do_dump(vfs_t **ctx, size_t* param)
     return 0;
 }
 
+int do_umask(vfs_t **ctx, size_t *param)
+{
+    int mask = param[0];
+    if ((mask & 0777) != mask) {
+        printf("Invalid value for umask: %o\n", mask);
+        return -1;
+    }
+    vfs_t *vfs = *ctx;
+    vfs->umask = mask;
+    return 0;
+}
+
 int do_ls(vfs_t **ctx, size_t* param)
 {
     vfs_t *vfs = *ctx;
@@ -99,11 +111,27 @@ int do_stat(vfs_t **ctx, size_t* param)
 {
     vfs_t *vfs = *ctx;
     char* path = (char*)param[0];
-    fsnode_t* root = (fsnode_t*)param[1];
+    char* type = (char *)param[1];
+    int mode = param[2];
+    char *uid = (char *)param[3];
+    char *gid = (char *)param[4];
+
     fsnode_t* node = vfs_search(vfs, path, NULL, true);
 
     if (node == NULL)
         return cli_error("No such entry\n");
+
+    if (type != NULL) {
+        if (strcmp(type, "DIR") == 0 && node->ino->type != FL_DIR)
+            return cli_error("Entry is not a directory\n");
+        else if (strcmp(type, "REG") == 0 && node->ino->type != FL_REG)
+            return cli_error("Entry is not a regular file\n");
+    }
+
+    //if (mode != 0 && node->ino->mode != mode)
+    //    return cli_error("Entry doesn't have the expected mode %o vs. %o\n", node->ino->mode, mode);
+    
+
 
     char tmp[32];
     printf("Found file %s\n", vfs_inokey(node->ino, tmp));
@@ -185,18 +213,31 @@ int do_mkdir(vfs_t **ctx, size_t* param)
 {
     vfs_t *vfs = *ctx;
     char* name = (char*)param[0];
+    int mask = param[1];
+    if (mask == 0)
+        mask = 0755;
     fsnode_t* node = vfs_search(vfs, name, NULL, false);
     if (node == NULL)
         return cli_error("Unable to find path to directory %s: [%d - %s]\n", name, errno, strerror(errno));
-    if (vfs_mkdir(node, 0755, NULL) != 0)
+    int ret = vfs_mkdir(node, mask, NULL);
+    if (ret != 0)
         cli_error("Unable to create directory %s: [%d - %s]\n", name, errno, strerror(errno));
     vfs_close_fsnode(node);
-    return 0;
+    return ret;
 }
 
 int do_rmdir(vfs_t **ctx, size_t* param)
 {
-    return cli_error("Not implemented: %s!\n", __func__);
+    vfs_t *vfs = *ctx;
+    const char *name = (char *)param[0];
+    fsnode_t *node = vfs_search(vfs, name, NULL, false);
+    if (node == NULL)
+        return cli_error("Unable to find path to directory %s: [%d - %s]\n", name, errno, strerror(errno));
+    int ret = vfs_rmdir(node);
+    if (ret != 0)
+        cli_error("Unable to remove directory %s: [%d - %s]\n", name, errno, strerror(errno));
+    vfs_close_fsnode(node);
+    return ret;
 }
 
 int do_dd(vfs_t **ctx, size_t* param)
