@@ -229,41 +229,24 @@ long sys_open(int dirfd, const char *path, int flags, int mode)
     if (mspace_check_str(__current->vm, path, 4096) != 0)
         return -1;
 
+    vfs_t *vfs = __current->vfs;
     if (dirfd >= 0) {
         fstream_t *strm = stream_get(__current->fset, dirfd);
         if (strm == NULL)
             return -1;
+        // Clone VFS, look on flags AT_*
     }
 
-    fsnode_t *node = vfs_search(__current->vfs, path, NULL, false);
+    fsnode_t *node = vfs_open(vfs, path, NULL, flags, mode);
     if (node == NULL)
         return -1;
 
-    // TODO - Lookup or create !?
-    if (vfs_lookup(node) != 0) {
-        if (flags & O_CREAT) {
-            int ret = vfs_create(node, NULL, 0, 0664);
-            if (ret != 0)
-                return -1;
-        } else {
-            errno = ENOENT;
-            return -1;
-        }
-    } else if (flags & O_EXCL) {
-        errno = EEXIST;
-        return -1;
-    }
-
-    int flg = 0;
-    if (flags & 2)
-        flg |= VM_WR;
-    else if (flags & 1)
-        flg |= VM_WR;
-    else
-        flg |= VM_RD;
-
+    int flg = vfs_open_access(flags);
     fstream_t *strm = stream_put(__current->fset, node, flg);
     vfs_close_fsnode(node);
+    if (vfs != __current->vfs) {
+        // Close
+    }
     return strm->fd;
 }
 
@@ -282,7 +265,7 @@ long sys_create(int dirfd, const char *path, int flags, int mode)
     if (node == NULL)
         return -1;
 
-    int ret = vfs_create(node, NULL, flags, mode);
+    int ret = vfs_create(node, NULL, mode);
     if (ret != 0)
         return -1;
 

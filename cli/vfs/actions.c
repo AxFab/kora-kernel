@@ -29,6 +29,10 @@
 #ifndef O_BINARY
 # define O_BINARY 0
 #endif
+#ifndef O_NOFOLLOW
+# define O_NOFOLLOW 0x100000
+#endif
+
 
 int imgdk_open(const char* path, const char* name);
 void imgdk_create(const char* name, size_t size);
@@ -109,6 +113,8 @@ const char* vfs_timestr(xtime_t clock, char *tmp)
 
 int do_stat(vfs_t **ctx, size_t* param)
 {
+    static const char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx" };
+
     vfs_t *vfs = *ctx;
     char* path = (char*)param[0];
     char* type = (char *)param[1];
@@ -122,10 +128,13 @@ int do_stat(vfs_t **ctx, size_t* param)
         return cli_error("No such entry\n");
 
     if (type != NULL) {
-        if (strcmp(type, "DIR") == 0 && node->ino->type != FL_DIR)
+        if (strcmp(type, "DIR") == 0 && node->ino->type != FL_DIR) {
+            vfs_close_fsnode(node);
             return cli_error("Entry is not a directory\n");
-        else if (strcmp(type, "REG") == 0 && node->ino->type != FL_REG)
+        } else if (strcmp(type, "REG") == 0 && node->ino->type != FL_REG) {
+            vfs_close_fsnode(node);
             return cli_error("Entry is not a regular file\n");
+        }
     }
 
     //if (mode != 0 && node->ino->mode != mode)
@@ -136,11 +145,71 @@ int do_stat(vfs_t **ctx, size_t* param)
     char tmp[32];
     printf("Found file %s\n", vfs_inokey(node->ino, tmp));
     printf("    Size: %s\n", sztoa(node->ino->length));
+    printf("    Mode: %s%s%s\n", rights[(node->ino->mode >> 6) & 7], rights[(node->ino->mode >> 3) & 7], rights[(node->ino->mode >> 0) & 7]);
     printf("  Access: %s\n", vfs_timestr(node->ino->atime, tmp));
     printf(" Created: %s\n", vfs_timestr(node->ino->ctime, tmp));
     printf("Modified: %s\n", vfs_timestr(node->ino->mtime, tmp));
     printf("   Birth: %s\n", vfs_timestr(node->ino->btime, tmp));
 
+    if (mode != 0 && mode != node->ino->mode) {
+        vfs_close_fsnode(node);
+        return cli_error("Bad mode\n");
+    }
+    // TODO -- Check uid/gid 
+
+    vfs_close_fsnode(node);
+    return 0;
+}
+
+int do_links(vfs_t **ctx, size_t *param)
+{
+    vfs_t *vfs = *ctx;
+    char *path = (char *)param[0];
+    int count = param[1];
+
+    fsnode_t *node = vfs_search(vfs, path, NULL, true);
+    if (node == NULL)
+        return cli_error("No such entry\n");
+    else if (node->ino->type != FL_DIR) {
+        vfs_close_fsnode(node);
+        return cli_error("Is not a directory\n");
+    }
+
+    printf("Node have %d links\n", node->ino->links);
+    if (count != 0 && node->ino->links != count) {
+        vfs_close_fsnode(node);
+        return cli_error("Invalid links count\n");
+    }
+
+    vfs_close_fsnode(node);
+    return 0;
+}
+
+int do_times(vfs_t **ctx, size_t *param)
+{
+    vfs_t *vfs = *ctx;
+    char *path = (char *)param[0];
+    char *mode = (char *)param[1];
+    char *cmp = (char *)param[2];
+    for (int i = 0; mode && mode[i]; ++i)
+        mode[i] = tolower(mode[i]);
+
+    fsnode_t *node = vfs_search(vfs, path, NULL, true);
+    if (node == NULL)
+        return cli_error("No such entry\n");
+
+    char tmp[32];
+    printf("%s: %s\n", path, vfs_inokey(node->ino, tmp));
+    if (mode == NULL || strchr(mode, 'a') != NULL)
+        printf("  access: %s\n", vfs_timestr(node->ino->atime, tmp));
+    if (mode == NULL || strchr(mode, 'c') != NULL)
+        printf(" created: %s\n", vfs_timestr(node->ino->ctime, tmp));
+    if (mode == NULL || strchr(mode, 'm') != NULL)
+        printf("modified: %s\n", vfs_timestr(node->ino->mtime, tmp));
+    if (mode == NULL || strchr(mode, 'b') != NULL)
+        printf("   birth: %s\n", vfs_timestr(node->ino->btime, tmp));
+
+    // TODO -- TESTS
     vfs_close_fsnode(node);
     return 0;
 }
@@ -179,7 +248,42 @@ int do_pwd(vfs_t **ctx, size_t* param)
 
 int do_open(vfs_t **ctx, size_t* param)
 {
-    return cli_error("Not implemented: %s!\n", __func__);
+    vfs_t *vfs = *ctx;
+    char *path = (char *)param[0];
+    char *flags = (char *)param[1];
+    int mode = (char *)param[2];
+    if (mode == 0)
+        mode = 0644;
+
+    int opt = 0;
+    char *r;
+    char *ptr = strtok_r(flags, ":", &r);
+    for (; ptr; ptr = strtok_r(NULL, ":", &r)) {
+        if (strcmp(ptr, "RDONLY") == 0)
+            opt |= O_RDONLY;
+        else if (strcmp(ptr, "WRONLY") == 0)
+            opt |= O_WRONLY;
+        else if (strcmp(ptr, "RDWR") == 0)
+            opt |= O_RDWR;
+        else if (strcmp(ptr, "CREAT") == 0)
+            opt |= O_CREAT;
+        else if (strcmp(ptr, "TRUNC") == 0)
+            opt |= O_TRUNC;
+        else if (strcmp(ptr, "EXCL") == 0)
+            opt |= O_EXCL;
+        else if (strcmp(ptr, "NOFOLLOW") == 0)
+            opt |= O_NOFOLLOW;
+        else
+            printf("\033[m35Unknow OPEN mode '%s'\033[m0", ptr);
+        // O_APPEND | O_NOINHERIT | O_RANDOM | O_RAW | O_SEQUENTIAL | O_TEMPORARY | O_TEXT | O_BINARY;
+    }
+
+    fsnode_t *node = vfs_open(vfs, path, NULL, opt, mode);
+    if (node != NULL)
+        vfs_close_fsnode(node);
+    else 
+        return cli_error("Unable to open file: %s : [%d - %s]\n", path, errno, strerror(errno));
+    return 0;
 }
 
 int do_close(vfs_t **ctx, size_t* param)
@@ -192,21 +296,44 @@ int do_look(vfs_t **ctx, size_t* param)
     return cli_error("Not implemented: %s!\n", __func__);
 }
 
+int do_delay(vfs_t **ctx, size_t *param)
+{
+    xtime xt;
+    xt.sec = 1;
+    xt.nsec = 0;
+    thrd_sleep(&xt, NULL);
+    return 0;
+}
+
 int do_create(vfs_t **ctx, size_t* param)
 {
     vfs_t *vfs = *ctx;
-    char* name = (char*)param[0];
+    char *name = (char *)param[0];
+    int mode = param[1];
+    if (mode == 0)
+        mode == 0644;
     fsnode_t* node = vfs_search(vfs, name, NULL, false);
     if (node == NULL)
         return cli_error("Unable to find path to directory %s: [%d - %s]\n", name, errno, strerror(errno));
-    if (vfs_create(node, NULL, 0, 0) != 0)
-        return cli_error("Unable to create file %s: [%d - %s]\n", name, errno, strerror(errno));
-    return 0;
+    int ret = vfs_create(node, NULL, mode & (~vfs->umask & 0777));
+    if (ret != 0)
+        cli_error("Unable to create file %s: [%d - %s]\n", name, errno, strerror(errno));
+    vfs_close_fsnode(node);
+    return ret;
 }
 
 int do_unlink(vfs_t **ctx, size_t* param)
 {
-    return cli_error("Not implemented: %s!\n", __func__);
+    vfs_t *vfs = *ctx;
+    const char *name = (char *)param[0];
+    fsnode_t *node = vfs_search(vfs, name, NULL, false);
+    if (node == NULL)
+        return cli_error("Unable to find path to file %s: [%d - %s]\n", name, errno, strerror(errno));
+    int ret = vfs_unlink(node);
+    if (ret != 0)
+        cli_error("Unable to remove file %s: [%d - %s]\n", name, errno, strerror(errno));
+    vfs_close_fsnode(node);
+    return ret;
 }
 
 int do_mkdir(vfs_t **ctx, size_t* param)
@@ -219,7 +346,7 @@ int do_mkdir(vfs_t **ctx, size_t* param)
     fsnode_t* node = vfs_search(vfs, name, NULL, false);
     if (node == NULL)
         return cli_error("Unable to find path to directory %s: [%d - %s]\n", name, errno, strerror(errno));
-    int ret = vfs_mkdir(node, mask, NULL);
+    int ret = vfs_mkdir(node, mask & (~vfs->umask & 0777), NULL);
     if (ret != 0)
         cli_error("Unable to create directory %s: [%d - %s]\n", name, errno, strerror(errno));
     vfs_close_fsnode(node);
@@ -281,6 +408,21 @@ int do_dd(vfs_t **ctx, size_t* param)
     return 0;
 }
 
+int do_clear_cache(vfs_t **ctx, size_t *param)
+{
+    vfs_t *vfs = *ctx;
+    char *path = (char *)param[0];
+
+    fsnode_t *node = vfs_search(vfs, path, NULL, true);
+    if (node == NULL)
+        return cli_error("No such entry\n");
+    device_t *dev = node->ino->dev;
+    int ret = node->rcu == 1 ? 0 : -1;
+    vfs_close_fsnode(node);
+    vfs_dev_scavenge(dev, -1);
+    return ret;
+}
+
 int do_mount(vfs_t **ctx, size_t* param)
 {
     vfs_t *vfs = *ctx;
@@ -295,9 +437,20 @@ int do_mount(vfs_t **ctx, size_t* param)
     return 0;
 }
 
-int do_unmount(vfs_t **ctx, size_t* param)
+int do_umount(vfs_t **ctx, size_t* param)
 {
-    return cli_error("Not implemented: %s!\n", __func__);
+    vfs_t *vfs = *ctx;
+    char *path = (char *)param[0];
+
+    fsnode_t *node = vfs_search(vfs, path, NULL, true);
+    if (node == NULL)
+        return cli_error("No such entry\n");
+
+    int ret = vfs_umount(node);
+    if (ret != 0)
+        cli_error("Error on umount '%s': [%d - %s]\033[0m\n", path, errno, strerror(errno));
+    vfs_close_fsnode(node);
+    return ret;
 }
 
 int do_extract(vfs_t **ctx, size_t* param)

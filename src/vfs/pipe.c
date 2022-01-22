@@ -301,7 +301,7 @@ pipe_t *pipe_create()
     pipe_t *pipe = (pipe_t *)kalloc(sizeof(pipe_t));
     pipe->size = PAGE_SIZE; // TODO -- Read config!
     pipe->max_size = 64 * PAGE_SIZE;
-    pipe->base = kmap(pipe->size, NULL, 0, VM_RW);
+    pipe->base = kmap(pipe->size, NULL, 0, VM_RW); // TODO -- VM_PIPE and find name ?
     pipe->avail = 0;
     pipe->rpen = pipe->base;
     pipe->wpen = pipe->base;

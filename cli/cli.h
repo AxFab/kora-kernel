@@ -47,8 +47,8 @@ struct cli_cfg
 
 #define ARG_STR 1
 #define ARG_INT 2
-#define ARG_FLG 2
-#define ARG_INO 20
+// #define ARG_FLG 2
+// #define ARG_INO 20
 
 extern cli_cmd_t __commands[];
 

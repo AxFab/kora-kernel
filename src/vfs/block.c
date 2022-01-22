@@ -110,6 +110,7 @@ page_t block_fetch(inode_t *ino, xoff_t off)
             page->phys = mmu_read((size_t)ptr);
             assert(page->phys != 0);
             page->ready = true;
+            // mmu_drop((size_t)ptr);
             kunmap(ptr, PAGE_SIZE);
         }
         mtx_unlock(&page->mtx);

@@ -138,9 +138,13 @@ int vfs_mkdir(fsnode_t *node, int mode, void *user)
 int vfs_rmdir(fsnode_t *node)
 {
     mtx_lock(&node->mtx);
-    if (node->mode != FN_OK) {
+    if (node->mode == FN_NOENTRY) {
         mtx_unlock(&node->mtx);
         errno = ENOENT;
+        return -1;
+    } else if (node->parent && node->mode == FN_OK && node->parent->mode == FN_OK && node->ino->dev != node->parent->ino->dev) {
+        mtx_unlock(&node->mtx);
+        errno = EBUSY;
         return -1;
     }
 
@@ -151,11 +155,8 @@ int vfs_rmdir(fsnode_t *node)
         return -1;
     }
     int ret = dir->ops->rmdir(dir, node->name);
-    if (ret == 0) {
-        vfs_close_inode(node->ino);
-        node->ino = NULL;
-        node->mode = FN_EMPTY;
-    }
+    if (ret == 0)
+        vfs_clear_fsnode(node, FN_NOENTRY);
     mtx_unlock(&node->mtx);
     return ret;
 }

@@ -79,6 +79,7 @@ enum {
 
 struct inode {
     unsigned no;
+    int mode;
     ftype_t type;
 
     size_t lba;
@@ -94,6 +95,7 @@ struct inode {
     device_t *dev;
     void *drv_data;
     void *fl_data;
+    int links;
 
     splock_t lock;
     atomic_int rcu;
@@ -182,6 +184,9 @@ struct fsnode {
     splock_t lock;
     llhead_t mnt;
     llnode_t nmt;
+
+    llhead_t clist;
+    llnode_t cnode;
 };
 
 
@@ -218,7 +223,9 @@ int vfs_chdir(vfs_t *vfs, const char *path, bool root);
 int vfs_readlink(vfs_t *vfs, fsnode_t *node, char *buf, int len, bool relative);
 
 
-int vfs_create(fsnode_t *node, void *acl, int flags, int mode);
+int vfs_create(fsnode_t *node, void *acl, int mode);
+int vfs_open_access(int option);
+fsnode_t *vfs_open(vfs_t *vfs, const char *pathname, void *user, int option, int mode);
 int vfs_mkdir(fsnode_t *node, int mode, void *acl);
 int vfs_rmdir(fsnode_t *node);
 
@@ -272,7 +279,7 @@ static inline void *bkmap(struct bkmap *bm, size_t blkno, size_t blksize, size_t
     bm->addr = bo;
     bm->off = by - bo;
     bm->len = be - bo;
-    bm->map = kmap(bm->len, dev, (xoff_t)bm->addr, flg);
+    bm->map = kmap(bm->len, dev, (xoff_t)bm->addr, flg); // TODO -- VM_BLK
     return ((char *)bm->map) + bm->off;
 }
 

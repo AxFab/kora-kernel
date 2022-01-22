@@ -53,10 +53,12 @@ inode_t* ext2_inode_from(ext2_volume_t* vol, ext2_ino_t* entry, unsigned no)
         return NULL;
 
     ino->length = entry->size;
+    ino->mode = entry->mode & 0xFFF;
     ino->btime = (uint64_t)entry->ctime * _PwMicro_;
     ino->ctime = (uint64_t)entry->ctime * _PwMicro_;
     ino->mtime = (uint64_t)entry->mtime * _PwMicro_;
     ino->atime = (uint64_t)entry->atime * _PwMicro_;
+    ino->links = entry->links;
     ino->drv_data = vol;
     return ino;
 }
@@ -281,6 +283,7 @@ int ext2_rm_link(ext2_volume_t *vol, ext2_ino_t *dir, unsigned no)
         ext2_dir_en_t *prev = NULL;
         ext2_dir_en_t *next = NULL;
         ext2_dir_en_t *en = bkmap(&bk, blk, vol->blocksize, 0, vol->blkdev, VM_WR);
+        ext2_dir_en_t *start = en;
         while (en->ino != 0) {
             if (idx + en->rec_len >= vol->blocksize)
                 next = NULL;
@@ -293,16 +296,31 @@ int ext2_rm_link(ext2_volume_t *vol, ext2_ino_t *dir, unsigned no)
                 return -1;
             }
             if (en->ino == no) {
-                en->type = 0;
-                while (next && next->type == 0) {
-                    en->rec_len += next->rec_len;
-                    if (idx + en->rec_len >= vol->blocksize)
-                        next = NULL;
-                    else
-                        next = ADDR_OFF(en, en->rec_len);
+                next = ADDR_OFF(en, en->rec_len);
+                if ((size_t)next >= (size_t)start + vol->blocksize) {
+                    prev->rec_len += en->rec_len;
+                } else {
+                    unsigned sz = en->rec_len;
+                    unsigned lf = (size_t)start + vol->blocksize - (size_t)next;
+                    if (lf > 0)
+                        memmove(en, next, lf);
+                    while (en->rec_len > 0 && idx + en->rec_len + sz < lf)
+                        en = ADDR_OFF(en, en->rec_len);
+                    if (en->rec_len == 0) {
+                        bkunmap(&bk);
+                        errno = EIO;
+                        return -1;
+                    }
+                    en->rec_len += sz;
+                    unsigned check = (size_t)start + vol->blocksize - (size_t)en;
+                    if (en->rec_len != check) {
+                        bkunmap(&bk);
+                        errno = EIO;
+                        return -1;
+                    }
                 }
 
-                // TODO -- If prev is empty last of block, merge
+                bkunmap(&bk);
                 return 0;
             }
 
@@ -362,6 +380,9 @@ inode_t* ext2_create(inode_t* dir, const char* name, void* acl, int mode)
     ino_dir->links++;
     ino_dir->ctime = now / _PwMicro_;
     ino_dir->mtime = now / _PwMicro_;
+    dir->ctime = ino_dir->ctime * _PwMicro_;
+    dir->ctime = ino_dir->mtime * _PwMicro_;
+    dir->links = ino_dir->links;
 
     // Create a new inode
      // inode_t *ino = ext2_make_newinode(vol, no, now, EXT2_S_IFREG | 0644, 0);
@@ -372,8 +393,8 @@ inode_t* ext2_create(inode_t* dir, const char* name, void* acl, int mode)
     ino_new->ctime = now / _PwMicro_;
     ino_new->atime = now / _PwMicro_;
     ino_new->mtime = now / _PwMicro_;
-    ino_new->links = 2;
-    ino_new->mode = 0755 | EXT2_S_IFREG;
+    ino_new->links = 1;
+    ino_new->mode = (mode & 0xFFF) | EXT2_S_IFREG;
     
     // ino_new->block[0] = 0;
     ino_new->size = 0; // vol->blocksize;
@@ -420,6 +441,10 @@ inode_t* ext2_mkdir(inode_t* dir, const char* name, int mode, void* acl)
     ino_dir->links++;
     ino_dir->ctime = now / _PwMicro_;
     ino_dir->mtime = now / _PwMicro_;
+    dir->ctime = ino_dir->ctime * _PwMicro_;
+    dir->ctime = ino_dir->mtime * _PwMicro_;
+    dir->links = ino_dir->links;
+
 
     // Create a new inode
     // inode_t* ino = ext2_make_newinode(vol, no, now, EXT2_S_IFDIR | 0755, blkno);
@@ -429,7 +454,7 @@ inode_t* ext2_mkdir(inode_t* dir, const char* name, int mode, void* acl)
     ino_new->atime = now / _PwMicro_;
     ino_new->mtime = now / _PwMicro_;
     ino_new->links = 2;
-    ino_new->mode = (mode & 0777) | EXT2_S_IFDIR;
+    ino_new->mode = (mode & 0xFFF) | EXT2_S_IFDIR;
     ino_new->block[0] = blkno;
     ino_new->size = vol->blocksize;
     ino_new->blocks = vol->blocksize / 512;
@@ -451,7 +476,6 @@ int ext2_rmdir(inode_t *dir, const char *name)
     char *filename = kalloc(256);
     int ino_no = ext2_search_inode(dir, name, filename);
     kfree(filename);
-
     if (ino_no == 0) {
         errno = ENOENT;
         return -1;
@@ -459,6 +483,12 @@ int ext2_rmdir(inode_t *dir, const char *name)
 
     struct bkmap bk_new;
     ext2_ino_t *ino_new = ext2_entry(&bk_new, vol, ino_no, VM_WR);
+    if ((ino_new->mode & EXT2_S_IFMT) != EXT2_S_IFDIR) {
+        bkunmap(&bk_new);
+        errno = ENOTDIR;
+        return -1;
+    }
+
     // TODO - Check directory is null
     if (ext2_dir_is_empty(vol, ino_new) != 0) {
         bkunmap(&bk_new);
@@ -470,17 +500,91 @@ int ext2_rmdir(inode_t *dir, const char *name)
     struct bkmap bk_dir;
     ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
     int link = ext2_rm_link(vol, ino_dir, ino_no);
-    // Decrease link count of `dir`
-    if (link == 0) {
+    
+    // Update parent
+    xtime_t now = xtime_read(XTIME_CLOCK);
+    ino_dir->ctime = now / _PwMicro_;
+    ino_dir->mtime = now / _PwMicro_;
+    ino_dir->links--;
+    dir->ctime = ino_dir->ctime * _PwMicro_;
+    dir->ctime = ino_dir->mtime * _PwMicro_;
+    dir->links = ino_dir->links;
+
+    if (ino_new->links == 2) {
+        // Copy blocks
+        uint32_t blocks[15];
+        memcpy(blocks, ino_new->block, sizeof(ino_new->block));
+
+        // Free inodes
+
         // Free blocks
-        // free the inode
+    } else {
+        inode_t *ino = ext2_inode(vol, ino_no);
+        ino_new->links--;
+        ino_new->ctime = now / _PwMicro_;
+        ino_new->mtime = now / _PwMicro_;
+        ino->ctime = ino_new->ctime * _PwMicro_;
+        ino->ctime = ino_new->mtime * _PwMicro_;
+        ino->links = ino_new->links;
     }
 
     bkunmap(&bk_dir);
     bkunmap(&bk_new);
+    return 0;
+}
 
+int ext2_unlink(inode_t *dir, const char *name)
+{
+    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
+    char *filename = kalloc(256);
+    int ino_no = ext2_search_inode(dir, name, filename);
+    kfree(filename);
+    if (ino_no == 0) {
+        errno = ENOENT;
+        return -1;
+    }
 
-    // errno = ENOSYS;
+    struct bkmap bk_new;
+    ext2_ino_t *ino_new = ext2_entry(&bk_new, vol, ino_no, VM_WR);
+    if ((ino_new->mode & EXT2_S_IFMT) == EXT2_S_IFDIR) {
+        bkunmap(&bk_new);
+        errno = EPERM;
+        return -1;
+    }
+
+    // Unlink the inode
+    struct bkmap bk_dir;
+    ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
+    int link = ext2_rm_link(vol, ino_dir, ino_no);
+
+    // Update parent
+    xtime_t now = xtime_read(XTIME_CLOCK);
+    ino_dir->ctime = now / _PwMicro_;
+    ino_dir->mtime = now / _PwMicro_;
+    dir->ctime = ino_dir->ctime * _PwMicro_;
+    dir->ctime = ino_dir->mtime * _PwMicro_;
+    dir->links = ino_dir->links;
+    ino_new->links--;
+
+    if (ino_new->links == 0) {
+        // Copy blocks
+        uint32_t blocks[15];
+        memcpy(blocks, ino_new->block, sizeof(ino_new->block));
+
+        // Free inodes
+
+        // Free blocks
+    } else {
+        inode_t *ino = ext2_inode(vol, ino_no);
+        ino_new->ctime = now / _PwMicro_;
+        ino_new->mtime = now / _PwMicro_;
+        ino->ctime = ino_new->ctime * _PwMicro_;
+        ino->ctime = ino_new->mtime * _PwMicro_;
+        ino->links = ino_new->links;
+    }
+
+    bkunmap(&bk_dir);
+    bkunmap(&bk_new);
     return 0;
 }
 
@@ -556,7 +660,8 @@ inode_t* ext2_open(inode_t* dir, const char* name, ftype_t type, void* acl, int 
 
 ino_ops_t ext2_dir_ops = {
     .lookup = ext2_lookup,
-    .create = (void*)ext2_create,
+    .create = ext2_create,
+    .unlink = ext2_unlink,
     // .open = ext2_open,
     .opendir = (void*)ext2_opendir,
     .readdir = (void*)ext2_readdir,

@@ -126,77 +126,94 @@ struct map_page {
     bbnode_t node;
     int access;
     xoff_t off;
+    int usage;
 };
 bbtree_t map_tree;
 bool map_init = false;
 
 void *kmap(size_t len, void *ino, xoff_t off, int access)
 {
-    // assert(irq_ready());
+    assert((len & (PAGE_SIZE - 1)) == 0);
+    assert((off & (PAGE_SIZE - 1)) == 0);
+
     ++kmapCount;
     if (!map_init) {
         bbtree_init(&map_tree);
         map_init = true;
     }
-    void *ptr = _valloc(len);
-    if (ino == NULL) {
-        if (access & VM_PHYSIQ && off != 0)
-            memcpy(ptr, (void *)off, len);
-        // kprintf(-1, "+ kmap (%p, %d, -)\n", ptr, len);
-        return ptr;
-    }
-    // printf("KMAP %x %X %X %o\n", len, ino, off, access);
-    char *buf = ptr;
-    char tmp[64];
-    // kprintf(-1, "+ kmap (%p, %d, %s+%llx)\n", ptr, len, vfs_inokey(ino, tmp), off);
-    map_page_t *mp = kalloc(sizeof(map_page_t));
-    mp->ptr = ptr;
-    mp->len = len / PAGE_SIZE;
-    mp->ino = ino;
-    mp->access = access;
-    mp->off = off;
-    int i = 0;
-    while (len > 0) {
-        page_t pg = ((inode_t *)ino)->fops->fetch(ino, off);
-        mp->pgs[i++] = pg;
-        assert((void *)pg != NULL); // TODO - Better handling this
-        memcpy(buf, (void *)pg, PAGE_SIZE);
-        // TODO -- We're suppose to use those pages an release them at kunmap only !
-        // ((inode_t *)ino)->fops->release(ino, off, pg);
-        len -= PAGE_SIZE;
-        buf += PAGE_SIZE;
-        off += PAGE_SIZE;
+
+    int mode = access & ~7;
+
+    map_page_t *mp = NULL;
+    if (ino != NULL) {
+        if (mode != 0)
+            kprintf(-1, "Mode is specified with file !?\n");
+        mp = bbtree_left(map_tree.root_, map_page_t, node);
+        while (mp) {
+            if (mp->ino == ino && mp->off == off && mp->len <= len) {
+                mp->usage++;
+                mp->access |= access & 7;
+                return mp->ptr;
+            }
+            mp = bbtree_next(&mp->node, map_page_t, node);
+        }
     }
 
-    mp->node.value_ = (size_t)ptr;
+    mp = malloc(sizeof(map_page_t));
+    mp->usage = 1;
+    mp->access = access;
+    mp->ino = ino;
+    mp->off = off;
+    mp->len = len;
+    mp->ptr = NULL;
+
+    if (ino != NULL) {
+        page_t pg0;
+        page_t pg = pg0 = ((inode_t *)ino)->fops->fetch(ino, off);
+        if (len > PAGE_SIZE) {
+            kprintf(-1, "Mapping error due to host limitation\n");
+            abort();
+        }
+        //for (xoff_t nx = 0; len > PAGE_SIZE; len -= PAGE_SIZE, nx += PAGE_SIZE) {
+        //    pg = ((inode_t *)ino)->fops->fetch(ino, off + nx);
+        //}
+        mp->ptr = pg0;
+    } else {
+        mp->ptr = _valloc(len);
+    }
+
+    mp->node.value_ = (size_t)mp->ptr;
     bbtree_insert(&map_tree, &mp->node);
     // assert(irq_ready());
-    return ptr;
+    return mp->ptr;
 }
 
 void kunmap(void *addr, size_t len)
 {
+    char tmp[64];
+
     assert(irq_ready());
     --kmapCount;
     map_page_t *mp = bbtree_search_eq(&map_tree, (size_t)addr, map_page_t, node);
-    if (mp != NULL) {
-        char tmp[64];
+    if (mp == NULL)
+        return;
+    if (--mp->usage > 0)
+        return;
+
+    bool dirty = mp->access & 2 ? true : false;
+    if (mp->ino != NULL) {
         // kprintf(-1, "- kunmap (%p, %d, %s+%llx)\n", addr, len, vfs_inokey(mp->ino, tmp), mp->off);
-        bbtree_remove(&map_tree, (size_t)addr);
-        bool dirty = mp->access & 2 ? true : false;
-        size_t i;
-        for (i = 0; i < mp->len; ++i) {
-            page_t pg = mp->pgs[i];
-            if (dirty)
-                memcpy((void *)pg, mp->ptr, PAGE_SIZE);
-            mp->ino->fops->release(mp->ino, mp->off, pg, dirty);
-            mp->off += PAGE_SIZE;
-            mp->ptr += PAGE_SIZE;
+        page_t pg0 = mp->ptr;
+        for (xoff_t nx = 0; nx < mp->len; nx += PAGE_SIZE) {
+            mp->ino->fops->release(mp->ino, mp->off, mp->ptr + nx, dirty);
         }
-        kfree(mp);
-    } // else
+    } else {
         // kprintf(-1, "- kunmap (%p, %d, -)\n", addr, len);
-    _vfree(addr);
+        _vfree(addr);
+    }
+
+    bbtree_remove(&map_tree, (size_t)addr);
+    free(mp);
     assert(irq_ready());
 }
 

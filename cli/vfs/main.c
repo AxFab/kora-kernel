@@ -35,31 +35,35 @@
 #endif
 
 
-void do_dump(vfs_t **vfs, size_t *param);
-void do_umask(vfs_t **vfs, size_t *param);
-void do_ls(vfs_t** fs, size_t* param);
-void do_stat(vfs_t** fs, size_t* param);
-void do_cd(vfs_t** fs, size_t* param);
-void do_chroot(vfs_t** fs, size_t* param);
-void do_pwd(vfs_t** fs, size_t* param);
-void do_open(vfs_t** fs, size_t* param);
-void do_close(vfs_t** fs, size_t* param);
-void do_look(vfs_t** fs, size_t* param);
-void do_create(vfs_t** fs, size_t* param);
-void do_unlink(vfs_t** fs, size_t* param);
-void do_mkdir(vfs_t** fs, size_t* param);
-void do_rmdir(vfs_t** fs, size_t* param);
-void do_dd(vfs_t** fs, size_t* param);
-void do_mount(vfs_t** fs, size_t* param);
-void do_unmount(vfs_t** fs, size_t* param);
-void do_extract(vfs_t** fs, size_t* param);
-void do_checksum(vfs_t** vfs, size_t* param);
-void do_img_open(vfs_t** fs, size_t* param);
-void do_img_create(vfs_t** fs, size_t* param);
-void do_img_copy(vfs_t** fs, size_t* param);
-void do_img_remove(vfs_t** vfs, size_t* param);
-void do_tar_mount(vfs_t** vfs, size_t* param);
-void do_format(vfs_t** vfs, size_t* param);
+int do_dump(vfs_t **vfs, size_t *param);
+int do_umask(vfs_t **vfs, size_t *param);
+int do_ls(vfs_t** fs, size_t* param);
+int do_stat(vfs_t** fs, size_t* param);
+int do_links(vfs_t **fs, size_t *param);
+int do_times(vfs_t **fs, size_t *param);
+int do_cd(vfs_t** fs, size_t* param);
+int do_chroot(vfs_t** fs, size_t* param);
+int do_pwd(vfs_t** fs, size_t* param);
+int do_open(vfs_t** fs, size_t* param);
+int do_close(vfs_t** fs, size_t* param);
+int do_look(vfs_t** fs, size_t* param);
+int do_delay(vfs_t **fs, size_t *param);
+int do_create(vfs_t** fs, size_t* param);
+int do_unlink(vfs_t** fs, size_t* param);
+int do_mkdir(vfs_t** fs, size_t* param);
+int do_rmdir(vfs_t** fs, size_t* param);
+int do_dd(vfs_t** fs, size_t* param);
+int do_clear_cache(vfs_t **fs, size_t *param);
+int do_mount(vfs_t** fs, size_t* param);
+int do_umount(vfs_t** fs, size_t* param);
+int do_extract(vfs_t** fs, size_t* param);
+int do_checksum(vfs_t** vfs, size_t* param);
+int do_img_open(vfs_t** fs, size_t* param);
+int do_img_create(vfs_t** fs, size_t* param);
+int do_img_copy(vfs_t** fs, size_t* param);
+int do_img_remove(vfs_t** vfs, size_t* param);
+int do_tar_mount(vfs_t** vfs, size_t* param);
+int do_format(vfs_t** vfs, size_t* param);
 
 #ifdef _EMBEDED_FS
 void fat_setup();
@@ -110,25 +114,30 @@ cli_cmd_t __commands[] = {
     { "RESTART", "", { 0, 0, 0, 0, 0 }, do_restart, 1 },
     { "DUMP", "", { 0, 0, 0, 0, 0 }, do_dump, 1 },
     { "UMASK", "", { ARG_INT, 0, 0, 0, 0 }, do_umask, 1 },
-    { "LS", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_ls, 1 },
+    { "LS", "", { ARG_STR, 0, 0, 0, 0 }, do_ls, 1 },
     { "STAT", "", { ARG_STR, ARG_STR, ARG_INT, ARG_STR, ARG_STR }, do_stat, 1 },
-    { "CD", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_cd, 1 },
-    { "CHROOT", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_chroot, 1 },
+    { "LINKS", "", { ARG_STR, ARG_INT, 0, 0, 0 }, do_links, 1 },
+    { "TIMES", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, do_times, 2 },
+    { "CD", "", { ARG_STR, 0, 0, 0, 0 }, do_cd, 1 },
+    { "CHROOT", "", { ARG_STR, 0, 0, 0, 0 }, do_chroot, 1 },
     { "PWD", "", { 0, 0, 0, 0, 0 }, do_pwd, 0 },
-    { "OPEN", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_open, 1 },
-    { "CLOSE", "", { ARG_INO, ARG_FLG, 0, 0 }, do_close, 1 },
-    { "LOOK", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_look, 1 },
+    { "OPEN", "", { ARG_STR, ARG_STR, ARG_INT, 0, 0 }, do_open, 2 },
+    // { "CLOSE", "", { ARG_INO, ARG_FLG, 0, 0 }, do_close, 1 },
+    // { "LOOK", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_look, 1 },
+    { "DELAY", "", { ARG_STR, 0, 0, 0, 0 }, do_delay, 0 },
 
-    { "CREAT", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_create, 1 },
-    { "UNLINK", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_unlink, 1 },
+    { "CREAT", "", { ARG_STR, ARG_INT, 0, 0, 0 }, do_create, 1 },
+    { "UNLINK", "", { ARG_STR, 0, 0, 0, 0 }, do_unlink, 1 },
     // LINK, RENAME, SYMLINK, READLINK ...
     { "MKDIR", "", { ARG_STR, ARG_INT, 0, 0, 0 }, do_mkdir, 1 },
-    { "RMDIR", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_rmdir, 1 },
+    { "RMDIR", "", { ARG_STR, 0, 0, 0, 0 }, do_rmdir, 1 },
 
     { "DD", "", { ARG_STR, ARG_STR, ARG_INT, 0, 0 }, do_dd, 3 },
+    { "CLEAR_CACHE", "", { ARG_STR, 0, 0, 0, 0 }, do_clear_cache, 1 },
+    
 
     { "MOUNT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, do_mount, 3 },
-    { "UNMOUNT", "", { ARG_STR, ARG_INO, ARG_FLG, 0, 0 }, do_unmount, 1 },
+    { "UMOUNT", "", { ARG_STR, 0, 0, 0, 0 }, do_umount, 1 },
 
     // CHMOD, CHOWN, UTIMES, TRUNCATE ...
     // OPEN DIR, READ DIR, CLOSE DIR ...
@@ -138,8 +147,8 @@ cli_cmd_t __commands[] = {
     // IO <ino> <lba> [count] [flags] 
     // IOCTL <ino> <cmd> [..?]
 
-    { "EXTRACT", "", { ARG_STR, ARG_STR, ARG_INO, ARG_FLG, 0 }, do_extract, 1 },
-    { "CKSUM", "", { ARG_STR, ARG_STR, ARG_INO, ARG_FLG, 0 }, do_checksum, 1},
+    { "EXTRACT", "", { ARG_STR, ARG_STR, 0, 0, 0 }, do_extract, 1 },
+    { "CKSUM", "", { ARG_STR, ARG_STR, 0, 0, 0 }, do_checksum, 1},
 
     { "IMG_OPEN", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, do_img_open, 2 },
     { "IMG_CREATE", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, do_img_create, 2 },

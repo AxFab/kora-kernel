@@ -82,6 +82,7 @@ vfs_t *vfs_clone_vfs(vfs_t *vfs)
 void vfs_dev_scavenge(device_t *dev, int max);
 void vfs_sweep(vfs_t *vfs)
 {
+    // TODO -- Lazy unmount !!!!
     // fsnode_t* node = vfs->root;
     vfs_close_fsnode(vfs->pwd);
     vfs_close_fsnode(vfs->root);
@@ -90,8 +91,8 @@ void vfs_sweep(vfs_t *vfs)
     vfs_dev_scavenge(vfs->root->ino->dev, 20);
 
     devfs_sweep();
-
-    assert(vfs->root->parent == NULL && vfs->root->rcu == 1);
+    // TODO -- Unmount everything & Clear all vfs & Remove all devices -> Should only stay devfs node ! 
+    // assert(vfs->root->parent == NULL && vfs->root->rcu == 1);
     fsnode_t *node = vfs->root; // Check if that's the correct one and it's device is empty!?
     mtx_destroy(&node->mtx);
     vfs_close_inode(node->ino); //
@@ -208,11 +209,18 @@ fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fsname, const c
     return vfs_open_fsnode(node);
 }
 
-// int vfs_umount(inode_t *ino)
-// {
-//     assert(ino->type == FL_VOL);
-//     device_t *volume = ino->dev;
-//     errno = 0;
+int vfs_umount(fsnode_t *node)
+{
+    if (!(node->parent && node->mode == FN_OK && node->parent->mode == FN_OK && node->ino->dev != node->parent->ino->dev)) {
+        errno = ENODEV;
+        return -1;
+    }
+
+    device_t *dev = node->ino->dev;
+    mtx_lock(&node->parent->mtx);
+    mtx_unlock(&node->parent->mtx);
+    errno = ENOSYS;
+    return -1;
 //     if (ino->ops->close)
 //         ino->ops->close(ino);
 //     inode_t *file;
@@ -220,7 +228,7 @@ fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fsname, const c
 //         kprintf(KLOG_INO, "Need rmlink of %3x\n", file->no);
 //     // vfs_close_inode(ino, X_OK);
 //     return 0;
-// }
+}
 
 
 int vfs_chdir(vfs_t *vfs, const char *path, bool root)
