@@ -155,6 +155,7 @@ struct ext2_volume {
     device_t *dev;
     unsigned groupCount;
     size_t groupSize;
+    atomic_int rcu;
 };
 
 struct ext2_dir_iter {

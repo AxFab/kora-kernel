@@ -304,19 +304,19 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     ifnet->name = strdup(name);
     splock_init(&ifnet->lock);
 
-    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VM_RW | VM_PHYSIQ);
+    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VM_RW | VM_PHYSIQ | VM_UNCACHABLE);
     // kprintf(KL_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
 
-    ifnet->rx_base = kmap(4096, NULL, 0, VM_RW | VM_RESOLVE);
+    ifnet->rx_base = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE);
     ifnet->rx_phys = mmu_read((size_t)ifnet->rx_base);
-    ifnet->rx_count = MIN(NUM_RX_DESC, 4096 / sizeof(struct rx_desc));
+    ifnet->rx_count = MIN(NUM_RX_DESC, PAGE_SIZE / sizeof(struct rx_desc));
 
-    ifnet->tx_base = kmap(4096, NULL, 0, VM_RW | VM_RESOLVE);
+    ifnet->tx_base = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE);
     ifnet->tx_phys = mmu_read((size_t)ifnet->tx_base);
-    ifnet->tx_count = MIN(NUM_TX_DESC, 4096 / sizeof(struct tx_desc));
+    ifnet->tx_count = MIN(NUM_TX_DESC, PAGE_SIZE / sizeof(struct tx_desc));
 
     ifnet->mx_count = ifnet->rx_count + ifnet->tx_count;
-    uint8_t *map = kmap(4096 * ifnet->mx_count, NULL, 0, VM_RW | VM_RESOLVE);
+    uint8_t *map = kmap(PAGE_SIZE * ifnet->mx_count, NULL, 0, VM_RW | VM_RESOLVE);
 
     for (i = 0; i < ifnet->rx_count; ++i) {
         ifnet->rx_virt[i] = &map[PAGE_SIZE * i];

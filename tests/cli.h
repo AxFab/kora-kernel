@@ -47,8 +47,6 @@ struct cli_cfg
 
 #define ARG_STR 1
 #define ARG_INT 2
-// #define ARG_FLG 2
-// #define ARG_INO 20
 
 extern cli_cmd_t __commands[];
 
@@ -59,7 +57,10 @@ void cli_store(char *name, void *obj, int type);
 void *cli_fetch(char *name, int type);
 void *cli_remove(char *name, int type);
 
-int cli_warn(const char *msg, ...);
-int cli_error(const char *msg, ...);
+int cli_msg(int ret, const char *clr, const char *msg, ...);
+
+#define cli_info(...) cli_msg(0, "\033[34m", __VA_ARGS__)
+#define cli_warn(...) cli_msg(0, "\033[33m", __VA_ARGS__)
+#define cli_error(...) cli_msg(-1, "\033[31m", __VA_ARGS__)
 
 #endif  /* _SRC_CLI_H */

@@ -153,11 +153,91 @@ struct map_page {
 bbtree_t map_tree;
 bool map_init = false;
 
-void *kmap(size_t len, void *ino, xoff_t off, int access)
+map_page_t *kmap_new(int access, void *ino, xoff_t off, size_t len, void *ptr)
+{
+    map_page_t *mp = malloc(sizeof(map_page_t));
+    mp->usage = 1;
+    mp->access = access;
+    mp->ino = ino;
+    mp->off = off;
+    mp->len = len;
+    mp->ptr = ptr;
+}
+
+map_page_t *kmap_search(void *ino, xoff_t off, size_t len, int mode)
+{
+    map_page_t *mp = bbtree_left(map_tree.root_, map_page_t, node);
+    while (mp) {
+        if (mp->ino == ino && mp->off == off && mp->len <= len) {
+            mp->usage++;
+            mp->access |= mode;
+            return mp;
+        }
+        mp = bbtree_next(&mp->node, map_page_t, node);
+    }
+
+    return NULL;
+}
+
+void kmap_check()
+{
+    map_page_t *mp = bbtree_first(&map_tree, map_page_t, node);
+    while (mp) {
+        printf("kmap leak: %p - %o - %p\n", mp->ptr, mp->access, mp->ino);
+        mp = bbtree_next(&mp->node, map_page_t, node);
+    }
+}
+
+
+void *kmap(size_t len, void *ino, xoff_t off, int flags)
 {
     assert(len > 0);
     assert((len & (PAGE_SIZE - 1)) == 0);
     assert((off & (PAGE_SIZE - 1)) == 0);
+
+    int type = flags & VMA_TYPE;
+    int getter = 0;
+    int access = flags & (VM_RW | VM_EX | VM_RESOLVE | VM_PHYSIQ);
+    if (type == 0 && ino != NULL)
+        type = VMA_FILE;
+    if (type == 0 && access & VM_PHYSIQ)
+        type = VMA_PHYS;
+    assert((ino == NULL) != (type == VMA_FILE));
+    assert(((access & VM_PHYSIQ) == 0) != (type == VMA_PHYS));
+    switch (type) {
+    case 0:
+        type = VMA_ANON;
+    case VMA_ANON:
+        break;
+    case VMA_PIPE:
+        access = VM_RW;
+        // data is pipe
+        break;
+    case VMA_STACK:
+    case VMA_HEAP:
+        access = VM_RW;
+        break;
+    case VMA_PHYS:
+        getter = 4;
+        access &= VM_RW;
+        access |= VM_RESOLVE;
+        break;
+    case VMA_FILE:
+        getter = 1;
+        break;
+    case VMA_CODE:
+        access = VM_RD | VM_EX;
+        getter = 2;
+        break;
+    case VMA_DATA:
+        access = VM_WR;
+        getter = 3;
+        break;
+    case VMA_RODATA:
+        access = VM_RD;
+        getter = 2;
+        break;
+    }
 
     ++kmapCount;
     if (!map_init) {
@@ -165,49 +245,35 @@ void *kmap(size_t len, void *ino, xoff_t off, int access)
         map_init = true;
     }
 
-    int mode = access & ~7;
 
     map_page_t *mp = NULL;
-    if (ino != NULL) {
-        if (mode != 0)
-            kprintf(-1, "Mode is specified with file !?\n");
-        mp = bbtree_left(map_tree.root_, map_page_t, node);
-        while (mp) {
-            if (mp->ino == ino && mp->off == off && mp->len <= len) {
-                mp->usage++;
-                mp->access |= access & 7;
+    if (getter == 0) {
+        mp = kmap_new(access | type, NULL, 0, len, _valloc(len));
+    } else if (getter == 1) {
+        assert(irq_ready());
+        mp = kmap_search(ino, off, len, access & 7);
+        if (mp != NULL)
+            return mp->ptr;
+        
+        mp = kmap_new(access | type, ino, off, len, NULL);
+        assert(len == PAGE_SIZE);
+        mp->ptr = ((inode_t *)ino)->fops->fetch(ino, off);
+
+    } else if (getter == 4) {
+        if (off == 0) {
+            mp = kmap_new(access | type, NULL, 0, len, _valloc(len));
+        } else {
+            mp = kmap_search(ino, off, len, access & 7);
+            if (mp != NULL)
                 return mp->ptr;
-            }
-            mp = bbtree_next(&mp->node, map_page_t, node);
+            mp = kmap_new(access | type, off, 0, len, (void*)off);
         }
-    }
-
-    mp = malloc(sizeof(map_page_t));
-    mp->usage = 1;
-    mp->access = access;
-    mp->ino = ino;
-    mp->off = off;
-    mp->len = len;
-    mp->ptr = NULL;
-
-    if (ino != NULL) {
-        page_t pg0;
-        page_t pg = pg0 = ((inode_t *)ino)->fops->fetch(ino, off);
-        if (len > PAGE_SIZE) {
-            kprintf(-1, "Mapping error due to host limitation\n");
-            abort();
-        }
-        //for (xoff_t nx = 0; len > PAGE_SIZE; len -= PAGE_SIZE, nx += PAGE_SIZE) {
-        //    pg = ((inode_t *)ino)->fops->fetch(ino, off + nx);
-        //}
-        mp->ptr = pg0;
-    } else {
-        mp->ptr = _valloc(len);
+    } else { // if (getter == 3) {
+        assert("No dlib supported" == NULL);
     }
 
     mp->node.value_ = (size_t)mp->ptr;
     bbtree_insert(&map_tree, &mp->node);
-    // assert(irq_ready());
     return mp->ptr;
 }
 
@@ -218,24 +284,43 @@ void kunmap(void *addr, size_t len)
     assert(irq_ready());
     --kmapCount;
     map_page_t *mp = bbtree_search_eq(&map_tree, (size_t)addr, map_page_t, node);
-    if (mp == NULL)
-        return;
+    assert(mp != NULL);
+
     if (--mp->usage > 0)
         return;
 
-    bool dirty = mp->access & 2 ? true : false;
-    if (mp->ino != NULL) {
-        // kprintf(-1, "- kunmap (%p, %d, %s+%llx)\n", addr, len, vfs_inokey(mp->ino, tmp), mp->off);
-        page_t pg0 = mp->ptr;
-        for (xoff_t nx = 0; nx < mp->len; nx += PAGE_SIZE) {
-            mp->ino->fops->release(mp->ino, mp->off, mp->ptr + nx, dirty);
-        }
-    } else {
-        // kprintf(-1, "- kunmap (%p, %d, -)\n", addr, len);
-        _vfree(addr);
+    int getter = 0;
+    switch (mp->access & VMA_TYPE) {
+    case VMA_FILE:
+        getter = 1;
+        break;
+    case VMA_CODE:
+    case VMA_RODATA:
+        getter = 2;
+        break;
+    case VMA_DATA:
+        getter = 3;
+        break;
+    case VMA_PHYS:
+        getter = 4;
+        break;
     }
 
     bbtree_remove(&map_tree, (size_t)addr);
+    if (getter == 0) {
+        _vfree(addr);
+    } else if (getter == 1) {
+
+        bool dirty = mp->access & VM_WR ? true : false;
+        xoff_t nx = 0;
+        mp->ino->fops->release(mp->ino, mp->off, mp->ptr + nx, dirty);
+
+    } else if (getter == 4) {
+
+    } else { // if (getter == 3) {
+        assert("No dlib supported" == NULL);
+    }
+
     free(mp);
     assert(irq_ready());
 }
@@ -247,10 +332,10 @@ void page_release(page_t page)
 
 page_t page_read(size_t address)
 {
-    void *page = _valloc(PAGE_SIZE);
-    memcpy(page, (void *)address, PAGE_SIZE);
+    // void *page = _valloc(PAGE_SIZE);
+    // memcpy(page, (void *)address, PAGE_SIZE);
     // kprintf(-1, "Page shadow copy at %p \n", page);
-    return (page_t)page;
+    return (page_t)address;
 }
 
 page_t mmu_read(size_t address)

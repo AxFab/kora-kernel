@@ -21,7 +21,9 @@
 #include "utils.h"
 #include <assert.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <kora/hmap.h>
 #include <kora/splock.h>
 #include <errno.h>
@@ -435,15 +437,20 @@ static void do_help()
     }
 }
 
-static int do_include(char *str, void *ctx)
+int do_include(char *str, void *ctx)
 {
+    int i;
+    while (isblank(*str)) str++;
+    for (i = 0; str[i] && !isspace(str[i]); ++i);
+    str[i] = '\0';
     const char *path = strdup(str);
     FILE *fp = fopen(path, "r");
     if (fp == NULL)
-        return cli_error("Unable to open file %s\n", str);
+        return cli_error("Unable to open file %s [%d - %s]\n", str, errno, strerror(errno));
+    printf("\033[36mScript from %s\033[0m\n", path);
+    free(path);
     int ret = cli_commands(fp, ctx, true);
     printf("\n");
-    free(path);
     fclose(fp);
     return ret;
 }
@@ -581,8 +588,10 @@ int cli_commands(FILE *fp, void *ctx, bool reecho)
             continue;
         } else if (strcmp(cmd, "INCLUDE") == 0) {
             do_include(str, ctx);
+            continue;
         } else if (strcmp(cmd, "CLI") == 0 && reecho) {
             do_cli(ctx);
+            continue;
         } else if (strcmp(cmd, "ERROR") == 0) {
             if (do_error(str, &error_handling) != 0)
                 return -1;
@@ -632,6 +641,10 @@ int cli_commands(FILE *fp, void *ctx, bool reecho)
         // Run command
         assert(irq_ready());
         int retn = routine->call(ctx, &args[0]);
+        for (i = 0; i < ARGS_MAX; ++i) {
+            if (routine->params[i] == ARG_STR && args[i])
+                free(args[i]);
+        }
         if (retn != 0 && (error_handling < 0 || (error_handling > 0 && error_handling != errno))) {
             printf("Error with %s (%d) at row %d\n", cmd, errno, row);
             return -1;
@@ -689,14 +702,13 @@ void *cli_remove(char *name, int type)
 splock_t log_lock = INIT_SPLOCK;
 char log_buf[1024];
 
-int write(int, const char *, unsigned);
 
-int cli_warn(const char *msg, ...)
+int cli_msg(int ret, const char *clr, const char *msg, ...)
 {
     splock_lock(&log_lock);
     va_list ap;
     va_start(ap, msg);
-    strcpy(log_buf, "\033[33m");
+    strcpy(log_buf, clr);
     int lg = 5 + vsnprintf(&log_buf[5], 1024 - 5, msg, ap);
     if (log_buf[lg - 1] == '\n')
         lg--;
@@ -705,24 +717,7 @@ int cli_warn(const char *msg, ...)
     va_end(ap);
     write(1, log_buf, lg);
     splock_unlock(&log_lock);
-    return 0;
-}
-
-int cli_error(const char *msg, ...)
-{
-    splock_lock(&log_lock);
-    va_list ap;
-    va_start(ap, msg);
-    strcpy(log_buf, "\033[31m");
-    int lg = 5 + vsnprintf(&log_buf[5], 1024 - 5, msg, ap);
-    if (log_buf[lg - 1] == '\n')
-        lg--;
-    strcpy(&log_buf[lg], "\033[0m\n");
-    lg += 5;
-    va_end(ap);
-    write(1, log_buf, lg);
-    splock_unlock(&log_lock);
-    return -1;
+    return ret;
 }
 
 
@@ -749,13 +744,7 @@ static void cli_parse(void *ptr, unsigned opt, char *arg)
 static int cli_exec(void *ptr, char *path)
 {
     cli_cfg_t *cfg = ptr;
-    FILE *fp = fopen(path, "r");
-    if (fp == NULL)
-        return -1;
-    int ret = cli_commands(fp, cfg->context, true);
-    printf("\n");
-    fclose(fp);
-    return ret;
+    return do_include(path, cfg->context);
 }
 
 int cli_main(int argc, char **argv, void *context, void(*initialize)(), void(*teardown)())
@@ -776,5 +765,8 @@ int cli_main(int argc, char **argv, void *context, void(*initialize)(), void(*te
 
     if (teardown)
         teardown();
+
+    hmp_destroy(&storage);
+    printf("Ending program %d: alloc, %d map\n", kalloc_count(), kmap_count());
     return 0;
 }

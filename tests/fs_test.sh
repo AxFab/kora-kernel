@@ -1,6 +1,7 @@
+#!/usr/bin/env cli_fs
+# ---------------------------------------------------------------------------
 # Highly inspirated from `pjdfstest` testing program
 # ---------------------------------------------------------------------------
-
 # License for all regression tests available with pjdfstest:
 #
 # Copyright (c) 2006-2012 Pawel Jakub Dawidek <pawel@dawidek.net>
@@ -130,7 +131,7 @@ RMDIR Bnz
 UMASK 022
 MKDIR Kah
 
-CREAT Kah/Zig
+CREATE Kah/Zig
 CLEAR_CACHE Kah/Zig
 ERROR ENOTDIR
 MKDIR Kah/Zig/Sto
@@ -220,7 +221,7 @@ RMDIR Kah
 
 MKDIR Kah
 
-CREAT Kah/Zig
+CREATE Kah/Zig
 CLEAR_CACHE Kah/Zig
 ERROR EEXIST
 MKDIR Kah/Zig
@@ -272,14 +273,14 @@ RMDIR Zig
 # Directory remove returns ENOTDIR
 
 MKDIR Kah 0755
-CREAT Kah/Zig 0644
+CREATE Kah/Zig 0644
 ERROR ENOTDIR
 RMDIR Kah/Zig/Sto
 ERROR ON
 UNLINK Kah/Zig
 RMDIR Kah
 
-CREAT Sto 0644
+CREATE Sto 0644
 ERROR ENOTDIR
 RMDIR Sto/Goz
 ERROR ON
@@ -330,7 +331,7 @@ ERROR ON
 # Directory remove returns ENOTEMPTY
 MKDIR Kah
 
-CREAT Kah/Zig
+CREATE Kah/Zig
 ERROR ENOTEMPTY
 RMDIR Kah
 ERROR ON
@@ -475,7 +476,7 @@ RMDIR Kah
 # Open returns ENOTDIR
 MKDIR Poo
 
-CREAT Poo/Tbz
+CREATE Poo/Tbz
 ERROR ENOTDIR
 OPEN Poo/Tbz/Gnee RDONLY
 OPEN Poo/Tbz/Gnee CREAT 0644
@@ -496,7 +497,7 @@ RMDIR Poo
 MKDIR Kah
 
 ERROR ENAMETOOLONG
-CREAT Kah/Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap 0644
+CREATE Kah/Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap 0644
 OPEN  Kah/Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap CREAT:WRONLY 0644
 ERROR ON
 
@@ -527,8 +528,8 @@ RMDIR Kah
 # SYMLINK Zig Kah
 
 # ERROR ELOOP
-# CREAT Kah/Sto RDONLY
-# CREAT Zig/Sto RDONLY
+# CREATE Kah/Sto RDONLY
+# CREATE Zig/Sto RDONLY
 # ERROR ON
 
 # UNLINK Kah
@@ -571,7 +572,7 @@ RMDIR Bnz
 # Open returns EEXIST
 MKDIR Kah
 
-CREAT Kah/Zig
+CREATE Kah/Zig
 ERROR EEXIST
 OPEN Kah/Zig CREAT:EXCL 0644
 ERROR ON
@@ -593,7 +594,7 @@ RMDIR Kah
 
 # ---------------------------------------------------------------------------
 # Open returns EINVAL
-# CREAT Dru 0644
+# CREATE Dru 0644
 
 # ERROR EINVAL
 # OPEN Dru RDONLY:RDWWR
@@ -610,7 +611,7 @@ RMDIR Kah
 UMASK 022
 MKDIR Kah 0755
 
-CREAT Kah/Zig 0644
+CREATE Kah/Zig 0644
 STAT Kah/Zig REG 0644
 UNLINK Kah/Zig
 ERROR ENOENT
@@ -654,7 +655,7 @@ ERROR ON
 
 # ---------------------------------------------------------------------------
 # Successful unlink updates ctime.
-# CREAT Kah/Zig 0644
+# CREATE Kah/Zig 0644
 # LINK Kah/Zig Sto
 # TIMES Kah/Zig C now
 # DELAY
@@ -664,7 +665,7 @@ ERROR ON
 
 # ---------------------------------------------------------------------------
 # Unsuccessful unlink does not update ctime.
-# CREAT Kah/Zig 0644
+# CREATE Kah/Zig 0644
 # TIMES Kah/Zig C now
 # DELAY
 # SETUID 65534
@@ -674,7 +675,7 @@ ERROR ON
 # UNLINK Kah/Zig
 
 MKDIR Kah/Zig 0755
-CREAT Kah/Zig/Sto 0644
+CREATE Kah/Zig/Sto 0644
 TIMES Kah/Zig C now
 DELAY
 UNLINK Kah/Zig/Sto
@@ -685,7 +686,7 @@ RMDIR Kah
 # ---------------------------------------------------------------------------
 # Unlink returns ENOTDIR
 MKDIR Kah 0755
-CREAT Kah/Zig 0644
+CREATE Kah/Zig 0644
 ERROR ENOTDIR
 UNLINK Kah/Zig/Sto
 ERROR ON
@@ -694,7 +695,7 @@ RMDIR Kah
 
 # ---------------------------------------------------------------------------
 # Unlink returns ENAMETOOLONG
-CREAT Dru 0644
+CREATE Dru 0644
 UNLINK Dru
 ERROR ENOENT
 UNLINK Dru
@@ -704,7 +705,7 @@ ERROR ON
 
 # ---------------------------------------------------------------------------
 # Unlink returns ENOENT if the named file does not exist
-CREAT Goz 0644
+CREATE Goz 0644
 UNLINK Goz
 ERROR ENOENT
 UNLINK Goz
@@ -717,7 +718,7 @@ MKDIR Kah
 MKDIR Kah/Zig 0755
 # CHOWN Kah/Zig 65534 65534
 # SETUID 65534 65534
-# CREAT Kah/Zig/Sto 0644
+# CREATE Kah/Zig/Sto 0644
 # CHMOD Kah/Zig 0644
 # ERROR EACCES
 # SETUID 65534 65534
@@ -759,7 +760,7 @@ RMDIR Tbz
 # ---------------------------------------------------------------------------
 # An open file will not be immediately freed by unlink
 # MKDIR Goz
-# CREAT Goz/Lrz 0644
+# CREATE Goz/Lrz 0644
 # FOPEN Fd0 Goz/Lrz WRONLY
 # UNLINK Goz/Lrz
 # ERROR ENOENT
@@ -776,33 +777,68 @@ RMDIR Tbz
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # Symlink creates symbolic links
-# CREAT Kah 0644
-# STAT Kah REG 0644
-# SYMLINK Kah Zig
-# STAT Zig REG 0644
-# LSTAT Zig LNK
-# UNLINK Kah
-# ERROR ENOENT
-# STAT Zig
-# ERROR NO
-# LSTAT Zig LNK
-# UNLINK Zig
+CREATE Kah 0644
+STAT Kah REG 0644
+SYMLINK Kah Zig
+STAT Zig REG 0644
+LSTAT Zig LNK
+UNLINK Kah
+ERROR ENOENT
+STAT Zig
+ERROR NO
+LSTAT Zig LNK
+UNLINK Zig
 
-# MKDIR Sto 0755
-# TIMES Sto C now
-# DELAY
-# SYMLINK Dru Sto/Blaz
-# TIMES Sto CM now
-# UNLINK Sto/Blaz
-# RMDIR Sto
+MKDIR Sto 0755
+TIMES Sto C now
+DELAY
+SYMLINK Dru Sto/Blaz
+TIMES Sto CM now
+UNLINK Sto/Blaz
+RMDIR Sto
+
+# ---------------------------------------------------------------------------
+# symlink returns ENOTDIR if a component of the name2 path prefix is not a directory
+MKDIR Dru
+CREATE Dru/Goz 0644
+ERROR ENOTDIR
+SYMLINK Lrz Dru/Goz/Lrz
+ERROR ON
+UNLINK Dru/Goz
+RMDIR Dru
+
+# ---------------------------------------------------------------------------
+# Symlink returns ENAMETOOLONG if a component of the name2 pathname exceeded 255 characters
+SIMLINK Lrz Poo
+UNLINK Poo
+SIMLINK Poo Lrz
+UNLINK Lrz
+
+ERROR ENAMETOOLONG
+SYMLINK Poo Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap
+ERROR ON
+SYMLINK Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap_Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap Poo
+UNLINK Poo
+
+# ---------------------------------------------------------------------------
+# Symlink returns ENOENT if a component of the name2 path prefix does not exist
+MKDIR Tbz 0755
+ERROR ENOENT
+SYMLINK Bnz Tbz/Gnee/Bnz
+ERROR ON
+RMDIR Tbz
+
+# ---------------------------------------------------------------------------
+# Symlink returns EACCES when a component of the name2 path prefix denies search permission
+
+
 
 
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # Kah_Zig_Sto_Blaz_Dru_Goz_Lrz_Poo_Tbz_Gnee_Bnz_Glap
 
-# SYMLINK
-# UNLINK
+# READLINK
 # LINK
 # CHMOD
 # CHOWN

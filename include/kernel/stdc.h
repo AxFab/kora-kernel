@@ -58,6 +58,8 @@ enum klog {
     KL_MAL, // Memory Allocation
     KL_USR,
     KL_INO, // VFS ressources alloc
+    KL_FSA, // File system allocation
+    KL_BIO, // Block IO
 };
 
 
@@ -66,7 +68,7 @@ enum klog {
 void *kalloc(size_t len);
 void kfree(void *ptr);
 #ifndef KORA_KRN
-# define kalloc(n) kalloc_(n,#n)
+# define kalloc(n) kalloc_(n,#n " at " __AT__)
 void *kalloc_(size_t len, const char *);
 char *kstrdup(const char *str);
 char *kstrndup(const char *str, size_t max);

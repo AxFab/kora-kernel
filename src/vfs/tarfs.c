@@ -68,7 +68,7 @@ static int tar_read_octal(char *count)
 }
 
 static inode_t *tar_inode(inode_t *dir, tar_entry_t *entry);
-
+ 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 static char *tar_strrchr(const char *str)

@@ -24,34 +24,33 @@
 #include <kernel/vfs.h>
 #include <errno.h>
 #include <stdbool.h>
+#include "fnode.h"
+#include <errno.h>
+#include <limits.h>
 
-hmap_t fs_hmap;
-
+vfs_share_t *__vfs_share = NULL;
 inode_t *devfs_setup();
-
-struct fsreg {
-    char name[16];
-    fsmount_t mount;
-    fsformat_t format;
-};
 
 void devfs_sweep();
 void devfs_register(inode_t *ino, const char *name);
 
-extern atomic_int dev_no;;
 vfs_t *vfs_init()
 {
-    dev_no = 1;
-
-    hmp_init(&fs_hmap, 16);
+    assert(__vfs_share == NULL);
     vfs_t *vfs = kalloc(sizeof(vfs_t));
+    __vfs_share = kalloc(sizeof(vfs_share_t));
+    vfs->share = __vfs_share;
+    atomic_inc(&vfs->share->rcu);
+    vfs->share->dev_no = 1;
+    hmp_init(&vfs->share->fs_hmap, 16);
+
     inode_t *ino = devfs_setup();
 
-    fsnode_t *node = kalloc(sizeof(fsnode_t));
+    fnode_t *node = kalloc(sizeof(fnode_t));
     mtx_init(&node->mtx, mtx_plain);
     node->parent = NULL;
     node->ino = vfs_open_inode(ino);
-    node->rcu = 3;
+    node->rcu = 2;
     node->mode = FN_OK;
 
     vfs->root = node;
@@ -73,36 +72,60 @@ vfs_t *vfs_clone_vfs(vfs_t *vfs)
 {
     vfs_t *cpy = kalloc(sizeof(vfs_t));
     cpy->rcu = 1;
+    cpy->share = vfs->share;
+    atomic_inc(&vfs->share->rcu);
     cpy->root = vfs_open_fsnode(vfs->root);
     cpy->pwd = vfs_open_fsnode(vfs->pwd);
     cpy->umask = vfs->umask;
     return cpy;
 }
-
-void vfs_dev_scavenge(device_t *dev, int max);
-void vfs_sweep(vfs_t *vfs)
+void vfs_close_vfs(vfs_t *vfs)
 {
-    // TODO -- Lazy unmount !!!!
-    // fsnode_t* node = vfs->root;
+    if (atomic_xadd(&vfs->rcu, -1) != 1)
+        return;
+
     vfs_close_fsnode(vfs->pwd);
     vfs_close_fsnode(vfs->root);
-    // TODO --- Scavenge for all devices
-    vfs_dev_scavenge(vfs->pwd->ino->dev, 20);
-    vfs_dev_scavenge(vfs->root->ino->dev, 20);
-
-    devfs_sweep();
-    // TODO -- Unmount everything & Clear all vfs & Remove all devices -> Should only stay devfs node ! 
-    // assert(vfs->root->parent == NULL && vfs->root->rcu == 1);
-    fsnode_t *node = vfs->root; // Check if that's the correct one and it's device is empty!?
-    mtx_destroy(&node->mtx);
-    vfs_close_inode(node->ino); //
-    kfree(node);
-
+    atomic_dec(&vfs->share->rcu);
     kfree(vfs);
-    kprintf(-1, "Destroy all VFS data\n");
 }
 
-int vfs_mkdev(/* fsnode_t *parent, */inode_t *ino, const char *name)
+void vfs_dev_scavenge(device_t *dev, int max);
+
+int vfs_sweep(vfs_t *vfs)
+{
+    vfs_close_vfs(vfs);
+    if (__vfs_share->rcu != 0)
+        return -1;
+
+    kprintf(-1, "Destroy all VFS data\n");
+
+    // Unmount all
+    fnode_t *node = ll_first(&__vfs_share->mnt_list, fnode_t, nlru);
+    while (node) {
+        inode_t *ino = vfs_inodeof(node);
+        vfs_umount_at(node, NULL, 0);
+        vfs_dev_scavenge(ino->dev, INT_MAX);
+        vfs_close_inode(ino);
+        node = ll_first(&__vfs_share->mnt_list, fnode_t, nlru);
+    }
+
+    // TODO -- Remove all devices
+
+    // Scavenge all
+    // vfs_scavenge(INT_MAX);
+    devfs_sweep();
+
+    if (__vfs_share->fs_hmap.count != 0)
+        return -1;
+    hmp_destroy(&__vfs_share->fs_hmap);
+    assert(__vfs_share->rcu == 0);
+    kfree(__vfs_share);
+    __vfs_share = NULL;
+    return 0;
+}
+
+int vfs_mkdev(/* fnode_t *parent, */inode_t *ino, const char *name)
 {
     devfs_register(ino, name);
     return 0;
@@ -119,129 +142,56 @@ void vfs_addfs(const char *name, fsmount_t mount, fsformat_t format)
     strncpy(reg->name, name, 16);
     reg->mount = mount;
     reg->format = format;
-    hmp_put(&fs_hmap, name, strlen(name), reg);
+    splock_lock(&__vfs_share->lock);
+    hmp_put(&__vfs_share->fs_hmap, name, strlen(name), reg);
+    splock_unlock(&__vfs_share->lock);
 }
 
 void vfs_rmfs(const char *name)
 {
-    fsreg_t *fs = hmp_get(&fs_hmap, name, strlen(name));
-    if (fs == NULL)
+    splock_lock(&__vfs_share->lock);
+    fsreg_t *fs = hmp_get(&__vfs_share->fs_hmap, name, strlen(name));
+    if (fs == NULL) {
+        splock_unlock(&__vfs_share->lock);
         return;
-    hmp_remove(&fs_hmap, name, strlen(name));
+    }
+    hmp_remove(&__vfs_share->fs_hmap, name, strlen(name));
+    splock_unlock(&__vfs_share->lock);
     kfree(fs);
 }
 
 int vfs_format(const char *name, inode_t *dev, const char *options)
 {
-    fsreg_t *fs = hmp_get(&fs_hmap, name, strlen(name));
+    splock_lock(&__vfs_share->lock);
+    fsreg_t *fs = hmp_get(&__vfs_share->fs_hmap, name, strlen(name));
+    splock_unlock(&__vfs_share->lock);
     if (fs == NULL)
         return -2;
     return fs->format(dev, options);
 }
 
-fsnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fsname, const char *path, const char *options)
-{
-    assert(fsname != NULL && path != NULL);
-    fsnode_t *node = vfs_search(vfs, path, NULL, false);
-    if (node == NULL)
-        return NULL;
 
-    if (vfs_lookup(node) == 0) {
-        vfs_close_fsnode(node);
-        errno = EEXIST;
-        return NULL;
-    }
 
-    mtx_lock(&node->mtx);
-    if (node->mode != FN_NOENTRY) {
-        mtx_unlock(&node->mtx);
-        errno = EEXIST;
-        return NULL;
-    }
-
-    fsreg_t *fs = hmp_get(&fs_hmap, fsname, strlen(fsname));
-    if (fs == NULL || fs->mount == NULL) {
-        mtx_unlock(&node->mtx);
-        vfs_close_fsnode(node);
-        errno = ENOSYS;
-        return NULL;
-    }
-
-    fsnode_t *dev = NULL;
-    if (devname != NULL) {
-        dev = vfs_search(vfs, devname, NULL, true);
-
-        if (dev == NULL) {
-            mtx_unlock(&node->mtx);
-            vfs_close_fsnode(node);
-            errno = ENODEV;
-            return NULL;
-        }
-    }
-
-    inode_t *ino = fs->mount(dev ? dev->ino : NULL, options);
-    vfs_close_fsnode(dev);
-    if (ino == NULL) {
-        mtx_unlock(&node->mtx);
-        vfs_close_fsnode(node);
-        assert(errno != 0);
-        return NULL;
-    }
-
-    if (ino->type != FL_DIR) {
-        mtx_unlock(&node->mtx);
-        vfs_close_fsnode(node);
-        vfs_close_inode(ino);
-        errno = ENOTDIR;
-        return NULL;
-    }
-
-    // vfs_mkdev(ino, NULL);
-    fsnode_t *dir = node->parent;
-    splock_lock(&dir->lock);
-    ll_append(&dir->mnt, &node->nmt);
-    splock_unlock(&dir->lock);
-
-    node->ino = ino;
-    node->mode = FN_OK;
-    mtx_unlock(&node->mtx);
-    errno = 0;
-    return vfs_open_fsnode(node);
-}
-
-int vfs_umount(fsnode_t *node)
-{
-    if (!(node->parent && node->mode == FN_OK && node->parent->mode == FN_OK && node->ino->dev != node->parent->ino->dev)) {
-        errno = ENODEV;
-        return -1;
-    }
-
-    device_t *dev = node->ino->dev;
-    mtx_lock(&node->parent->mtx);
-    mtx_unlock(&node->parent->mtx);
-    errno = ENOSYS;
-    return -1;
-//     if (ino->ops->close)
-//         ino->ops->close(ino);
-//     inode_t *file;
-//     for bbtree_each(&volume->btree, file, inode_t, bnode)
-//         kprintf(KLOG_INO, "Need rmlink of %3x\n", file->no);
-//     // vfs_close_inode(ino, X_OK);
-//     return 0;
-}
-
+int vfs_fnode_bellow(fnode_t *root, fnode_t *dir);
 
 int vfs_chdir(vfs_t *vfs, const char *path, bool root)
 {
-    fsnode_t *node = vfs_search(vfs, path, NULL, true);
+    fnode_t *node = vfs_search(vfs, path, NULL, true);
     if (node == NULL)
         return -1;
-    if (node->ino->type != FL_DIR) {
+    inode_t *ino = vfs_inodeof(node);
+    if (ino == NULL) {
+        errno = ENOENT;
+        return -1;
+    }
+    if (ino->type != FL_DIR) {
         vfs_close_fsnode(node);
+        vfs_close_inode(ino);
         errno = ENOTDIR;
         return -1;
     }
-    fsnode_t *prev;
+    vfs_close_inode(ino);
+    fnode_t *prev;
     if (root) {
         prev = vfs->root;
         vfs->root = node;
@@ -252,18 +202,15 @@ int vfs_chdir(vfs_t *vfs, const char *path, bool root)
     vfs_close_fsnode(prev);
 
     // Check pwd is below root
-    fsnode_t* wk = vfs->pwd;
-    while (wk && wk != vfs->root)
-        wk = wk->parent;
-
-    if (wk == NULL) {
+    if (vfs_fnode_bellow(vfs->root, vfs->pwd) != 0) {
         vfs_close_fsnode(vfs->pwd);
         vfs->pwd = vfs_open_fsnode(vfs->root);
     }
     return 0;
 }
 
-int vfs_readlink(vfs_t *vfs, fsnode_t *node, char *buf, int len, bool relative)
+
+int vfs_readpath(vfs_t *vfs, fnode_t *node, char *buf, int len, bool relative)
 {
     if (node == vfs->root)
         return strncpy(buf, "/", len) != NULL ? 0 : -1;
@@ -302,13 +249,13 @@ ino_ops_t pipe_ino_ops = {
     .read = NULL,
 };
 
-fsnode_t *__private;
+fnode_t *__private;
 
-fsnode_t *vfs_mknod(fsnode_t *parent, const char *name, int devno)
+fnode_t *vfs_mknod(fnode_t *parent, const char *name, int devno)
 {
     int i;
     if (__private == NULL) {
-        __private = kalloc(sizeof(fsnode_t));
+        __private = kalloc(sizeof(fnode_t));
         mtx_init(&__private->mtx, mtx_plain);
         __private->parent = NULL;
         __private->ino = vfs_inode(1, FL_DIR, NULL, &pipe_ino_ops);
@@ -318,7 +265,7 @@ fsnode_t *vfs_mknod(fsnode_t *parent, const char *name, int devno)
     if (parent == NULL)
         parent = __private;
 
-    fsnode_t *node = NULL;
+    fnode_t *node = NULL;
     char *fname = NULL;
     if (name == NULL) {
         fname = kalloc(17);
@@ -345,8 +292,7 @@ fsnode_t *vfs_mknod(fsnode_t *parent, const char *name, int devno)
 
     inode_t *ino = vfs_inode(no, type, dev, ops);
 
-    node->ino = ino;
-    node->mode = FN_OK;
+    vfs_resolve(node, ino);
     mtx_unlock(&node->mtx);
     return node;
 }

@@ -19,6 +19,7 @@
  */
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
+#include <kernel/memory.h>
 #include <errno.h>
 
 
@@ -46,7 +47,7 @@ static int pipe_resize_unlock_(pipe_t *pipe, size_t size)
 {
     if (size < pipe->avail || size > pipe->max_size)
         return -1;
-    char *remap = kmap(size, NULL, 0, VM_RW);
+    char *remap = kmap(size, NULL, 0, VMA_PIPE | VM_RW);
 
     if (size > pipe->size) {
         // TODO - Move pages will be faster!
@@ -257,6 +258,8 @@ void pipe_destroy(inode_t *ino)
 {
     pipe_t *pipe = ino->fl_data;
     mtx_destroy(&pipe->mutex);
+    cnd_destroy(&pipe->wr_cond);
+    cnd_destroy(&pipe->rd_cond);
     kunmap(pipe->base, pipe->size);
     kfree(pipe);
 }
@@ -301,7 +304,7 @@ pipe_t *pipe_create()
     pipe_t *pipe = (pipe_t *)kalloc(sizeof(pipe_t));
     pipe->size = PAGE_SIZE; // TODO -- Read config!
     pipe->max_size = 64 * PAGE_SIZE;
-    pipe->base = kmap(pipe->size, NULL, 0, VM_RW); // TODO -- VM_PIPE and find name ?
+    pipe->base = kmap(pipe->size, NULL, 0, VMA_PIPE | VM_RW); // TODO -- find name ?
     pipe->avail = 0;
     pipe->rpen = pipe->base;
     pipe->wpen = pipe->base;

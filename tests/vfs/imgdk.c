@@ -43,7 +43,7 @@ const int sdSize[] = { 512, 2048, };
 int imgdk_read(inode_t *ino, void *data, size_t size, xoff_t offset);
 int imgdk_write(inode_t *ino, const void *data, size_t size, xoff_t offset);
 int imgdk_ioctl(inode_t *ino, int cmd, void **params);
-int imgdk_close(inode_t* dir, inode_t* ino);
+int imgdk_close(inode_t* ino);
 
 int vhd_read(inode_t *ino, void *data, size_t size, xoff_t offset);
 int vhd_write(inode_t *ino, const void *data, size_t size, xoff_t offset);
@@ -148,15 +148,15 @@ int imgdk_open(const char *path, const char *name)
         }
         ino->dev->block = 512;
         if (ino->length == 1440 * 1024)
-            ino->dev->model = strdup("Floppy-img");
+            ino->dev->model = kstrdup("Floppy-img");
         else
-            ino->dev->model = strdup("RAW-image");
+            ino->dev->model = kstrdup("RAW-image");
     } else if (strcmp(strrchr(path, '.'), ".iso") == 0) {
         ino = vfs_inode(fd, FL_BLK, NULL, &imgdk_ino_ops);
         ino->length = lseek(fd, 0, SEEK_END);
         ino->dev->block = 2048;
         ino->dev->flags = FD_RDONLY;
-        ino->dev->model = strdup("ISO-image");
+        ino->dev->model = kstrdup("ISO-image");
     } else if (strcmp(strrchr(path, '.'), ".vhd") == 0) {
         ino = vfs_inode(fd, FL_BLK, NULL, &vhd_ino_ops);
         ino->dev->block = 512;
@@ -187,15 +187,15 @@ int imgdk_open(const char *path, const char *name)
             vname[i--] = '\0';
         char vendor[64];
         snprintf(vendor, 64, "%s_%d.%d", vname, footer.creator_vers_maj, footer.creator_vers_min);
-        ino->dev->vendor = strdup(vendor);
+        ino->dev->vendor = kstrdup(vendor);
         // Check cookie and checksum
 
         if (footer.type == 2) {
-            ino->dev->model = strdup("VHD-Fixed");
+            ino->dev->model = kstrdup("VHD-Fixed");
             ino->length -= 512;
         } else if (footer.type == 3) {
             ino->length = footer.actual_size;
-            ino->dev->model = strdup("VHD-Dynamic");
+            ino->dev->model = kstrdup("VHD-Dynamic");
 
             struct header_vhd header;
 
@@ -233,11 +233,12 @@ int imgdk_open(const char *path, const char *name)
     ino->ctime = ino->btime;
     ino->mtime = ino->btime;
     ino->atime = ino->btime;
-    ino->dev->devclass = strdup("Image disk");
+    ino->mode = 0644;
+    ino->dev->devclass = kstrdup("Image disk");
 
     const char *dname = strchr(path, '/');
     dname = dname == NULL ? path : dname + 1;
-    ino->dev->devname = strdup(dname);
+    ino->dev->devname = kstrdup(dname);
     // O ino->dev->devname
     // O ino->dev->model
     // O ino->dev->vendor
@@ -247,7 +248,7 @@ int imgdk_open(const char *path, const char *name)
     return 0;
 }
 
-int imgdk_close(inode_t* dir, inode_t* ino)
+int imgdk_close(inode_t* ino)
 {
     close(ino->no);
     return 0;

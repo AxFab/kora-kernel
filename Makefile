@@ -34,7 +34,7 @@ include $(topdir)/make/drivers.mk
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Setup compile flags
-CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb
+CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb -Waddress-of-packed-member
 CFLAGS_inc  = -I$(topdir)/include
 CFLAGS_inc += -I$(topdir)/src/_$(target_os)/include
 CFLAGS_inc += -I$(topdir)/arch/$(target_arch)/include
@@ -127,12 +127,15 @@ SRC_kcore += $(topdir)/src/stdc/bbtree.c
 SRC_kcore += $(topdir)/src/stdc/debug.c
 SRC_kcore += $(topdir)/src/stdc/hmap.c
 SRC_kcore += $(topdir)/src/stdc/sem.c
-SRC_kcore += $(wildcard $(topdir)/cli/_unix/*.c)
+SRC_kcore += $(wildcard $(topdir)/tests/*.c)
 
-# SRC_kcore += $(topdir)/src/tests/stub.c
+CFLAGS_cli += -D_EMBEDED_FS
+SRC_clivfs += $(wildcard $(topdir)/drivers/fs/ext2/*.c)
+SRC_clivfs += $(wildcard $(topdir)/drivers/fs/vfat/*.c)
+SRC_clivfs += $(wildcard $(topdir)/drivers/fs/isofs/*.c)
 
 SRC_clivfs += $(wildcard $(topdir)/src/vfs/*.c)
-SRC_clivfs += $(wildcard $(topdir)/cli/vfs/*.c)
+SRC_clivfs += $(wildcard $(topdir)/tests/vfs/*.c)
 SRC_clivfs += $(SRC_kcore)
 
 

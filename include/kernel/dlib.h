@@ -101,7 +101,7 @@ struct process {
     llhead_t stage2;
     llhead_t stage3;
     llhead_t libraries;
-    fsnode_t **paths;
+    fnode_t **paths;
     int path_sz;
     hmap_t symbols;
 };

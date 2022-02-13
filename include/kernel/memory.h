@@ -38,7 +38,9 @@ enum {
     VMA_PIPE = 0x4000,
     VMA_PHYS = 0x5000,
     VMA_ANON = 0x6000,
-    VMA_EXEC = 0x7000,
+    VMA_CODE = 0x7000,
+    VMA_DATA = 0x8000,
+    VMA_RODATA = 0x9000,
     VMA_TYPE = 0xF000,
 };
 

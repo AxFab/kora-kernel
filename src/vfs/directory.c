@@ -20,6 +20,7 @@
 #include <kernel/vfs.h>
 #include <assert.h>
 #include <errno.h>
+#include "fnode.h"
 
 struct diterator {
     int mode;
@@ -27,7 +28,7 @@ struct diterator {
     char name[256];
 };
 
-diterator_t *vfs_opendir(fsnode_t *dir, void *acl)
+diterator_t *vfs_opendir(fnode_t *dir, void *acl)
 {
     assert(dir->mode == FN_OK);
     if (dir->ino->type != FL_DIR) {
@@ -47,27 +48,26 @@ diterator_t *vfs_opendir(fsnode_t *dir, void *acl)
     return it;
 }
 
-static fsnode_t *vfs_readdir_std(fsnode_t *dir, diterator_t *it)
+static fnode_t *vfs_readdir_std(fnode_t *dir, diterator_t *it)
 {
     inode_t *ino = dir->ino->ops->readdir(dir->ino, it->name, it->ctx);
     if (ino == NULL)
         return NULL;
 
-    fsnode_t *node = vfs_fsnode_from(dir, it->name);
+    fnode_t *node = vfs_fsnode_from(dir, it->name);
     if (node->mode == FN_OK) {
         vfs_close_inode(ino);
         return node;
     }
 
     mtx_lock(&node->mtx);
-    // TODO - Check for already resolved fsnode_t
-    node->ino = ino;
-    node->mode = FN_OK;
+    // TODO - Check for already resolved fnode_t
+    vfs_resolve(node, ino);
     mtx_unlock(&node->mtx);
     return node;
 }
 
-fsnode_t *vfs_readdir(fsnode_t *dir, diterator_t *it)
+fnode_t *vfs_readdir(fnode_t *dir, diterator_t *it)
 {
     assert(dir->mode == FN_OK);
     if (it == NULL || it->ctx == NULL) {
@@ -75,7 +75,7 @@ fsnode_t *vfs_readdir(fsnode_t *dir, diterator_t *it)
         return NULL;
     }
 
-    fsnode_t *node = NULL;
+    fnode_t *node = NULL;
     if (it->mode == 0)
         node = vfs_readdir_std(dir, it);
     if (node != NULL)
@@ -84,12 +84,12 @@ fsnode_t *vfs_readdir(fsnode_t *dir, diterator_t *it)
     // List mounted point!
     it->mode++;
     splock_lock(&dir->lock);
-    node = ll_index(&dir->mnt, it->mode - 1, fsnode_t, nmt);
+    node = ll_index(&dir->mnt, it->mode - 1, fnode_t, nmt);
     splock_unlock(&dir->lock);
     return node;
 }
 
-int vfs_closedir(fsnode_t *dir, diterator_t *it)
+int vfs_closedir(fnode_t *dir, diterator_t *it)
 {
     assert(dir->mode == FN_OK);
     if (it == NULL) {
@@ -104,59 +104,3 @@ int vfs_closedir(fsnode_t *dir, diterator_t *it)
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-
-int vfs_mkdir(fsnode_t *node, int mode, void *user)
-{
-    assert(node != NULL);
-    mtx_lock(&node->mtx);
-    if (node->mode != FN_EMPTY && node->mode != FN_NOENTRY) {
-        mtx_unlock(&node->mtx);
-        errno = EEXIST;
-        return -1;
-    }
-
-    assert(node->parent);
-    inode_t *dir = node->parent->ino;
-    assert(dir != NULL);
-    if (dir->ops->mkdir == NULL) {
-        mtx_unlock(&node->mtx);
-        errno = ENOSYS;
-        return -1;
-    }
-    assert(irq_ready());
-    inode_t *ino = dir->ops->mkdir(dir, node->name, mode, user);
-    if (ino != NULL) {
-        node->ino = ino;
-        node->mode = FN_OK;
-    }
-    mtx_unlock(&node->mtx);
-    return ino ? 0 : -1;
-}
-
-
-int vfs_rmdir(fsnode_t *node)
-{
-    mtx_lock(&node->mtx);
-    if (node->mode == FN_NOENTRY) {
-        mtx_unlock(&node->mtx);
-        errno = ENOENT;
-        return -1;
-    } else if (node->parent && node->mode == FN_OK && node->parent->mode == FN_OK && node->ino->dev != node->parent->ino->dev) {
-        mtx_unlock(&node->mtx);
-        errno = EBUSY;
-        return -1;
-    }
-
-    inode_t *dir = node->parent->ino;
-    if (dir->ops->rmdir == NULL) {
-        mtx_unlock(&node->mtx);
-        errno = ENOSYS;
-        return -1;
-    }
-    int ret = dir->ops->rmdir(dir, node->name);
-    if (ret == 0)
-        vfs_clear_fsnode(node, FN_NOENTRY);
-    mtx_unlock(&node->mtx);
-    return ret;
-}

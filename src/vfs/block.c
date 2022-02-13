@@ -42,6 +42,8 @@ struct block_page {
     llnode_t nlru;
 };
 
+page_t mmu_read(size_t address);
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 static void block_close_page(block_file_t *block, block_page_t *page)
@@ -100,6 +102,8 @@ page_t block_fetch(inode_t *ino, xoff_t off)
         if (!page->ready) {
             void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VM_PHYSIQ);
             assert(irq_ready());
+            page->phys = mmu_read((size_t)ptr);
+            kprintf(KL_BIO, "Alloc page %p for inode %s, read at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
             int ret = ino->ops->read(ino, ptr, PAGE_SIZE, off, 0);
             if (ret != 0) {
                 kprintf(-1, "\033[35mError while reading page: %s, pg:%d\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
@@ -107,7 +111,6 @@ page_t block_fetch(inode_t *ino, xoff_t off)
                 block_close_page(block, page);
                 return 0;
             }
-            page->phys = mmu_read((size_t)ptr);
             assert(page->phys != 0);
             page->ready = true;
             // mmu_drop((size_t)ptr);
@@ -136,6 +139,7 @@ void block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
         mtx_lock(&page->mtx);
         void *ptr = kmap(PAGE_SIZE, NULL, (xoff_t)page->phys, VM_RW | VM_RESOLVE | VM_PHYSIQ);
         assert(irq_ready());
+        kprintf(KL_BIO, "Write back page %p for inode %s at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
         int ret = ino->ops->write(ino, ptr, PAGE_SIZE, off, 0);
         if (ret != 0) {
             page->dirty = true;
@@ -216,8 +220,22 @@ int block_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags
 
 void block_destroy(inode_t *ino)
 {
+    char tmp[16];
     block_file_t *block = ino->fl_data;
     // TODO - Check bbtree is clean !!
+    block_page_t *page = bbtree_first(&block->tree, block_page_t, node);
+    while (page) {
+        if (page->dirty)
+            kprintf(-1, "Error: dirty page haven't been sync %s\n", vfs_inokey(ino, tmp));
+        if (page->rcu != 0)
+            kprintf(-1, "Error: page is still mapped\n", vfs_inokey(ino, tmp));
+        kprintf(KL_BIO, "Release page %p for inode %s at %llx\n", page->phys, vfs_inokey(ino, tmp), (xoff_t)page->node.value_ * PAGE_SIZE);
+        page_release(page->phys);
+        bbtree_remove(&block->tree, page->node.value_);
+        kfree(page);
+        page = bbtree_first(&block->tree, block_page_t, node);
+    }
+
     kfree(block);
 }
 

@@ -174,6 +174,7 @@ static inode_t *devfs_inode(dfs_info_t *info, dfs_entry_t *entry)
     }
     ino = vfs_inode(entry->ino, FL_DIR, info->root->dev, &devfs_dir_ops);
     ino->drv_data = info;
+    ino->mode = 0755;
     ino->ctime = info->ctime;
     ino->atime = info->ctime;
     ino->mtime = info->ctime;
@@ -391,7 +392,13 @@ static inode_t *devfs_dev(dfs_info_t *info, const char *name, int type, int show
     dfs_entry_t *entry = devfs_fetch_new(info);
     inode_t *ino = vfs_inode(entry->ino, type, NULL, ops);
     // info->dev->devname = strdup(name);
-    ino->dev->devclass = strdup("Bytes device");
+    ino->dev->devclass = kstrdup("Bytes device");
+    ino->mode = 0644;
+    xtime_t now = xtime_read(XTIME_CLOCK);
+    ino->atime = now;
+    ino->mtime = now;
+    ino->ctime = now;
+    ino->btime = now;
     entry->show = show;
     entry->dev = ino;
     strncpy(entry->name, name, 32);
@@ -467,12 +474,18 @@ inode_t *devfs_setup()
     info->table = devfs_extends(1);
 
     DEV_INO = vfs_inode(1, FL_DIR, NULL, &devfs_dir_ops);
+    DEV_INO->mode = 0755;
+    xtime_t now = xtime_read(XTIME_CLOCK);
+    DEV_INO->atime = now;
+    DEV_INO->mtime = now;
+    DEV_INO->ctime = now;
+    DEV_INO->btime = now;
     DEV_INO->drv_data = info;
     info->root = DEV_INO;
 
 
     dfs_entry_t *entry = devfs_fetch_new(info);
-    entry->dev = vfs_open_inode(DEV_INO);
+    entry->dev = DEV_INO;
     entry->filter = DF_ROOT;
     entry->flags = DF_USED;
 
@@ -509,8 +522,9 @@ void devfs_sweep()
     while (table) {
         for (i = 0; i < table->length; ++i) {
             dfs_entry_t *entry = &table->entries[i];
-            if ((entry->flags & DF_USAGE) == 0)
+            if ((entry->flags & DF_USAGE) == 0 || entry->dev == NULL)
                 continue;
+            assert(entry->dev->rcu == 1); 
             vfs_close_inode(entry->dev);
         }
 
@@ -520,8 +534,9 @@ void devfs_sweep()
     }
 
     info->table = NULL;
-    vfs_close_inode(DEV_INO);
+    // vfs_close_inode(DEV_INO);
     DEV_INO = NULL;
+    vfs_rmfs("devfs");
     kfree(info);
 }
 
