@@ -232,6 +232,7 @@ extern vfs_share_t *__vfs_share;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+int vfs_open_access(int options);
 inode_t *vfs_mkdir(vfs_t *vfs, const char *name, acl_t *acl, int mode);
 int vfs_rmdir(vfs_t *vfs, const char *name, acl_t *acl);
 inode_t *vfs_open(vfs_t *vfs, const char *name, acl_t *acl, int mode, int flags);
@@ -258,6 +259,7 @@ int vfs_umount(vfs_t *vfs, const char *path, acl_t *acl, int flags);
 // int vfs_readdir(inode_t *ino, void *dir, xstat_t *stat, char *buf, int len);
 // int vfs_stat(inode_t *ino, xstat_t *stat);
 int vfs_access(inode_t *ino, acl_t *acl, int flags);
+int vfs_readlink(inode_t *ino, char *buf, int len);
 
 // long vfs_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags);
 // long vfs_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags);
@@ -279,6 +281,7 @@ int vfs_readpath(vfs_t *vfs, fnode_t *node, char *buf, int len, bool relative);
 fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve);
 
 
+void vfs_dev_scavenge(device_t *dev, int max);
 
 
 // Generic
@@ -303,13 +306,15 @@ void vfs_addfs(const char *name, fsmount_t mount, fsformat_t format);
 void vfs_rmfs(const char *name);
 
 fnode_t *vfs_mknod(fnode_t *parent, const char *name, int devno);
+fnode_t *vfs_mkfifo(fnode_t *parent, const char *name);
+void vfs_usage(inode_t *ino, int access, int count);
 
 
 // For kernel
 // fnode_t *vfs_search(vfs_t *vfs, const char *pathname, void *user, bool resolve);
 int vfs_lookup(fnode_t *node);
-fnode_t *vfs_open_fsnode(fnode_t *node);
-void vfs_close_fsnode(fnode_t *node);
+fnode_t *vfs_open_fnode(fnode_t *node);
+void vfs_close_fnode(fnode_t *node);
 int vfs_chdir(vfs_t *vfs, const char *path, bool root);
 // int vfs_readlink(vfs_t *vfs, fnode_t *node, char *buf, int len, bool relative);
 

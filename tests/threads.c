@@ -84,7 +84,7 @@ int thrd_join(thrd_t thr, int *res)
 
 int thrd_sleep(const struct timespec *req, struct timespec *res)
 {
-    struct timespec tp = *req;
+    struct timespec tp = *(req);
     nanosleep(&tp, res);
     return 0;
 }

@@ -22,6 +22,7 @@
 
 #include <kernel/stdc.h>
 #include <kernel/arch.h>
+#include <threads.h>
 
 struct PCI_device {
     uint8_t bus;
@@ -32,6 +33,7 @@ struct PCI_device {
     uint16_t vendor_id;
     uint16_t device_id;
     uint32_t class_id;
+    mtx_t mtx;
     struct {
         uint32_t base;
         uint32_t size;

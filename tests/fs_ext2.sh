@@ -13,12 +13,12 @@ MOUNT - devfs /dev
 
 # ---------------------------------------------------------------------------
 
-# INCLUDE fs_mkdir.sh
-# INCLUDE fs_rmdir.sh
-# INCLUDE fs_open.sh
-# INCLUDE fs_unlink.sh
-# INCLUDE fs_symlink.sh
-
+INCLUDE fs_mkdir.sh
+INCLUDE fs_rmdir.sh
+INCLUDE fs_open.sh
+INCLUDE fs_unlink.sh
+INCLUDE fs_symlink.sh
+# INCLUDE fs_link.sh
 
 
 # ---------------------------------------------------------------------------

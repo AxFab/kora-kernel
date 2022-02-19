@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #ifndef O_BINARY
 # define O_BINARY 0
@@ -49,16 +50,16 @@ int vhd_read(inode_t *ino, void *data, size_t size, xoff_t offset);
 int vhd_write(inode_t *ino, const void *data, size_t size, xoff_t offset);
 
 ino_ops_t imgdk_ino_ops = {
-    .close = imgdk_close,
-    .read = imgdk_read,
-    .write = imgdk_write,
+    .close = (void *)imgdk_close,
+    .read = (void *)imgdk_read,
+    .write = (void *)imgdk_write,
     .ioctl = imgdk_ioctl,
 };
 
 ino_ops_t vhd_ino_ops = {
-    .close = imgdk_close,
-    .read = vhd_read,
-    .write = vhd_write,
+    .close = (void *)imgdk_close,
+    .read = (void *)vhd_read,
+    .write = (void *)vhd_write,
     .ioctl = imgdk_ioctl,
 };
 
@@ -163,7 +164,8 @@ int imgdk_open(const char *path, const char *name)
 
         struct footer_vhd footer;
         // Might be of size 511 only (like what the fuck !!!)
-        size_t pos = lseek(fd, -512, SEEK_END);
+        // size_t pos =
+        lseek(fd, -512, SEEK_END);
         read(fd, &footer, sizeof(footer));
 
         footer.offset = __swap64(footer.offset);
@@ -199,7 +201,8 @@ int imgdk_open(const char *path, const char *name)
 
             struct header_vhd header;
 
-            size_t pos = lseek(fd, footer.offset, SEEK_SET);
+            // size_t pos =
+            lseek(fd, footer.offset, SEEK_SET);
             read(fd, &header, sizeof(header));
 
             // Check cookie and checksum
@@ -293,11 +296,13 @@ int imgdk_write(inode_t *ino, const void *data, size_t size, xoff_t offset)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
+#if 0
 static struct vhd_info *vhd_open(int fd) {
 
     struct footer_vhd footer;
     // Might be of size 511 only (like what the fuck !!!)
-    size_t pos = lseek(fd, -512, SEEK_END);
+    // size_t pos =
+    lseek(fd, -512, SEEK_END);
     read(fd, &footer, sizeof(footer));
 
     footer.offset = __swap64(footer.offset);
@@ -360,6 +365,7 @@ static struct vhd_info *vhd_open(int fd) {
     return info;
 
 }
+#endif
 
 static uint32_t vhd_checksum(void* buf, int len)
 {
@@ -421,11 +427,11 @@ static uint32_t vhd_alloc_block(int fd, struct vhd_info* info, uint64_t bat_off)
     unsigned lba = imgSize / 512;
     char buf[512];
     memset(buf, 0, 512);
-    for (int i = 0; i < info->block_size / 512 + 1; ++i)
+    for (unsigned i = 0; i < info->block_size / 512 + 1; ++i)
         write(fd, buf, 512);
 
     // Rewrite footer
-    struct footer_vhd* footer = buf;
+    // struct footer_vhd* footer = buf;
     //footer. TODO
     write(fd, buf, 512);
     lseek(fd, 0, SEEK_SET);
@@ -449,11 +455,11 @@ int vhd_read(inode_t *ino, void *data, size_t size, xoff_t offset)
         uint32_t bat_val;
         lseek(fd, bat_off, SEEK_SET);
         read(fd, &bat_val, 4);
-        size_t avail = MIN(size, info->block_size - offset % info->block_size);
-        if (bat_val == ~0)
+        size_t avail = MIN(size, info->block_size - (size_t)(offset % (xoff_t)info->block_size));
+        if (bat_val == ~0U)
             memset(data, 0, avail);
         else {
-            size_t dk_off = bat_val * 512 + 512 + offset % info->block_size; // BAT [BlockNumber] + BlockBitmapSectorCount + SectorInBlock
+            size_t dk_off = bat_val * 512 + 512 + (size_t)(offset % (xoff_t)info->block_size); // BAT [BlockNumber] + BlockBitmapSectorCount + SectorInBlock
             lseek(fd, dk_off, SEEK_SET);
             read(fd, data, avail);
         }
@@ -476,16 +482,16 @@ int vhd_write(inode_t *ino, const void *data, size_t size, xoff_t offset)
         uint32_t bat_val;
         lseek(fd, (off_t)bat_off, SEEK_SET);
         read(fd, &bat_val, 4);
-        size_t avail = MIN(size, info->block_size - offset % info->block_size);
-        if (bat_val == ~0) {
+        size_t avail = MIN(size, info->block_size - (size_t)(offset % (xoff_t)info->block_size));
+        if (bat_val == ~0U) {
             bat_val = vhd_alloc_block(fd, info, bat_off);
-            if (bat_val == ~0) {
+            if (bat_val == ~0U) {
                 splock_unlock(&ino->lock);
                 return -1;
             }
         }
 
-        size_t dk_off = bat_val * 512 + 512 + (offset % info->block_size); // TODO -> blockBitmapSize = (ALIGN_UP(blockSize,2Mb)/2Mb)*512
+        size_t dk_off = bat_val * 512 + 512 + (size_t)(offset % (xoff_t)info->block_size); // TODO -> blockBitmapSize = (ALIGN_UP(blockSize,2Mb)/2Mb)*512
         lseek(fd, dk_off, SEEK_SET);
         write(fd, data, avail);
 

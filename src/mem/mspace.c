@@ -77,7 +77,7 @@ static int mspace_set_flags(int flags, bool is_kernel)
     if ((flags & caps) != (flags & VM_RWX))
         return 0;
     /* Forbid a map write and execute */
-    // if (caps & VMA_WRITE && caps & VMA_EXEC)
+    // if (caps & VMA_WRITE && caps & VMA_CODE)
     //     return 0;
     /* Flags forbidden, intern code only */
     if (flags & VMA_COW)
@@ -118,7 +118,7 @@ static int mspace_set_flags(int flags, bool is_kernel)
         if (caps & VM_EX)
             return 0;
         break;
-    case VMA_EXEC:
+    case VMA_CODE:
         break; // TODO - put RWX but only RX on capability !
     default:
         return 0;

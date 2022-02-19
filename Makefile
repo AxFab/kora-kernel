@@ -34,13 +34,13 @@ include $(topdir)/make/drivers.mk
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Setup compile flags
-CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb -Waddress-of-packed-member
+CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb -Wno-address-of-packed-member
 CFLAGS_inc  = -I$(topdir)/include
 CFLAGS_inc += -I$(topdir)/src/_$(target_os)/include
 CFLAGS_inc += -I$(topdir)/arch/$(target_arch)/include
 CFLAGS_def  = -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS_def += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
-
+LFLAGS_def +=
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Rule to build the kernel
@@ -52,10 +52,11 @@ CFLAGS_kr += -DKORA_KRN -D__NO_SYSCALL
 else
 CFLAGS_kr += -lpthread
 ifeq ($(NOCOV),)
-CFLAGS_kr += --coverage -fprofile-arcs -ftest-coverage
+CFLAGS_def += --coverage -fprofile-arcs -ftest-coverage
+LFLAGS_def += --coverage
 endif
 ifeq ($(USE_ATOMIC),y)
-CFLAGS_kr += -latomic
+CFLAGS_def += -latomic
 endif
 endif
 
@@ -85,7 +86,7 @@ $(bindir)/$(kname): $(call fn_objs,SRCS_kr,kr)
 CFLAGS_dr += $(CFLAGS)
 CFLAGS_dr += -ffreestanding -fPIC $(CFLAGS_inc) $(CFLAGS_def)
 
-LFLAGS_dr += -nostdlib
+LFLAGS_dr += -nostdlib $(LFLAGS_def)
 
 # DRV = vfat ext2 isofs
 DRV  = fs/vfat fs/isofs fs/ext2
@@ -121,7 +122,7 @@ SRC_ckvfs += $(wildcard $(srcdir)/vfs/*.c)
 # Build cli-*
 
 CFLAGS_cli += $(CFLAGS) -fPIC $(CFLAGS_inc) $(CFLAGS_def)
-LFLAGS_cli += -lpthread
+LFLAGS_cli += -lpthread $(LFLAGS_def)
 
 SRC_kcore += $(topdir)/src/stdc/bbtree.c
 SRC_kcore += $(topdir)/src/stdc/debug.c

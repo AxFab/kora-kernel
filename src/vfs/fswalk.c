@@ -29,7 +29,7 @@ static fnode_t *vfs_release_path(path_t *path, bool keep_node)
         kfree(el);
     }
     if (path->node && !keep_node) {
-        vfs_close_fsnode(path->node);
+        vfs_close_fnode(path->node);
         node = NULL;
     }
     kfree(path);
@@ -40,7 +40,7 @@ static path_t *vfs_breakup_path(vfs_t *vfs, const char *path)
 {
     pelmt_t *el;
     path_t *pl = kalloc(sizeof(path_t));
-    pl->node = vfs_open_fsnode(*path == '/' ? vfs->root : vfs->pwd);
+    pl->node = vfs_open_fnode(*path == '/' ? vfs->root : vfs->pwd);
 
     while (*path) {
         while (*path == '/')
@@ -122,7 +122,7 @@ int vfs_lookup(fnode_t *node)
     }
     if (node->mode == FN_NOENTRY) {
         errno = ENOENT;
-        // vfs_close_fsnode(node);
+        // vfs_close_fnode(node);
         return -1;
     }
     return 0;
@@ -171,8 +171,8 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve)
                 vfs_close_inode(ino);
                 return vfs_release_path(path, false);
             }
-            fnode_t *node = vfs_open_fsnode(path->node->parent);
-            vfs_close_fsnode(path->node);
+            fnode_t *node = vfs_open_fnode(path->node->parent);
+            vfs_close_fnode(path->node);
             path->node = node;
         } else if (ino->type != FL_DIR) {
             errno = ENOTDIR;
@@ -199,12 +199,12 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve)
                     kfree(lnk_buf);
                 return vfs_release_path(path, false);
             }
-            fnode_t *node = vfs_open_fsnode(path->node->parent);
-            vfs_close_fsnode(path->node);
+            fnode_t *node = vfs_open_fnode(path->node->parent);
+            vfs_close_fnode(path->node);
             path->node = node;
         } else {
             fnode_t *node = vfs_fsnode_from(path->node, el->name);
-            vfs_close_fsnode(path->node);
+            vfs_close_fnode(path->node);
             path->node = node;
         }
 
@@ -229,8 +229,8 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve)
                         kfree(lnk_buf);
                     return vfs_release_path(path, false);
                 }
-                fnode_t *node = vfs_open_fsnode(path->node->parent);
-                vfs_close_fsnode(path->node);
+                fnode_t *node = vfs_open_fnode(path->node->parent);
+                vfs_close_fnode(path->node);
                 path->node = node;
             }
             if (resolve) {

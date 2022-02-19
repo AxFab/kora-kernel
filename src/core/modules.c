@@ -109,7 +109,7 @@ void module_init(vfs_t *vfs, mspace_t *vm)
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-int module_load(fsnode_t *file)
+int module_load(fnode_t *file)
 {
     dynlib_t *dlib = kalloc(sizeof(dynlib_t));
     dlib->ino = vfs_open_inode(file->ino);
@@ -183,41 +183,41 @@ void module_new_task(int type, void *ptr)
     splock_unlock(&mtask_lock);
 }
 
-void module_do_dir(fsnode_t *directory)
+void module_do_dir(fnode_t *directory)
 {
     kprintf(-1, "Kernel task %d reading directory (cpu:%d) \n", __current->pid, cpu_no());
     void *ctx = vfs_opendir(directory, NULL);
     for (;;) {
-        fsnode_t *file = vfs_readdir(directory, ctx);
+        fnode_t *file = vfs_readdir(directory, ctx);
         if (file == NULL)
             break;
         // kprintf(-1, "New file: '%s'\n", file->name);
         module_new_task(2, file);
     }
     vfs_closedir(directory, ctx);
-    vfs_close_fsnode(directory);
+    vfs_close_fnode(directory);
     atomic_inc(&mtask_count);
 }
 
-void module_do_file(fsnode_t *file)
+void module_do_file(fnode_t *file)
 {
     kprintf(-1, "Kernel task %d loading module (cpu:%d) \n", __current->pid, cpu_no());
     module_load(file);
-    vfs_close_fsnode(file);
+    vfs_close_fnode(file);
     atomic_inc(&mtask_count);
 }
 
 void module_do_proc(char *cmd)
 {
     kprintf(-1, "Kernel task %d starting process (cpu:%d) \n", __current->pid, cpu_no());
-    fsnode_t *root = vfs_mount(__current->vfs, "sdc", "iso", "/mnt/cdrom", "");
-    vfs_close_fsnode(root);
+    fnode_t *root = vfs_mount(__current->vfs, "sdc", "iso", "/mnt/cdrom", NULL, "");
+    vfs_close_fnode(root);
     vfs_chdir(__current->vfs, "/mnt/cdrom", true);
-    vfs_mount(__current->vfs, NULL, "devfs", "/dev", "");
+    vfs_mount(__current->vfs, NULL, "devfs", "/dev", NULL, "");
 
     // Start first user program
     const char *args[] = { NULL, };
-    fsnode_t *nodes[3] = { NULL };
+    fnode_t *nodes[3] = { NULL };
     task_spawn(cmd, args, nodes);
     kfree(cmd);
     atomic_inc(&mtask_count);
@@ -229,7 +229,7 @@ int module_predefined_tasks()
     // Check presence of initrd module
     val = atomic_xchg(&mtask_step1, 1);
     if (val == 0) {
-        fsnode_t *directory = vfs_search(__current->vfs, "/mnt/boot0", NULL, true);
+        fnode_t *directory = vfs_search(__current->vfs, "/mnt/boot0", NULL, true);
         if (directory == NULL)
             kprintf(KL_MSG, "Unable to find kernel modules");
         else
@@ -240,7 +240,7 @@ int module_predefined_tasks()
     if (mtask_count > 3) {
         val = atomic_xchg(&mtask_step2, 1);
         if (val == 0) {
-            module_new_task(3, strdup("krish"));
+            // module_new_task(3, strdup("krish"));
             return 0;
         }
     }

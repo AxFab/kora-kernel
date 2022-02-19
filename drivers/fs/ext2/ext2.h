@@ -287,7 +287,7 @@ void ext2_truncate_direct(ext2_volume_t *vol, uint32_t *table, int len, int bcou
 uint32_t ext2_truncate_indirect(ext2_volume_t *vol, uint32_t block, int bcount, int offset, int depth);
 
 
-
+inode_t *ext2_inode(ext2_volume_t *vol, uint32_t no);
 
 
 ext2_ino_t* ext2_entry(struct bkmap* bk, ext2_volume_t* vol, unsigned no, int flg);

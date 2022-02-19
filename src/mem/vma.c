@@ -33,7 +33,7 @@
 char *vma_print(char *buf, int len, vma_t *vma)
 {
     static char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"};
-    char *nam;
+    char nam[16];
     int i = 0;
     char sh = vma->flags & VMA_COW ? (vma->flags & VMA_SHARED ? 'W' : 'w')
               : (vma->flags & VMA_SHARED ? 'S' : 'p');
@@ -49,6 +49,7 @@ char *vma_print(char *buf, int len, vma_t *vma)
         i += snprintf(&buf[i], len - i, "[stack]");
         break;
     case VMA_PIPE:
+        // TODO -- fnode or pipe no!?
         i += snprintf(&buf[i], len - i, "[pipe]");
         break;
     case VMA_PHYS:
@@ -57,10 +58,20 @@ char *vma_print(char *buf, int len, vma_t *vma)
     case VMA_ANON:
         break;
     case VMA_FILE:
-        nam = kalloc(4096);
         vfs_inokey(vma->ino, nam);
         i += snprintf(&buf[i], len - i, "%s @%x", nam, vma->offset);
-        kfree(nam);
+        break;
+    case VMA_CODE:
+        // TODO -- dlib obj!
+        i += snprintf(&buf[i], len - i, "<code>");
+        break;
+    case VMA_DATA:
+        // TODO -- dlib obj!
+        i += snprintf(&buf[i], len - i, "<data>");
+        break;
+    case VMA_RODATA:
+        // TODO -- dlib obj!
+        i += snprintf(&buf[i], len - i, "<rodata>");
         break;
     default:
         i += snprintf(&buf[i], len - i, "-");
@@ -86,7 +97,7 @@ vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
     vma->mspace = mspace;
     vma->node.value_ = address;
     vma->length = length;
-    vma->ino = vfs_open_inode(ino);
+    vma->ino = ino ? vfs_open_inode(ino) : NULL;
     vma->offset = offset;
     vma->flags = flags;
     bbtree_insert(&mspace->tree, &vma->node);
@@ -103,7 +114,7 @@ vma_t *vma_clone(mspace_t *mspace, vma_t *model)
     vma->mspace = mspace;
     vma->node.value_ = model->node.value_;
     vma->length = model->length;
-    vma->ino = vfs_open_inode(model->ino);
+    vma->ino = model->ino ? vfs_open_inode(model->ino) : NULL;
     vma->offset = model->offset;
     vma->flags = model->flags;
     bbtree_insert(&mspace->tree, &vma->node);
@@ -232,7 +243,7 @@ int vma_resolve(vma_t *vma, size_t address, size_t length)
     case VMA_STACK:
     case VMA_PIPE:
     case VMA_ANON:
-    case VMA_EXEC:
+    case VMA_CODE:
         while (length > 0) {
             vma->mspace->p_size += mmu_resolve(address, 0, vma->flags);
             memset((void *)address, 0, PAGE_SIZE);

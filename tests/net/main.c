@@ -313,9 +313,9 @@ int do_unlink(void *cfg, size_t *params)
 
 int do_tempo(void *cfg, size_t *params)
 {
-    xtime sl;
-    sl.sec = 0;
-    sl.nsec = 500 * 1000 * 1000;
+    struct timespec sl;
+    sl.tv_sec = 0;
+    sl.tv_nsec = 500 * 1000 * 1000;
     thrd_sleep(&sl, NULL);
     return 0;
 }
@@ -498,7 +498,7 @@ int do_ping(void *cfg, size_t *params)
     if (ret != 0)
         return cli_error("Unable to complete ping request on %s\n", host);
 
-    xtime wt = { .sec = 1, .nsec = 0 };
+    struct timespec wt = { .tv_sec = 1, .tv_nsec = 0 };
     cnd_timedwait(&qry.cnd, &qry.mtx, &wt);
     if (qry.success)
         fprintf(stderr, "Ping request completed with success\n");

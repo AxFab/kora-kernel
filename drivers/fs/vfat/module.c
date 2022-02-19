@@ -21,8 +21,8 @@
 
 ino_ops_t fatfs_reg_ops = {
     // .close = fatfs_close,
-    .read = fat_read,
-    .write = fat_write,
+    .read = (void *)fat_read,
+    .write = (void *)fat_write,
     .truncate = fatfs_truncate,
 };
 
@@ -33,7 +33,7 @@ ino_ops_t fatfs_dir_ops = {
     .unlink = fat_unlink,
     .opendir = fat_opendir,
     .readdir = fat_readdir,
-    .closedir = fat_closedir,
+    .closedir = (void *)fat_closedir,
 };
 
 inode_t *fat_mount(inode_t *dev, const char *options)
@@ -60,7 +60,7 @@ inode_t *fat_mount(inode_t *dev, const char *options)
     ino->dev->devname = strdup(info->name);
     ino->dev->underlying = vfs_open_inode(dev);
 
-    int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
+    // int origin_sector = info->FirstDataSector - 2 * info->SecPerClus;
     // info->io_data_rw = bio_create(dev, VMA_FILE_RW, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
     // info->io_data_ro = bio_create(dev, VMA_FILE_RO, info->BytsPerSec * info->SecPerClus, origin_sector * info->BytsPerSec);
     errno = 0;
@@ -94,4 +94,4 @@ void fat_teardown()
     vfs_rmfs("fat32");
 }
 
-MODULE(vfat, fat_setup, fat_teardown);
+EXPORT_MODULE(vfat, fat_setup, fat_teardown);

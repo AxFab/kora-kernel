@@ -25,6 +25,7 @@
 #include <kernel/arch.h>
 #include <kernel/vfs.h>
 #include <kernel/stdc.h>
+#include <unistd.h>
 #if defined(_WIN32)
 #  include <Windows.h>
 #endif
@@ -76,6 +77,7 @@ void *kalloc_(size_t len, const char *msg)
     void *ptr = calloc(len, 1);
     splock_lock(&ktrack_lock);
     struct ktrack *tr = malloc(sizeof(struct ktrack));
+    assert(tr != NULL);
     tr->ptr = ptr;
     tr->len = len;
     tr->msg = msg;
@@ -156,12 +158,14 @@ bool map_init = false;
 map_page_t *kmap_new(int access, void *ino, xoff_t off, size_t len, void *ptr)
 {
     map_page_t *mp = malloc(sizeof(map_page_t));
+    assert(mp != NULL);
     mp->usage = 1;
     mp->access = access;
     mp->ino = ino;
     mp->off = off;
     mp->len = len;
     mp->ptr = ptr;
+    return mp;
 }
 
 map_page_t *kmap_search(void *ino, xoff_t off, size_t len, int mode)
@@ -257,16 +261,17 @@ void *kmap(size_t len, void *ino, xoff_t off, int flags)
         
         mp = kmap_new(access | type, ino, off, len, NULL);
         assert(len == PAGE_SIZE);
-        mp->ptr = ((inode_t *)ino)->fops->fetch(ino, off);
+        assert(ino != NULL);
+        mp->ptr = (void *)((inode_t *)ino)->fops->fetch(ino, off);
 
     } else if (getter == 4) {
         if (off == 0) {
             mp = kmap_new(access | type, NULL, 0, len, _valloc(len));
         } else {
-            mp = kmap_search(ino, off, len, access & 7);
+            mp = kmap_search(ino, off, len, access & 7); // ino is null !?
             if (mp != NULL)
                 return mp->ptr;
-            mp = kmap_new(access | type, off, 0, len, (void*)off);
+            mp = kmap_new(access | type, (void *)off, 0, len, (void*)off); // is off required?
         }
     } else { // if (getter == 3) {
         assert("No dlib supported" == NULL);
@@ -279,8 +284,6 @@ void *kmap(size_t len, void *ino, xoff_t off, int flags)
 
 void kunmap(void *addr, size_t len)
 {
-    char tmp[64];
-
     assert(irq_ready());
     --kmapCount;
     map_page_t *mp = bbtree_search_eq(&map_tree, (size_t)addr, map_page_t, node);
@@ -312,8 +315,8 @@ void kunmap(void *addr, size_t len)
     } else if (getter == 1) {
 
         bool dirty = mp->access & VM_WR ? true : false;
-        xoff_t nx = 0;
-        mp->ino->fops->release(mp->ino, mp->off, mp->ptr + nx, dirty);
+        size_t nx = 0;
+        mp->ino->fops->release(mp->ino, mp->off, (size_t)mp->ptr + nx, dirty);
 
     } else if (getter == 4) {
 
@@ -360,16 +363,27 @@ const char *ksymbol(void *ip, char *buf, int lg)
 splock_t kplock = INIT_SPLOCK;
 char kpbuf[1024];
 char kpbuf2[1024];
+#define KL_NONE  ((char *)0xAC)
+
+// Change kernel log settings
+char *klog_lvl[KL_MAX] = {
+    [KL_FSA] = "\033[35m%s\033[0m",
+    [KL_BIO] = KL_NONE,
+};
+
 
 void kprintf(klog_t log, const char *msg, ...)
 {
+    char *pk = log >= 0 && log < KL_MAX ? klog_lvl[log] : NULL;
+    if (pk == KL_NONE)
+        return;
     splock_lock(&kplock);
     va_list ap;
     va_start(ap, msg);
     int lg = vsnprintf(kpbuf, 1024, msg, ap);
     va_end(ap);
-    if (log == KL_BIO) {
-        lg = snprintf(kpbuf2, 1024, "\033[35m%s\033[0m", kpbuf);
+    if (pk != NULL) {
+        lg = snprintf(kpbuf2, 1024, pk, kpbuf);
         write(1, kpbuf2, lg);
     } else {
         write(1, kpbuf, lg);
@@ -386,7 +400,9 @@ xtime_t xtime_read(xtime_name_t name)
     uint64_t cl = (uint64_t)tm.dwHighDateTime << 32 | tm.dwLowDateTime;
     return cl / 10LL - SEC_TO_USEC(11644473600LL);
 #else
-
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    return SEC_TO_USEC(now.tv_nsec) + (now.tv_nsec / 1000);
 #endif
 }
 
@@ -436,30 +452,32 @@ bool irq_ready()
 #include <threads.h>
 
 struct task_data_start {
-    char* name[64];
+    char name[64];
     void (*func)(void*);
     void* arg;
 };
 
-static _task_impl_start(void* arg)
+static int _task_impl_start(void* arg)
 {
     struct task_data_start* data = arg;
 #ifdef _WIN32
-    wchar_t wbuf[128];
+    wchar_t wbuf[64];
     size_t len;
-    mbstowcs_s(&len, wbuf, 128, data->name, 128);
+    mbstowcs_s(&len, wbuf, 64, data->name, 64);
     SetThreadDescription(GetCurrentThread(), wbuf);
 #endif
     void(*func)(void*) = data->func;
     void* param = data->arg;
     free(data);
     func(param);
+    return 0;
 }
 
 int task_start(const char* name, void *func, void* arg)
 {
     thrd_t thrd;
     struct task_data_start* data = malloc(sizeof(struct task_data_start));
+    assert(data != NULL);
     strncpy(data->name, name, 64);
     data->func = func;
     data->arg = arg;

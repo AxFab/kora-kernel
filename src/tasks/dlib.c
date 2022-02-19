@@ -54,7 +54,7 @@ proc_t *dlib_process(vfs_t *fs, mspace_t *mspace)
     return proc;
 }
 
-fsnode_t *dlib_lookfor_all(proc_t *proc, const char *libname, const char *xpath)
+fnode_t *dlib_lookfor_all(proc_t *proc, const char *libname, const char *xpath)
 {
     char *rl, *rd;
     char *dirlist;
@@ -65,7 +65,7 @@ fsnode_t *dlib_lookfor_all(proc_t *proc, const char *libname, const char *xpath)
         for (dirname = strtok_r(dirlist, ":", &rd); dirname; dirname = strtok_r(NULL, ":", &rd)) {
 
             snprintf(buf, 4096, "%s/%s", dirname, libname);
-            fsnode_t *node = vfs_search(proc->fs, buf, proc->acl, true);
+            fnode_t *node = vfs_search(proc->fs, buf, proc->acl, true);
             if (node != NULL) {
                 kfree(buf);
                 kfree(path);
@@ -79,9 +79,9 @@ fsnode_t *dlib_lookfor_all(proc_t *proc, const char *libname, const char *xpath)
 }
 
 
-fsnode_t *dlib_lookfor(proc_t *proc, const char *libname, const char *env, const char *sys)
+fnode_t *dlib_lookfor(proc_t *proc, const char *libname, const char *env, const char *sys)
 {
-    fsnode_t *node = NULL;
+    fnode_t *node = NULL;
 
     // if EXEC, not SHARED
     node = vfs_search(proc->fs, libname, proc->acl, true);
@@ -120,7 +120,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
     // Look for dependancies
     dyndep_t *dep;
     for ll_each(&dlib->depends, dep, dyndep_t, node) {
-        fsnode_t *node = dlib_lookfor(proc, dep->name, "LD_LIBRARY_PATH", "/usr/lib:/lib");
+        fnode_t *node = dlib_lookfor(proc, dep->name, "LD_LIBRARY_PATH", "/usr/lib:/lib");
         if (node == NULL) {
             kprintf(-1, "\033[31mMissing library\033[0m %s\n", dep->name);
             // TODO - Missing library!
@@ -132,7 +132,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
         if (lib != NULL) {
             lib->rcu++;
             dep->lib = lib;
-            vfs_close_fsnode(node);
+            vfs_close_fnode(node);
             continue;
         }
 
@@ -142,7 +142,7 @@ int dlib_open(proc_t *proc, dynlib_t *dlib)
         dep->lib = lib;
         hmp_put(&proc->libs_map, (char *)lib->ino, sizeof(void *), lib);
         ll_enqueue(&proc->queue, &lib->node);
-        vfs_close_fsnode(node);
+        vfs_close_fnode(node);
     }
     return 0;
 }
@@ -152,13 +152,13 @@ int dlib_openexec(proc_t *proc, const char *execname)
 {
     dynlib_t *lib;
     // Look for executable file
-    fsnode_t *node = dlib_lookfor(proc, execname, "PATH", "/usr/bin:/bin");
+    fnode_t *node = dlib_lookfor(proc, execname, "PATH", "/usr/bin:/bin");
     if (node == NULL)
         return -1;
     // kprintf(-1, "Locate %s ino: %s\n", execname, vfs_inokey(node->ino, tmp));
     proc->exec.ino = vfs_open_inode(node->ino);
     proc->exec.name = strdup(execname);
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
 
     // Load exec with libraries
     ll_enqueue(&proc->queue, &proc->exec.node);
@@ -199,7 +199,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
     void *base = NULL;
     // ASRL
     if (lib->base != 0)
-        base = mspace_map(mspace, lib->base, lib->length, NULL, 0, VMA_EXEC | VM_RW | VMA_FIXED);
+        base = mspace_map(mspace, lib->base, lib->length, NULL, 0, VMA_CODE | VM_RW | VMA_FIXED);
 
     while (base == NULL) {
         size_t addr = rand32() % (mspace->upper_bound - mspace->lower_bound);
@@ -237,7 +237,7 @@ void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib)
         else if (strcmp(lib->name, "libfreetype2.so") == 0)
             addr = 0x15000000;
 
-        base = mspace_map(mspace, addr, lib->length, NULL, 0, VMA_EXEC | VM_RW | VMA_FIXED);
+        base = mspace_map(mspace, addr, lib->length, NULL, 0, VMA_CODE | VM_RW | VMA_FIXED);
     }
 
     // List symbols

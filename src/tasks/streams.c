@@ -34,18 +34,22 @@ struct streamset {
 
 static void stream_destroy(fstream_t *stm)
 {
-    vfs_usage(stm->file, stm->flags, -1);
-    vfs_close_fsnode(stm->file);
+    vfs_usage(stm->ino, stm->flags, -1);
+    if (stm->fnode)
+        vfs_close_fnode(stm->fnode);
+    if (stm->ino)
+        vfs_close_inode(stm->ino);
     kfree(stm);
 }
 
-fstream_t *stream_put(streamset_t *strms, fsnode_t *file, int flags)
+fstream_t *stream_put(streamset_t *strms, fnode_t *fnode, inode_t *ino, int flags)
 {
     fstream_t *stm = kalloc(sizeof(fstream_t));
-    stm->file = vfs_open_fsnode(file);
+    stm->fnode = fnode ? vfs_open_fnode(fnode) : NULL;
+    stm->ino = ino ? vfs_open_inode(ino) : NULL;
     stm->position = 0;
     stm->flags = flags;
-    vfs_usage(file, flags, 1);
+    vfs_usage(stm->ino, flags, 1);
     splock_lock(&strms->lock);
     fstream_t *p = bbtree_last(&strms->tree, fstream_t, node);
     stm->fd = p == NULL ? 0 : p->fd + 1;

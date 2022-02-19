@@ -72,7 +72,6 @@ EXPORT_SYMBOL(kunmap, 0);
 void *malloc(size_t size);
 void free(void *ptr);
 
-
 void *kalloc_(size_t size, const char *expr)
 {
     return kalloc(size);
@@ -123,31 +122,45 @@ EXPORT_SYMBOL(kstrdup, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-char __buf[1024];
-splock_t __bf_lock;
-unsigned __log_filter = 0;
+splock_t kplock = INIT_SPLOCK;
+char kpbuf[1024];
+char kpbuf2[1024];
+#define KL_NONE  ((char *)0xAC)
+
+// Change kernel log settings
+char *klog_lvl[KL_MAX] = {
+    [KL_FSA] = KL_NONE, // "\033[35m%s\033[0m",
+    [KL_BIO] = KL_NONE,
+};
+
 
 void kprintf(klog_t log, const char *msg, ...)
 {
-    if (__log_filter & (1 << log))
+    char *pk = log >= 0 && log < KL_MAX ? klog_lvl[log] : NULL;
+    if (pk == KL_NONE)
         return;
+    splock_lock(&kplock);
     va_list ap;
     va_start(ap, msg);
-    splock_lock(&__bf_lock);
-    int len = vsnprintf(__buf, 1024, msg, ap);
+    int lg = vsnprintf(kpbuf, 1024, msg, ap);
     va_end(ap);
-    kwrite(__buf, len);
-    splock_unlock(&__bf_lock);
+    if (pk != NULL) {
+        lg = snprintf(kpbuf2, 1024, pk, kpbuf);
+        kwrite(kpbuf2, lg);
+    } else {
+        kwrite(kpbuf, lg);
+    }
+    splock_unlock(&kplock);
 }
+EXPORT_SYMBOL(kprintf, 0);
+
 
 xtime_t xtime_read(xtime_name_t name)
 {
     return clock_read(&__clock, name);
 }
-
-
-EXPORT_SYMBOL(kprintf, 0);
 EXPORT_SYMBOL(xtime_read, 0);
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

@@ -96,8 +96,8 @@ inode_t *ext2_readdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
 /* Close a directory context */
 int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it)
 {
-    //if (it->cmap)
-    //    kunmap(it->cmap, PAGE_SIZE);
+    if (it->cmap)
+        kunmap(it->cmap, PAGE_SIZE);
     //if (it->emap)
     //    kunmap(it->emap, PAGE_SIZE);
     // bkunmap(&it->bkm);
@@ -116,11 +116,14 @@ int ext2_dir_is_empty(ext2_volume_t *vol, ext2_ino_t *dir)
     it.vol = vol;
     it.entry = dir;
     it.idx = 0;
+    it.cmap = NULL;
 
     // Look first entry
     uint32_t ino = ext2_nextdir(NULL, NULL, &it);
 
     // Clear
+    if (it.cmap)
+        kunmap(it.cmap, PAGE_SIZE);
     bkunmap(&it.bki);
     return ino == 0 ? 0 : -1;
 }

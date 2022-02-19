@@ -67,6 +67,9 @@ int do_img_remove(vfs_t **ctx, size_t *param);
 int do_tar_mount(vfs_t **ctx, size_t *param);
 int do_format(vfs_t **ctx, size_t *param);
 
+void alloc_check();
+void kmap_check();
+
 #ifdef _EMBEDED_FS
 void fat_setup();
 void fat_teardown();

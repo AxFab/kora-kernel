@@ -102,7 +102,7 @@ unsigned fatfs_alloc_cluster_16(inode_t *bdev, FAT_volume_t *info, int previous)
 unsigned fat_cluster_next_16(inode_t *bdev, FAT_volume_t *info, unsigned clustNo)
 {
     unsigned lba = info->ResvdSecCnt;
-    unsigned fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
+    // unsigned fat_bytes = ALIGN_UP(info->FATSz * info->BytsPerSec, PAGE_SIZE);
 
     size_t doff = lba * info->BytsPerSec + clustNo * sizeof(uint16_t);
     int add = doff / PAGE_SIZE;

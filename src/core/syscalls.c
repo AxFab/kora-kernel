@@ -86,21 +86,21 @@ long sys_spawn(const char *program, const char **args, const char **envs, int *s
     // TODO -- Check arrays and content of args / envs
 
     fstream_t *strm;
-    fsnode_t *nodes[4];
+    inode_t *inodes[4];
 
     strm = stream_get(__current->fset, streams[0]);
     if (strm != NULL)
-        nodes[0] = strm->file;
+        inodes[0] = strm->ino;
 
     strm = stream_get(__current->fset, streams[1]);
     if (strm != NULL)
-        nodes[1] = strm->file;
+        inodes[1] = strm->ino;
 
     strm = stream_get(__current->fset, streams[2]);
     if (strm != NULL)
-        nodes[2] = strm->file;
+        inodes[2] = strm->ino;
 
-    return task_spawn(program, args, nodes);
+    return task_spawn(program, args, inodes);
 }
 
 long sys_thread(const char *name, void *entry, void *params, size_t len, int flags)
@@ -125,7 +125,7 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, size_t off)
             errno = EBADF;
             return (void *) -1;
         }
-        ino = strm->file->ino;
+        ino = strm->ino;
     }
 
     unsigned vma = flags & VM_RWX;
@@ -188,10 +188,10 @@ long sys_ginfo(unsigned info, char *buf, size_t len)
         return copystr(true, "KoraOS", buf, len);
     // case SNFO_USER:
     case SNFO_PWD:
-        return vfs_readlink(__current->vfs, __current->vfs->pwd, buf, len, false);
+        return vfs_readpath(__current->vfs, __current->vfs->pwd, buf, len, false);
     // case SNFO_USERNAME:
-    // case SNFO_USERMAIL:
-    // case SNFO_HOSTNAME:
+        // case SNFO_USERMAIL:
+        // case SNFO_HOSTNAME:
     // case SNFO_DOMAIN:
     default:
         errno = EINVAL;
@@ -237,13 +237,16 @@ long sys_open(int dirfd, const char *path, int flags, int mode)
         // Clone VFS, look on flags AT_*
     }
 
-    fsnode_t *node = vfs_open(vfs, path, NULL, flags, mode);
-    if (node == NULL)
+    int flg = vfs_open_access(flags);
+    if (flg < 0)
         return -1;
 
-    int flg = vfs_open_access(flags);
-    fstream_t *strm = stream_put(__current->fset, node, flg);
-    vfs_close_fsnode(node);
+    inode_t *ino = vfs_open(vfs, path, NULL, mode, flags);
+    if (ino == NULL)
+        return -1;
+
+    fstream_t *strm = stream_put(__current->fset, NULL, ino, flg);
+    vfs_close_inode(ino);
     if (vfs != __current->vfs) {
         // Close
     }
@@ -261,7 +264,7 @@ long sys_create(int dirfd, const char *path, int flags, int mode)
             return -1;
     }
 
-    fsnode_t *node = vfs_search(__current->vfs, path, NULL, false);
+    fnode_t *node = vfs_search(__current->vfs, path, NULL, false);
     if (node == NULL)
         return -1;
 
@@ -269,8 +272,10 @@ long sys_create(int dirfd, const char *path, int flags, int mode)
     if (ret != 0)
         return -1;
 
-    fstream_t *strm = stream_put(__current->fset, node, VM_RD);
-    vfs_close_fsnode(node);
+    inode_t *ino = vfs_inodeof(node);
+    fstream_t *strm = stream_put(__current->fset, NULL, ino, VM_RD);
+    vfs_close_inode(ino);
+    vfs_close_fnode(node);
     return strm->fd;
 }
 
@@ -279,9 +284,9 @@ long sys_close(int fd)
     fstream_t *strm = stream_get(__current->fset, fd);
     if (strm == NULL)
         return -1;
-    fsnode_t *file = strm->file;
+    inode_t *file = strm->ino;
     stream_remove(__current->fset, strm);
-    vfs_close_fsnode(file);
+    vfs_close_inode(file);
     return 0;
 }
 
@@ -296,18 +301,18 @@ long sys_opendir(int dirfd, const char *path)
             return -1;
     }
 
-    fsnode_t *node = vfs_search(__current->vfs, path, NULL, false);
+    fnode_t *node = vfs_search(__current->vfs, path, NULL, false);
     if (node == NULL)
         return -1;
 
     if (vfs_lookup(node) != 0 || node->ino->type != FL_DIR) {
-        vfs_close_fsnode(node);
+        vfs_close_fnode(node);
         errno = ENOENT;
         return -1;
     }
 
-    fstream_t *strm = stream_put(__current->fset, node, VM_RD);
-    vfs_close_fsnode(node);
+    fstream_t *strm = stream_put(__current->fset, node, NULL, VM_RD);
+    vfs_close_fnode(node);
     return strm->fd;
 }
 
@@ -317,11 +322,11 @@ long sys_readdir(int fd, char *buf, size_t len)
         return -1;
 
     fstream_t *strm = stream_get(__current->fset, fd);
-    if (strm == NULL)
+    if (strm == NULL || strm->fnode == NULL)
         return -1;
 
     if (strm->dir_ctx == NULL) {
-        strm->dir_ctx = vfs_opendir(strm->file, NULL);
+        strm->dir_ctx = vfs_opendir(strm->fnode, NULL);
         strm->position = 0;
         if (strm->dir_ctx == NULL)
             return -1;
@@ -330,7 +335,7 @@ long sys_readdir(int fd, char *buf, size_t len)
     struct dirent *entry = (void *)buf;
     int count = 0;
     while (len >= sizeof(struct dirent)) {
-        fsnode_t *file = vfs_readdir(strm->file, strm->dir_ctx);
+        fnode_t *file = vfs_readdir(strm->fnode, strm->dir_ctx);
         if (file == NULL)
             break;
 
@@ -341,7 +346,7 @@ long sys_readdir(int fd, char *buf, size_t len)
 
         buf += sizeof(struct dirent);
         len -= sizeof(struct dirent);
-        vfs_close_fsnode(file);
+        vfs_close_fnode(file);
         ++count;
         ++strm->position;
     }
@@ -356,11 +361,11 @@ long sys_seek(int fd, xoff_t offset, int whence)
         return -1;
 
     if (whence == 0)
-        strm->position = vfs_seek(strm->file->ino, offset);
+        strm->position = vfs_seek(strm->ino, offset);
     else if (whence == 1)
-        strm->position = vfs_seek(strm->file->ino, strm->position + offset);
+        strm->position = vfs_seek(strm->ino, strm->position + offset);
     else if (whence == 2)
-        strm->position = vfs_seek(strm->file->ino, strm->file->ino->length - offset);
+        strm->position = vfs_seek(strm->ino, strm->ino->length - offset);
     else {
         errno = EINVAL;
         return -1;
@@ -381,7 +386,7 @@ long sys_read(int fd, char *buf, int len)
         errno = EPERM;
         return -1;
     }
-    int ret = vfs_read(strm->file->ino, buf, len, strm->position, strm->io_flags);
+    int ret = vfs_read(strm->ino, buf, len, strm->position, strm->io_flags);
     if (ret >= 0)
         strm->position += ret;
     return ret;
@@ -404,7 +409,7 @@ long sys_write(int fd, const char *buf, int len)
         errno = EPERM;
         return -1;
     }
-    int ret = vfs_write(strm->file->ino, buf, len, strm->position, strm->io_flags);
+    int ret = vfs_write(strm->ino, buf, len, strm->position, strm->io_flags);
     if (ret >= 0)
         strm->position += ret;
     return ret;
@@ -421,12 +426,12 @@ long sys_access(int dirfd, const char *path, int flags)
             return -1;
     }
 
-    fsnode_t *node = vfs_search(__current->vfs, path, NULL, true);
+    fnode_t *node = vfs_search(__current->vfs, path, NULL, true);
     if (node == NULL)
         return -1;
 
-    int ret = vfs_access(node, flags & VM_RWX);
-    vfs_close_fsnode(node);
+    int ret = vfs_access(node, NULL, flags & VM_RWX);
+    vfs_close_fnode(node);
     return ret;
 }
 
@@ -436,7 +441,7 @@ long sys_fcntl(int fd, int cmd, void **args)
     if (strm == NULL)
         return -1;
 
-    int ret = vfs_fcntl(strm->file->ino, cmd, args);
+    int ret = vfs_fcntl(strm->ino, cmd, args);
     return ret;
 }
 
@@ -451,7 +456,7 @@ long sys_fstat(int dirfd, const char *path, struct filemeta *meta, int flags)
             return -1;
     }
 
-    fsnode_t *node = vfs_search(__current->vfs, path, NULL, true);
+    fnode_t *node = vfs_search(__current->vfs, path, NULL, true);
     if (node == NULL)
         return -1;
 
@@ -462,7 +467,7 @@ long sys_fstat(int dirfd, const char *path, struct filemeta *meta, int flags)
     meta->mtime = node->ino->mtime;
     meta->atime = node->ino->atime;
     meta->btime = node->ino->btime;
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
     return 0;
 }
 
@@ -471,17 +476,20 @@ long sys_fstat(int dirfd, const char *path, struct filemeta *meta, int flags)
 
 long sys_pipe(int *fds, int flags)
 {
-    fsnode_t *node = vfs_mknod(NULL, NULL, 0);
+    fnode_t *node = vfs_mkfifo(NULL, NULL);
     if (node == NULL)
         return -1;
 
-    fstream_t *strm0 = stream_put(__current->fset, node, flags | VM_RD);
+    inode_t *ino = vfs_inodeof(node);
+
+    fstream_t *strm0 = stream_put(__current->fset, node, ino, flags | VM_RD);
     fds[0] = strm0->fd;
 
-    fstream_t *strm1 = stream_put(__current->fset, node, flags | VM_WR);
+    fstream_t *strm1 = stream_put(__current->fset, node, ino, flags | VM_WR);
     fds[1] = strm1->fd;
 
-    vfs_close_fsnode(node);
+    vfs_close_inode(ino);
+    vfs_close_fnode(node);
     return 0;
 }
 
@@ -514,12 +522,12 @@ int sys_mount(const char *device, const char *dir, const char *fstype, const cha
     if (options && mspace_check_str(__current->vm, options, 4096) != 0)
         return -1;
 
-    // TODO -- Get fsnode_t for device, and mount point
-    fsnode_t *node = vfs_mount(__current->vfs, device, fstype, dir, options ? options : "");
+    // TODO -- Get fnode_t for device, and mount point
+    fnode_t *node = vfs_mount(__current->vfs, device, fstype, dir, NULL, options ? options : "");
     if (node == NULL)
         // "\033[31mUnable to mount disk '%s': [%d - %s]\033[0m\n", dev, errno, strerror(errno));
         return -1;
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
     return 0;
 }
 
@@ -532,18 +540,18 @@ int sys_mkfs(const char *device, const char *fstype, const char *options, int fl
     if (options && mspace_check_str(__current->vm, options, 4096) != 0)
         return -1;
 
-    fsnode_t* blk = vfs_search(__current->vfs, device, NULL, true);
+    fnode_t* blk = vfs_search(__current->vfs, device, NULL, true);
     if (blk == NULL)
         return -1; // "Unable to find the device\n"
 
     if (blk->ino->type != FL_BLK && blk->ino->type != FL_REG) {
         // "We can only format block devices\n";
-        vfs_close_fsnode(blk);
+        vfs_close_fnode(blk);
         return -1;
     }
 
     int ret = vfs_format(fstype, blk->ino, options);
-    vfs_close_fsnode(blk);
+    vfs_close_fnode(blk);
     return ret;
 }
 

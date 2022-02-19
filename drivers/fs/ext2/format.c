@@ -135,7 +135,7 @@ int ext2_format(inode_t* dev, const char* options)
         break;
     }
 
-    int unused_block = (dev->length >> block_log_size) - nbr_blocks;
+    // int unused_block = (dev->length >> block_log_size) - nbr_blocks;
 
 
     kprintf(-1, "File system label = %s\n", "");
@@ -150,7 +150,7 @@ int ext2_format(inode_t* dev, const char* options)
     kprintf(-1, "%d frags per group\n", blocks_per_group);
     kprintf(-1, "%d inodes per group\n", inodes_per_group);
 
-    int i, n;
+    unsigned i, n;
     uint32_t pos = dc;
     for (i = 1; i < ngroup; ++i) {
         pos += blocks_per_group;

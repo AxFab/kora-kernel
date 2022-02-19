@@ -62,7 +62,7 @@ struct kapi {
 #else
 # define EXPORT_SYMBOL(n,s) \
     kapi_t _ksym_##n = \
-    { .name = #n, .sym = n, .flags = (s) };
+    { .name = #n, .sym = n, .flags = (s) }
 #endif
 
 

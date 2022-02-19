@@ -107,7 +107,7 @@ static task_t *task_create(scheduler_t *sch, task_t *parent, const char *name, i
 }
 
 
-int task_spawn(const char *program, const char **args, fsnode_t **nodes)
+int task_spawn(const char *program, const char **args, inode_t **nodes)
 {
     const char *name = strrchr(program, '/');
     if (name == NULL)
@@ -117,11 +117,13 @@ int task_spawn(const char *program, const char **args, fsnode_t **nodes)
 
     // Init stream
     int flags = 0;
-    fsnode_t *null = vfs_search(task->vfs, "/dev/null", NULL, true);
-    stream_put(task->fset, nodes[0] != NULL ? nodes[0] : null, flags | VM_RD);
-    stream_put(task->fset, nodes[1] != NULL ? nodes[1] : null, flags | VM_WR);
-    stream_put(task->fset, nodes[2] != NULL ? nodes[2] : null, flags | VM_WR);
-    vfs_close_fsnode(null);
+    fnode_t *dev_null = vfs_search(task->vfs, "/dev/null", NULL, true);
+    inode_t *null = vfs_inodeof(dev_null);
+    stream_put(task->fset, NULL, nodes[0] != NULL ? nodes[0] : null, flags | VM_RD);
+    stream_put(task->fset, NULL, nodes[1] != NULL ? nodes[1] : null, flags | VM_WR);
+    stream_put(task->fset, NULL, nodes[2] != NULL ? nodes[2] : null, flags | VM_WR);
+    vfs_close_inode(null);
+    vfs_close_fnode(dev_null);
 
     // Load image
     int ret = dlib_openexec(task->proc, program);
@@ -197,6 +199,7 @@ int task_start(const char *name, void *func, void *arg)
     scheduler_add(sch, task);
     return task->pid;
 }
+EXPORT_SYMBOL(task_start, 0);
 
 
 void task_stop(task_t *task, int code)
@@ -227,10 +230,11 @@ void task_fatal(const char *msg, unsigned signum)
     scheduler_switch(TS_ZOMBIE);
     // task_raise(sch, task, signum);
 }
+EXPORT_SYMBOL(task_fatal, 0);
 
 // _Noreturn void task_init()
 // {
-//     fsnode_t *node;
+//     fnode_t *node;
 //     // Try to mount image
 //     for (;;) {
 //         node = vfs_mount(__current->vfs, "sdc", "iso", "/mnt/cdrom", "");
@@ -238,7 +242,7 @@ void task_fatal(const char *msg, unsigned signum)
 //             break;
 //         sleep_timer(250000);
 //     }
-//     vfs_close_fsnode(node);
+//     vfs_close_fnode(node);
 
 //     // Change root
 //     vfs_chdir(__current->vfs, "/mnt/cdrom", true);
@@ -253,7 +257,7 @@ void task_fatal(const char *msg, unsigned signum)
 //             break;
 //         sleep_timer(250000);
 //     }
-//     vfs_close_fsnode(node);
+//     vfs_close_fnode(node);
 
 
 //     task_info_t *info = kalloc(sizeof(task_info_t));
@@ -264,10 +268,10 @@ void task_fatal(const char *msg, unsigned signum)
 //     info->args[2] = strdup("-s");
 //     info->args[3] = NULL;
 
-//     fsnode_t *stream = vfs_search(__current->vfs, "/dev/null", NULL, true);
+//     fnode_t *stream = vfs_search(__current->vfs, "/dev/null", NULL, true);
 //     info->streams[0] = stream;
-//     info->streams[1] = vfs_open_fsnode(stream);
-//     info->streams[2] = vfs_open_fsnode(stream);
+//     info->streams[1] = vfs_open_fnode(stream);
+//     info->streams[2] = vfs_open_fnode(stream);
 
 //     task_init(info);
 // }
@@ -296,9 +300,9 @@ void task_fatal(const char *msg, unsigned signum)
 //     stream_put(__current->fset, info->streams[0], flags | VM_RD);
 //     stream_put(__current->fset, info->streams[1], flags | VM_WR);
 //     stream_put(__current->fset, info->streams[2], flags | VM_WR);
-//     vfs_close_fsnode(info->streams[0]);
-//     vfs_close_fsnode(info->streams[1]);
-//     vfs_close_fsnode(info->streams[2]);
+//     vfs_close_fnode(info->streams[0]);
+//     vfs_close_fnode(info->streams[1]);
+//     vfs_close_fnode(info->streams[2]);
 
 //     // Prepare stack
 //     void *start = dlib_exec_entry(__current->proc);

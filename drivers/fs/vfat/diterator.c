@@ -30,7 +30,7 @@ void fat_create_iterator(inode_t *dir, fat_iterator_t *ctx)
     ctx->sec_size = volume->BytsPerSec;
     if (dir->no == 1) {
         int dL = (volume->RootEntry * volume->BytsPerSec) / PAGE_SIZE;
-        int dO = (volume->RootEntry * volume->BytsPerSec) % PAGE_SIZE;
+        // int dO = (volume->RootEntry * volume->BytsPerSec) % PAGE_SIZE;
         int eL = ALIGN_UP((volume->RootEntry + volume->RootDirSectors) * volume->BytsPerSec, PAGE_SIZE) / PAGE_SIZE;
         int sL = eL - dL;
         ctx->lba = volume->RootEntry;
@@ -219,7 +219,7 @@ int fat_unlink(inode_t *dir, const char *name)
 {
     fat_iterator_t ctx;
     fat_create_iterator(dir, &ctx); // TODO - write access
-    fat_volume_t *volume = dir->drv_data;
+    // fat_volume_t *volume = dir->drv_data;
 
     for (;;) {
         fat_entry_t *entry;

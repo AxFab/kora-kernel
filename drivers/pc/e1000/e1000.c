@@ -36,6 +36,9 @@
 
 #define _B(n)  (1<<(n))
 
+
+
+
 PACK(struct rx_desc {
     volatile uint64_t addr;
     volatile uint16_t length;
@@ -88,10 +91,10 @@ void e1000_link(ifnet_t *net)
 int e1000_send(ifnet_t *net, skb_t *skb)
 {
     e1000_device_t *ifnet = net->drv_data;
+    struct PCI_device *pci = ifnet->pci;
+    mtx_lock(&pci->mtx);
     kprintf(KL_DBG, "REQUEST SEND NETWORK %s (%d)\n", skb->log, skb->length);
     kdump2(skb->buf, skb->length);
-    splock_lock(&ifnet->lock);
-    struct PCI_device *pci = ifnet->pci;
     ifnet->tx_index = PCI_rd32(pci, 0, REG_TDT);
 
     memcpy(ifnet->tx_virt[ifnet->tx_index], skb->buf, skb->length);
@@ -100,51 +103,84 @@ int e1000_send(ifnet_t *net, skb_t *skb)
     ifnet->tx_base[ifnet->tx_index].status = 0;
     ifnet->tx_index = (ifnet->tx_index + 1) % ifnet->tx_count;
     PCI_wr32(pci, 0, REG_TDT, ifnet->tx_index);
-    splock_unlock(&ifnet->lock);
-}
-
-
-int e1000_irq_handler(e1000_device_t *ifnet)
-{
-    struct PCI_device *pci = ifnet->pci;
-    uint32_t status = PCI_rd32(pci, 0, 0xc0);
-
-    if (status == 0)
-        return -1;
-
-    // if (status & 0x01) {
-    //     kpritnf(KL_DBG, "%s - Packet transmited with success\n", ifnet->name);
-    if (status & 0x04) {
-        // ifnet->dev.flags |= NET_CONNECTED;
-        int link_up = PCI_rd32(pci, 0, REG_STATUS) & (1 << 1);
-        kprintf(KL_DBG, "%s - Link status change: %d!\n", ifnet->name, link_up);
-    } else if (status & 0x10) {
-        kprintf(KL_DBG, "%s - Min thresohold RX hit \n", ifnet->name);
-        // Send ICMP command 3 !?
-    } else if (status & 0x40)
-        kprintf(KL_DBG, "%s - Receive buffers overrun\n", ifnet->name);
-
-    else if (status & 0xC0) {
-        for (;;) {
-            ifnet->rx_index = PCI_rd32(pci, 0, REG_RDT);
-            if (ifnet->rx_index == PCI_rd32(pci, 0, REG_RDH))
-                break;
-            ifnet->rx_index = (ifnet->rx_index + 1) % ifnet->rx_count;
-            if ((ifnet->rx_base[ifnet->rx_index].status & 1) == 0)
-                break;
-
-            // Inject new packet on network stack
-            uint8_t *buffer = ifnet->rx_virt[ifnet->rx_index];
-            uint16_t length = ifnet->rx_base[ifnet->rx_index].length;
-            kprintf(KL_DBG, "RECEIVE NETWORK PACKET (%d bytes)\n", length);
-            net_skb_recv(&ifnet->dev, buffer, length);
-            ifnet->rx_base[ifnet->rx_index].status = 0;
-            PCI_wr32(pci, 0, REG_RDT, ifnet->rx_index);
-        }
-    }
+    mtx_unlock(&pci->mtx);
     return 0;
 }
 
+int e1000_recv(struct PCI_device *pci, e1000_device_t *ifnet)
+{
+    int count = 0;
+    for (;;) {
+        ifnet->rx_index = PCI_rd32(pci, 0, REG_RDT);
+        if (ifnet->rx_index == PCI_rd32(pci, 0, REG_RDH))
+            break;
+        ifnet->rx_index = (ifnet->rx_index + 1) % ifnet->rx_count;
+        if ((ifnet->rx_base[ifnet->rx_index].status & 1) == 0)
+            break;
+
+        // Inject new packet on network stack
+        uint8_t *buffer = ifnet->rx_virt[ifnet->rx_index];
+        uint16_t length = ifnet->rx_base[ifnet->rx_index].length;
+        kprintf(KL_DBG, "RECEIVE NETWORK PACKET (%d bytes)\n", length);
+        net_skb_recv(&ifnet->dev, buffer, length);
+        count++;
+        ifnet->rx_base[ifnet->rx_index].status = 0;
+        PCI_wr32(pci, 0, REG_RDT, ifnet->rx_index);
+    }
+    return count;
+}
+
+int e1000_recv_task(e1000_device_t *ifnet)
+{
+    struct PCI_device *pci = ifnet->pci;
+    xtime_t delay = 0; // µs
+    for (;;) {
+        mtx_lock(&pci->mtx);
+        e1000_recv(pci, ifnet);
+        mtx_unlock(&pci->mtx);
+        if (true)
+            scheduler_switch(TS_READY);
+        else
+            sleep_timer(delay);
+    }
+}
+
+int e1000_irq_handler(e1000_device_t *ifnet)
+{
+    kprintf(KL_DBG, "[e1000] IRQ %s\n", ifnet->name);
+    struct PCI_device *pci = ifnet->pci;
+    mtx_lock(&pci->mtx);
+    uint32_t status = PCI_rd32(pci, 0, REG_ICR);
+    PCI_wr32(pci, 0, REG_ICR, status);
+
+    kprintf(KL_DBG, "[e1000] IRQ %s status %x\n", ifnet->name, status);
+    if (status == 0) {
+        mtx_unlock(&pci->mtx);
+        return -1;
+    }
+
+    if (status & ICR_TXDW) {
+        kprintf(KL_DBG, "[e1000] %s - Packet transmited with success\n", ifnet->name);
+    }
+    if (status & ICR_LSC) {
+        // ifnet->dev.flags |= NET_CONNECTED;
+        int link_up = PCI_rd32(pci, 0, REG_STATUS) & (1 << 1);
+        kprintf(KL_DBG, "[e1000] %s - Link status change: %d!\n", ifnet->name, link_up);
+    }
+    if (status & ICR_RXDMT0) {
+        kprintf(KL_DBG, "[e1000] %s - Min thresohold RX hit \n", ifnet->name);
+        // Send ICMP command 3 !?
+    }
+    if (status & ICR_RXO)
+        kprintf(KL_DBG, "[e1000] %s - Receive buffers overrun\n", ifnet->name);
+
+    if (status & 0xC0) {
+    }
+
+    e1000_recv(pci, ifnet);
+    mtx_unlock(&pci->mtx);
+    return 0;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -281,11 +317,11 @@ void e1000_init_hw(e1000_device_t *ifnet)
     if (status & (1 << 1)) {
         ifnet->dev->flags |= NET_CONNECTED;
         net_event(ifnet->dev, NET_EV_LINK, 0);
-        kprintf(0, "%s, DONE %x \n", ifnet->name, status);
+        kprintf(0, "[e1000] %s, DONE %x \n", ifnet->name, status);
     }
     int sp = (status >> 6) & 3;
     static char *spd[] = { "10Mb/s", "100Mb/s", "1Gb/s", "1Gb/s" };
-    kprintf(0, "%s, Speed: %s\n", ifnet->name, spd[sp]);
+    kprintf(0, "[e1000] %s, Speed: %s\n", ifnet->name, spd[sp]);
 }
 
 
@@ -303,6 +339,8 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     ifnet->pci = pci;
     ifnet->name = strdup(name);
     splock_init(&ifnet->lock);
+    mtx_lock(&pci->mtx);
+
 
     pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VM_RW | VM_PHYSIQ | VM_UNCACHABLE);
     // kprintf(KL_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
@@ -341,22 +379,29 @@ void e1000_startup(struct PCI_device *pci, const char *name)
 
     /* Find MAC address */
     uint8_t hwaddr;
-    if (e1000_read_mac(pci, hwaddr) != 0)
+    if (e1000_read_mac(pci, hwaddr) != 0) {
+        mtx_unlock(&pci->mtx);
         return;
+    }
 
     /* initialize */
     PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
 
     ifnet_t *net = net_device(net_stack(), NET_AF_ETH, hwaddr, &e1000_ops, ifnet);
     if (net == NULL) {
-        kprintf(-1, "Error creating ethernet device: %s\n", name);
+        kprintf(-1, "[e1000] Error creating ethernet device: %s\n", name);
         kfree(ifnet);
+        mtx_unlock(&pci->mtx);
         return;
     }
     ifnet->dev = net;
     net->mtu = 1500;
     irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
     e1000_init_hw(ifnet);
+    mtx_unlock(&pci->mtx);
+    char tmp[32];
+    snprintf(tmp, 32, "e1000.eth%d.recv", net->idx);
+    // task_start(tmp, e1000_recv_task, ifnet);
     // ifnet->dev->mtu = 1500;
     // ifnet->dev.send = (void *)e1000_send;
     // ifnet->dev.link = (void *)e1000_init_hw;

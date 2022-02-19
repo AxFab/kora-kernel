@@ -20,6 +20,7 @@
 #ifndef SYS_SEM_H
 #define SYS_SEM_H 1
 
+#include <bits/cdefs.h>
 #include <threads.h>
 
 typedef struct sem sem_t;
@@ -30,6 +31,8 @@ struct sem {
     int count;
 };
 
+__STDC_GUARD
+
 int sem_init(sem_t *sem, int count);
 void sem_destroy(sem_t *sem);
 void sem_acquire(sem_t *sem);
@@ -39,5 +42,6 @@ int sem_tryacquire(sem_t *sem);
 void sem_release(sem_t *sem);
 void sem_release_many(sem_t *sem, int count);
 
+__STDC_END
 
 #endif /* SYS_SEM_H */

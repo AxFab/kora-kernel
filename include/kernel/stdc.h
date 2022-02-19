@@ -60,6 +60,8 @@ enum klog {
     KL_INO, // VFS ressources alloc
     KL_FSA, // File system allocation
     KL_BIO, // Block IO
+
+    KL_MAX,
 };
 
 
@@ -123,5 +125,6 @@ void *memcpy32(void *dest, void *src, size_t lg);
 void *memset32(void *dest, uint32_t val, size_t lg);
 
 void stackdump(size_t frame);
+
 
 #endif /* _KERNEL_STDC_H */

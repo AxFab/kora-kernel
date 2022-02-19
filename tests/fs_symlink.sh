@@ -66,9 +66,9 @@ RMDIR Dru
 
 # ---------------------------------------------------------------------------
 # Symlink returns ENAMETOOLONG if a component of the name2 pathname exceeded 255 characters
-SIMLINK Lrz Poo
+SYMLINK Lrz Poo
 UNLINK Poo
-SIMLINK Poo Lrz
+SYMLINK Poo Lrz
 UNLINK Lrz
 
 ERROR ENAMETOOLONG
@@ -87,4 +87,75 @@ RMDIR Tbz
 
 # ---------------------------------------------------------------------------
 # Symlink returns EACCES when a component of the name2 path prefix denies search permission
+# MKDIR Glap 0755
+# MKDIR Glap/Kah 0755
+# CHOWN Glap/Kah 65534 65534
+# SETEUID 65534 65534
+# SYMLINK Sto Glap/Kah/Zig
+# UNLINK Glap/Kah/Zig
+# SETEUID 0 0
+# CHMOD Glap/Kah 0644
+# ERROR EACCES
+# SYMLINK Sto Glap/Kah/Zig
+# ERROR ON
+# CHMOD Glap/Kah 0755
+# SYMLINK Sto Glap/Kah/Zig
+# UNLINK Glap/Kah/Zig
+# SETEUID 0 0
+# RMDIR Glap/Kah
+# RMDIR Glap
+
+# ---------------------------------------------------------------------------
+# Symlink returns EACCES if the parent directory of the file to be created denies write permission
+# MKDIR Glap 0755
+# MKDIR Glap/Kah 0755
+# CHOWN Glap/Kah 65534 65534
+# SETEUID 65534 65534
+# SYMLINK Sto Glap/Kah/Zig
+# UNLINK Glap/Kah/Zig
+# SETEUID 0 0
+# CHMOD Glap/Kah 0555
+# ERROR EACCES
+# SYMLINK Sto Glap/Kah/Zig
+# ERROR ON
+# CHMOD Glap/Kah 0755
+# SYMLINK Sto Glap/Kah/Zig
+# SETEUID 0 0
+# UNLINK Glap/Kah/Zig
+# RMDIR Glap/Kah
+# RMDIR Glap
+
+# ---------------------------------------------------------------------------
+# Symlink returns ELOOP if too many symbolic links were encountered in translating the name2 path name
+SYMLINK Blaz Dru
+SYMLINK Dru Blaz
+ERROR ELLOP
+SYMLINK Goz Blaz/Goz
+SYMLINK Goz Dru/Goz
+ERROR ON
+UNLINK Blaz
+UNLINK Dru
+
+# ---------------------------------------------------------------------------
+# Symlink returns EEXIST if the name2 argument already exists
+CREATE Lrz
+ERROR EEXIST
+SYMLINK Poo Lrz
+ERROR ON
+UNLINK Lrz
+
+SYMLINK Lrz
+ERROR EEXIST
+SYMLINK Poo Lrz
+ERROR ON
+UNLINK Lrz
+
+MKDIR Lrz
+ERROR EEXIST
+SYMLINK Poo Lrz
+ERROR ON
+RMDIR Lrz
+
+# ---------------------------------------------------------------------------
+# Symlink returns EPERM if the parent directory of the file named by name2 has its immutable flag set
 

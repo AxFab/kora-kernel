@@ -161,7 +161,7 @@ uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk)
         return lba;
     }
 
-    return -1;
+    return 0;
 }
 
 

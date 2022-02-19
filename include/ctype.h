@@ -20,34 +20,64 @@
 #ifndef _CTYPE_H
 #define _CTYPE_H 1
 
-static inline int isspace(char a)
+
+static inline int isalpha(int a)
 {
-    return a > 0 && a <= 0x20;
+    return (((unsigned)a | 32) - 'a') < 26;
 }
 
-static inline int isdigit(char a)
+static inline int isdigit(int a)
 {
-    return a >= '0' && a <= '9';
+    return ((unsigned)a - '0') < 10;
 }
 
-static inline int tolower(char a)
+static inline int islower(int a)
 {
-    return (a >= 'A' && a <= 'Z') ? (a | 0x20) : a;
+    return ((unsigned)a - 'a') < 26;
 }
 
-static inline int toupper(char a)
+static inline int isupper(int a)
 {
-    return (a >= 'a' && a <= 'z') ? (a & ~0x20) : a;
+    return ((unsigned)a - 'A') < 26;
 }
 
-// #define isalpha(a) ((((unsigned)(a)|32)-'a') < 26)
-// #define isdigit(a) (((unsigned)(a)-'0') < 10)
-// #define islower(a) (((unsigned)(a)-'a') < 26)
-// #define isupper(a) (((unsigned)(a)-'A') < 26)
-// #define isprint(a) (((unsigned)(a)-0x20) < 0x5f)
-// #define isgraph(a) (((unsigned)(a)-0x21) < 0x5e)
-// #define isspace(a) ((a)==' '||((unsigned)(a)-'\t'<5))
+static inline int isprint(int a)
+{
+    return ((unsigned)a - 0x20) < 0x5f;
+}
 
+static inline int isgraph(int a)
+{
+    return ((unsigned)a - 0x21) < 0x5e;
+}
+
+static inline int isspace(int a)
+{
+    return (a) == ' ' || (unsigned)a - '\t' < 5;
+}
+
+// - - - - - - - - - - - - - - -
+
+static inline int isalnum(int a)
+{
+    return (((unsigned)a | 32) - 'a') < 26 || ((unsigned)a - '0') < 10;
+}
+
+// - - - - - - - - - - - - - - -
+
+static inline int tolower(int a)
+{
+    return ((unsigned)a - 'A') < 26 ? (a | 0x20) : a;
+}
+
+static inline int toupper(int a)
+{
+    return ((unsigned)a - 'a') < 26 ? (a & ~0x20) : a;
+}
+
+// - - - - - - - - - - - - - - -
+
+int isblank(int);
 
 
 #endif /* _CTYPE_H */

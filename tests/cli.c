@@ -443,7 +443,7 @@ int do_include(char *str, void *ctx)
     while (isblank(*str)) str++;
     for (i = 0; str[i] && !isspace(str[i]); ++i);
     str[i] = '\0';
-    const char *path = strdup(str);
+    char *path = strdup(str);
     FILE *fp = fopen(path, "r");
     if (fp == NULL)
         return cli_error("Unable to open file %s [%d - %s]\n", str, errno, strerror(errno));
@@ -643,7 +643,7 @@ int cli_commands(FILE *fp, void *ctx, bool reecho)
         int retn = routine->call(ctx, &args[0]);
         for (i = 0; i < ARGS_MAX; ++i) {
             if (routine->params[i] == ARG_STR && args[i])
-                free(args[i]);
+                free((void *)args[i]);
         }
         if (retn != 0 && (error_handling < 0 || (error_handling > 0 && error_handling != errno))) {
             printf("Error with %s (%d) at row %d\n", cmd, errno, row);
@@ -734,7 +734,7 @@ char *usages[] = {
     NULL,
 };
 
-static void cli_parse(void *ptr, unsigned opt, char *arg)
+static void cli_parse(void *ptr, int opt, char *arg)
 {
     cli_cfg_t *cfg = ptr;
     if (opt == 'i')
@@ -746,6 +746,9 @@ static int cli_exec(void *ptr, char *path)
     cli_cfg_t *cfg = ptr;
     return do_include(path, cfg->context);
 }
+
+int kalloc_count();
+int kmap_count();
 
 int cli_main(int argc, char **argv, void *context, void(*initialize)(), void(*teardown)())
 {

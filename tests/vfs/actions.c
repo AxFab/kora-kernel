@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <kernel/vfs.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -34,6 +35,15 @@
 # define O_NOFOLLOW 0x100000
 #endif
 
+#ifdef WIN32
+#pragma warning(disable : 4996)
+#endif
+
+#ifdef __LP64
+#define XOFF_F "%ld"
+#else
+#define XOFF_F "%lld"
+#endif
 
 int imgdk_open(const char *path, const char *name);
 void imgdk_create(const char *name, size_t size);
@@ -45,14 +55,10 @@ int do_dump(vfs_t **ctx, size_t *param)
     vfs_t *vfs = *ctx;
     fnode_t *node = vfs->root;
     int indent = 0;
-    char buf[256], tmp[16];
-    memset(buf, ' ', indent * 2);
-    buf[indent * 2] = '\0';
-    strncat(buf, "- ", 256);
-    strncat(buf, node->name, 256);
-    snprintf(tmp, 16, ".%d", node->mode);
-    strncat(buf, tmp, 256);
-    printf("%s\n", buf);
+    char tmp[16];
+    memset(tmp, ' ', indent * 2);
+    tmp[indent * 2] = '\0';
+    printf("%s- %s.%d\n", tmp, node->name, node->mode);
     return 0;
 }
 
@@ -80,25 +86,25 @@ int do_ls(vfs_t **ctx, size_t *param)
         printf("No such directory (%d: %s)\n", errno, strerror(errno));
         return -1;
     } else if (dir->ino->type != FL_DIR) {
-        vfs_close_fsnode(dir);
+        vfs_close_fnode(dir);
         printf("This file isn't a directory\n");
         return -1;
     }
 
     void *dctx = vfs_opendir(dir, NULL);
     if (!dctx) {
-        vfs_close_fsnode(dir);
+        vfs_close_fnode(dir);
         printf("Error during directory reading\n");
         return -1;
     }
 
     while ((node = vfs_readdir(dir, dctx)) != NULL) {
         printf("    %s (%s)\n", node->name, vfs_inokey(node->ino, tmp));
-        vfs_close_fsnode(node);
+        vfs_close_fnode(node);
     }
 
     vfs_closedir(dir, dctx);
-    vfs_close_fsnode(dir);
+    vfs_close_fnode(dir);
     return 0;
 }
 
@@ -129,28 +135,26 @@ static int __do_stat(fnode_t *node, char *type, int mode, char *uid, char *gid)
 
     if (type != NULL) {
         if (strcmp(type, "DIR") == 0 && node->ino->type != FL_DIR) {
-            vfs_close_fsnode(node);
+            vfs_close_fnode(node);
             return cli_error("Entry is not a directory\n");
         } else if (strcmp(type, "REG") == 0 && node->ino->type != FL_REG) {
-            vfs_close_fsnode(node);
+            vfs_close_fnode(node);
             return cli_error("Entry is not a regular file\n");
         }
     }
 
     if (mode != 0 && mode != node->ino->mode) {
-        vfs_close_fsnode(node);
+        vfs_close_fnode(node);
         return cli_error("Bad mode\n");
     }
     // TODO -- Check uid/gid 
 
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
     return 0;
 }
 
 int do_stat(vfs_t **ctx, size_t *param)
 {
-    static const char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx" };
-
     vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     char *type = (char *)param[1];
@@ -164,7 +168,7 @@ int do_stat(vfs_t **ctx, size_t *param)
         // TODO -- Big and Ugly ack !
         path = malloc(node->ino->length + 1);
         vfs_readlink(node->ino, path, node->ino->length + 1);
-        vfs_close_fsnode(node);
+        vfs_close_fnode(node);
         // vfs_t *cpy = vfs_clone_vfs(vfs);
         // vfs_chdir(cpy, path, false);
         node = vfs_search(vfs, path, NULL, true);
@@ -177,8 +181,6 @@ int do_stat(vfs_t **ctx, size_t *param)
 
 int do_lstat(vfs_t **ctx, size_t *param)
 {
-    static const char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx" };
-
     vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     char *type = (char *)param[1];
@@ -202,17 +204,17 @@ int do_links(vfs_t **ctx, size_t *param)
     if (node == NULL)
         return cli_error("No such entry\n");
     else if (node->ino->type != FL_DIR) {
-        vfs_close_fsnode(node);
+        vfs_close_fnode(node);
         return cli_error("Is not a directory\n");
     }
 
     printf("Node have %d links\n", node->ino->links);
     if (count != 0 && node->ino->links != count) {
-        vfs_close_fsnode(node);
+        vfs_close_fnode(node);
         return cli_error("Invalid links count\n");
     }
 
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
     return 0;
 }
 
@@ -241,7 +243,7 @@ int do_times(vfs_t **ctx, size_t *param)
         printf("   birth: %s\n", vfs_timestr(node->ino->btime, tmp));
 
     // TODO -- TESTS
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
     return 0;
 }
 
@@ -282,7 +284,7 @@ int do_open(vfs_t **ctx, size_t *param)
     vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     char *flags = (char *)param[1];
-    int mode = (char *)param[2];
+    int mode = (int)param[2];
     if (mode == 0)
         mode = 0644;
 
@@ -329,9 +331,9 @@ int do_look(vfs_t **ctx, size_t *param)
 
 int do_delay(vfs_t **ctx, size_t *param)
 {
-    xtime xt;
-    xt.sec = 1;
-    xt.nsec = 0;
+    struct timespec xt;
+    xt.tv_sec = 1;
+    xt.tv_nsec = 0;
     thrd_sleep(&xt, NULL);
     return 0;
 }
@@ -342,7 +344,7 @@ int do_create(vfs_t **ctx, size_t *param)
     char *name = (char *)param[0];
     int mode = param[1];
     if (mode == 0)
-        mode == 0644;
+        mode = 0644;
 
     fnode_t *node = vfs_search(vfs, name, NULL, false);
     if (node == NULL)
@@ -350,7 +352,7 @@ int do_create(vfs_t **ctx, size_t *param)
     int ret = vfs_create(node, NULL, mode & (~vfs->umask & 0777));
     if (ret != 0)
         cli_error("Unable to create file %s: [%d - %s]\n", name, errno, strerror(errno));
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
     return ret;
 }
 
@@ -447,7 +449,7 @@ int do_dd(vfs_t **ctx, size_t *param)
         len -= cap;
     }
     kfree(buf);
-    vfs_close_fsnode(dstNode);
+    vfs_close_fnode(dstNode);
     return 0;
 }
 
@@ -461,7 +463,7 @@ int do_clear_cache(vfs_t **ctx, size_t *param)
         return cli_error("No such entry\n");
     device_t *dev = node->ino->dev;
     int ret = node->rcu == 1 ? 0 : -1;
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
     vfs_dev_scavenge(dev, -1);
     return ret;
 }
@@ -509,12 +511,12 @@ int do_extract(vfs_t **ctx, size_t *param)
         int ret = vfs_read(node->ino, buffer, 512, off, 0);
         if (ret < 0) {
             if (errno)
-                printf("Reading error at %lld\n", off);
+                printf("Reading error at "XOFF_F"\n", off);
             else
-                printf("End of file at %lld (expect %lld)\n", off, node->ino->length);
+                printf("End of file at "XOFF_F" (expect "XOFF_F")\n", off, node->ino->length);
             break;
         } else if (ret == 0) {
-            printf("Reading blocked at %lld\n", off);
+            printf("Reading blocked at "XOFF_F"\n", off);
             break;
         }
 
@@ -522,7 +524,7 @@ int do_extract(vfs_t **ctx, size_t *param)
         off += ret;
     };
     fclose(fp);
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
     return 0;
 }
 
@@ -604,12 +606,12 @@ int do_checksum(vfs_t **ctx, size_t *param)
         int ret = vfs_read(node->ino, buffer, 512, off, 0);
         if (ret < 0) {
             if (errno)
-                printf("Reading error at %lld\n", off);
+                printf("Reading error at "XOFF_F"\n", off);
             else
-                printf("End of file at %lld (expect %lld)\n", off, node->ino->length);
+                printf("End of file at "XOFF_F" (expect "XOFF_F")\n", off, node->ino->length);
             break;
         } else if (ret == 0) {
-            printf("Reading blocked at %lld\n", off);
+            printf("Reading blocked at "XOFF_F"\n", off);
             break;
         }
 
@@ -620,7 +622,7 @@ int do_checksum(vfs_t **ctx, size_t *param)
 
     // Complete checksum
     printf("Checksum %s   0x%08x\n", path, checksum);
-    vfs_close_fsnode(node);
+    vfs_close_fnode(node);
     return 0;
 }
 
@@ -638,7 +640,7 @@ int do_img_create(vfs_t **ctx, size_t *param)
 {
     char *path = (char *)param[0];
     char *size = (char *)param[1];
-    char *type = (char *)param[2];
+    // char *type = (char *)param[2];
     char *ext = strrchr(path, '.');
     uint64_t hdSize = strtol(size, &size, 10);
     char sfx = (*size | 0x20);
@@ -677,7 +679,6 @@ int do_img_remove(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-#pragma warning(disable : 4996)
 
 int do_img_copy(vfs_t **ctx, size_t *param)
 {
@@ -756,7 +757,7 @@ int do_format(vfs_t **ctx, size_t *param)
 
     if (blk->ino->type != FL_BLK) {
         printf("We can only format block devices\n");
-        vfs_close_fsnode(blk);
+        vfs_close_fnode(blk);
         return -1;
     }
     // TODO -- Get method by FS name
@@ -766,6 +767,6 @@ int do_format(vfs_t **ctx, size_t *param)
     else if (ret != 0)
         printf("Error during the format operation\n");
 
-    vfs_close_fsnode(blk);
+    vfs_close_fnode(blk);
     return 0;
 }

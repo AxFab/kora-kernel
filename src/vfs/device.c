@@ -74,8 +74,8 @@ vfs_t *vfs_clone_vfs(vfs_t *vfs)
     cpy->rcu = 1;
     cpy->share = vfs->share;
     atomic_inc(&vfs->share->rcu);
-    cpy->root = vfs_open_fsnode(vfs->root);
-    cpy->pwd = vfs_open_fsnode(vfs->pwd);
+    cpy->root = vfs_open_fnode(vfs->root);
+    cpy->pwd = vfs_open_fnode(vfs->pwd);
     cpy->umask = vfs->umask;
     return cpy;
 }
@@ -84,8 +84,8 @@ void vfs_close_vfs(vfs_t *vfs)
     if (atomic_xadd(&vfs->rcu, -1) != 1)
         return;
 
-    vfs_close_fsnode(vfs->pwd);
-    vfs_close_fsnode(vfs->root);
+    vfs_close_fnode(vfs->pwd);
+    vfs_close_fnode(vfs->root);
     atomic_dec(&vfs->share->rcu);
     kfree(vfs);
 }
@@ -185,7 +185,7 @@ int vfs_chdir(vfs_t *vfs, const char *path, bool root)
         return -1;
     }
     if (ino->type != FL_DIR) {
-        vfs_close_fsnode(node);
+        vfs_close_fnode(node);
         vfs_close_inode(ino);
         errno = ENOTDIR;
         return -1;
@@ -199,12 +199,12 @@ int vfs_chdir(vfs_t *vfs, const char *path, bool root)
         prev = vfs->pwd;
         vfs->pwd = node;
     }
-    vfs_close_fsnode(prev);
+    vfs_close_fnode(prev);
 
     // Check pwd is below root
     if (vfs_fnode_bellow(vfs->root, vfs->pwd) != 0) {
-        vfs_close_fsnode(vfs->pwd);
-        vfs->pwd = vfs_open_fsnode(vfs->root);
+        vfs_close_fnode(vfs->pwd);
+        vfs->pwd = vfs_open_fnode(vfs->root);
     }
     return 0;
 }
@@ -251,7 +251,7 @@ ino_ops_t pipe_ino_ops = {
 
 fnode_t *__private;
 
-fnode_t *vfs_mknod(fnode_t *parent, const char *name, int devno)
+fnode_t *vfs_mkfifo(fnode_t *parent, const char *name)
 {
     int i;
     if (__private == NULL) {
@@ -280,7 +280,7 @@ fnode_t *vfs_mknod(fnode_t *parent, const char *name, int devno)
     mtx_lock(&node->mtx);
     if (node->mode != FN_EMPTY) {
         mtx_unlock(&node->mtx);
-        vfs_close_fsnode(node);
+        vfs_close_fnode(node);
         errno = EEXIST;
         return NULL;
     }

@@ -108,3 +108,4 @@ void scheduler_switch(int status)
     irq_zero();
     cpu_restore(&task->jmpbuf);
 }
+EXPORT_SYMBOL(scheduler_switch, 0);

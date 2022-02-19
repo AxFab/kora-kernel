@@ -27,8 +27,13 @@ coverage.lcov: check
 	$(V) lcov --rc lcov_branch_coverage=1 -c --directory . -b . -o coverage.lcov
 	$(S) sed $(SED_LCOV) -i coverage.lcov
 
+do_coverage:
+	$(V) lcov --rc lcov_branch_coverage=1 -c --directory . -b . -o coverage.lcov
+	$(S) sed $(SED_LCOV) -i coverage.lcov
+	$(V) genhtml --rc lcov_branch_coverage=1 -o coverage coverage.lcov
+
 coverage: coverage.lcov
-	genhtml --rc lcov_branch_coverage=1 -o coverage coverage.lcov
+	$(V) genhtml --rc lcov_branch_coverage=1 -o coverage coverage.lcov
 
 %.lcov: $(bindir)/%
 	$(S) find -name *.gcda | xargs -r rm

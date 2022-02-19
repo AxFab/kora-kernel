@@ -51,7 +51,7 @@ void sem_acquire(sem_t *sem)
     mtx_unlock(&sem->mtx);
 }
 
-int sem_timedacquire(sem_t *sem, const struct timespec *restrict xt)
+int sem_timedacquire(sem_t *sem, const struct timespec *xt)
 {
     assert(sem != NULL);
     mtx_lock(&sem->mtx);

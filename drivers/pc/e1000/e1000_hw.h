@@ -333,3 +333,17 @@
 #define CMD_RPS                         (1 << 4)    /* Report Packet Sent */
 #define CMD_VLE                         (1 << 6)    /* VLAN Packet Enable */
 #define CMD_IDE                         (1 << 7)    /* Interrupt Delay Enable */
+
+
+#define ICR_TXDW   (1 << 0)  /* Transmit queue send */
+#define ICR_TXQE   (1 << 1)  /* Transmit queue is empty */
+#define ICR_LSC    (1 << 2)  /* Link status changed */
+#define ICR_RXSEQ  (1 << 3)  /* Receive sequence count error */
+#define ICR_RXDMT0 (1 << 4)  /* Receive descriptor minimum threshold */
+/* what's 5 (0x20)? */
+#define ICR_RXO    (1 << 6)  /* Receive overrun */
+#define ICR_RXT0   (1 << 7)  /* Receive timer interrupt? */
+#define ICR_ACK    (1 << 17)
+#define ICR_SRPD   (1 << 16)
+#define ICR_UNKNWO (1 << 15) // ??
+

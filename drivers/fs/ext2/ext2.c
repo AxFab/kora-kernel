@@ -192,7 +192,7 @@ static void ext2_make_empty_dir(ext2_volume_t* vol, uint32_t blkno, int no, int 
     bkunmap(&bkd);
 }
 
-static void ext2_write_symlink_on_block(ext2_volume_t *vol, uint32_t blkno, char *buf, unsigned len)
+static void ext2_write_symlink_on_block(ext2_volume_t *vol, uint32_t blkno, const char *buf, size_t len)
 {
     struct bkmap bkd;
     char *data = bkmap(&bkd, blkno, vol->blocksize, 0, vol->blkdev, VM_RW);
@@ -202,7 +202,7 @@ static void ext2_write_symlink_on_block(ext2_volume_t *vol, uint32_t blkno, char
     bkunmap(&bkd);
 }
 
-static void ext2_read_symlink_on_block(ext2_volume_t *vol, uint32_t blkno, char *buf, unsigned len)
+static void ext2_read_symlink_on_block(ext2_volume_t *vol, uint32_t blkno, char *buf, size_t len)
 {
     struct bkmap bkd;
     char *data = bkmap(&bkd, blkno, vol->blocksize, 0, vol->blkdev, VM_RD);
@@ -258,6 +258,10 @@ int ext2_add_link(ext2_volume_t* vol, ext2_ino_t* dir, unsigned no, const char* 
     for (i = 0; i < pages; ++i) {
         unsigned idx = 0;
         unsigned blk = ext2_get_block(vol, dir, i);
+        if (blk == 0) {
+            errno = EIO;
+            return -1;
+        }
         struct bkmap bk;
         ext2_dir_en_t* en = bkmap(&bk, blk, vol->blocksize, 0, vol->blkdev, VM_WR);
         while (en->ino != 0) {
@@ -321,6 +325,11 @@ int ext2_rm_link(ext2_volume_t *vol, ext2_ino_t *dir, unsigned no)
             if (en->ino == no) {
                 next = ADDR_OFF(en, en->rec_len);
                 if ((size_t)next >= (size_t)start + vol->blocksize) {
+                    if (prev == NULL) {
+                        bkunmap(&bk);
+                        errno = EIO;
+                        return -1;
+                    }
                     prev->rec_len += en->rec_len;
                 } else {
                     unsigned sz = en->rec_len;
@@ -379,7 +388,7 @@ inode_t* ext2_lookup(inode_t* dir, const char* name, void* acl)
     return ino;
 }
 
-static inode_t *ext2_mknod_generic(ext2_volume_t *vol, inode_t *dir, const char *name, void *acl, int mode, char *data)
+static inode_t *ext2_mknod_generic(ext2_volume_t *vol, inode_t *dir, const char *name, void *acl, int mode, const char *data)
 {
     char *filename = kalloc(256);
     int ino_no = ext2_search_inode(dir, name, filename);
@@ -467,10 +476,10 @@ inode_t *ext2_mkdir(inode_t* dir, const char* name, int mode, void* acl)
 inode_t *ext2_symlink(inode_t *dir, const char *name, void *acl, const char *content)
 {
     ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
-    int len = strlen(content);
+    unsigned len = strlen(content);
     if (len > vol->blocksize) {
         errno = ENAMETOOLONG;
-        return -1;
+        return NULL;
     }
 
     return ext2_mknod_generic(vol, dir, name, acl, 0777 | EXT2_S_IFLNK, content);
@@ -505,7 +514,12 @@ int ext2_rmdir(inode_t *dir, const char *name)
     // Unlink the inode
     struct bkmap bk_dir;
     ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
-    int link = ext2_rm_link(vol, ino_dir, ino_no);
+    if (ext2_rm_link(vol, ino_dir, ino_no) != 0) {
+        bkunmap(&bk_new);
+        assert(errno != 0);
+        return -1;
+    }
+
     
     // Update parent
     xtime_t now = xtime_read(XTIME_CLOCK);
@@ -561,7 +575,11 @@ int ext2_unlink(inode_t *dir, const char *name)
     // Unlink the inode
     struct bkmap bk_dir;
     ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
-    int link = ext2_rm_link(vol, ino_dir, ino_no);
+    if (ext2_rm_link(vol, ino_dir, ino_no) != 0) {
+        bkunmap(&bk_new);
+        assert(errno != 0);
+        return -1;
+    }
 
     // Update parent
     xtime_t now = xtime_read(XTIME_CLOCK);
@@ -658,7 +676,7 @@ inode_t* ext2_open(inode_t* dir, const char* name, ftype_t type, void* acl, int 
     return ino;
 }
 
-int ext2_readlink(inode_t *ino, char *buf, int len)
+int ext2_readlink(inode_t *ino, char *buf, size_t len)
 {
     struct bkmap bk_new;
     ext2_volume_t *vol = (ext2_volume_t *)ino->drv_data;
@@ -681,6 +699,7 @@ void ext2_close(inode_t *ino)
     ext2_volume_t *vol = ino->drv_data;
     if (atomic_xadd(&vol->rcu, -1) != 1)
         return;
+    kprintf(KL_FSA, "ext2] Release volume data %s\n", vol->sb->volume_name); // TODO - Uuid to string
     vfs_close_inode(vol->blkdev);
     vfs_close_inode(vol->dev->underlying);
     void *ptr = &((char *)vol->sb)[-1024];
@@ -714,7 +733,7 @@ ino_ops_t ext2_reg_ops = {
 
 ino_ops_t ext2_lnk_ops = {
     .close = ext2_close,
-    .readlink = ext2_readlink,
+    .readlink = (void *)ext2_readlink,
 };
 
 inode_t* ext2_mount(inode_t* dev, const char* options)
@@ -769,11 +788,12 @@ inode_t* ext2_mount(inode_t* dev, const char* options)
         return NULL;
     }
 
+    kprintf(KL_FSA, "ext2] Create volume data %s\n", vol->sb->volume_name); // TODO - Uuid to string
     vol->dev = ino->dev;
     ino->dev->devname = kstrdup(sb->volume_name);
     ino->dev->devclass = kstrdup("ext2");
     ino->dev->underlying = vfs_open_inode(dev);
-    kunmap(ptr, PAGE_SIZE);
+    // kunmap(ptr, PAGE_SIZE);
     errno = 0;
     return ino;
 }

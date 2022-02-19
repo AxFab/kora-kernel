@@ -45,6 +45,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t 
     splock_unlock(&device->lock);
     return inode;
 }
+EXPORT_SYMBOL(vfs_inode, 0);
 
 inode_t *vfs_open_inode(inode_t *ino)
 {
@@ -55,6 +56,7 @@ inode_t *vfs_open_inode(inode_t *ino)
         kprintf(KL_FSA, "Open inode `%s` (%d)\n", vfs_inokey(ino, tmp), ino->rcu);
     return ino;
 }
+EXPORT_SYMBOL(vfs_open_inode, 0);
 
 void vfs_close_inode(inode_t *ino)
 {
@@ -97,6 +99,7 @@ void vfs_close_inode(inode_t *ino)
     kprintf(KL_FSA, "Release device `%d`\n", device->no);
     kfree(device);
 }
+EXPORT_SYMBOL(vfs_close_inode, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -111,7 +114,7 @@ void vfs_close_inode(inode_t *ino)
 //    }
 //    return ino->ops->chmod(ino, mode);
 //}
-//EXPORT_SYMBOL(vfs_chmod, 0)
+//EXPORT_SYMBOL(vfs_chmod, 0);
 
 //int vfs_chown(inode_t *ino, acl_t *acl, acl_t *nacl)
 //{
@@ -124,26 +127,26 @@ void vfs_close_inode(inode_t *ino)
 //    }
 //    return ino->ops->chown(ino, nacl);
 //}
-//EXPORT_SYMBOL(vfs_chown, 0)
+//EXPORT_SYMBOL(vfs_chown, 0);
 
 //int vfs_utimes(inode_t *ino, acl_t *acl, xtime_t time, int flags)
 //{
 //
 //}
-//EXPORT_SYMBOL(vfs_utimes, 0)
+//EXPORT_SYMBOL(vfs_utimes, 0);
 
 //int vfs_truncate(inode_t *ino, acl_t *acl, xoff_t length)
 //{
 //
 //}
-//EXPORT_SYMBOL(vfs_truncate, 0)
+//EXPORT_SYMBOL(vfs_truncate, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 // int vfs_readdir(inode_t *ino, void *dir, xstat_t *stat, char *buf, int len)
 //{
 //}
-//EXPORT_SYMBOL(vfs_readdir, 0)
+//EXPORT_SYMBOL(vfs_readdir, 0);
 
 int vfs_readlink(inode_t *ino, char *buf, int len)
 {
@@ -155,12 +158,12 @@ int vfs_readlink(inode_t *ino, char *buf, int len)
 
     return ino->ops->readlink(ino, buf, len);
 }
-EXPORT_SYMBOL(vfs_readlink, 0)
+EXPORT_SYMBOL(vfs_readlink, 0);
 
 // int vfs_stat(inode_t *ino, xstat_t *stat)
 //{
 //}
-//EXPORT_SYMBOL(vfs_stat, 0)
+//EXPORT_SYMBOL(vfs_stat, 0);
 
 int vfs_access(inode_t *ino, acl_t *acl, int flags)
 {
@@ -171,7 +174,7 @@ int vfs_access(inode_t *ino, acl_t *acl, int flags)
     errno = EACCES;
     return -1;
 }
-EXPORT_SYMBOL(vfs_access, 0)
+EXPORT_SYMBOL(vfs_access, 0);
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -180,13 +183,13 @@ EXPORT_SYMBOL(vfs_access, 0)
 //{
 //
 //}
-//EXPORT_SYMBOL(vfs_read, 0)
+//EXPORT_SYMBOL(vfs_read, 0);
 //
 //long vfs_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags)
 //{
 //
 //}
-//EXPORT_SYMBOL(vfs_write, 0)
+//EXPORT_SYMBOL(vfs_write, 0);
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -199,7 +202,7 @@ size_t vfs_fetch_page(inode_t *ino, xoff_t off)
     }
     return ino->ops->fetch(ino, off);
 }
-EXPORT_SYMBOL(vfs_fetch_page, 0)
+EXPORT_SYMBOL(vfs_fetch_page, 0);
 
 int vfs_release_page(inode_t *ino, xoff_t off, size_t page, bool dirty)
 {
@@ -210,5 +213,11 @@ int vfs_release_page(inode_t *ino, xoff_t off, size_t page, bool dirty)
     ino->ops->release(ino, off, page, dirty);
     return 0;
 }
-EXPORT_SYMBOL(vfs_release_page, 0)
+EXPORT_SYMBOL(vfs_release_page, 0);
 
+
+void vfs_usage(inode_t *ino, int access, int count)
+{
+    if (ino->fops && ino->fops->usage != NULL)
+        ino->fops->usage(ino, access, count);
+}

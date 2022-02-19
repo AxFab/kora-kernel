@@ -29,13 +29,16 @@ void module_init(vfs_t *vfs, mspace_t *vm);
 
 
 sys_info_t sysinfo;
+#ifndef _VTAG_
+#define _VTAG_  "v0.0"
+#endif
 
 /* Kernel entry point, must be reach by a single CPU */
 void kstart()
 {
     irq_reset(false /*, KMODE_SYSTEM */);
     memset(&sysinfo, 0, sizeof(sys_info_t));
-    kprintf(-1, "\033[97mKoraOS\033[0m - " __ARCH " - v" _VTAG_ "\n");
+    kprintf(-1, "\033[97mKoraOS\033[0m - " __ARCH " - " _VTAG_ "\n");
     kprintf(-1, "Build the " __DATE__ ".\n");
     cpu_setup(&sysinfo);
 

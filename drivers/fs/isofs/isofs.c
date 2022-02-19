@@ -33,7 +33,7 @@ int isofs_closedir(inode_t *dir, ISO_dirctx_t *ctx);
 
 
 ino_ops_t iso_reg_ops = {
-    .read = isofs_read,
+    .read = (void *)isofs_read,
 };
 
 ino_ops_t iso_dir_ops = {
@@ -105,7 +105,7 @@ static void iso_unmap(ISO_dirctx_t *ctx)
 
 static void iso_remap(device_t *dev, ISO_dirctx_t *ctx, int lba)
 {
-    int mlba = ALIGN_DW(lba * ISOFS_SECTOR_SIZE, PAGE_SIZE) / ISOFS_SECTOR_SIZE;
+    size_t mlba = ALIGN_DW(lba * ISOFS_SECTOR_SIZE, PAGE_SIZE) / ISOFS_SECTOR_SIZE;
     if (mlba != ctx->map_lba) {
         iso_unmap(ctx);
         ctx->map_lba = mlba;

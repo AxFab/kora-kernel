@@ -27,10 +27,10 @@ int fat_read(inode_t *ino, void *buffer, size_t length, xoff_t offset, int flags
     assert(POW2(clusterSize) && (offset & (clusterSize - 1)) == 0);
 
     unsigned clustNo = ino->lba;
-    int foff = 0;
+    xoff_t foff = 0;
 
     while (length > 0) {
-        while (clustNo != 0 && offset - foff >= clusterSize) {
+        while (clustNo != 0 && offset - foff >= (xoff_t)clusterSize) {
             clustNo = fat_cluster_next_16(ino->dev->underlying, volume, clustNo);
             foff += clusterSize;
         }

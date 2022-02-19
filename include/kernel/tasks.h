@@ -111,7 +111,8 @@ struct task {
 
 
 struct fstream {
-    fnode_t *file;
+    fnode_t *fnode;
+    inode_t *ino;
     xoff_t position;
     bbnode_t node;
     int fd;
@@ -140,7 +141,7 @@ void task_raise(scheduler_t *sch, task_t *task, unsigned signum);
 void task_stop(task_t *task, int code);
 void task_fatal(const char *msg, unsigned signum);
 
-int task_spawn(const char *program, const char **args, fnode_t **nodes);
+int task_spawn(const char *program, const char **args, inode_t **nodes);
 int task_thread(const char *name, void *entry, void *params, size_t len, int flags);
 
 // _Noreturn void task_firstinit();
@@ -158,7 +159,7 @@ streamset_t *stream_open_set(streamset_t *strms);
 void stream_close_set(streamset_t *strms);
 
 
-fstream_t *stream_put(streamset_t *strms, fnode_t *file, int flags);
+fstream_t *stream_put(streamset_t *strms, fnode_t* node, inode_t *ino, int flags);
 fstream_t *stream_get(streamset_t *strms, int fd);
 void stream_remove(streamset_t *strms, fstream_t *stm);
 

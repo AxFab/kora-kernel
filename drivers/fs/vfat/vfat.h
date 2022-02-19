@@ -221,6 +221,8 @@ void *fat_opendir(inode_t *dir);
 inode_t *fat_readdir(inode_t *dir, char *name, void *ptr);
 int fat_closedir(inode_t *dir, void *ptr);
 
+unsigned fat_cluster_next_16(inode_t *bdev, FAT_volume_t *info, unsigned clustNo);
+
 
 #define FILENAME_MAX  256
 
