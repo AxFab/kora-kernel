@@ -221,6 +221,7 @@ static void pci_device(uint8_t bus, uint8_t slot, uint8_t func, uint16_t vendor_
     device_stack[dev_sp].vendor_id = vendor_id;
     device_stack[dev_sp].class_id = pci_config_read32(bus, slot, func, PCI_OFF_CLASS) >> 8;
     device_stack[dev_sp].device_id = pci_config_read16(bus, slot, func, PCI_OFF_DEVICE_ID);
+    mtx_init(&device_stack[dev_sp].mtx, mtx_plain);
 
     const char *vendor_name = pci_vendor_name(vendor_id);
     const char *class_name = pci_class_name(device_stack[dev_sp].class_id);

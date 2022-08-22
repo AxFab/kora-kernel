@@ -86,7 +86,7 @@ void mmu_context(mspace_t *mspace)
 {
     int i;
     page_t dir_pg = mspace->directory;
-    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VM_PHYSIQ | VM_RW);
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYS | VM_RW);
     // unsigned table = ((unsigned)&mspace) >> 22;
     /* Check the current stack page is present  */
     page_t *krn = (page_t *)0xFFBFF000;
@@ -103,7 +103,7 @@ void mmu_create_uspace(mspace_t *mspace)
 {
     unsigned i;
     page_t dir_pg = page_new();
-    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VM_PHYSIQ | VM_RW);
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYS | VM_RW);
     memset(dir, 0,  PAGE_SIZE);
     dir[1023] = dir_pg | (PG_PRESENT | PG_WRITABLE | PG_GLOBAL);;
     dir[1022] = (page_t)MMU_KRN_DIR_PG | (PG_PRESENT | PG_WRITABLE | PG_GLOBAL);;
@@ -123,7 +123,7 @@ void mmu_destroy_uspace(mspace_t *mspace)
 {
     unsigned i;
     page_t dir_pg = mspace->directory;
-    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VM_PHYSIQ | VM_RW);
+    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYS | VM_RW);
 
     for (i = MMU_BOUND_ULOWER >> 22; i < MMU_BOUND_UUPPER >> 22; ++i) {
         if (dir[i]) {

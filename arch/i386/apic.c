@@ -252,7 +252,7 @@ static void ioapic_write_irq(int no, uint8_t *ioapic, int irq, uint64_t flags)
 
 static void ioapic_register(sys_info_t *sysinfo, madt_ioapic_t *info)
 {
-    uint8_t *ioapic = kmap(PAGE_SIZE, NULL, info->base, VM_RW | VM_PHYSIQ | VM_UNCACHABLE);
+    uint8_t *ioapic = kmap(PAGE_SIZE, NULL, info->base, VM_RW | VMA_PHYS | VM_UNCACHABLE);
 
     int irq_count = (ioapic_read(info->apic_id, ioapic,
                                  IOAPIC_VERSION) >> 16) & 0xFF;
@@ -389,7 +389,7 @@ void acpi_setup(sys_info_t *sysinfo)
     sysinfo->arch->acpi = ptr;
     acpi_rsdp_t *rsdp = (void*)ptr;
     size_t phoff = ALIGN_DW(rsdp->rsdt, PAGE_SIZE);
-    void *map = kmap(PAGE_SIZE, NULL, phoff, VM_PHYSIQ | VM_UNCACHABLE);
+    void *map = kmap(PAGE_SIZE, NULL, phoff, VMA_PHYS | VM_UNCACHABLE);
     acpi_rsdt_t *rsdt = ADDR_OFF(map, (rsdp->rsdt & (PAGE_SIZE - 1)));
     if (acpi_checksum(&rsdt->header) != 0) {
         kprintf(-1, "Invalid ACPI RSDT checksum.\n");
@@ -433,7 +433,7 @@ void apic_setup(sys_info_t *sysinfo)
 
     // Should always be 0xFEE00000
     kprintf(-1, "Local APIC at %x\n", sysinfo->arch->apic);
-    apic_ptr = kmap(PAGE_SIZE, NULL, sysinfo->arch->apic, VM_RW | VM_PHYSIQ | VM_UNCACHABLE);
+    apic_ptr = kmap(PAGE_SIZE, NULL, sysinfo->arch->apic, VM_RW | VMA_PHYS | VM_UNCACHABLE);
 
     kprintf(-1, "Send INIT IPI to all APs\n");
     apic_ptr[APIC_ICR_LOW] = 0x0C4500;

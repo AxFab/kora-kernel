@@ -145,8 +145,8 @@ void x86_pgflt(size_t vaddr, int code, regs_t *regs)
 
 void x86_irq(int no, regs_t *regs)
 {
-    pic_ack(no);
     irq_enter(no);
+    pic_ack(no);
     // kprintf(-1, "cpu%d - x86-IRQ %d\n", cpu_no(), no);
 }
 
