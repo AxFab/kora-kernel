@@ -190,6 +190,7 @@ struct ino_ops {
     inode_t *(*create)(inode_t *dir, const char *name, void *acl, int mode);
     void (*close)(inode_t *ino);
     int (*unlink)(inode_t *dir, const char *name);
+    int (*link)(inode_t *dir, const char *name, inode_t *ino);
 
     int (*read)(inode_t *ino, char *buf, size_t len, xoff_t off, int flags);
     int (*write)(inode_t *dir, const char *buf, size_t len, xoff_t off, int flags);
@@ -237,7 +238,7 @@ inode_t *vfs_mkdir(vfs_t *vfs, const char *name, acl_t *acl, int mode);
 int vfs_rmdir(vfs_t *vfs, const char *name, acl_t *acl);
 inode_t *vfs_open(vfs_t *vfs, const char *name, acl_t *acl, int mode, int flags);
 int vfs_unlink(vfs_t *vfs, const char *name, acl_t *acl);
-//inode_t *vfs_link(vfs_t *vfs, const char *name, acl_t *acl, fnode_t *target);
+int vfs_link(vfs_t *vfs, const char *name, acl_t *acl, fnode_t *target);
 inode_t *vfs_symlink(vfs_t *vfs, const char *name, acl_t *acl, const char *path);
 //int vfs_readlink(vfs_t *vfs, inode_t *node, char *buf, size_t len);
 //int vfs_rename(vfs_t *vfs, const char *path, const char *newname, acl_t *acl);
@@ -278,7 +279,8 @@ inode_t *vfs_inodeof(fnode_t *node);
 
 int vfs_readpath(vfs_t *vfs, fnode_t *node, char *buf, int len, bool relative);
 
-fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve);
+fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve, bool follow);
+inode_t *vfs_search_ino(vfs_t *vfs, const char *pathname, acl_t *acl, bool follow);
 
 
 void vfs_dev_scavenge(device_t *dev, int max);
@@ -311,7 +313,6 @@ void vfs_usage(inode_t *ino, int access, int count);
 
 
 // For kernel
-// fnode_t *vfs_search(vfs_t *vfs, const char *pathname, void *user, bool resolve);
 int vfs_lookup(fnode_t *node);
 fnode_t *vfs_open_fnode(fnode_t *node);
 void vfs_close_fnode(fnode_t *node);
@@ -385,6 +386,8 @@ static inline void bkunmap(struct bkmap *bm)
         kunmap(bm->map, bm->len);
     bm->map = 0;
 }
+
+
 
 
 #endif /* _KERNEL_VFS_H */

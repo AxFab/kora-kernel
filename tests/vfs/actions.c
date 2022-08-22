@@ -78,7 +78,7 @@ int do_ls(vfs_t **ctx, size_t *param)
 {
     vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
-    fnode_t *dir = vfs_search(vfs, path, NULL, true);
+    fnode_t *dir = vfs_search(vfs, path, NULL, true, true);
     fnode_t *node;
 
     char tmp[16];
@@ -117,10 +117,17 @@ const char *vfs_timestr(xtime_t clock, char *tmp)
     return tmp;
 }
 
-static int __do_stat(fnode_t *node, char *type, int mode, char *uid, char *gid)
+static int __do_stat(vfs_t *vfs, size_t *param, bool follow)
 {
     static const char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx" };
 
+    char *path = (char *)param[0];
+    char *type = (char *)param[1];
+    int mode = param[2];
+    char *uid = (char *)param[3];
+    char *gid = (char *)param[4];
+
+    fnode_t *node = vfs_search(vfs, path, NULL, true, follow);
     if (node == NULL)
         return cli_error("No such entry\n");
 
@@ -155,58 +162,42 @@ static int __do_stat(fnode_t *node, char *type, int mode, char *uid, char *gid)
 
 int do_stat(vfs_t **ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
-    char *path = (char *)param[0];
-    char *type = (char *)param[1];
-    int mode = param[2];
-    char *uid = (char *)param[3];
-    char *gid = (char *)param[4];
-
-    fnode_t *node = vfs_search(vfs, path, NULL, true);
-    // int maxLoop = 32;
-    if (node != NULL && node->mode == FN_OK && node->ino->type == FL_LNK) {
-        // TODO -- Big and Ugly ack !
-        path = malloc(node->ino->length + 1);
-        vfs_readlink(node->ino, path, node->ino->length + 1);
-        vfs_close_fnode(node);
-        // vfs_t *cpy = vfs_clone_vfs(vfs);
-        // vfs_chdir(cpy, path, false);
-        node = vfs_search(vfs, path, NULL, true);
-        free(path);
-    }
-
-    return __do_stat(node, type, mode, uid, gid);
+    return __do_stat(*ctx, param, true);
 }
 
 
 int do_lstat(vfs_t **ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
-    char *path = (char *)param[0];
-    char *type = (char *)param[1];
-    int mode = param[2];
-    char *uid = (char *)param[3];
-    char *gid = (char *)param[4];
-
-    fnode_t *node = vfs_search(vfs, path, NULL, true);
-
-    return __do_stat(node, type, mode, uid, gid);
+    return __do_stat(*ctx, param, false);
 }
 
 
-int do_links(vfs_t **ctx, size_t *param)
+int do_link(vfs_t **ctx, size_t *param)
+{
+    vfs_t *vfs = *ctx;
+    char *path = (char *)param[0];
+    char *path2 = (char *)param[1];
+    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
+    if (node == NULL)
+        return cli_error("Unable to find node %n", path);
+
+    int ret = vfs_link(vfs, path2, NULL, node);
+    vfs_close_fnode(node);
+    if (ret != 0)
+        return cli_error("Unable to create link %n", path2);
+    return 0;
+}
+
+
+int do_links(vfs_t * *ctx, size_t * param)
 {
     vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     int count = param[1];
 
-    fnode_t *node = vfs_search(vfs, path, NULL, true);
+    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
     if (node == NULL)
         return cli_error("No such entry\n");
-    else if (node->ino->type != FL_DIR) {
-        vfs_close_fnode(node);
-        return cli_error("Is not a directory\n");
-    }
 
     printf("Node have %d links\n", node->ino->links);
     if (count != 0 && node->ino->links != count) {
@@ -227,7 +218,7 @@ int do_times(vfs_t **ctx, size_t *param)
     for (int i = 0; mode && mode[i]; ++i)
         mode[i] = tolower(mode[i]);
 
-    fnode_t *node = vfs_search(vfs, path, NULL, true);
+    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
     if (node == NULL)
         return cli_error("No such entry\n");
 
@@ -346,7 +337,7 @@ int do_create(vfs_t **ctx, size_t *param)
     if (mode == 0)
         mode = 0644;
 
-    fnode_t *node = vfs_search(vfs, name, NULL, false);
+    fnode_t *node = vfs_search(vfs, name, NULL, false, false);
     if (node == NULL)
         return cli_error("Unable to find path to directory %s: [%d - %s]\n", name, errno, strerror(errno));
     int ret = vfs_create(node, NULL, mode & (~vfs->umask & 0777));
@@ -419,10 +410,10 @@ int do_dd(vfs_t **ctx, size_t *param)
     const char *src = (char *)param[1];
     size_t len = param[2];
 
-    fnode_t *srcNode = vfs_search(vfs, src, NULL, true);
+    fnode_t *srcNode = vfs_search(vfs, src, NULL, true, true);
     if (srcNode == NULL)
         return cli_error("Unable to find file %s!\n", src);
-    fnode_t *dstNode = vfs_search(vfs, dst, NULL, false);
+    fnode_t *dstNode = vfs_search(vfs, dst, NULL, false, false);
     if (dstNode == NULL)
         return cli_error("Unable to find file %s!\n", dst);
     int ret = vfs_lookup(dstNode);
@@ -458,7 +449,7 @@ int do_clear_cache(vfs_t **ctx, size_t *param)
     vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
 
-    fnode_t *node = vfs_search(vfs, path, NULL, true);
+    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
     if (node == NULL)
         return cli_error("No such entry\n");
     device_t *dev = node->ino->dev;
@@ -498,7 +489,7 @@ int do_extract(vfs_t **ctx, size_t *param)
     vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     char *out = (char *)param[1];
-    fnode_t *node = vfs_search(vfs, path, NULL, true);
+    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
 
     if (node == NULL)
         return cli_error("No such entry\n");
@@ -592,7 +583,7 @@ int do_checksum(vfs_t **ctx, size_t *param)
     vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     // char* out = (char*)param[1];
-    fnode_t *node = vfs_search(vfs, path, NULL, true);
+    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
 
     if (node == NULL)
         return cli_error("No such entry\n");
@@ -751,7 +742,7 @@ int do_format(vfs_t **ctx, size_t *param)
     char *fs = (char *)param[0];
     char *path = (char *)param[1];
     char *options = (char *)param[2];
-    fnode_t *blk = vfs_search(vfs, path, NULL, true);
+    fnode_t *blk = vfs_search(vfs, path, NULL, true, true);
     if (blk == NULL)
         return cli_error("Unable to find the device\n");
 

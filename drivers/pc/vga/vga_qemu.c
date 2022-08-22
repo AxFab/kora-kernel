@@ -171,7 +171,7 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *devinfo)
     kprintf(KL_MSG, "VGA Memory size %s\n", sztoa_r(mem, tmp));
 
     pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7,
-                                      VM_WR | VM_PHYSIQ | VM_UNCACHABLE);
+                                      VM_WR | VMA_PHYS | VM_UNCACHABLE);
 
     uint32_t pixels0 = pci->bar[0].mmio;
     // kprintf(KLOG_DBG, "%s MMIO mapped at %x\n", info->name, pixels0);

@@ -485,6 +485,55 @@ inode_t *ext2_symlink(inode_t *dir, const char *name, void *acl, const char *con
     return ext2_mknod_generic(vol, dir, name, acl, 0777 | EXT2_S_IFLNK, content);
 }
 
+int ext2_link(inode_t *dir, const char *name, inode_t *ino)
+{
+    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
+    struct bkmap bk_new;
+    ext2_ino_t *eino = ext2_entry(&bk_new, vol, ino->no, VM_WR);
+    if ((eino->mode & EXT2_S_IFMT) != EXT2_S_IFREG) {
+        bkunmap(&bk_new);
+        errno = EPERM;
+        return NULL;
+    }
+
+    char *filename = kalloc(256);
+    int ino_no = ext2_search_inode(dir, name, filename);
+    kfree(filename);
+    if (ino_no != 0) {
+        bkunmap(&bk_new);
+        errno = EEXIST;
+        return NULL;
+    }
+
+    xtime_t now = xtime_read(XTIME_CLOCK);
+
+    // Update parent inode
+    struct bkmap bk_dir;
+    ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
+    ino_dir->ctime = now / _PwMicro_;
+    ino_dir->mtime = now / _PwMicro_;
+    dir->ctime = ino_dir->ctime * _PwMicro_;
+    dir->ctime = ino_dir->mtime * _PwMicro_;
+    dir->links = ino_dir->links;
+
+    // Update the target inode
+    eino->ctime = now / _PwMicro_;
+    eino->atime = now / _PwMicro_;
+    eino->mtime = now / _PwMicro_;
+    eino->links++;
+    ino->links = eino->links;
+
+    // Add the new entry
+    int ret = ext2_add_link(vol, ino_dir, ino->no, name);
+    if (ret != 0) {
+        // TODO -- Rollback !
+    }
+
+    bkunmap(&bk_dir);
+    bkunmap(&bk_new);
+    return ret;
+}
+
 int ext2_rmdir(inode_t *dir, const char *name)
 {
     ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
@@ -686,7 +735,7 @@ int ext2_readlink(inode_t *ino, char *buf, size_t len)
         errno = EAGAIN;
         return -1;
     }
-    ext2_read_symlink_on_block(vol, ino_new->block[0], buf, len);
+    ext2_read_symlink_on_block(vol, ino_new->block[0], buf, MIN(ino_new->size, len));
     buf[ino_new->size] = '\0';
     bkunmap(&bk_new);
     return 0;
@@ -715,7 +764,7 @@ ino_ops_t ext2_dir_ops = {
     .create = ext2_create,
     .unlink = ext2_unlink,
     .symlink = ext2_symlink,
-    // .open = ext2_open,
+    .link = ext2_link,
     .opendir = (void*)ext2_opendir,
     .readdir = (void*)ext2_readdir,
     .closedir = (void*)ext2_closedir,

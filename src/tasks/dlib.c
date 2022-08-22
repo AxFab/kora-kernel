@@ -23,6 +23,7 @@
 #include <string.h>
 #include <errno.h>
 
+#if 0
 proc_t kproc;
 
 
@@ -65,7 +66,7 @@ fnode_t *dlib_lookfor_all(proc_t *proc, const char *libname, const char *xpath)
         for (dirname = strtok_r(dirlist, ":", &rd); dirname; dirname = strtok_r(NULL, ":", &rd)) {
 
             snprintf(buf, 4096, "%s/%s", dirname, libname);
-            fnode_t *node = vfs_search(proc->fs, buf, proc->acl, true);
+            fnode_t *node = vfs_search(proc->fs, buf, proc->acl, true, true);
             if (node != NULL) {
                 kfree(buf);
                 kfree(path);
@@ -84,7 +85,7 @@ fnode_t *dlib_lookfor(proc_t *proc, const char *libname, const char *env, const 
     fnode_t *node = NULL;
 
     // if EXEC, not SHARED
-    node = vfs_search(proc->fs, libname, proc->acl, true);
+    node = vfs_search(proc->fs, libname, proc->acl, true, true);
 
     if (node != NULL || strchr(libname, '/'))
         return node;
@@ -381,3 +382,5 @@ const char *proc_getenv(proc_t *proc, const char *name)
 {
     return NULL;
 }
+
+#endif 

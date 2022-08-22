@@ -27,6 +27,10 @@
 #include <string.h>
 #include <sys/signum.h>
 
+void bitsset(uint8_t *ptr, int start, int count);
+int bitschrz(uint8_t *ptr, int len);
+void bitsclr(uint8_t *ptr, int start, int count);
+
 typedef struct mzone mzone_t;
 struct mzone {
     long offset;
@@ -98,68 +102,8 @@ void page_teardown()
 }
 
 
-void bitsclr(uint8_t *ptr, int start, int count)
-{
-    int i = start / 8;
-    int j = start % 8;
-    while (count > 0 && j != 0) {
-        ptr[i] &= ~(1 << j);
-        j = (j + 1) % 8;
-        count--;
-    }
-    i = ALIGN_UP(start, 8) / 8;
-    while (count > 8) {
-        ptr[i] = 0;
-        i++;
-        count -= 8;
-    }
-    j = 0;
-    while (count > 0) {
-        ptr[i] &= ~(1 << j);
-        j++;
-        count--;
-    }
-}
 
-void bitsset(uint8_t *ptr, int start, int count)
-{
-    int i = start / 8;
-    int j = start % 8;
-    while (count > 0 && j != 0) {
-        ptr[i] |= (1 << j);
-        j = (j + 1) % 8;
-        count--;
-    }
-    i = ALIGN_UP(start, 8) / 8;
-    while (count > 8) {
-        ptr[i] = ~0;
-        i++;
-        count -= 8;
-    }
-    j = 0;
-    while (count > 0) {
-        ptr[i] |= (1 << j);
-        j++;
-        count--;
-    }
-}
-
-int bitschrz(uint8_t *ptr, int len)
-{
-    int i = 0, j = 0;
-    while (i < len / 8 && ptr[i] == 0xFF)
-        i++;
-    if (i >= len / 8)
-        return -1;
-    uint8_t by = ptr[i];
-    while (by & 1) {
-        j++;
-        by = by >> 1;
-    }
-    return i * 8 + j;
-}
-
-
+#ifdef KORA_KRN
 /* Allocate a single page for the system and return it's physical address */
 page_t page_new()
 {
@@ -213,26 +157,27 @@ void page_release(page_t paddress)
     }
     kprintf(KL_ERR, "Page '%p' provided to page_release is not referenced.\n", paddress);
 }
+#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Free all used pages into a range of virtual addresses */
-void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean)
-{
-    assert((address & (PAGE_SIZE - 1)) == 0);
-    assert((length & (PAGE_SIZE - 1)) == 0);
-    while (length) {
-        if (clean && mmu_read(address) != 0)
-            memset((void *)address, 0, PAGE_SIZE);
-        page_t pg = mmu_drop(address);
-        if (pg != 0) {
-            mspace->p_size--;
-            page_release(pg);
-        }
-        address += PAGE_SIZE;
-        length -= PAGE_SIZE;
-    }
-}
+//void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean)
+//{
+//    assert((address & (PAGE_SIZE - 1)) == 0);
+//    assert((length & (PAGE_SIZE - 1)) == 0);
+//    while (length) {
+//        if (clean && mmu_read(address) != 0)
+//            memset((void *)address, 0, PAGE_SIZE);
+//        page_t pg = mmu_drop(address);
+//        if (pg != 0) {
+//            mspace->p_size--;
+//            page_release(pg);
+//        }
+//        address += PAGE_SIZE;
+//        length -= PAGE_SIZE;
+//    }
+//}
 
 
 /* Resolve a page fault */

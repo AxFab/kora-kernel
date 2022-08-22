@@ -26,13 +26,19 @@
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
 
-#if !defined(_WIN32) // kernel/src/tests/check.h
-# define _valloc(s)  valloc(s)
-# define _vfree(p)  free(p)
-#else
-# define _valloc(s)  _aligned_malloc(s, PAGE_SIZE)
-# define _vfree(p)  _aligned_free(p)
-#endif
+
+
+void page_release_kmap_stub(page_t page);
+void page_release(page_t page)
+{
+    page_release_kmap_stub(page);
+}
+
+page_t mmu_read_kmap_stub(size_t address);
+page_t mmu_read(size_t vaddr)
+{
+    return mmu_read_kmap_stub(vaddr);
+}
 
 
 int do_dump(vfs_t **ctx, size_t *param);
@@ -40,6 +46,7 @@ int do_umask(vfs_t **ctx, size_t *param);
 int do_ls(vfs_t **ctx, size_t *param);
 int do_stat(vfs_t **ctx, size_t *param);
 int do_lstat(vfs_t **ctx, size_t *param);
+int do_link(vfs_t **ctx, size_t *param);
 int do_links(vfs_t **ctx, size_t *param);
 int do_times(vfs_t **ctx, size_t *param);
 int do_cd(vfs_t **ctx, size_t *param);
@@ -80,6 +87,8 @@ void ext2_teardown();
 #endif
 
 
+
+
 vfs_t *VFS;
 
 void initialize()
@@ -103,11 +112,6 @@ void teardown()
 
     alloc_check();
     kmap_check();
-}
-
-void do_load(vfs_t *fs, size_t *param)
-{
-
 }
 
 void do_restart(vfs_t *fs, size_t *param)
@@ -137,7 +141,8 @@ cli_cmd_t __commands[] = {
 
     { "CREATE", "", { ARG_STR, ARG_INT, 0, 0, 0 }, (void*)do_create, 1 },
     { "UNLINK", "", { ARG_STR, 0, 0, 0, 0 }, (void*)do_unlink, 1 },
-    { "SYMLINK", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void*)do_symlink, 2 },
+    { "SYMLINK", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_symlink, 2 },
+    { "LINK", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_link, 2 },
 
     // LINK, RENAME, SYMLINK, READLINK ...
     { "MKDIR", "", { ARG_STR, ARG_INT, 0, 0, 0 }, (void*)do_mkdir, 1 },

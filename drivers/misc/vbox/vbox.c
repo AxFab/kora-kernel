@@ -140,7 +140,7 @@ void vbox_startup(struct PCI_device *pci)
     PCI_wr32(pci, 0, 0, mmu_read((size_t)vbox_mouse));
 
     pci->bar[1].mmio = (uint32_t)kmap(pci->bar[1].size, NULL, pci->bar[1].base & ~7,
-                                      VM_PHYSIQ | VM_RW);
+                                      VMA_PHYS | VM_RW);
     kprintf(KL_MSG, "%s MMIO mapped at %x\n", VBOX_NAME, pci->bar[1].mmio);
 
     vbox_vmmdev = (uint32_t *)pci->bar[1].mmio;

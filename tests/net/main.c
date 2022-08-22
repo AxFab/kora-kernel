@@ -83,13 +83,14 @@ int test_ping()
 
     ifnet_t* gateway_eth0 = net_interface(ndGateway, NET_AF_ETH, 0);
     ip4_config(gateway_eth0, "ip=192.168.0.1 dhcp-server");
-    Sleep(1000); // Give time to setup (1s)
+    struct timespec st = { .tv_sec = 1, .tv_nsec = 0 };
+    thrd_sleep(&st, NULL); // Give time to setup (1s)
 
     // We plug Alice to an interface of the Gateway
     lan_connect(&subnet, gateway_eth0);
     lan_connect(&subnet, net_interface(ndAlice, NET_AF_ETH, 0));
 
-    Sleep(500);
+    thrd_sleep(&st, NULL);
     uint8_t ip[4];
     ip4_readip(ip, "192.168.0.1");
     ip4_route_t route;
@@ -98,8 +99,8 @@ int test_ping()
     icmp_ping(&route, "ABCD", 4, &qry);
 
     // We wait...
-    Sleep(1500000);
-
+    st.tv_sec = 1500;
+    thrd_sleep(&st, NULL);
     return 0;
 }
 
@@ -120,13 +121,15 @@ int test_service()
     ifnet_t* bob_eth0 = net_interface(ndBob, NET_AF_ETH, 1);
     ip4_config(bob_eth0, "ip=192.168.0.2");
 
-    Sleep(1000); // Give time to setup (1s)
+    struct timespec st = { .tv_sec = 1, .tv_nsec = 0 };
+    thrd_sleep(&st, NULL); // Give time to setup (1s)
 
     // We plug Alice to an interface of the Gateway
     lan_connect(subnet, alice_eth0);
     lan_connect(subnet, bob_eth0);
 
-    Sleep(2000); // Give time to setup (2s)
+    st.tv_sec = 2;
+    thrd_sleep(&st, NULL); // Give time to setup (2s)
 
 
     // Alice open a IP4/UDP socket
@@ -206,7 +209,8 @@ int test_router()
 
     ifnet_t* gateway_eth1 = net_interface(ndGateway, NET_AF_ETH, 1);
     ip4_config(gateway_eth1, "ip=192.168.128.1 dhcp-server");
-    Sleep(1000); // Give time to setup (1s)
+    struct timespec st = { .tv_sec = 1, .tv_nsec = 0 };
+    thrd_sleep(&st, NULL); // Give time to setup (1s)
 
     // We plug Alice to an interface of the Gateway
     lan_connect(&subnet1, gateway_eth0);
@@ -218,7 +222,8 @@ int test_router()
 
 
     // We wait...
-    Sleep(1500000);
+    st.tv_sec = 1500;
+    thrd_sleep(&st, NULL);
 
     return 0;
 }
@@ -498,7 +503,12 @@ int do_ping(void *cfg, size_t *params)
     if (ret != 0)
         return cli_error("Unable to complete ping request on %s\n", host);
 
+#if defined WIN32 || defined KORA_KRN
     struct timespec wt = { .tv_sec = 1, .tv_nsec = 0 };
+#else
+    xtime_t rl = xtime_read(XTIME_CLOCK);
+    struct timespec wt = { .tv_sec = rl / 1000000LL + 1, .tv_nsec = 0 };
+#endif
     cnd_timedwait(&qry.cnd, &qry.mtx, &wt);
     if (qry.success)
         fprintf(stderr, "Ping request completed with success\n");

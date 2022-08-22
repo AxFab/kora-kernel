@@ -87,7 +87,35 @@ static path_t *vfs_breakup_path(vfs_t *vfs, const char *path)
 
 static int vfs_concatpath(const char *lnk, path_t *path)
 {
-    return -1;
+    if (*lnk == '/') {
+        // TODO -- Reset node!!!
+        errno = EIO;
+        return -1;
+    }
+
+    llhead_t plist = INIT_LLHEAD;
+    while (*lnk) {
+        int s = 0;
+        while (lnk[s] != '/' && lnk[s] != '\0')
+            s++;
+
+        if (s >= 256) {
+            errno = ENAMETOOLONG;
+            return -1;
+        }
+
+        pelmt_t *el = kalloc(sizeof(pelmt_t) + s + 1);
+        memcpy(el->name, lnk, s);
+        el->name[s] = '\0';
+        ll_push_back(&plist, &el->node);
+        lnk += s;
+    }
+
+    while (plist.count_ > 0) {
+        pelmt_t *el = ll_dequeue(&plist, pelmt_t, node);
+        ll_enqueue(&path->list, &el->node);
+    }
+    return 0;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -128,9 +156,8 @@ int vfs_lookup(fnode_t *node)
     return 0;
 }
 
-fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve)
+fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve, bool follow)
 {
-    bool follow = false;
     char *lnk_buf = NULL;
     path_t *path = vfs_breakup_path(vfs, pathname);
     if (path == NULL)
@@ -210,7 +237,15 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve)
 
         kfree(el);
         if (path->list.count_ == 0) {
-            if (follow) {
+            if (resolve) {
+                if (vfs_lookup(path->node) != 0) {
+                    if (lnk_buf != NULL)
+                        kfree(lnk_buf);
+                    return vfs_release_path(path, false);
+                }
+                assert(path->node->mode == FN_OK);
+            }
+            if (resolve && follow) {
                 inode_t *ino = path->node->ino;
                 if (ino->type == FL_LNK) {
                     if (links++ > 25) {
@@ -219,27 +254,20 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve)
                             kfree(lnk_buf);
                         return vfs_release_path(path, false);
                     }
-                }
 
-                if (lnk_buf == NULL)
-                    lnk_buf = kalloc(sizeof(PAGE_SIZE));
-                vfs_readlink(ino, lnk_buf, PAGE_SIZE);
-                if (vfs_concatpath(lnk_buf, path) != 0) {
-                    if (lnk_buf != NULL)
-                        kfree(lnk_buf);
-                    return vfs_release_path(path, false);
+                    if (lnk_buf == NULL)
+                        lnk_buf = kalloc(sizeof(PAGE_SIZE));
+                    vfs_readlink(ino, lnk_buf, PAGE_SIZE);
+                    fnode_t *node = vfs_open_fnode(path->node->parent);
+                    vfs_close_fnode(path->node);
+                    path->node = node;
+                    if (vfs_concatpath(lnk_buf, path) != 0) {
+                        if (lnk_buf != NULL)
+                            kfree(lnk_buf);
+                        return vfs_release_path(path, false);
+                    }
+                    continue;
                 }
-                fnode_t *node = vfs_open_fnode(path->node->parent);
-                vfs_close_fnode(path->node);
-                path->node = node;
-            }
-            if (resolve) {
-                if (vfs_lookup(path->node) != 0) {
-                    if (lnk_buf != NULL)
-                        kfree(lnk_buf);
-                    return vfs_release_path(path, false);
-                }
-                assert(path->node->mode == FN_OK);
             }
             if (lnk_buf != NULL)
                 kfree(lnk_buf);
@@ -249,4 +277,12 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve)
     }
 }
 
-
+inode_t *vfs_search_ino(vfs_t *vfs, const char *pathname, acl_t *acl, bool follow)
+{
+    fnode_t *node = vfs_search(vfs, pathname, acl, true, follow);
+    if (node == NULL)
+        return NULL;
+    inode_t *ino = vfs_inodeof(node);
+    vfs_close_fnode(node);
+    return ino;
+}

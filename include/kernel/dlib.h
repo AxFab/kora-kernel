@@ -26,12 +26,8 @@
 #include <kora/llist.h>
 #include <kernel/vfs.h>
 #include <kernel/memory.h>
+#include <kernel/blkmap.h>
 
-typedef struct dynsym dynsym_t;
-typedef struct dynlib dynlib_t;
-typedef struct dyndep dyndep_t;
-typedef struct dynsec dynsec_t;
-typedef struct dynrel dynrel_t;
 
 #define R_386_32 1
 #define R_386_PC32 2
@@ -39,6 +35,13 @@ typedef struct dynrel dynrel_t;
 #define R_386_GLOB_DAT 6
 #define R_386_JUMP_SLOT 7
 #define R_386_RELATIVE 8
+
+#if 0 
+typedef struct dynsym dynsym_t;
+typedef struct dynlib dynlib_t;
+typedef struct dyndep dyndep_t;
+typedef struct dynsec dynsec_t;
+typedef struct dynrel dynrel_t;
 
 struct dynsec {
     size_t lower;
@@ -133,5 +136,109 @@ void *dlib_exec_entry(proc_t *proc);
 
 int elf_parse(dynlib_t *dlib);
 
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#else
+
+typedef struct dlib dlib_t;
+typedef struct dlsection dlsection_t;
+typedef struct dlsym dlsym_t;
+typedef struct dlreloc dlreloc_t;
+typedef struct dlname dlname_t;
+
+struct dlname
+{
+    char *name;
+    llnode_t node;
+};
+
+struct dlsym
+{
+    char *name;
+    size_t address;
+    size_t size;
+    int flags;
+    llnode_t node;
+};
+
+struct dlreloc
+{
+    size_t offset;
+    int type;
+    dlsym_t *symbol;
+    llnode_t node;
+};
+
+
+struct dlsection
+{
+    size_t offset;
+    size_t length;
+    size_t csize;
+    size_t foff;
+    llnode_t node;
+    int rights;
+
+    //size_t lower;
+    //size_t upper;
+    //size_t start;
+    //size_t end;
+    //size_t offset;
+    //char rights;
+};
+
+struct dlib
+{
+    char *name;
+    int rcu;
+    int page_rcu;
+    size_t entry;
+    size_t init;
+    size_t fini;
+    size_t base;
+    size_t length;
+    size_t text_off;
+    splock_t lock;
+    llhead_t sections;
+    llhead_t intern_symbols;
+    llhead_t extern_symbols;
+    llhead_t depends;
+    llhead_t relocations;
+    llnode_t node;
+    inode_t *ino;
+    size_t *pages;
+    char *rpath;
+};
+
+typedef struct dlproc dlproc_t;
+struct dlproc
+{
+    dlib_t *exec;
+    llhead_t libs;
+    hmap_t libs_map;
+    hmap_t symbols_map;
+};
+
+int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, acl_t *acl, const char *name);
+
+dlproc_t *dlib_proc();
+int dlib_destroy(dlproc_t *proc);
+dlib_t *dlib_create(const char *name);
+void dlib_clean(dlib_t *lib);
+int dlib_parse(dlib_t *lib, inode_t *ino);
+
+int dlib_rebase(mspace_t *mm, hmap_t *symbols_map, dlib_t *lib);
+int dlib_resolve(hmap_t *symbols_map, dlib_t *lib);
+int dlib_relloc(dlib_t *lib);
+
+void *dlib_sym(dlproc_t *proc, const char *symbol);
+size_t dlib_fetch_page(dlib_t *lib, size_t off);
+void dlib_release_page(dlib_t *lib, size_t off, size_t pg);
+char *dlib_name(dlib_t *lib, char *buf, int len);
+
+
+int elf_parse(dlib_t *lib, blkmap_t *bkm);
+
+
+#endif
 
 #endif  /* _KERNEL_DLIB_H */

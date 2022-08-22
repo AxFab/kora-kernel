@@ -20,7 +20,6 @@
 #include "ip4.h"
 #include <kernel/core.h>
 
-
 /* Identify the IP class of an IP address */
 int ip4_identify(const uint8_t *ip)
 {
@@ -87,11 +86,19 @@ static int ip4_check_route(ip4_subnet_t *subnet, ip4_route_t *route, const uint8
 
     net_qry_t qry;
     arp_whois(subnet->ifnet, ip, &qry);
-    struct timespec tm = { .tv_sec = 0, .tv_nsec = 500 * 1000000 };
-    if (cnd_timedwait(&qry.cnd, &qry.mtx, &tm) == thrd_success)
+#if defined WIN32 || defined KORA_KRN
+    struct timespec tm = { .tv_sec =  1, .tv_nsec = 0 };
+#else
+    xtime_t rl = xtime_read(XTIME_CLOCK);
+    struct timespec tm = { .tv_sec = rl / 1000000LL + 1, .tv_nsec = 0 };
+#endif
+    int rcnd = cnd_timedwait(&qry.cnd, &qry.mtx, &tm);
+    if (rcnd == thrd_success)
         mtx_unlock(&qry.mtx);
-    if (!qry.success)
+    if (!qry.success) {
+        arp_forget(subnet->ifnet, &qry);
         return -1;
+    }
 
     // TODO -- Put on cache ?
     memcpy(route->addr, qry.res, ETH_ALEN);

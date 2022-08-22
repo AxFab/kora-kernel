@@ -110,22 +110,51 @@ int e1000_send(ifnet_t *net, skb_t *skb)
 int e1000_recv(struct PCI_device *pci, e1000_device_t *ifnet)
 {
     int count = 0;
+    int tail = PCI_rd32(pci, 0, REG_RDT);
+    if (ifnet->rx_index != tail) {
+        kprintf(-1, "[e1000] rx tail updated %d\n", tail);
+        ifnet->rx_index = tail;
+    }
+
     for (;;) {
-        ifnet->rx_index = PCI_rd32(pci, 0, REG_RDT);
-        if (ifnet->rx_index == PCI_rd32(pci, 0, REG_RDH))
-            break;
-        ifnet->rx_index = (ifnet->rx_index + 1) % ifnet->rx_count;
-        if ((ifnet->rx_base[ifnet->rx_index].status & 1) == 0)
+        int head = PCI_rd32(pci, 0, REG_RDH);
+        if (ifnet->rx_index == head)
             break;
 
-        // Inject new packet on network stack
-        uint8_t *buffer = ifnet->rx_virt[ifnet->rx_index];
-        uint16_t length = ifnet->rx_base[ifnet->rx_index].length;
-        kprintf(KL_DBG, "RECEIVE NETWORK PACKET (%d bytes)\n", length);
-        net_skb_recv(&ifnet->dev, buffer, length);
+        kprintf(-1, "[e1000] Recv [%d-%d/%d]\n", head, ifnet->rx_index, ifnet->rx_count);
+        if ((ifnet->rx_base[ifnet->rx_index].status & 1) == 0) {
+            kprintf(-1, "[e1000] not ready - rx status:\n");
+            for (int i = 0; i < ifnet->rx_count; i += 8)
+                kprintf(-1, "[e1000] %04x - %04x - %04x - %04x - %04x - %04x - %04x - %04x\n",
+                    ifnet->rx_base[i + 0].status & 0xffff,
+                    ifnet->rx_base[i + 1].status & 0xffff,
+                    ifnet->rx_base[i + 2].status & 0xffff,
+                    ifnet->rx_base[i + 3].status & 0xffff,
+                    ifnet->rx_base[i + 4].status & 0xffff,
+                    ifnet->rx_base[i + 5].status & 0xffff,
+                    ifnet->rx_base[i + 6].status & 0xffff,
+                    ifnet->rx_base[i + 7].status & 0xffff);
+            break; // Error / Not ready !?
+        }
+
+        if (ifnet->rx_base[ifnet->rx_index].errors & 0x97) {
+            ifnet->rx_index = (ifnet->rx_index + 1) % ifnet->rx_count;
+            kprintf(-1, "[e1000] Error bits are set on rx packet: %x\n", ifnet->rx_base[ifnet->rx_index].errors);
+        } else {
+            // Inject new packet on network stack rx queue
+            uint8_t *buffer = ifnet->rx_virt[ifnet->rx_index];
+            uint16_t length = ifnet->rx_base[ifnet->rx_index].length;
+            kprintf(KL_DBG, "RECEIVE NETWORK PACKET (%d bytes)\n", length);
+            net_skb_recv(&ifnet->dev, buffer, length);
+        }
+
         count++;
         ifnet->rx_base[ifnet->rx_index].status = 0;
+
+        if (++ifnet->rx_index >= ifnet->rx_count)
+            ifnet->rx_count = 0;
         PCI_wr32(pci, 0, REG_RDT, ifnet->rx_index);
+        PCI_rd32(pci, 0, REG_STATUS);
     }
     return count;
 }
@@ -133,12 +162,12 @@ int e1000_recv(struct PCI_device *pci, e1000_device_t *ifnet)
 int e1000_recv_task(e1000_device_t *ifnet)
 {
     struct PCI_device *pci = ifnet->pci;
-    xtime_t delay = 0; // µs
+    xtime_t delay = 500000; // µs
     for (;;) {
         mtx_lock(&pci->mtx);
         e1000_recv(pci, ifnet);
         mtx_unlock(&pci->mtx);
-        if (true)
+        if (false)
             scheduler_switch(TS_READY);
         else
             sleep_timer(delay);
@@ -149,7 +178,7 @@ int e1000_irq_handler(e1000_device_t *ifnet)
 {
     kprintf(KL_DBG, "[e1000] IRQ %s\n", ifnet->name);
     struct PCI_device *pci = ifnet->pci;
-    mtx_lock(&pci->mtx);
+    // mtx_lock(&pci->mtx);
     uint32_t status = PCI_rd32(pci, 0, REG_ICR);
     PCI_wr32(pci, 0, REG_ICR, status);
 
@@ -174,11 +203,11 @@ int e1000_irq_handler(e1000_device_t *ifnet)
     if (status & ICR_RXO)
         kprintf(KL_DBG, "[e1000] %s - Receive buffers overrun\n", ifnet->name);
 
-    if (status & 0xC0) {
-    }
+    // if (status & 0xC0) {
+    // }
 
-    e1000_recv(pci, ifnet);
-    mtx_unlock(&pci->mtx);
+    // e1000_recv(pci, ifnet);
+    // mtx_unlock(&pci->mtx);
     return 0;
 }
 
@@ -199,7 +228,7 @@ int e1000_irq_handler(e1000_device_t *ifnet)
 //     PCI_rd32(pci, 0, REG_STATUS); /* Flush */
 // }
 
-int e1000_read_mac(struct PCI_device *pci, uint8_t *mac)
+static int e1000_read_mac(struct PCI_device *pci, uint8_t *mac)
 {
     int i;
     bool has_eeprom = false;
@@ -235,8 +264,9 @@ void e1000_init_hw(e1000_device_t *ifnet)
     int i;
     struct PCI_device *pci = ifnet->pci;
 
-    /* Wait */
-    sleep_timer(SEC_TO_USEC(1)); // 1 sec
+    // Reset
+    PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
+    sleep_timer(SEC_TO_USEC(2));
 
     uint32_t status = PCI_rd32(pci, 0, REG_CTRL);
     status |= (1 << 5);   /* set auto speed detection */
@@ -245,20 +275,25 @@ void e1000_init_hw(e1000_device_t *ifnet)
     status &= ~(1 << 31); /* unset phy reset */
     status &= ~(1 << 7);  /* unset invert loss-of-signal */
     PCI_wr32(pci, 0, REG_CTRL, status);
+    sleep_timer(SEC_TO_USEC(2));
 
     /* Disables flow control */
-    PCI_wr32(pci, 0, REG_FEXTNVM, 0);
-    PCI_wr32(pci, 0, REG_FCAH, 0);
-    PCI_wr32(pci, 0, REG_FCT, 0);
-    PCI_wr32(pci, 0, REG_FCTTV, 0);
+    // PCI_wr32(pci, 0, REG_FEXTNVM, 0);
+    // PCI_wr32(pci, 0, REG_FCAH, 0);
+    // PCI_wr32(pci, 0, REG_FCT, 0);
+    // PCI_wr32(pci, 0, REG_FCTTV, 0);
+    PCI_wr32(pci, 0, REG_FEXTNVM, 0x002C8001);
+    PCI_wr32(pci, 0, REG_FCAH, 0x0100);
+    PCI_wr32(pci, 0, REG_FCT, 0x8808);
+    PCI_wr32(pci, 0, REG_FCTTV, 0xFFFF);
 
     /* Unset flow control */
-    status = PCI_rd32(pci, 0, REG_CTRL);
-    status &= ~(1 << 30);
-    PCI_wr32(pci, 0, REG_CTRL, status);
+    // status = PCI_rd32(pci, 0, REG_CTRL);
+    // status &= ~(1 << 30);
+    // PCI_wr32(pci, 0, REG_CTRL, status);
 
     /* Wait */
-    sleep_timer(SEC_TO_USEC(1)); // 1 sec
+    sleep_timer(MSEC_TO_USEC(50)); // 1 sec
 
     // kprintf(0, "Check E1000 IRQ = %d\n", PCI_cfg_rd16(pci, PCI_INTERRUPT_LINE) & 0xFF);
 
@@ -305,10 +340,16 @@ void e1000_init_hw(e1000_device_t *ifnet)
     // PCI_write(pci, REG_TCTL, 0b0110000000000111111000011111010);
     // PCI_write(pci, REG_TIPG, 0x0060200A);
 
+    PCI_wr32(pci, 0, REG_RDTR, 0); // Dealy for rx !? Use IRQ !?
+    PCI_wr32(pci, 0, REG_ITR, 500);
+    PCI_rd32(pci, 0, REG_STATUS);
+
     /* Twiddle interrupts */
-    PCI_wr32(pci, 0, REG_IMS, 0xFF);
-    PCI_wr32(pci, 0, REG_IMC, 0xFF);
-    PCI_wr32(pci, 0, REG_IMS, _B(0) | _B(1) | _B(2) | _B(6) | _B(7));
+    // PCI_wr32(pci, 0, REG_IMS, 0xFF);
+    // PCI_wr32(pci, 0, REG_IMC, 0xFF);
+    int ints = ICR_LSC | ICR_RXO | ICR_RXT0 | ICR_TXQE | ICR_TXDW | ICR_ACK | ICR_RXDMT0 | ICR_SRPD;
+    // int ints = ICR_TXDW | ICR_TXQE | ICR_LSC | ICR_RXO | ICR_RXT0;
+    PCI_wr32(pci, 0, REG_IMS, ints);
 
     /* Wait */
     sleep_timer(SEC_TO_USEC(1)); // 1 sec
@@ -342,7 +383,7 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     mtx_lock(&pci->mtx);
 
 
-    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VM_RW | VM_PHYSIQ | VM_UNCACHABLE);
+    pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VM_RW | VMA_PHYS | VM_UNCACHABLE);
     // kprintf(KL_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
 
     ifnet->rx_base = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE);
@@ -377,6 +418,8 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     cmd |= (1 << 2) | (1 << 0);
     PCI_cfg_wr32(pci, PCI_COMMAND, cmd);
 
+    sleep_timer(MSEC_TO_USEC(500));
+
     /* Find MAC address */
     uint8_t hwaddr;
     if (e1000_read_mac(pci, hwaddr) != 0) {
@@ -385,8 +428,6 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     }
 
     /* initialize */
-    PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
-
     ifnet_t *net = net_device(net_stack(), NET_AF_ETH, hwaddr, &e1000_ops, ifnet);
     if (net == NULL) {
         kprintf(-1, "[e1000] Error creating ethernet device: %s\n", name);
@@ -395,13 +436,13 @@ void e1000_startup(struct PCI_device *pci, const char *name)
         return;
     }
     ifnet->dev = net;
-    net->mtu = 1500;
+    net->mtu = 1500; // Wild guess! TODO - Support for jumbo frames
     irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
     e1000_init_hw(ifnet);
     mtx_unlock(&pci->mtx);
     char tmp[32];
     snprintf(tmp, 32, "e1000.eth%d.recv", net->idx);
-    // task_start(tmp, e1000_recv_task, ifnet);
+    task_start(tmp, e1000_recv_task, ifnet);
     // ifnet->dev->mtu = 1500;
     // ifnet->dev.send = (void *)e1000_send;
     // ifnet->dev.link = (void *)e1000_init_hw;

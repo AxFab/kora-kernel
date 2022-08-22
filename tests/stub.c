@@ -201,13 +201,10 @@ void *kmap(size_t len, void *ino, xoff_t off, int flags)
 
     int type = flags & VMA_TYPE;
     int getter = 0;
-    int access = flags & (VM_RW | VM_EX | VM_RESOLVE | VM_PHYSIQ);
+    int access = flags & (VM_RW | VM_EX | VM_RESOLVE);
     if (type == 0 && ino != NULL)
         type = VMA_FILE;
-    if (type == 0 && access & VM_PHYSIQ)
-        type = VMA_PHYS;
-    assert((ino == NULL) != (type == VMA_FILE));
-    assert(((access & VM_PHYSIQ) == 0) != (type == VMA_PHYS));
+    // assert((ino == NULL) != (type == VMA_FILE));
     switch (type) {
     case 0:
         type = VMA_ANON;
@@ -231,14 +228,6 @@ void *kmap(size_t len, void *ino, xoff_t off, int flags)
         break;
     case VMA_CODE:
         access = VM_RD | VM_EX;
-        getter = 2;
-        break;
-    case VMA_DATA:
-        access = VM_WR;
-        getter = 3;
-        break;
-    case VMA_RODATA:
-        access = VM_RD;
         getter = 2;
         break;
     }
@@ -298,11 +287,7 @@ void kunmap(void *addr, size_t len)
         getter = 1;
         break;
     case VMA_CODE:
-    case VMA_RODATA:
         getter = 2;
-        break;
-    case VMA_DATA:
-        getter = 3;
         break;
     case VMA_PHYS:
         getter = 4;
@@ -328,22 +313,21 @@ void kunmap(void *addr, size_t len)
     assert(irq_ready());
 }
 
-void page_release(page_t page)
+void page_release_kmap_stub(page_t page)
 {
     _vfree((void *)page);
 }
 
-page_t page_read(size_t address)
+page_t mmu_read_kmap_stub(size_t address)
 {
-    // void *page = _valloc(PAGE_SIZE);
-    // memcpy(page, (void *)address, PAGE_SIZE);
-    // kprintf(-1, "Page shadow copy at %p \n", page);
+    if (!map_init) {
+        bbtree_init(&map_tree);
+        map_init = true;
+    }
+    map_page_t *mp = bbtree_search_le(&map_tree, address, map_page_t, node);
+    if (mp == NULL || mp->node.value_ + mp->len < address)
+        return 0;
     return (page_t)address;
-}
-
-page_t mmu_read(size_t address)
-{
-    return page_read(address);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -368,6 +352,7 @@ char kpbuf2[1024];
 // Change kernel log settings
 char *klog_lvl[KL_MAX] = {
     [KL_FSA] = "\033[35m%s\033[0m",
+    [KL_VMA] = "\033[93m%s\033[0m",
     [KL_BIO] = KL_NONE,
 };
 
@@ -402,7 +387,8 @@ xtime_t xtime_read(xtime_name_t name)
 #else
     struct timespec now;
     clock_gettime(CLOCK_REALTIME, &now);
-    return SEC_TO_USEC(now.tv_nsec) + (now.tv_nsec / 1000);
+    xtime_t vl = TMSPEC_TO_USEC(now);
+    return vl;
 #endif
 }
 

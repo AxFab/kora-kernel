@@ -88,10 +88,10 @@ typedef pthread_once_t  once_flag;
 typedef void (*tss_dtor_t)(void *);
 typedef int (*thrd_start_t)(void *);
 
-struct timespec {
-    time_t tv_sec;
-    long tv_nsec;
-};
+// struct timespec {
+//     time_t tv_sec;
+//     long tv_nsec;
+// };
 
 
 /*-------------------- enumeration constants --------------------*/

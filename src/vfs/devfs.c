@@ -524,7 +524,8 @@ void devfs_sweep()
             dfs_entry_t *entry = &table->entries[i];
             if ((entry->flags & DF_USAGE) == 0 || entry->dev == NULL)
                 continue;
-            assert(entry->dev->rcu == 1); 
+            if (entry->dev->rcu != 1)
+                kprintf(KL_FSA, "Error loosing track of nodes\n");
             vfs_close_inode(entry->dev);
         }
 

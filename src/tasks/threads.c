@@ -117,13 +117,11 @@ int task_spawn(const char *program, const char **args, inode_t **nodes)
 
     // Init stream
     int flags = 0;
-    fnode_t *dev_null = vfs_search(task->vfs, "/dev/null", NULL, true);
-    inode_t *null = vfs_inodeof(dev_null);
+    inode_t *null = vfs_search_ino(task->vfs, "/dev/null", NULL, true);
     stream_put(task->fset, NULL, nodes[0] != NULL ? nodes[0] : null, flags | VM_RD);
     stream_put(task->fset, NULL, nodes[1] != NULL ? nodes[1] : null, flags | VM_WR);
     stream_put(task->fset, NULL, nodes[2] != NULL ? nodes[2] : null, flags | VM_WR);
     vfs_close_inode(null);
-    vfs_close_fnode(dev_null);
 
     // Load image
     int ret = dlib_openexec(task->proc, program);
@@ -188,7 +186,7 @@ int task_thread(const char *name, void *entry, void *params, size_t len, int fla
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-
+#ifdef KORA_KRN
 int task_start(const char *name, void *func, void *arg)
 {
     scheduler_t *sch = &__scheduler;
@@ -200,7 +198,7 @@ int task_start(const char *name, void *func, void *arg)
     return task->pid;
 }
 EXPORT_SYMBOL(task_start, 0);
-
+#endif
 
 void task_stop(task_t *task, int code)
 {
@@ -231,106 +229,3 @@ void task_fatal(const char *msg, unsigned signum)
     // task_raise(sch, task, signum);
 }
 EXPORT_SYMBOL(task_fatal, 0);
-
-// _Noreturn void task_init()
-// {
-//     fnode_t *node;
-//     // Try to mount image
-//     for (;;) {
-//         node = vfs_mount(__current->vfs, "sdc", "iso", "/mnt/cdrom", "");
-//         if (node != NULL)
-//             break;
-//         sleep_timer(250000);
-//     }
-//     vfs_close_fnode(node);
-
-//     // Change root
-//     vfs_chdir(__current->vfs, "/mnt/cdrom", true);
-
-//     // Re-mount devfs
-//     vfs_mount(__current->vfs, NULL, "devfs", "/dev", "");
-
-//     // Wait for /dev/fb0
-//     for (;;) {
-//         node = vfs_search(__current->vfs, "/dev/fb0", NULL, true);
-//         if (node != NULL)
-//             break;
-//         sleep_timer(250000);
-//     }
-//     vfs_close_fnode(node);
-
-
-//     task_info_t *info = kalloc(sizeof(task_info_t));
-//     info->program = strdup("krish");
-//     info->args = kalloc(sizeof(void *) * 4);
-//     info->args[0] = strdup("krish");
-//     info->args[1] = strdup("-x");
-//     info->args[2] = strdup("-s");
-//     info->args[3] = NULL;
-
-//     fnode_t *stream = vfs_search(__current->vfs, "/dev/null", NULL, true);
-//     info->streams[0] = stream;
-//     info->streams[1] = vfs_open_fnode(stream);
-//     info->streams[2] = vfs_open_fnode(stream);
-
-//     task_init(info);
-// }
-
-// _Noreturn void task_init(task_info_t *info)
-// {
-//     // Load executable image
-//     assert(info != NULL);
-//     assert(__current->proc == NULL);
-//     __current->proc = dlib_process(__current->vfs, __current->vm);
-//     int ret = dlib_openexec(__current->proc, info->program);
-//     if (ret != 0) {
-//         kprintf(-1, "Task.%d] Unable to open executable image %s \n",
-//             __current->pid, info->program);
-//         for (;;);
-//     }
-//     ret = dlib_map_all(__current->proc);
-//     if (ret != 0) {
-//         kprintf(-1, "Task.%d] Error while mapping executable %s \n",
-//             __current->pid, info->program);
-//         for (;;);
-//     }
-
-//     // Create standard files
-//     int flags = 0;
-//     stream_put(__current->fset, info->streams[0], flags | VM_RD);
-//     stream_put(__current->fset, info->streams[1], flags | VM_WR);
-//     stream_put(__current->fset, info->streams[2], flags | VM_WR);
-//     vfs_close_fnode(info->streams[0]);
-//     vfs_close_fnode(info->streams[1]);
-//     vfs_close_fnode(info->streams[2]);
-
-//     // Prepare stack
-//     void *start = dlib_exec_entry(__current->proc);
-//     void *stack = mspace_map(__current->vm, 0, _Mib_, NULL, 0, VMA_STACK | VM_RW);
-//     stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
-
-//     // Copy command arguments
-//     int i = 0, argc = 0;
-//     while (info->args[argc] != NULL)
-//         ++argc;
-//     char **argv = ADDR_PUSH(stack, argc * sizeof(char *));
-//     for (i = 0; i < argc; ++i) {
-//         int lg = strlen(info->args[i]) + 1;
-//         argv[i] = ADDR_PUSH(stack, ALIGN_UP(lg, 4));
-//         strcpy(argv[i], info->args[i]);
-//         kfree(info->args[i]);
-//     }
-//     kfree(info->args);
-//     kfree(info->program);
-//     kfree(info); // TODO -- Merge with __current->proc
-
-//     size_t *args = ADDR_PUSH(stack, 4 * sizeof(char *));
-//     args[1] = argc;
-//     args[2] = (size_t)argv;
-//     args[3] = 0;
-
-//     kprintf(-1, "Task.%d] Ready to enter usermode for executable %s, start:%p, stack:%p \n",
-//             __current->pid, info->program, start, stack);
-
-//     cpu_usermode(start, stack);
-// }

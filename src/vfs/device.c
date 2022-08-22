@@ -176,7 +176,7 @@ int vfs_fnode_bellow(fnode_t *root, fnode_t *dir);
 
 int vfs_chdir(vfs_t *vfs, const char *path, bool root)
 {
-    fnode_t *node = vfs_search(vfs, path, NULL, true);
+    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
     if (node == NULL)
         return -1;
     inode_t *ino = vfs_inodeof(node);

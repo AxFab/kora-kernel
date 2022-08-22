@@ -34,59 +34,80 @@ ERROR ON
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # Link creates hardlinks
-MKDIR Kah 0644
+MKDIR Kah 0755
 
 CREATE Kah/Zig
 STAT Kah/Zig REG
 LINKS Kah/Zig 1
 
-LINK Kah/Sto Kah/Zig
+LINK Kah/Zig Kah/Sto
 STAT Kah/Sto REG
 LINKS Kah/Zig 2
 LINKS Kah/Sto 2
 
-LINK Kah/Dru Kah/Sto
+LINK Kah/Sto Kah/Dru
 STAT Kah/Dru REG
 LINKS Kah/Zig 3
 LINKS Kah/Sto 3
 LINKS Kah/Dru 3
 
-CHMOD Kah/Sto 0201
-CHOWN Kah/Sto 65534 65533
-STAT Kah/Zig REG 0201 65534 65533
-STAT Kah/Sto REG 0201 65534 65533
-STAT Kah/Dru REG 0201 65534 65533
-LINKS Kah/Zig 3
-LINKS Kah/Sto 3
-LINKS Kah/Dru 3
+# CHMOD Kah/Sto 0201
+# CHOWN Kah/Sto 65534 65533
+# STAT Kah/Zig REG 0201 65534 65533
+# STAT Kah/Sto REG 0201 65534 65533
+# STAT Kah/Dru REG 0201 65534 65533
+# LINKS Kah/Zig 3
+# LINKS Kah/Sto 3
+# LINKS Kah/Dru 3
 
 UNLINK Kah/Zig
-ERROR ENOENT
-STAT Kah/Zig
-ERROR ON
-STAT Kah/Sto REG 0201 65534 65533
-STAT Kah/Dru REG 0201 65534 65533
-LINKS Kah/Sto 2
-LINKS Kah/Dru 2
+# ERROR ENOENT
+# STAT Kah/Zig
+# ERROR ON
+# STAT Kah/Sto REG # 0201 65534 65533
+# STAT Kah/Dru REG # 0201 65534 65533
+# LINKS Kah/Sto 2
+# LINKS Kah/Dru 2
 
-UNLINK Kah/Sto
-ERROR ENOENT
-STAT Kah/Zig
-STAT Kah/Sto
-ERROR ON
-STAT Kah/Dru REG 0201 65534 65533
-LINKS Kah/Dru 1
+# UNLINK Kah/Sto
+# ERROR ENOENT
+# STAT Kah/Zig
+# STAT Kah/Sto
+# ERROR ON
+# STAT Kah/Dru REG # 0201 65534 65533
+# LINKS Kah/Dru 1
 
-UNLINK Kah/Dru
-ERROR ENOENT
-STAT Kah/Zig
-STAT Kah/Sto
-STAT Kah/Dru
-ERROR ON
+# UNLINK Kah/Dru
+# ERROR ENOENT
+# STAT Kah/Zig
+# STAT Kah/Sto
+# STAT Kah/Dru
+# ERROR ON
+
+# # ---------------------------------------------------------------------------
+# # Link update ctime
+# CREATE Kah/Goz
+# STAT Kah/Goz REG
+# LINKS Kah/Goz 1
+
+# DELAY
+# TIMES Kah/Goz C lt-now
+# LINK Kah/Goz Kah/Lrz
+# TIMES Kah/Goz C now
+
+# # DELAY
+# # TIMES Kah/Goz C lt-now
+# # SET EUI
+# # ERROR EACCESS
+# # LINK Kah/Goz Kah/Lrz
+# # ERROR ON
+# # TIMES Kah/Goz C lt-now
+
+# UNLINK Kah/Goz
+# UNLINK Kah/Lrz
 
 
-
-RMDIR Kah
+# RMDIR Kah
 
 # Kah Zig Sto Blaz Dru Goz Lrz Poo Tbz Gnee Bnz Glap
 

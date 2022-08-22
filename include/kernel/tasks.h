@@ -82,15 +82,16 @@ struct masterclock {
 
 struct task {
     int pid;
+    char *name;
     void *stack;
+    cpu_state_t jmpbuf;
     task_status_t status;
     bbnode_t node;
-    task_t *parent;
-    char *name;
     splock_t lock;
+
+    task_t *parent;
     int err_no;
     int ret_code;
-    cpu_state_t jmpbuf;
 
     uint32_t raised;
     sig_handler_t shandler[32];
@@ -106,7 +107,7 @@ struct task {
     vfs_t *vfs;
     streamset_t *fset;
     void *net;
-    proc_t *proc;
+    // proc_t *proc;
 };
 
 

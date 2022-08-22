@@ -167,14 +167,17 @@ int icmp_ping(ip4_route_t *route, const char *buf, unsigned len, net_qry_t *qry)
         qry->bnode.value_ = data;
         bbtree_insert(&info->qry_pings, &qry->bnode);
         splock_unlock(&info->qry_lock);
+        mtx_lock(&qry->mtx);
     }
 
     int ret = icmp_packet(route->net, route, ICMP_PING, 0, data, buf, len);
     if (ret == 0)
         return 0;
 
-    if (qry != NULL)
+    if (qry != NULL) {
+        mtx_unlock(&qry->mtx);
         icmp_forget_with(info, qry);
+    }
 
     return -1;
 }

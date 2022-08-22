@@ -36,7 +36,7 @@
 #define VM_RW 06
 #define VM_RWX 07
 #define VM_RESOLVE 0100
-#define VM_PHYSIQ 0200
+#define VM_SHARED 0200
 #define VM_UNCACHABLE 0400
 
 
@@ -60,6 +60,7 @@ enum klog {
     KL_INO, // VFS ressources alloc
     KL_FSA, // File system allocation
     KL_BIO, // Block IO
+    KL_VMA, // Log on VMA
 
     KL_MAX,
 };

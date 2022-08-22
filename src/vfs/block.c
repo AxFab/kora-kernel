@@ -100,7 +100,7 @@ page_t block_fetch(inode_t *ino, xoff_t off)
     if (!page->ready) {
         mtx_lock(&page->mtx);
         if (!page->ready) {
-            void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VM_PHYSIQ);
+            void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VMA_PHYS);
             assert(irq_ready());
             page->phys = mmu_read((size_t)ptr);
             kprintf(KL_BIO, "Alloc page %p for inode %s, read at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
@@ -137,7 +137,7 @@ void block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
 
     if (dirty || page->dirty) { // TODO -- Check block is not RDONLY !?
         mtx_lock(&page->mtx);
-        void *ptr = kmap(PAGE_SIZE, NULL, (xoff_t)page->phys, VM_RW | VM_RESOLVE | VM_PHYSIQ);
+        void *ptr = kmap(PAGE_SIZE, NULL, (xoff_t)page->phys, VM_RW | VM_RESOLVE | VMA_PHYS);
         assert(irq_ready());
         kprintf(KL_BIO, "Write back page %p for inode %s at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
         int ret = ino->ops->write(ino, ptr, PAGE_SIZE, off, 0);

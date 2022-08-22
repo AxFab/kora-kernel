@@ -73,13 +73,6 @@ int murmur3_32(const void *key, int bytes, uint32_t seed)
     return hash;
 }
 
-void *memdup(const void *buf, size_t lg)
-{
-    void *ptr = malloc(lg);
-    memcpy(ptr, buf, lg);
-    return ptr;
-}
-
 void hmp_init(hmap_t *map, int lg)
 {
     assert(POW2(lg));

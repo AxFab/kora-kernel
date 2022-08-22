@@ -229,7 +229,7 @@ int module_predefined_tasks()
     // Check presence of initrd module
     val = atomic_xchg(&mtask_step1, 1);
     if (val == 0) {
-        fnode_t *directory = vfs_search(__current->vfs, "/mnt/boot0", NULL, true);
+        fnode_t *directory = vfs_search(__current->vfs, "/mnt/boot0", NULL, true, true);
         if (directory == NULL)
             kprintf(KL_MSG, "Unable to find kernel modules");
         else

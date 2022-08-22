@@ -74,7 +74,7 @@ void *kmap(size_t len, void *ino, xoff_t off, int access)
     ++kmapCount;
     void *ptr = _valloc(len);
     if (ino == NULL) {
-        if (access & VM_PHYSIQ && off != 0)
+        if (access & VMA_PHYS && off != 0)
             memcpy(ptr, (void *)off, len);
         kprintf(KL_MAL, "+ kmap (%p, %d, -)\n", ptr, len);
         return ptr;

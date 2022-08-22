@@ -264,7 +264,7 @@ long sys_create(int dirfd, const char *path, int flags, int mode)
             return -1;
     }
 
-    fnode_t *node = vfs_search(__current->vfs, path, NULL, false);
+    fnode_t *node = vfs_search(__current->vfs, path, NULL, false, false);
     if (node == NULL)
         return -1;
 
@@ -301,7 +301,7 @@ long sys_opendir(int dirfd, const char *path)
             return -1;
     }
 
-    fnode_t *node = vfs_search(__current->vfs, path, NULL, false);
+    fnode_t *node = vfs_search(__current->vfs, path, NULL, false, false);
     if (node == NULL)
         return -1;
 
@@ -426,7 +426,7 @@ long sys_access(int dirfd, const char *path, int flags)
             return -1;
     }
 
-    fnode_t *node = vfs_search(__current->vfs, path, NULL, true);
+    fnode_t *node = vfs_search(__current->vfs, path, NULL, true, true);
     if (node == NULL)
         return -1;
 
@@ -456,7 +456,7 @@ long sys_fstat(int dirfd, const char *path, struct filemeta *meta, int flags)
             return -1;
     }
 
-    fnode_t *node = vfs_search(__current->vfs, path, NULL, true);
+    fnode_t *node = vfs_search(__current->vfs, path, NULL, true, true);
     if (node == NULL)
         return -1;
 
@@ -540,7 +540,7 @@ int sys_mkfs(const char *device, const char *fstype, const char *options, int fl
     if (options && mspace_check_str(__current->vm, options, 4096) != 0)
         return -1;
 
-    fnode_t* blk = vfs_search(__current->vfs, device, NULL, true);
+    fnode_t* blk = vfs_search(__current->vfs, device, NULL, true, true);
     if (blk == NULL)
         return -1; // "Unable to find the device\n"
 

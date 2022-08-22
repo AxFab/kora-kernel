@@ -42,7 +42,8 @@ PACK(struct arp_header {
 static void arp_forget_with(ip4_info_t *info, net_qry_t *qry)
 {
     splock_lock(&info->qry_lock);
-    bbtree_remove(&info->qry_arps, qry->bnode.value_);
+    if (!qry->received)
+        bbtree_remove(&info->qry_arps, qry->bnode.value_);
     splock_unlock(&info->qry_lock);
 }
 
@@ -117,6 +118,7 @@ int arp_receive(skb_t *skb)
     else if (header->opcode == ARP_REPLY) {
         if (info->subnet.ifnet == NULL)
             return -1;
+
         // TODO -- Check this is not unsollisited packet
         // TODO -- Protect aggainst ARP poisonning
         if (memcmp(info->subnet.gateway, source_ip, IP4_ALEN) == 0)
@@ -156,6 +158,7 @@ int arp_whois(ifnet_t *net, const uint8_t *ip, net_qry_t *qry)
         cnd_init(&qry->cnd);
         mtx_init(&qry->mtx, mtx_plain);
         qry->start = xtime_read(XTIME_CLOCK);
+        mtx_lock(&qry->mtx);
 
         splock_lock(&info->qry_lock);
         qry->bnode.value_ = *((uint32_t *)ip);
@@ -167,8 +170,10 @@ int arp_whois(ifnet_t *net, const uint8_t *ip, net_qry_t *qry)
     if (ret == 0)
         return ret;
 
-    if (qry != NULL)
+    if (qry != NULL) {
+        mtx_lock(&qry->mtx);
         arp_forget_with(info, qry);
+    }
     return -1;
 }
 

@@ -156,6 +156,12 @@ void *memset(void *buffer, int c, size_t num)
     return buffer;
 }
 
+void *memdup(const void *buf, size_t lg)
+{
+    void *ptr = malloc(lg);
+    memcpy(ptr, buf, lg);
+    return ptr;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 

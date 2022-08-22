@@ -39,15 +39,28 @@ enum {
     VMA_PHYS = 0x5000,
     VMA_ANON = 0x6000,
     VMA_CODE = 0x7000,
-    VMA_DATA = 0x8000,
-    VMA_RODATA = 0x9000,
-    VMA_TYPE = 0xF000,
+    VMA_TYPE = 0x7000,
 };
 
 typedef struct inode inode_t;
 
 typedef struct vma vma_t;
 typedef struct mspace mspace_t;
+typedef struct vma_ops vma_ops_t;
+typedef struct vma_cow_reg vma_cow_reg_t;
+
+
+struct vma_ops
+{
+    int (*open)(vma_t *vma, int access, inode_t *ino, xoff_t offset);
+    int (*resolve)(vma_t *vma, size_t address);
+    int (*cow)(vma_t *vma, size_t address);
+    void (*close)(vma_t *vma);
+    char *(*print)(vma_t *vma, char *buf, int len);
+    int (*protect)(vma_t *vma, int flags);
+    void (*split)(vma_t *vma, vma_t *area, size_t length);
+    int (*clone)(vma_t *vma, vma_t *model);
+};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* Create a memory space for a user application */
@@ -87,24 +100,28 @@ int page_fault(mspace_t *mspace, size_t address, int reason);
 void page_teardown();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-// /* - */
-// void mmu_enable();
-// /* - */
-// void mmu_leave();
-// /* - */
-// void mmu_context(mspace_t *mspace);
-// /* - */
-// int mmu_resolve(size_t vaddr, page_t phys, int falgs);
-// /* - */
-// page_t mmu_read(size_t vaddr);
-// /* - */
-// page_t mmu_drop(size_t vaddr);
-// /* - */
-// page_t mmu_protect(size_t vaddr, int falgs);
-// /* - */
-// void mmu_create_uspace(mspace_t *mspace);
-// /* - */
-// void mmu_destroy_uspace(mspace_t *mspace);
+/* - */
+void mmu_enable();
+/* - */
+void mmu_leave();
+/* - */
+void mmu_context(mspace_t *mspace);
+/* - */
+int mmu_resolve(size_t vaddr, page_t phys, int falgs);
+/* - */
+page_t mmu_read(size_t vaddr);
+/* - */
+int mmu_read_flags(size_t vaddr);
+/* - */
+page_t mmu_drop(size_t vaddr);
+/* - */
+bool mmu_dirty(size_t vaddr);
+/* - */
+page_t mmu_protect(size_t vaddr, int falgs);
+/* - */
+void mmu_create_uspace(mspace_t *mspace);
+/* - */
+void mmu_destroy_uspace(mspace_t *mspace);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -149,10 +166,19 @@ struct mspace {
     size_t p_size;  /* Physical allocated page counter */
     size_t a_size;  /* Total allocated page counter */
     size_t s_size;  /* Shared allocated page counter */
+    size_t t_size;  /* Table allocated page counter */
     size_t phys_pg_count;  /* Physical page used on this address space */
     splock_t lock;  /* Memory space protection lock */
 };
 
+
+struct vma_cow_reg
+{
+    atomic_int rcu;
+    vma_cow_reg_t *parent;
+    size_t pages_count;
+    size_t pages[0];
+};
 
 struct vma {
     bbnode_t node;  /* Binary tree node of VMAs contains the base address */
@@ -160,6 +186,8 @@ struct vma {
     inode_t *ino;  /* If the VMA is linked to a file, a pointer to the inode */
     xoff_t offset;  /* An offset to a file or an physical address, depending of type */
     int flags;  /* VMA flags */
+    vma_ops_t *ops;
+    vma_cow_reg_t *cow_reg;
     mspace_t *mspace;
 };
 

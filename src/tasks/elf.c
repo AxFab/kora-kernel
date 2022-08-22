@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <string.h>
 
+#if 0 
 typedef struct elf_header elf_header_t;
 typedef struct elf_phead elf_phead_t;
 typedef struct elf_shead elf_shead_t;
@@ -358,3 +359,5 @@ int elf_parse(dynlib_t *dlib)
     kunmap(iomap, iolg);
     return 0;
 }
+
+#endif

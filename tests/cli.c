@@ -538,6 +538,7 @@ static int cli_read_integer(const char **line, size_t *ptr)
     int value = strtol(*line, &str, 0);
     if (*line == str)
         return -1;
+    *line = str;
     *((int *)ptr) = value;
     return 0;
 }
@@ -561,12 +562,18 @@ int cli_commands(FILE *fp, void *ctx, bool reecho)
         char *str = line;
         while (str[0] && isspace(str[0]))
             str++;
-        if (str[0] == '#' || str[0] == '\0')
+        char *cm = strchr(str, '#');
+        if (cm != NULL)
+            *cm = '\0';
+        char *cr = strchr(str, '\n');
+        if (cr != NULL)
+            *cr = '\0';
+        if (str[0] == '\0')
             continue;
 
         // Isolate first word as sub-routine
         if (reecho)
-            printf("%s", str);
+            printf("%s\n", str);
         char cmd[16];
         strncpy(cmd, str, 15);
         cmd[15] = '\0';
@@ -701,7 +708,6 @@ void *cli_remove(char *name, int type)
 
 splock_t log_lock = INIT_SPLOCK;
 char log_buf[1024];
-
 
 int cli_msg(int ret, const char *clr, const char *msg, ...)
 {
