@@ -36,7 +36,7 @@ include $(topdir)/make/drivers.mk
 # Setup compile flags
 CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb -Wno-address-of-packed-member
 CFLAGS_inc  = -I$(topdir)/include
-CFLAGS_inc += -I$(topdir)/src/_$(target_os)/include
+# CFLAGS_inc += -I$(topdir)/src/_$(target_os)/include
 CFLAGS_inc += -I$(topdir)/arch/$(target_arch)/include
 CFLAGS_def  = -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS_def += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
@@ -128,19 +128,41 @@ SRC_kcore += $(topdir)/src/stdc/bbtree.c
 SRC_kcore += $(topdir)/src/stdc/debug.c
 SRC_kcore += $(topdir)/src/stdc/hmap.c
 SRC_kcore += $(topdir)/src/stdc/sem.c
+SRC_kcore += $(topdir)/src/stdc/blkmap.c
 SRC_kcore += $(wildcard $(topdir)/tests/*.c)
 
 CFLAGS_cli += -D_EMBEDED_FS
+
+SRC_climem += $(wildcard $(topdir)/src/mem/*.c)
+SRC_climem += $(wildcard $(topdir)/tests/mem/*.c)
+SRC_climem += $(SRC_kcore)
+
+SRC_clinet += $(wildcard $(topdir)/drivers/net/ip4/*.c)
+SRC_clinet += $(wildcard $(topdir)/src/net/*.c)
+SRC_clinet += $(wildcard $(topdir)/tests/net/*.c)
+SRC_clinet += $(SRC_kcore)
+
+SRC_clisnd += $(wildcard $(topdir)/src/snd/*.c)
+SRC_clisnd += $(wildcard $(topdir)/tests/snd/*.c)
+SRC_clisnd += $(SRC_kcore)
+
+SRC_clitsk += $(wildcard $(topdir)/src/tasks/*.c)
+SRC_clitsk += $(wildcard $(topdir)/tests/tasks/*.c)
+SRC_clitsk += $(SRC_kcore)
+
 SRC_clivfs += $(wildcard $(topdir)/drivers/fs/ext2/*.c)
 SRC_clivfs += $(wildcard $(topdir)/drivers/fs/vfat/*.c)
 SRC_clivfs += $(wildcard $(topdir)/drivers/fs/isofs/*.c)
-
 SRC_clivfs += $(wildcard $(topdir)/src/vfs/*.c)
 SRC_clivfs += $(wildcard $(topdir)/tests/vfs/*.c)
 SRC_clivfs += $(SRC_kcore)
 
 
 $(eval $(call comp_source,cli,CFLAGS_cli))
+$(eval $(call link_bin,cli-mem,SRC_climem,LFLAGS_cli,cli))
+$(eval $(call link_bin,cli-net,SRC_clinet,LFLAGS_cli,cli))
+$(eval $(call link_bin,cli-snd,SRC_clisnd,LFLAGS_cli,cli))
+$(eval $(call link_bin,cli-tsk,SRC_clitsk,LFLAGS_cli,cli))
 $(eval $(call link_bin,cli-vfs,SRC_clivfs,LFLAGS_cli,cli))
 
 

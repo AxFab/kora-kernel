@@ -16,7 +16,7 @@
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 SED_LCOV  = -e '/SF:\/usr.*/,/end_of_record/d'
-SED_LCOV += -e '/SF:.*\/src\/tests\/.*/,/end_of_record/d'
+SED_LCOV += -e '/SF:.*\/tests\/.*/,/end_of_record/d'
 
 
 check: $(patsubst %,val_%,$(CHECKS))
