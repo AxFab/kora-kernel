@@ -235,11 +235,11 @@ int vfs_open_access(int options)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-inode_t *vfs_mkdir(vfs_t *vfs, const char *name, acl_t *acl, int mode)
+inode_t *vfs_mkdir(vfs_t *vfs, const char *name, user_t *user, int mode)
 {
     errno = 0;
     // TODO -- Check last entry can't be . or .. -> EINVAL
-    fnode_t *node = vfs_search(vfs, name, acl, false, false);
+    fnode_t *node = vfs_search(vfs, name, user, false, false);
     if (node == NULL) {
         assert(errno != 0);
         return NULL;
@@ -261,7 +261,7 @@ inode_t *vfs_mkdir(vfs_t *vfs, const char *name, acl_t *acl, int mode)
     }
 
     assert(irq_ready());
-    inode_t *ino = dir->ops->mkdir(dir, node->name, mode & (~vfs->umask & 07777), acl);
+    inode_t *ino = dir->ops->mkdir(dir, node->name, mode & (~vfs->umask & 07777), user);
     if (ino != NULL)
         vfs_resolve(node, ino);
     mtx_unlock(&node->mtx);
@@ -272,10 +272,10 @@ inode_t *vfs_mkdir(vfs_t *vfs, const char *name, acl_t *acl, int mode)
 }
 EXPORT_SYMBOL(vfs_mkdir, 0);
 
-int vfs_rmdir(vfs_t *vfs, const char *name, acl_t *acl)
+int vfs_rmdir(vfs_t *vfs, const char *name, user_t *user)
 {
     errno = 0;
-    fnode_t *node = vfs_search(vfs, name, acl, true, false); // TODO !!?
+    fnode_t *node = vfs_search(vfs, name, user, true, false); // TODO !!?
     if (node == NULL) {
         assert(errno != 0);
         return -1;
@@ -347,14 +347,14 @@ int vfs_create(fnode_t *node, void *user, int mode)
 }
 EXPORT_SYMBOL(vfs_create, 0);
 
-inode_t *vfs_open(vfs_t *vfs, const char *name, acl_t *acl, int mode, int flags) 
+inode_t *vfs_open(vfs_t *vfs, const char *name, user_t *user, int mode, int flags) 
 {
     int access = vfs_open_access(flags);
     if (access <= 0)
         return NULL;
 
     errno = 0;
-    fnode_t *node = vfs_search(vfs, name, acl, false, false);
+    fnode_t *node = vfs_search(vfs, name, user, false, false);
     if (node == NULL)
         return NULL;
     
@@ -388,7 +388,7 @@ inode_t *vfs_open(vfs_t *vfs, const char *name, acl_t *acl, int mode, int flags)
 
     inode_t *ino = vfs_inodeof(node);
     vfs_close_fnode(node);
-    if (!created && vfs_access(ino, acl, access) != 0) {
+    if (!created && vfs_access(ino, user, access) != 0) {
         vfs_close_inode(ino);
         errno = EACCES;
         return NULL;
@@ -401,7 +401,7 @@ inode_t *vfs_open(vfs_t *vfs, const char *name, acl_t *acl, int mode, int flags)
     }
 
     if (flags & O_TRUNC) {
-        if (!created && vfs_access(ino, acl, VM_RW) != 0) {
+        if (!created && vfs_access(ino, user, VM_RW) != 0) {
             vfs_close_inode(ino);
             errno = EPERM;
             return NULL;
@@ -417,10 +417,10 @@ inode_t *vfs_open(vfs_t *vfs, const char *name, acl_t *acl, int mode, int flags)
 }
 EXPORT_SYMBOL(vfs_open, 0);
 
-int vfs_unlink(vfs_t *vfs, const char *name, acl_t *acl)
+int vfs_unlink(vfs_t *vfs, const char *name, user_t *user)
 {
     errno = 0;
-    fnode_t *node = vfs_search(vfs, name, acl, true, false);
+    fnode_t *node = vfs_search(vfs, name, user, true, false);
     if (node == NULL) {
         assert(errno != 0);
         return -1;
@@ -452,18 +452,18 @@ int vfs_unlink(vfs_t *vfs, const char *name, acl_t *acl)
 }
 EXPORT_SYMBOL(vfs_unlink, 0);
 
-int vfs_link(vfs_t *vfs, const char *name, acl_t *acl, fnode_t *target)
+int vfs_link(vfs_t *vfs, const char *name, user_t *user, fnode_t *target)
 {
     errno = 0;
     // TODO -- Check last entry can't be . or .. -> EINVAL
-    fnode_t *node = vfs_search(vfs, name, acl, false, false);
+    fnode_t *node = vfs_search(vfs, name, user, false, false);
     if (node == NULL) {
         assert(errno != 0);
         return -1;
     }
 
     inode_t *ino = vfs_inodeof(target);
-    if (ino->type != FL_REG) {
+    if (ino->type == FL_DIR) {
         vfs_close_inode(ino);
         vfs_close_fnode(node);
         errno = EPERM;
@@ -489,6 +489,14 @@ int vfs_link(vfs_t *vfs, const char *name, acl_t *acl, fnode_t *target)
         errno = EPERM;
         return -1;
     }
+    if (dir->dev != ino->dev) {
+        mtx_unlock(&node->mtx);
+        vfs_close_inode(ino);
+        vfs_close_inode(dir);
+        vfs_close_fnode(node);
+        errno = EXDEV;
+        return -1;
+    }
 
     assert(irq_ready());
     int ret = dir->ops->link(dir, node->name, ino);
@@ -502,10 +510,10 @@ int vfs_link(vfs_t *vfs, const char *name, acl_t *acl, fnode_t *target)
 }
 EXPORT_SYMBOL(vfs_link, 0);
 
-inode_t *vfs_symlink(vfs_t *vfs, const char *name, acl_t *acl, const char *path) 
+inode_t *vfs_symlink(vfs_t *vfs, const char *name, user_t *user, const char *path) 
 {
     errno = 0;
-    fnode_t *node = vfs_search(vfs, name, acl, false, false);
+    fnode_t *node = vfs_search(vfs, name, user, false, false);
     if (node == NULL) {
         assert(errno != 0);
         return NULL;
@@ -533,7 +541,7 @@ inode_t *vfs_symlink(vfs_t *vfs, const char *name, acl_t *acl, const char *path)
         return NULL;
     }
 
-    inode_t *ino = dir->ops->symlink(dir, node->name, acl, path);
+    inode_t *ino = dir->ops->symlink(dir, node->name, user, path);
     vfs_close_inode(dir);
     if (ino != NULL)
         vfs_resolve(node, ino);
@@ -554,10 +562,10 @@ EXPORT_SYMBOL(vfs_symlink, 0);
 //inode_t *vfs_mkfifo(vfs_t *vfs, const char *path, acl_t *acl, int mode) {}
 //EXPORT_SYMBOL(vfs_mkfifo, 0);
 
-inode_t *vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path, acl_t *acl, const char *options)
+inode_t *vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path, user_t *user, const char *options)
 {
     assert(fstype != NULL && path != NULL);
-    fnode_t *node = vfs_search(vfs, path, acl, false, false);
+    fnode_t *node = vfs_search(vfs, path, user, false, false);
     if (node == NULL)
         return NULL;
 
@@ -586,7 +594,7 @@ inode_t *vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *
 
     inode_t *dev_ino = NULL;
     if (dev != NULL) {
-        fnode_t *dev_node = vfs_search(vfs, dev, acl, true, true);
+        fnode_t *dev_node = vfs_search(vfs, dev, user, true, true);
 
         if (dev_node == NULL) {
             mtx_unlock(&node->mtx);
@@ -640,7 +648,7 @@ inode_t *vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *
 }
 EXPORT_SYMBOL(vfs_mount, 0);
 
-int vfs_umount_at(fnode_t *node, acl_t *acl, int flags)
+int vfs_umount_at(fnode_t *node, user_t *user, int flags)
 {
     splock_lock(&__vfs_share->lock);
     bool is_mounted = ll_contains(&__vfs_share->mnt_list, &node->nlru);
@@ -665,12 +673,12 @@ int vfs_umount_at(fnode_t *node, acl_t *acl, int flags)
     return 0;
 }
 
-int vfs_umount(vfs_t *vfs, const char *path, acl_t *acl, int flags)
+int vfs_umount(vfs_t *vfs, const char *path, user_t *user, int flags)
 {
-    fnode_t *node = vfs_search(vfs, path, acl, true, true);
+    fnode_t *node = vfs_search(vfs, path, user, true, true);
     if (node == NULL)
         return -1;
-    return vfs_umount_at(node, acl, flags);
+    return vfs_umount_at(node, user, flags);
 }
 EXPORT_SYMBOL(vfs_umount, 0);
 

@@ -21,12 +21,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <kernel/vfs.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
 #include "../cli.h"
+#include <kernel/vfs.h>
 
 #ifndef O_BINARY
 # define O_BINARY 0
@@ -39,6 +39,13 @@
 #pragma warning(disable : 4996)
 #endif
 
+typedef struct vfs_ctx
+{
+    vfs_t *vfs;
+    user_t *user;
+} vfs_ctx_t;
+
+
 #ifdef __LP64
 #define XOFF_F "%ld"
 #else
@@ -50,9 +57,9 @@ void imgdk_create(const char *name, size_t size);
 void vhd_create_dyn(const char *name, uint64_t size);
 
 
-int do_dump(vfs_t **ctx, size_t *param)
+int do_dump(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
+    vfs_t *vfs = ctx->vfs;
     fnode_t *node = vfs->root;
     int indent = 0;
     char tmp[16];
@@ -62,23 +69,22 @@ int do_dump(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_umask(vfs_t **ctx, size_t *param)
+int do_umask(vfs_ctx_t *ctx, size_t *param)
 {
     int mask = param[0];
     if ((mask & 0777) != mask) {
         printf("Invalid value for umask: %o\n", mask);
         return -1;
     }
-    vfs_t *vfs = *ctx;
+    vfs_t *vfs = ctx->vfs;
     vfs->umask = mask;
     return 0;
 }
 
-int do_ls(vfs_t **ctx, size_t *param)
+int do_ls(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
-    fnode_t *dir = vfs_search(vfs, path, NULL, true, true);
+    fnode_t *dir = vfs_search(ctx->vfs, path, ctx->user, true, true);
     fnode_t *node;
 
     char tmp[16];
@@ -91,7 +97,7 @@ int do_ls(vfs_t **ctx, size_t *param)
         return -1;
     }
 
-    void *dctx = vfs_opendir(dir, NULL);
+    void *dctx = vfs_opendir(dir, ctx->user);
     if (!dctx) {
         vfs_close_fnode(dir);
         printf("Error during directory reading\n");
@@ -117,17 +123,17 @@ const char *vfs_timestr(xtime_t clock, char *tmp)
     return tmp;
 }
 
-static int __do_stat(vfs_t *vfs, size_t *param, bool follow)
+static int __do_stat(vfs_ctx_t *ctx, size_t *param, bool follow)
 {
     static const char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx" };
 
     char *path = (char *)param[0];
     char *type = (char *)param[1];
     int mode = param[2];
-    char *uid = (char *)param[3];
-    char *gid = (char *)param[4];
+    // char *uid = (char *)param[3];
+    // char *gid = (char *)param[4];
 
-    fnode_t *node = vfs_search(vfs, path, NULL, true, follow);
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, follow);
     if (node == NULL)
         return cli_error("No such entry\n");
 
@@ -160,65 +166,62 @@ static int __do_stat(vfs_t *vfs, size_t *param, bool follow)
     return 0;
 }
 
-int do_stat(vfs_t **ctx, size_t *param)
+int do_stat(vfs_ctx_t *ctx, size_t *param)
 {
-    return __do_stat(*ctx, param, true);
+    return __do_stat(ctx, param, true);
 }
 
 
-int do_lstat(vfs_t **ctx, size_t *param)
+int do_lstat(vfs_ctx_t *ctx, size_t *param)
 {
-    return __do_stat(*ctx, param, false);
+    return __do_stat(ctx, param, false);
 }
 
 
-int do_link(vfs_t **ctx, size_t *param)
+int do_link(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     char *path2 = (char *)param[1];
-    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
     if (node == NULL)
-        return cli_error("Unable to find node %n", path);
+        return cli_error("Unable to find node %s", path);
 
-    int ret = vfs_link(vfs, path2, NULL, node);
+    int ret = vfs_link(ctx->vfs, path2, ctx->user, node);
     vfs_close_fnode(node);
     if (ret != 0)
-        return cli_error("Unable to create link %n", path2);
+        return cli_error("Unable to create link %s", path2);
     return 0;
 }
 
 
-int do_links(vfs_t * *ctx, size_t * param)
+int do_links(vfs_ctx_t *ctx, size_t * param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     int count = param[1];
 
-    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
     if (node == NULL)
-        return cli_error("No such entry\n");
+        return cli_error("No such entry");
 
     printf("Node have %d links\n", node->ino->links);
     if (count != 0 && node->ino->links != count) {
         vfs_close_fnode(node);
-        return cli_error("Invalid links count\n");
+        return cli_error("Invalid links count");
     }
 
     vfs_close_fnode(node);
     return 0;
 }
 
-int do_times(vfs_t **ctx, size_t *param)
+int do_times(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     char *mode = (char *)param[1];
-    char *cmp = (char *)param[2];
+    // char *cmp = (char *)param[2];
     for (int i = 0; mode && mode[i]; ++i)
         mode[i] = tolower(mode[i]);
 
-    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
     if (node == NULL)
         return cli_error("No such entry\n");
 
@@ -238,29 +241,27 @@ int do_times(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_cd(vfs_t **ctx, size_t *param)
+int do_cd(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
-    int ret = vfs_chdir(vfs, path, false);
+    int ret = vfs_chdir(ctx->vfs, path, ctx->user, false);
     if (ret != 0)
         return cli_error("Error on changing working directory (%d: %s)\n", errno, strerror(errno));
     return 0;
 }
 
-int do_chroot(vfs_t **ctx, size_t *param)
+int do_chroot(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
-    int ret = vfs_chdir(vfs, path, true);
+    int ret = vfs_chdir(ctx->vfs, path, ctx->user, true);
     if (ret != 0)
         return cli_error("Error on changing root directory (%d: %s)\n", errno, strerror(errno));
     return 0;
 }
 
-int do_pwd(vfs_t **ctx, size_t *param)
+int do_pwd(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
+    vfs_t *vfs = ctx->vfs;
     char buf[4096];
     int ret = vfs_readpath(vfs, vfs->pwd, buf, 4096, false);
     if (ret == 0)
@@ -270,9 +271,8 @@ int do_pwd(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_open(vfs_t **ctx, size_t *param)
+int do_open(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     char *flags = (char *)param[1];
     int mode = (int)param[2];
@@ -302,7 +302,7 @@ int do_open(vfs_t **ctx, size_t *param)
         // O_APPEND | O_NOINHERIT | O_RANDOM | O_RAW | O_SEQUENTIAL | O_TEMPORARY | O_TEXT | O_BINARY;
     }
 
-    inode_t *ino = vfs_open(vfs, path, NULL, mode, opt);
+    inode_t *ino = vfs_open(ctx->vfs, path, ctx->user, mode, opt);
     if (ino != NULL)
         vfs_close_inode(ino);
     else
@@ -310,17 +310,17 @@ int do_open(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_close(vfs_t **ctx, size_t *param)
+int do_close(vfs_ctx_t *ctx, size_t *param)
 {
     return cli_error("Not implemented: %s!\n", __func__);
 }
 
-int do_look(vfs_t **ctx, size_t *param)
+int do_look(vfs_ctx_t *ctx, size_t *param)
 {
     return cli_error("Not implemented: %s!\n", __func__);
 }
 
-int do_delay(vfs_t **ctx, size_t *param)
+int do_delay(vfs_ctx_t *ctx, size_t *param)
 {
     struct timespec xt;
     xt.tv_sec = 1;
@@ -329,44 +329,41 @@ int do_delay(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_create(vfs_t **ctx, size_t *param)
+int do_create(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *name = (char *)param[0];
     int mode = param[1];
     if (mode == 0)
         mode = 0644;
 
-    fnode_t *node = vfs_search(vfs, name, NULL, false, false);
+    fnode_t *node = vfs_search(ctx->vfs, name, ctx->user, false, false);
     if (node == NULL)
         return cli_error("Unable to find path to directory %s: [%d - %s]\n", name, errno, strerror(errno));
-    int ret = vfs_create(node, NULL, mode & (~vfs->umask & 0777));
+    int ret = vfs_create(node, ctx->user, mode & (~ctx->vfs->umask & 0777));
     if (ret != 0)
         cli_error("Unable to create file %s: [%d - %s]\n", name, errno, strerror(errno));
     vfs_close_fnode(node);
     return ret;
 }
 
-int do_unlink(vfs_t **ctx, size_t *param)
+int do_unlink(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     const char *name = (char *)param[0];
 
-    int ret = vfs_unlink(vfs, name, NULL);
+    int ret = vfs_unlink(ctx->vfs, name, ctx->user);
     if (ret != 0)
         cli_error("Unable to remove file %s: [%d - %s]\n", name, errno, strerror(errno));
     cli_info("Removed file entry: %s\n", name);
     return ret;
 }
 
-int do_symlink(vfs_t **ctx, size_t *param)
+int do_symlink(vfs_ctx_t *ctx, size_t *param)
 {
     char buf[32];
-    vfs_t *vfs = *ctx;
     const char *name = (char *)param[0];
     const char *name2 = (char *)param[1];
 
-    inode_t *ino = vfs_symlink(vfs, name2, NULL, name);
+    inode_t *ino = vfs_symlink(ctx->vfs, name2, ctx->user, name);
     if (ino == NULL)
         return cli_error("Unable to create symlink %s: [%d - %s]\n", name, errno, strerror(errno));
     cli_info("Create new symlink: %s\n", vfs_inokey(ino, buf));
@@ -374,16 +371,15 @@ int do_symlink(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_mkdir(vfs_t **ctx, size_t *param)
+int do_mkdir(vfs_ctx_t *ctx, size_t *param)
 {
     char buf[32];
-    vfs_t *vfs = *ctx;
     char *name = (char *)param[0];
     int mask = param[1];
     if (mask == 0)
         mask = 0755;
 
-    inode_t *ino = vfs_mkdir(vfs, name, NULL, mask);
+    inode_t *ino = vfs_mkdir(ctx->vfs, name, ctx->user, mask);
     if (ino == NULL)
         return cli_error("Unable to create directory %s: [%d - %s]\n", name, errno, strerror(errno));
     cli_info("Create new directory: %s\n", vfs_inokey(ino, buf));
@@ -391,29 +387,27 @@ int do_mkdir(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_rmdir(vfs_t **ctx, size_t *param)
+int do_rmdir(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     const char *name = (char *)param[0];
 
-    int ret = vfs_rmdir(vfs, name, NULL);
+    int ret = vfs_rmdir(ctx->vfs, name, ctx->user);
     if (ret != 0)
         return cli_error("Unable to remove directory %s: [%d - %s]\n", name, errno, strerror(errno));
     cli_info("Remove directory: %s\n", name);
     return ret;
 }
 
-int do_dd(vfs_t **ctx, size_t *param)
+int do_dd(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     const char *dst = (char *)param[0];
     const char *src = (char *)param[1];
     size_t len = param[2];
 
-    fnode_t *srcNode = vfs_search(vfs, src, NULL, true, true);
+    fnode_t *srcNode = vfs_search(ctx->vfs, src, ctx->user, true, true);
     if (srcNode == NULL)
         return cli_error("Unable to find file %s!\n", src);
-    fnode_t *dstNode = vfs_search(vfs, dst, NULL, false, false);
+    fnode_t *dstNode = vfs_search(ctx->vfs, dst, ctx->user, false, false);
     if (dstNode == NULL)
         return cli_error("Unable to find file %s!\n", dst);
     int ret = vfs_lookup(dstNode);
@@ -444,12 +438,11 @@ int do_dd(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_clear_cache(vfs_t **ctx, size_t *param)
+int do_clear_cache(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
 
-    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
     if (node == NULL)
         return cli_error("No such entry\n");
     device_t *dev = node->ino->dev;
@@ -459,13 +452,12 @@ int do_clear_cache(vfs_t **ctx, size_t *param)
     return ret;
 }
 
-int do_mount(vfs_t **ctx, size_t *param)
+int do_mount(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *dev = (char *)param[0];
     char *fstype = (char *)param[1];
     char *name = (char *)param[2];
-    inode_t *ino = vfs_mount(vfs, strcmp(dev, "-") == 0 ? NULL : dev, fstype, name, NULL, "");
+    inode_t *ino = vfs_mount(ctx->vfs, strcmp(dev, "-") == 0 ? NULL : dev, fstype, name, ctx->user, "");
     if (ino == NULL)
         return cli_error("\033[31mUnable to mount disk '%s': [%d - %s]\033[0m\n", dev, errno, strerror(errno));
     else
@@ -473,23 +465,21 @@ int do_mount(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_umount(vfs_t **ctx, size_t *param)
+int do_umount(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
 
-    int ret = vfs_umount(vfs, path, NULL, 0);
+    int ret = vfs_umount(ctx->vfs, path, ctx->user, 0);
     if (ret != 0)
         cli_error("Error on umount '%s': [%d - %s]\033[0m\n", path, errno, strerror(errno));
     return ret;
 }
 
-int do_extract(vfs_t **ctx, size_t *param)
+int do_extract(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     char *out = (char *)param[1];
-    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
 
     if (node == NULL)
         return cli_error("No such entry\n");
@@ -578,12 +568,11 @@ uint32_t crc32_r(uint32_t checksum, const void *buf, size_t len)
 }
 
 
-int do_checksum(vfs_t **ctx, size_t *param)
+int do_checksum(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *path = (char *)param[0];
     // char* out = (char*)param[1];
-    fnode_t *node = vfs_search(vfs, path, NULL, true, true);
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
 
     if (node == NULL)
         return cli_error("No such entry\n");
@@ -617,7 +606,7 @@ int do_checksum(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_img_open(vfs_t **ctx, size_t *param)
+int do_img_open(vfs_ctx_t *ctx, size_t *param)
 {
     char *path = (char *)param[0];
     char *name = (char *)param[1];
@@ -627,7 +616,7 @@ int do_img_open(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_img_create(vfs_t **ctx, size_t *param)
+int do_img_create(vfs_ctx_t *ctx, size_t *param)
 {
     char *path = (char *)param[0];
     char *size = (char *)param[1];
@@ -656,7 +645,7 @@ int do_img_create(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_img_remove(vfs_t **ctx, size_t *param)
+int do_img_remove(vfs_ctx_t *ctx, size_t *param)
 {
     char *path = (char *)param[0];
     errno = 0;
@@ -671,7 +660,7 @@ int do_img_remove(vfs_t **ctx, size_t *param)
 }
 
 
-int do_img_copy(vfs_t **ctx, size_t *param)
+int do_img_copy(vfs_ctx_t *ctx, size_t *param)
 {
     char *src = (char *)param[0];
     char *dst = (char *)param[1];
@@ -714,7 +703,7 @@ int do_img_copy(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int do_tar_mount(vfs_t **ctx, size_t *param)
+int do_tar_mount(vfs_ctx_t *ctx, size_t *param)
 {
     char *path = (char *)param[0];
     char *name = (char *)param[1];
@@ -733,16 +722,12 @@ int do_tar_mount(vfs_t **ctx, size_t *param)
     return 0;
 }
 
-int fatfs_format(inode_t *bdev, const char *options);
-int ext2_format(inode_t *bdev, const char *options);
-
-int do_format(vfs_t **ctx, size_t *param)
+int do_format(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = *ctx;
     char *fs = (char *)param[0];
     char *path = (char *)param[1];
     char *options = (char *)param[2];
-    fnode_t *blk = vfs_search(vfs, path, NULL, true, true);
+    fnode_t *blk = vfs_search(ctx->vfs, path, ctx->user, true, true);
     if (blk == NULL)
         return cli_error("Unable to find the device\n");
 
@@ -761,3 +746,68 @@ int do_format(vfs_t **ctx, size_t *param)
     vfs_close_fnode(blk);
     return 0;
 }
+
+
+int do_chmod(vfs_ctx_t *ctx, size_t *param)
+{
+    char *path = (char *)param[0];
+    char *mode_str = (char *)param[1];
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
+    if (node == NULL)
+        return cli_error("Unable to find %s", path);
+
+    int mode = 0;
+    if (mode_str[0] == '0')
+        mode = strtol(mode_str, NULL, 8);
+    else {
+        vfs_close_fnode(node);
+        return cli_error("Not supported mode %s", mode_str);
+    }
+
+    int ret = vfs_chmod(node, ctx->user, mode);
+
+    vfs_close_fnode(node);
+    if (ret != 0)
+        return cli_error("Error during chmod of %s (%d)", path, errno);
+    return 0;
+}
+
+
+int do_chown(vfs_ctx_t *ctx, size_t *param)
+{
+    char *path = (char *)param[0];
+    // char *uid = (char *)param[1];
+    // char *gid = (char *)param[2];
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
+    if (node == NULL)
+        return cli_error("Unable to find %s", path);
+
+    user_t *nacl = NULL;
+
+    int ret = vfs_chown(node, ctx->user, nacl);
+
+    vfs_close_fnode(node);
+    if (ret != 0)
+        return cli_error("Error during chown of %s (%d)", path, errno);
+    return 0;
+}
+
+
+int do_utimes(vfs_ctx_t *ctx, size_t *param)
+{
+    vfs_t *vfs = ctx->vfs;
+    char *path = (char *)param[0];
+    // char *utime = (char *)param[1];
+    // char *flags = (char *)param[2];
+    fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
+    if (node == NULL)
+        return cli_error("Unable to find %s", path);
+
+    int ret = vfs_utimes(node, ctx->user, 0, 0);
+
+    vfs_close_fnode(node);
+    if (ret != 0)
+        return cli_error("Error during utimes of %s (%d)", path, errno);
+    return 0;
+}
+

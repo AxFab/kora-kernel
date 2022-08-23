@@ -295,3 +295,6 @@ ext2_ino_t* ext2_entry(struct bkmap* bk, ext2_volume_t* vol, unsigned no, int fl
 
 int ext2_dir_is_empty(ext2_volume_t *vol, ext2_ino_t *dir);
 
+
+
+int ext2_chmod(inode_t *ino, int mode);

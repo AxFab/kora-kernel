@@ -218,7 +218,7 @@ struct dlproc
     hmap_t symbols_map;
 };
 
-int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, acl_t *acl, const char *name);
+int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, user_t *user, const char *name);
 
 dlproc_t *dlib_proc();
 int dlib_destroy(dlproc_t *proc);

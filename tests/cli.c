@@ -17,16 +17,16 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include "cli.h"
-#include "utils.h"
+#include <kora/hmap.h>
+#include <kora/splock.h>
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <kora/hmap.h>
-#include <kora/splock.h>
 #include <errno.h>
+#include "cli.h"
+#include "utils.h"
 
 static int read_errno(const char *str)
 {
@@ -437,16 +437,17 @@ static void do_help()
     }
 }
 
-int do_include(char *str, void *ctx)
+int do_include(const char *str, void *ctx)
 {
     int i;
     while (isblank(*str)) str++;
     for (i = 0; str[i] && !isspace(str[i]); ++i);
-    str[i] = '\0';
-    char *path = strdup(str);
+    char *path = malloc(i + 1);
+    memcpy(path, str, i);
+    path[i] = '\0';
     FILE *fp = fopen(path, "r");
     if (fp == NULL)
-        return cli_error("Unable to open file %s [%d - %s]\n", str, errno, strerror(errno));
+        return cli_error("Unable to open file %s [%d - %s]\n", path, errno, strerror(errno));
     printf("\033[36mScript from %s\033[0m\n", path);
     free(path);
     int ret = cli_commands(fp, ctx, true);
@@ -462,24 +463,24 @@ static int do_cli(void *ctx)
 }
 
 
-static int do_error(char *str, int *perr)
+static int do_error(const char *str, int *perr)
 {
     while (str[0] && isspace(str[0]))
         str++;
     if (str[0] == 'O') {
         if (str[1] == 'N') {
-            str[2] = '\0';
+            // str[2] = '\0';
             *perr = -1;
         } else if (str[1] == 'F' && str[2] == 'F') {
-            str[3] = '\0';
+            // str[3] = '\0';
             *perr = 0;
         } else
             return -1;
     } else if (str[0] == 'E') {
         int i = 0;
-        for (; isalnum(str[i]); ++i)
-            str[i] = toupper(str[i]);
-        str[i] = '\0';
+        for (; isalnum(str[i]); ++i);
+            // str[i] = toupper(str[i]);
+        // str[i] = '\0';
         int eno = read_errno(str);
         if (eno < 0)
             return -1;
@@ -559,7 +560,7 @@ int cli_commands(FILE *fp, void *ctx, bool reecho)
             break;
 
         // Ignore blank and comments
-        char *str = line;
+        const char *str = line;
         while (str[0] && isspace(str[0]))
             str++;
         char *cm = strchr(str, '#');
@@ -594,7 +595,8 @@ int cli_commands(FILE *fp, void *ctx, bool reecho)
             do_help();
             continue;
         } else if (strcmp(cmd, "INCLUDE") == 0) {
-            do_include(str, ctx);
+            if (do_include(str, ctx) != 0)
+                return -1;
             continue;
         } else if (strcmp(cmd, "CLI") == 0 && reecho) {
             do_cli(ctx);

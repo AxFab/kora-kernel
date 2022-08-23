@@ -29,7 +29,7 @@ _Static_assert(sizeof(long long) == 8, "Unsupported, long long must be 64 bits")
 /* Guess compiler and architecture */
 #if defined __amd64 || defined __x86_64
 # define __ARCH  "amd64"
-# define BYTE_ORDER LITTLE_ENDIAN
+# define __BYTE_ORDER LITTLE_ENDIAN
 # define WORDSIZE  64
 # define LONG_BIT  64
 # include <bits/cdefs/gcc.h>
@@ -41,7 +41,7 @@ _Static_assert(sizeof(long long) == 8, "Unsupported, long long must be 64 bits")
 
 #elif defined __i386
 # define __ARCH  "i386"
-# define BYTE_ORDER LITTLE_ENDIAN
+# define __BYTE_ORDER LITTLE_ENDIAN
 # define WORDSIZE 32
 # define LONG_BIT 32
 # include <bits/cdefs/gcc.h>

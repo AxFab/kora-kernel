@@ -26,6 +26,11 @@
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
 
+typedef struct vfs_ctx
+{
+    vfs_t *vfs;
+    user_t *user;
+} vfs_ctx_t;
 
 
 void page_release_kmap_stub(page_t page);
@@ -41,38 +46,39 @@ page_t mmu_read(size_t vaddr)
 }
 
 
-int do_dump(vfs_t **ctx, size_t *param);
-int do_umask(vfs_t **ctx, size_t *param);
-int do_ls(vfs_t **ctx, size_t *param);
-int do_stat(vfs_t **ctx, size_t *param);
-int do_lstat(vfs_t **ctx, size_t *param);
-int do_link(vfs_t **ctx, size_t *param);
-int do_links(vfs_t **ctx, size_t *param);
-int do_times(vfs_t **ctx, size_t *param);
-int do_cd(vfs_t **ctx, size_t *param);
-int do_chroot(vfs_t **ctx, size_t *param);
-int do_pwd(vfs_t **ctx, size_t *param);
-int do_open(vfs_t **ctx, size_t *param);
-int do_close(vfs_t **ctx, size_t *param);
-int do_look(vfs_t **ctx, size_t *param);
-int do_delay(vfs_t **ctx, size_t *param);
-int do_create(vfs_t **ctx, size_t *param);
-int do_unlink(vfs_t **ctx, size_t *param);
-int do_symlink(vfs_t **ctx, size_t *param);
-int do_mkdir(vfs_t **ctx, size_t *param);
-int do_rmdir(vfs_t **ctx, size_t *param);
-int do_dd(vfs_t **ctx, size_t *param);
-int do_clear_cache(vfs_t **ctx, size_t *param);
-int do_mount(vfs_t **ctx, size_t *param);
-int do_umount(vfs_t **ctx, size_t *param);
-int do_extract(vfs_t **ctx, size_t *param);
-int do_checksum(vfs_t **ctx, size_t *param);
-int do_img_open(vfs_t **ctx, size_t *param);
-int do_img_create(vfs_t **ctx, size_t *param);
-int do_img_copy(vfs_t **ctx, size_t *param);
-int do_img_remove(vfs_t **ctx, size_t *param);
-int do_tar_mount(vfs_t **ctx, size_t *param);
-int do_format(vfs_t **ctx, size_t *param);
+int do_dump(vfs_ctx_t *ctx, size_t *param);
+int do_umask(vfs_ctx_t *ctx, size_t *param);
+int do_ls(vfs_ctx_t *ctx, size_t *param);
+int do_stat(vfs_ctx_t *ctx, size_t *param);
+int do_lstat(vfs_ctx_t *ctx, size_t *param);
+int do_link(vfs_ctx_t *ctx, size_t *param);
+int do_links(vfs_ctx_t *ctx, size_t *param);
+int do_times(vfs_ctx_t *ctx, size_t *param);
+int do_cd(vfs_ctx_t *ctx, size_t *param);
+int do_chroot(vfs_ctx_t *ctx, size_t *param);
+int do_pwd(vfs_ctx_t *ctx, size_t *param);
+int do_open(vfs_ctx_t *ctx, size_t *param);
+int do_close(vfs_ctx_t *ctx, size_t *param);
+int do_look(vfs_ctx_t *ctx, size_t *param);
+int do_delay(vfs_ctx_t *ctx, size_t *param);
+int do_create(vfs_ctx_t *ctx, size_t *param);
+int do_unlink(vfs_ctx_t *ctx, size_t *param);
+int do_symlink(vfs_ctx_t *ctx, size_t *param);
+int do_mkdir(vfs_ctx_t *ctx, size_t *param);
+int do_rmdir(vfs_ctx_t *ctx, size_t *param);
+int do_dd(vfs_ctx_t *ctx, size_t *param);
+int do_clear_cache(vfs_ctx_t *ctx, size_t *param);
+int do_mount(vfs_ctx_t *ctx, size_t *param);
+int do_umount(vfs_ctx_t *ctx, size_t *param);
+int do_extract(vfs_ctx_t *ctx, size_t *param);
+int do_checksum(vfs_ctx_t *ctx, size_t *param);
+int do_img_open(vfs_ctx_t *ctx, size_t *param);
+int do_img_create(vfs_ctx_t *ctx, size_t *param);
+int do_img_copy(vfs_ctx_t *ctx, size_t *param);
+int do_img_remove(vfs_ctx_t *ctx, size_t *param);
+int do_tar_mount(vfs_ctx_t *ctx, size_t *param);
+int do_format(vfs_ctx_t *ctx, size_t *param);
+int do_chmod(vfs_ctx_t *ctx, size_t *param);
 
 void alloc_check();
 void kmap_check();
@@ -87,13 +93,39 @@ void ext2_teardown();
 #endif
 
 
+struct user
+{
+    uint8_t uuid[16];
+    int uid, gid;
+};
+
+user_t *__usr_system = NULL;
+user_t *usr_system()
+{
+    if (__usr_system == NULL) {
+        __usr_system = kalloc(sizeof(user_t));
+        for (int i = 0; i < 16; ++i)
+            __usr_system->uuid[i] = rand8();
+        __usr_system->uid = 0;
+        __usr_system->gid = 0;
+    }
+    return __usr_system;
+}
+
+void usr_sweep()
+{
+    kfree(__usr_system);
+}
 
 
+vfs_ctx_t ctx;
 vfs_t *VFS;
 
 void initialize()
 {
-    VFS = vfs_init();
+    ctx.user = NULL; // usr_system();
+    ctx.vfs = vfs_init();
+
 #ifdef _EMBEDED_FS
     fat_setup();
     isofs_setup();
@@ -108,7 +140,8 @@ void teardown()
     isofs_teardown();
     ext2_teardown();
 #endif
-    vfs_sweep(VFS);
+    vfs_sweep(ctx.vfs);
+    // usr_sweep();
 
     alloc_check();
     kmap_check();
@@ -173,11 +206,14 @@ cli_cmd_t __commands[] = {
 
     { "TAR", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void*)do_tar_mount, 2 },
 
-    { "FORMAT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void*)do_format, 2 },
+    { "FORMAT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_format, 2 },
+
+    { "CHMOD", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_chmod, 2 },
+
     CLI_END_OF_COMMANDS,
 };
 
 int main(int argc, char **argv)
 {
-    return cli_main(argc, argv, &VFS, initialize, teardown);
+    return cli_main(argc, argv, &ctx, initialize, teardown);
 }

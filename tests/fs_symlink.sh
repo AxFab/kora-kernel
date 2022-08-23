@@ -129,7 +129,7 @@ RMDIR Tbz
 # Symlink returns ELOOP if too many symbolic links were encountered in translating the name2 path name
 SYMLINK Blaz Dru
 SYMLINK Dru Blaz
-ERROR ELLOP
+ERROR ELOOP
 SYMLINK Goz Blaz/Goz
 SYMLINK Goz Dru/Goz
 ERROR ON
@@ -144,7 +144,7 @@ SYMLINK Poo Lrz
 ERROR ON
 UNLINK Lrz
 
-SYMLINK Lrz
+SYMLINK Foo Lrz
 ERROR EEXIST
 SYMLINK Poo Lrz
 ERROR ON

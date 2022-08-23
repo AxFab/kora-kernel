@@ -19,13 +19,13 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <bits/atomic.h>
 #include <bits/cdefs.h>
 #include <kernel/core.h>
 #include <kernel/arch.h>
 #include <kernel/vfs.h>
 #include <kernel/stdc.h>
-#include <unistd.h>
 #if defined(_WIN32)
 #  include <Windows.h>
 #endif
@@ -132,11 +132,11 @@ char *kstrndup(const char *str, size_t max)
 
 void alloc_check()
 {
-    struct ktrack *tr = bbtree_first(&ktrack_tree, struct ktrack, bnode);
-    while (tr) {
-        printf("alloc leak: %p - %s\n", tr->ptr, tr->msg);
-        tr = bbtree_next(&tr->bnode, struct ktrack, bnode);
-    }
+    // struct ktrack *tr = bbtree_first(&ktrack_tree, struct ktrack, bnode);
+    // while (tr) {
+    //     printf("alloc leak: %p - %s\n", tr->ptr, tr->msg);
+    //     tr = bbtree_next(&tr->bnode, struct ktrack, bnode);
+    // }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

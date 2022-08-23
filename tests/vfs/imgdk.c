@@ -18,9 +18,6 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <stdio.h>
-#include <kernel/vfs.h>
-#include <kora/mcrs.h>
-#include <kora/splock.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
@@ -29,6 +26,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <kernel/vfs.h>
+#include <kora/mcrs.h>
+#include <kora/splock.h>
 
 #ifndef O_BINARY
 # define O_BINARY 0
@@ -129,7 +129,6 @@ struct vhd_info {
             ((v & 0xff0000000000LL) >> 24) |  \
             ((v & 0xff000000000000) >> 40) |  \
             ((v & 0xff00000000000000) >> 48) )
-
 
 int imgdk_open(const char *path, const char *name)
 {

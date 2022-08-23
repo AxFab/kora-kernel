@@ -103,6 +103,10 @@ static int vfs_concatpath(const char *lnk, path_t *path)
             errno = ENAMETOOLONG;
             return -1;
         }
+        if (s == 0) {
+            lnk++;
+            continue;
+        }
 
         pelmt_t *el = kalloc(sizeof(pelmt_t) + s + 1);
         memcpy(el->name, lnk, s);
@@ -156,7 +160,7 @@ int vfs_lookup(fnode_t *node)
     return 0;
 }
 
-fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve, bool follow)
+fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve, bool follow)
 {
     char *lnk_buf = NULL;
     path_t *path = vfs_breakup_path(vfs, pathname);
@@ -190,7 +194,7 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve, 
             }
 
             if (lnk_buf == NULL)
-                lnk_buf = kalloc(sizeof(PAGE_SIZE));
+                lnk_buf = kalloc(PAGE_SIZE);
             vfs_readlink(ino, lnk_buf, PAGE_SIZE);
             if (vfs_concatpath(lnk_buf, path) != 0) {
                 if (lnk_buf != NULL)
@@ -207,7 +211,7 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve, 
                 kfree(lnk_buf);
             vfs_close_inode(ino);
             return vfs_release_path(path, false);
-        } else if (vfs_access(ino, acl, VM_EX) != 0) {
+        } else if (vfs_access(ino, user, VM_EX) != 0) {
             errno = EACCES;
             if (lnk_buf != NULL)
                 kfree(lnk_buf);
@@ -256,7 +260,7 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve, 
                     }
 
                     if (lnk_buf == NULL)
-                        lnk_buf = kalloc(sizeof(PAGE_SIZE));
+                        lnk_buf = kalloc(PAGE_SIZE);
                     vfs_readlink(ino, lnk_buf, PAGE_SIZE);
                     fnode_t *node = vfs_open_fnode(path->node->parent);
                     vfs_close_fnode(path->node);
@@ -277,9 +281,9 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, acl_t *acl, bool resolve, 
     }
 }
 
-inode_t *vfs_search_ino(vfs_t *vfs, const char *pathname, acl_t *acl, bool follow)
+inode_t *vfs_search_ino(vfs_t *vfs, const char *pathname, user_t *user, bool follow)
 {
-    fnode_t *node = vfs_search(vfs, pathname, acl, true, follow);
+    fnode_t *node = vfs_search(vfs, pathname, user, true, follow);
     if (node == NULL)
         return NULL;
     inode_t *ino = vfs_inodeof(node);

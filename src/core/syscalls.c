@@ -208,7 +208,7 @@ long sys_sinfo(unsigned info, const char *buf, size_t len)
     // case SNFO_HOSTNAME:
     // case SNFO_DOMAIN:
     case SNFO_PWD:
-        return vfs_chdir(__current->vfs, buf, false);
+        return vfs_chdir(__current->vfs, buf, NULL, false);
     default:
         errno = EINVAL;
         return -1;

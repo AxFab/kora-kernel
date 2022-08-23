@@ -17,28 +17,33 @@
  *
  *   - - - - - - - - - - - - - - -
  */
+#include <kernel/vfs.h>
+
+typedef struct mbr_parts mbr_parts_t;
+typedef struct mbr_sector mbr_sector_t;
+
+PACK(struct mbr_parts
+{
+    uint8_t media;
+    uint8_t start_chs[3];
+    uint8_t fs;
+    uint8_t end_chs[3];
+    uint32_t start;
+    uint32_t length;
+});
+
+PACK(struct mbr_sector
+{
+    int32_t jmp;
+    char code[438];
+    uint32_t uid;
+    mbr_parts_t parts[4];
+    uint16_t sign;
+});
+
 #if 0
-#include <string.h>
-#include <errno.h>
 
 extern device_t *vfs_lookup_device_(const char *name);
-
-PACK(struct MBR_parts {
-    char media;
-    char start_chs[3];
-    char fs;
-    char end_chs[3];
-    unsigned int start;
-    unsigned int length;
-});
-
-PACK(struct MBR_sector {
-    int jmp;
-    char code[438];
-    unsigned int uid;
-    struct MBR_parts parts[4];
-    unsigned short sign;
-});
 
 typedef struct MBR_inode {
     inode_t ino;

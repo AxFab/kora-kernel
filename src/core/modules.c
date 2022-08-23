@@ -212,7 +212,7 @@ void module_do_proc(char *cmd)
     kprintf(-1, "Kernel task %d starting process (cpu:%d) \n", __current->pid, cpu_no());
     fnode_t *root = vfs_mount(__current->vfs, "sdc", "iso", "/mnt/cdrom", NULL, "");
     vfs_close_fnode(root);
-    vfs_chdir(__current->vfs, "/mnt/cdrom", true);
+    vfs_chdir(__current->vfs, "/mnt/cdrom", NULL, true);
     vfs_mount(__current->vfs, NULL, "devfs", "/dev", NULL, "");
 
     // Start first user program

@@ -175,7 +175,7 @@ inode_t *vfs_open_inode(inode_t *ino) {}
 void vfs_close_inode(inode_t *ino) {}
 size_t vfs_fetch_page(inode_t *ino, xoff_t off) {}
 int vfs_release_page(inode_t *ino, xoff_t off, size_t pg, bool dirty) {}
-inode_t *vfs_search_ino(vfs_t *vfs, const char *name, acl_t *acl, bool follow) {}
+inode_t *vfs_search_ino(vfs_t *vfs, const char *name, user_t *user, bool follow) {}
 int vfs_read(inode_t *ino, char *buf, size_t length, xoff_t off, int flags)
 {
     return length;

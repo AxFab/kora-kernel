@@ -19,3 +19,16 @@
  */
 #include "ext2.h"
 
+int ext2_chmod(inode_t *ino, int mode)
+{
+    struct bkmap bk_new;
+    ext2_volume_t *vol = (ext2_volume_t *)ino->drv_data;
+    ext2_ino_t *ino_new = ext2_entry(&bk_new, vol, ino->no, VM_WR);
+
+    ino_new->mode = (ino_new->mode & EXT2_S_IFMT) | (mode & 0x1FF); // TODO -- extra mode bits
+    ino->mode = mode & 0x1FF;
+
+    bkunmap(&bk_new);
+    return 0;
+}
+

@@ -8,7 +8,7 @@
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-static inode_t *dlib_lookfor_at(vfs_t *vfs, acl_t *acl, const char *name, const char *xpath)
+static inode_t *dlib_lookfor_at(vfs_t *vfs, user_t *user, const char *name, const char *xpath)
 {
     char *rl;
     char *path = strdup(xpath);
@@ -16,7 +16,7 @@ static inode_t *dlib_lookfor_at(vfs_t *vfs, acl_t *acl, const char *name, const 
 
     for (char *dir = strtok_r(path, ":;", &rl); dir; dir = strtok_r(NULL, ":;", &rl)) {
         snprintf(buf, 4096, "%s/%s", dir, name);
-        inode_t *ino = vfs_search_ino(vfs, buf, acl, true);
+        inode_t *ino = vfs_search_ino(vfs, buf, user, true);
         if (ino != NULL) {
             kfree(buf);
             kfree(path);
@@ -28,37 +28,37 @@ static inode_t *dlib_lookfor_at(vfs_t *vfs, acl_t *acl, const char *name, const 
     return NULL;
 }
 
-static inode_t *dlib_lookfor(vfs_t *vfs, acl_t *acl, const char *name, const char *lpath, const char *rpath, const char *sys, bool req_uid)
+static inode_t *dlib_lookfor(vfs_t *vfs, user_t *user, const char *name, const char *lpath, const char *rpath, const char *sys, bool req_uid)
 {
-    inode_t *ino = vfs_search_ino(vfs, name, acl, true);
+    inode_t *ino = vfs_search_ino(vfs, name, user, true);
     if (ino != NULL || strchr(name, '/'))
         return ino;
 
     if (rpath != NULL) {
-        ino = dlib_lookfor_at(vfs, acl, name, rpath);
+        ino = dlib_lookfor_at(vfs, user, name, rpath);
         if (ino != NULL)
             return ino;
     }
 
     if (!req_uid) {
         if (lpath != NULL) {
-            ino = dlib_lookfor_at(vfs, acl, name, lpath);
+            ino = dlib_lookfor_at(vfs, user, name, lpath);
             if (ino != NULL)
                 return ino;
         }
     }
 
-    return  dlib_lookfor_at(vfs, acl, name, sys);
+    return  dlib_lookfor_at(vfs, user, name, sys);
 }
 
-int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, acl_t *acl, const char *name)
+int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, user_t *user, const char *name)
 {
     dlib_t *lib;
     // Open executable
     proc->exec = dlib_create(name);
     const char *path = NULL; // proc_getenv(proc, "PATH");
     const char *lpath = NULL; // proc_getenv(proc, "LD_LIBRARY_PATH");
-    inode_t *ino = dlib_lookfor(vfs, acl, name, path, NULL, "/usr/bin:/bin", false);
+    inode_t *ino = dlib_lookfor(vfs, user, name, path, NULL, "/usr/bin:/bin", false);
     // proc->exec = dlib_create(name, ino);
     if (ino == NULL || dlib_parse(proc->exec, ino) != 0)
         return -1; // TODO -- proc->exec won't be clean by destroy!
@@ -75,7 +75,7 @@ int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, acl_t *acl, const char *
             dlib_t *sl = hmp_get(&proc->libs_map, dep, strlen(dep));
             if (sl == NULL) {
                 sl = dlib_create(dep->name);
-                ino = dlib_lookfor(vfs, acl, dep->name, lpath, proc->exec->rpath, "/usr/lib:/lib", req_uid);
+                ino = dlib_lookfor(vfs, user, dep->name, lpath, proc->exec->rpath, "/usr/lib:/lib", req_uid);
                 // sl = dlib_create(dep->name, ino);
                 if (ino == NULL || dlib_parse(sl, ino) != 0) {
                     dlib_clean(sl);
