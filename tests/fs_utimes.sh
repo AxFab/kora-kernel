@@ -29,56 +29,35 @@
 # SUCH DAMAGE.
 # ---------------------------------------------------------------------------
 ERROR ON
-UMASK 022
-MKDIR Kah
 
 # ---------------------------------------------------------------------------
-# chmod changes permission
-CREATE Kah/Zig
-CHMOD Kah/Zig 0111
-STAT Kah/Zig 0111
+# utimes changes timestamps on any type of file
+CREATE Kah
+UTIMES Kah 1900000000 A  # Sun Mar 17 11:46:40 MDT 2030
+UTIMES Kah 1950000000 M  # Fri Oct 17 04:40:00 MDT 2031
+STAT Kah
+TIMES Kah A 1900000000
+TIMES Kah M 1950000000
+UNLINK Kah
 
-SYMLINK Zig Kah/Sto
-LS Kah
-LSTAT Kah/Sto 0644
-CHMOD Kah/Sto 0222
-STAT Kah/Zig 0222
-STAT Kah/Sto 0222
-LSTAT Kah/Sto 0644
+MKDIR Zig
+UTIMES Zig 1900000000 A  # Sun Mar 17 11:46:40 MDT 2030
+UTIMES Zig 1950000000 M  # Fri Oct 17 04:40:00 MDT 2031
+STAT Zig
+TIMES Zig A 1900000000
+TIMES Zig M 1950000000
+RMDIR Zig
 
-UNLINK Kah/Zig
-UNLINK Kah/Sto
-
-
-MKDIR Kah/Zig
-CHMOD Kah/Zig 0111
-STAT Kah/Zig 0111
-
-SYMLINK Zig Kah/Sto
-LSTAT Kah/Sto 0644
-CHMOD Kah/Sto 0222
-STAT Kah/Zig 0222
-STAT Kah/Sto 0222
-LSTAT Kah/Sto 0644
-
-RMDIR Kah/Zig
-UNLINK Kah/Sto
 
 # ---------------------------------------------------------------------------
-# Successful chmod updates ctime
+# utimes with UTIME_NOW will set the will set typestamps to now
+# utimes with UTIME_OMIT will leave the time unchanged
+# utimes can update birthtimes
+# utimes can set mtime < atime or vice versa
+# utimes can follow symlinks
+# utimes with UTIME_NOW will work if the caller has write permission
+# utimes will work if the caller is the owner or root
+# utimes can set timestamps with subsecond precision
+# utimes is y2038 compliant
 
 # ---------------------------------------------------------------------------
-# Unsuccessful chmod does not updates ctime
-
-# chmod returns ENOTDIR if a component of the path prefix is not a directory
-# chmod returns ENAMETOOLONG if a component of a pathname exceeded the maximum of allowed characters
-# chmod returns ENOENT if the named file does not exist
-# chmod returns EACCES when search permission is denied for a component of the path prefix
-# chmod returns ELOOP if too many symbolic links were encountered in translating the pathname
-# chmod returns EPERM if the operation would change the ownership, but the effective user ID is not the super-user
-# chmod returns EPERM if the named file has its immutable or append-only flag set
-# chmod returns EFTYPE if the effective user ID is not the super-user, the mode includes the sticky bit (S_ISVTX), and path does not refer to a directory
-# Verify SUID/SGID bit behaviour
-
-# ---------------------------------------------------------------------------
-RMDIR Kah

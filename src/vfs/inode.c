@@ -19,6 +19,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t 
         kprintf(KL_FSA, "Alloc new device `%d`\n", device->no);
         bbtree_init(&device->btree);
         hmp_init(&device->map, 16);
+        mtx_init(&device->dual_lock, mtx_plain);
     }
 
     splock_lock(&device->lock);

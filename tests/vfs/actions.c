@@ -795,19 +795,75 @@ int do_chown(vfs_ctx_t *ctx, size_t *param)
 
 int do_utimes(vfs_ctx_t *ctx, size_t *param)
 {
-    vfs_t *vfs = ctx->vfs;
     char *path = (char *)param[0];
-    // char *utime = (char *)param[1];
-    // char *flags = (char *)param[2];
+    char *utime = (char *)param[1];
+    char *flags = (char *)param[2];
     fnode_t *node = vfs_search(ctx->vfs, path, ctx->user, true, true);
     if (node == NULL)
         return cli_error("Unable to find %s", path);
 
-    int ret = vfs_utimes(node, ctx->user, 0, 0);
+    xtime_t xtime = 0;
+    if (strcmp(utime, "now") == 0) {
+        xtime = xtime_read(XTIME_CLOCK);
+    } else {
+        xtime = strtoll(utime, NULL, 10) * _PwMicro_;
+    }
+    int tflags = 0;
+    if (strchr(flags, 'C') != NULL)
+        tflags |= FT_CREATED;
+    if (strchr(flags, 'M') != NULL)
+        tflags |= FT_MODIFIED;
+    if (strchr(flags, 'A') != NULL)
+        tflags |= FT_ACCESSED;
+    if (strchr(flags, 'B') != NULL)
+        tflags |= FT_BIRTH;
+
+    int ret = vfs_utimes(node, ctx->user, xtime, tflags);
 
     vfs_close_fnode(node);
     if (ret != 0)
         return cli_error("Error during utimes of %s (%d)", path, errno);
     return 0;
+}
+
+int do_ino(vfs_ctx_t* ctx, size_t* param)
+{
+    char* path = (char*)param[0];
+    // char* check = (char*)param[1];
+    // char* save = (char*)param[2];
+
+    fnode_t* node = vfs_search(ctx->vfs, path, ctx->user, true, true);
+    if (node == NULL)
+        return cli_error("Unable to find %s", path);
+
+    inode_t* ino = vfs_inodeof(node);
+    vfs_close_fnode(node);
+    char tmp[16];
+    printf("Inode at '%s' is '%s'\n", path, vfs_inokey(ino, tmp));
+    vfs_close_inode(ino);
+    return 0;
+}
+
+int do_rename(vfs_ctx_t* ctx, size_t* param)
+{
+    char* path_src = (char*)param[0];
+    char* path_dst = (char*)param[1];
+
+    fnode_t* node_src = vfs_search(ctx->vfs, path_src, ctx->user, true, true);
+    if (node_src == NULL)
+        return cli_error("Unable to find source %s", path_src);
+
+    fnode_t* node_dst = vfs_search(ctx->vfs, path_dst, ctx->user, false, false);
+    if (node_dst == NULL) {
+        vfs_close_fnode(node_src);
+        return cli_error("Unable to find destination %s", path_dst);
+    }
+
+    int ret = vfs_rename(node_src, node_dst, ctx->user);
+    vfs_close_fnode(node_src);
+    vfs_close_fnode(node_dst);
+    if (ret != 0)
+        return cli_error("Error during rename of %s to %s (%d)", path_src, path_dst, errno);
+    return ret;
 }
 

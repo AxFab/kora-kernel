@@ -207,12 +207,13 @@ RMDIR Kah/Blaz
 
 # ---------------------------------------------------------------------------
 # link returns EXDEV if the source and the destination files are on different file systems
-# ERROR EXDEV
-# LINK dev/null Kah/Bnz
-# ERROR ON
+ERROR EXDEV
+LINK dev/null Kah/Bnz
+ERROR ON
 
 # ---------------------------------------------------------------------------
 # link returns ENOSPC if the directory in which the entry for the new link is being placed cannot be extended because there is no space left on the file system containing the directory
+
 
 
 # ---------------------------------------------------------------------------

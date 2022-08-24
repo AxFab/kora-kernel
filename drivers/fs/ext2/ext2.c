@@ -25,8 +25,6 @@
 #include "ext2.h"
 
 
-
-
 extern ino_ops_t ext2_dir_ops;
 extern ino_ops_t ext2_reg_ops;
 extern ino_ops_t ext2_lnk_ops;
@@ -79,62 +77,8 @@ inode_t* ext2_inode(ext2_volume_t* vol, uint32_t no)
     bkunmap(&bk);
     return ino;
 }
-//
-//inode_t* ext2_creat(ext2_volume_t* vol, uint32_t no, ftype_t type, xtime_t time)
-//{
-//    uint32_t group = (no - 1) / vol->sb->inodes_per_group;
-//    uint32_t index = (no - 1) % vol->sb->inodes_per_group;
-//    // uint32_t block = (index * vol->sb->inode_size) / (1024 << vol->sb->log_block_size);
-//    uint32_t blk = vol->grp[group].inode_table;
-//
-//    size_t off = (1024 << vol->sb->log_block_size) * blk + index * sizeof(ext2_ino_t);
-//    size_t lba = ALIGN_DW(off, PAGE_SIZE);
-//    void* ptr = kmap(PAGE_SIZE, vol->blkdev, lba, VM_WR);
-//    ext2_ino_t* entry = ADDR_OFF(ptr, off - lba);
-//
-//    entry->mode = EXT2_S_IFDIR | 0755;
-//    entry->uid = 0;
-//    entry->size = 0;
-//    entry->ctime = time / _PwNano_;
-//    entry->mtime = time / _PwNano_;
-//    entry->atime = time / _PwNano_;
-//    entry->dtime = 0;
-//    entry->gid = 0;
-//    entry->links = 0;
-//    entry->blocks = 0;
-//    entry->flags = 0;
-//    entry->osd1 = 0;
-//    memset(entry->osd2, 0, sizeof(entry->osd2));
-//    memset(entry->block, 0, sizeof(entry->block));
-//    entry->generation = 0;
-//    entry->file_acl = 0;
-//    entry->dir_acl = 0;
-//    entry->faddr = 0;
-//
-//    inode_t* ino = NULL;
-//    if (type == FL_DIR)
-//        ino = vfs_inode(no, type, vol->dev, &ext2_dir_ops);
-//    else if (type == FL_REG)
-//        ino = vfs_inode(no, type, vol->dev, &ext2_reg_ops);
-//    else {
-//        kunmap(ptr, PAGE_SIZE);
-//        return NULL;
-//    }
-//
-//    ino->length = entry->size;
-//    ino->btime = entry->ctime * _PwNano_;
-//    ino->ctime = entry->ctime * _PwNano_;
-//    ino->mtime = entry->mtime * _PwNano_;
-//    ino->atime = entry->atime * _PwNano_;
-//    ino->drv_data = vol;
-//    atomic_inc(&vol->rcu);
-//    kunmap(ptr, PAGE_SIZE);
-//    return ino;
-//}
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
 
 uint32_t ext2_alloc_inode(ext2_volume_t* vol)
 {
@@ -214,26 +158,6 @@ static void ext2_read_symlink_on_block(ext2_volume_t *vol, uint32_t blkno, char 
     bkunmap(&bkd);
 }
 
-//static inode_t *ext2_make_newinode(ext2_volume_t *vol, int no, xtime_t now, int mode, uint32_t blkno)
-//{
-//    struct bkmap bkn;
-//    ext2_ino_t *ino_new = ext2_entry(&bkn, vol, no, VM_WR);
-//    ino_new->ctime = now / _PwMicro_;
-//    ino_new->atime = now / _PwMicro_;
-//    ino_new->mtime = now / _PwMicro_;
-//    ino_new->links = mode & EXT2_S_IFDIR ? 2 : 1;
-//    ino_new->mode = mode;
-//    ino_new->block[0] = blkno;
-//    ino_new->size = vol->blocksize;
-//    ino_new->blocks = vol->blocksize / 512;
-//
-//    inode_t *ino = ext2_inode_from(vol, ino_new, no);
-//    assert(ino != NULL);
-//
-//    bkunmap(&bkn);
-//    return ino;
-//}
-
 
 int ext2_search_inode(inode_t* dir, const char* name, char* buf)
 {
@@ -303,7 +227,7 @@ int ext2_add_link(ext2_volume_t* vol, ext2_ino_t* dir, unsigned no, const char* 
     return -1;
 }
 
-int ext2_rm_link(ext2_volume_t *vol, ext2_ino_t *dir, unsigned no)
+int ext2_rm_link(ext2_volume_t *vol, ext2_ino_t *dir, const char *name, unsigned no)
 {
     unsigned i;
     unsigned pages = dir->blocks / (vol->blocksize / 512);
@@ -326,7 +250,8 @@ int ext2_rm_link(ext2_volume_t *vol, ext2_ino_t *dir, unsigned no)
                 errno = EIO;
                 return -1;
             }
-            if (en->ino == no) {
+            if (strncmp(en->name, name, en->name_len) == 0) {
+                assert(no == en->ino);
                 next = ADDR_OFF(en, en->rec_len);
                 if ((size_t)next >= (size_t)start + vol->blocksize) {
                     if (prev == NULL) {
@@ -489,6 +414,22 @@ inode_t *ext2_symlink(inode_t *dir, const char *name, void *acl, const char *con
     return ext2_mknod_generic(vol, dir, name, acl, 0777 | EXT2_S_IFLNK, content);
 }
 
+static void ext2_update_times(inode_t* ino, ext2_ino_t* eino, xtime_t now, int flags)
+{
+    if (flags & FT_CREATED)
+        eino->ctime = now / _PwMicro_;
+    if (flags & FT_MODIFIED)
+        eino->mtime = now / _PwMicro_;
+    if (flags & FT_ACCESSED)
+        eino->atime = now / _PwMicro_;
+
+    ino->ctime = (xtime_t)eino->ctime * _PwMicro_;
+    ino->mtime = (xtime_t)eino->mtime * _PwMicro_;
+    ino->atime = (xtime_t)eino->atime * _PwMicro_;
+    ino->btime = ino->ctime;
+    ino->links = eino->links;
+}
+
 int ext2_link(inode_t *dir, const char *name, inode_t *ino)
 {
     ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
@@ -511,27 +452,22 @@ int ext2_link(inode_t *dir, const char *name, inode_t *ino)
 
     xtime_t now = xtime_read(XTIME_CLOCK);
 
-    // Update parent inode
     struct bkmap bk_dir;
-    ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
-    ino_dir->ctime = now / _PwMicro_;
-    ino_dir->mtime = now / _PwMicro_;
-    dir->ctime = ino_dir->ctime * _PwMicro_;
-    dir->ctime = ino_dir->mtime * _PwMicro_;
-    dir->links = ino_dir->links;
-
-    // Update the target inode
-    eino->ctime = now / _PwMicro_;
-    eino->atime = now / _PwMicro_;
-    eino->mtime = now / _PwMicro_;
-    eino->links++;
-    ino->links = eino->links;
+    ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);\
 
     // Add the new entry
     int ret = ext2_add_link(vol, ino_dir, ino->no, name);
     if (ret != 0) {
-        // TODO -- Rollback !
+        bkunmap(&bk_dir);
+        bkunmap(&bk_new);
+        return ret;
     }
+
+    // Update parent inode
+    ext2_update_times(dir, ino_dir, now, FT_CREATED | FT_MODIFIED);
+    // Update the target inode
+    eino->links++;
+    ext2_update_times(ino, eino, now, FT_CREATED | FT_MODIFIED);
 
     bkunmap(&bk_dir);
     bkunmap(&bk_new);
@@ -567,7 +503,7 @@ int ext2_rmdir(inode_t *dir, const char *name)
     // Unlink the inode
     struct bkmap bk_dir;
     ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
-    if (ext2_rm_link(vol, ino_dir, ino_no) != 0) {
+    if (ext2_rm_link(vol, ino_dir, name, ino_no) != 0) {
         bkunmap(&bk_new);
         assert(errno != 0);
         return -1;
@@ -628,7 +564,7 @@ int ext2_unlink(inode_t *dir, const char *name)
     // Unlink the inode
     struct bkmap bk_dir;
     ext2_ino_t *ino_dir = ext2_entry(&bk_dir, vol, dir->no, VM_WR);
-    if (ext2_rm_link(vol, ino_dir, ino_no) != 0) {
+    if (ext2_rm_link(vol, ino_dir, name, ino_no) != 0) {
         bkunmap(&bk_new);
         assert(errno != 0);
         return -1;
@@ -665,70 +601,20 @@ int ext2_unlink(inode_t *dir, const char *name)
     bkunmap(&bk_new);
     return 0;
 }
-//
-//inode_t* ext2_open(inode_t* dir, const char* name, ftype_t type, void* acl, int flags)
-//{
-//    ext2_volume_t* vol = (ext2_volume_t*)dir->drv_data;
-//    ext2_dir_iter_t* it = ext2_opendir(dir);
-//
-//    char filename[256]; // TODO - Avoid large stack allocation !!!
-//    int ino_no;
-//    while ((ino_no = ext2_nextdir(dir, filename, it)) != 0) {
-//        if (strcmp(name, filename) != 0)
-//            continue;
-//
-//        // The file exist
-//        if (!(flags & IO_OPEN)) {
-//            errno = EEXIST;
-//            return NULL;
-//        }
-//
-//        inode_t* ino = ext2_inode(dir->drv_data, ino_no);
-//        ext2_closedir(dir, it);
-//        errno = 0;
-//        return ino;
-//    }
-//
-//    if (!(flags & IO_CREAT)) {
-//        ext2_closedir(dir, it);
-//        errno = ENOENT;
-//        return NULL;
-//    }
-//
-//    // Create it
-//    unsigned last = 0;
-//    unsigned blk_no = last / vol->blocksize;
-//    // int off = last % vol->blocksize;
-//    unsigned lba = it->entry->block[blk_no];
-//    if (it->lba != lba) {
-//        // TODO
-//        ext2_closedir(dir, it);
-//        errno = EIO;
-//        return NULL;
-//    }
-//
-//    ext2_dir_en_t* new_en;
-//    ext2_dir_en_t* entry = (ext2_dir_en_t*)NULL; // &it->cur_block[off];
-//    uint32_t no = ext2_alloc_inode(dir->drv_data);
-//    inode_t* ino = ext2_creat(dir->drv_data, no, FL_REG, xtime_read(XTIME_CLOCK));
-//    // TODO -- REgister !
-//    assert(false);
-//    if (entry->rec_len > entry->name_len + 4 + strlen(name)) {
-//        int sz = entry->name_len + 2;
-//        new_en = (ext2_dir_en_t*)NULL; // &it->cur_block[off + sz];
-//        entry->rec_len = sz;
-//        new_en->rec_len = entry->rec_len - sz;
-//        new_en->name_len = (uint8_t)strlen(name);
-//        new_en->ino = ino->no;
-//        memcpy(new_en->name, name, new_en->name_len);
-//    }
-//    else {
-//        // TODO
-//    }
-//    ext2_closedir(dir, it);
-//    errno = 0;
-//    return ino;
-//}
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+int ext2_utimes(inode_t* ino, xtime_t time, int flags)
+{
+    ext2_volume_t* vol = (ext2_volume_t*)ino->drv_data;
+    struct bkmap bk_ino;
+    ext2_ino_t* eino = ext2_entry(&bk_ino, vol, ino->no, VM_WR);
+    ext2_update_times(ino, eino, time, flags);
+    bkunmap(&bk_ino);
+    return 0;
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 int ext2_readlink(inode_t *ino, char *buf, size_t len)
 {
@@ -743,6 +629,62 @@ int ext2_readlink(inode_t *ino, char *buf, size_t len)
     ext2_read_symlink_on_block(vol, ino_new->block[0], buf, MIN(ino_new->size, len));
     buf[ino_new->size] = '\0';
     bkunmap(&bk_new);
+    return 0;
+}
+
+int ext2_rename(inode_t* dir_src, const char* name_src, inode_t* dir_dst, const char* name_dst)
+{
+    ext2_volume_t* vol = (ext2_volume_t*)dir_src->drv_data;
+    struct bkmap bk_new;
+
+    char* filename = kalloc(256);
+    int ino_no = ext2_search_inode(dir_src, name_src, filename);
+    if (ino_no == 0) {
+        errno = ENOENT;
+        return -1;
+    }
+
+    kfree(filename);
+
+    xtime_t now = xtime_read(XTIME_CLOCK);
+    ext2_ino_t* eino = ext2_entry(&bk_new, vol, ino_no, VM_WR);
+
+    struct bkmap bk_dir_dst;
+    ext2_ino_t* ino_dir_dst = ext2_entry(&bk_dir_dst, vol, dir_dst->no, VM_WR);
+    
+    struct bkmap bk_dir_src;
+    ext2_ino_t* ino_dir_src = ext2_entry(&bk_dir_src, vol, dir_src->no, VM_WR);
+
+    // Add the new entry
+    int ret = ext2_add_link(vol, ino_dir_dst, ino_no, name_dst);
+    if (ret != 0) {
+        bkunmap(&bk_new);
+        bkunmap(&ino_dir_dst);
+        bkunmap(&ino_dir_src);
+        return ret;
+    }
+
+    // Remove the old entry
+    ret = ext2_rm_link(vol, ino_dir_src, name_src, ino_no);
+    if (ret != 0) {
+        // TODO -- Rollback add_link !?
+        ext2_rm_link(vol, ino_dir_dst, name_dst, ino_no);
+        bkunmap(&bk_new);
+        bkunmap(&ino_dir_dst);
+        bkunmap(&ino_dir_src);
+        return ret;
+    }
+
+    // Update dirs and ino times
+    ext2_update_times(dir_dst, ino_dir_dst, now, FT_CREATED | FT_MODIFIED);
+    ext2_update_times(dir_src, ino_dir_src, now, FT_CREATED | FT_MODIFIED);
+    inode_t* ino = ext2_inode(vol, ino_no);
+    ext2_update_times(ino, eino, now, FT_CREATED | FT_MODIFIED);
+    vfs_close_inode(ino);
+
+    bkunmap(&bk_new);
+    bkunmap(&bk_dir_dst);
+    bkunmap(&bk_dir_src);
     return 0;
 }
 
@@ -779,6 +721,8 @@ ino_ops_t ext2_dir_ops = {
     .rmdir = ext2_rmdir,
     .close = ext2_close,
     .chmod = ext2_chmod,
+    .rename = ext2_rename,
+    .utimes = ext2_utimes,
 };
 
 ino_ops_t ext2_reg_ops = {
@@ -787,6 +731,7 @@ ino_ops_t ext2_reg_ops = {
     .close = ext2_close,
     .truncate = ext2_truncate,
     .chmod = ext2_chmod,
+    .utimes = ext2_utimes,
 };
 
 ino_ops_t ext2_lnk_ops = {

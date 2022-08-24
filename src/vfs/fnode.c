@@ -126,8 +126,11 @@ int vfs_clear_fsnode(fnode_t *node, int mode)
     assert(mode != FN_OK);
     char *key = kalloc(256 + 4); // TODO Annoying alloc
     int ret = 0;
-    device_t *dev = node->parent->ino->dev;
-    mtx_lock(&node->mtx);
+    inode_t *pino = vfs_parentof(node);
+    device_t *dev = pino->dev;
+    vfs_close_inode(pino);
+
+    // mtx_lock(&node->mtx); TODO -- Keep lock, destroy child later (move list)...
     fnode_t *child = ll_first(&node->clist, fnode_t, cnode);
     while (child) {
         mtx_unlock(&node->mtx);
@@ -149,13 +152,14 @@ int vfs_clear_fsnode(fnode_t *node, int mode)
     vfs_close_inode(node->ino);
     node->ino = NULL;
     node->mode = mode;
-    mtx_unlock(&node->mtx);
+    // mtx_unlock(&node->mtx);
     kfree(key);
     return ret;
 }
 
 void vfs_resolve(fnode_t *node, inode_t *ino)
 {
+    // TODO -- Assert node->mtx is locked
     char tmp1[16];
     char tmp2[16];
     assert(node && ino && node->mode != FN_OK);
@@ -302,10 +306,10 @@ int vfs_rmdir(vfs_t *vfs, const char *name, user_t *user)
         return -1;
     }
     int ret = dir->ops->rmdir(dir, node->name);
-    mtx_unlock(&node->mtx);
     vfs_close_inode(dir);
     if (ret == 0)
         vfs_clear_fsnode(node, FN_NOENTRY);
+    mtx_unlock(&node->mtx);
     vfs_close_fnode(node);
     assert((ret == 0) != (errno != 0));
     return ret;
@@ -442,10 +446,10 @@ int vfs_unlink(vfs_t *vfs, const char *name, user_t *user)
         return -1;
     }
     int ret = dir->ops->unlink(dir, node->name);
-    mtx_unlock(&node->mtx);
     vfs_close_inode(dir);
     if (ret == 0)
         vfs_clear_fsnode(node, FN_NOENTRY);
+    mtx_unlock(&node->mtx);
     vfs_close_fnode(node);
     assert((ret == 0) != (errno != 0));
     return ret;
@@ -557,8 +561,54 @@ EXPORT_SYMBOL(vfs_symlink, 0);
 //int vfs_readlink(vfs_t *vfs, fnode_t *node, char *buf, size_t len) {}
 //EXPORT_SYMBOL(vfs_readlink, 0);
 
-//int vfs_rename(vfs_t *vfs, const char *path, const char *newname, acl_t *acl) {}
-//EXPORT_SYMBOL(vfs_rename, 0);
+int vfs_rename(fnode_t* src, fnode_t* dst, user_t* user)
+{
+    errno = 0;
+    inode_t* dir_s = vfs_parentof(src);
+    if (dir_s == NULL) {
+        errno = ENOENT;
+        return -1;
+    }
+    inode_t* dir_d = vfs_parentof(dst);
+    if (dir_d == NULL) {
+        vfs_close_inode(dir_s);
+        errno = ENOENT;
+        return -1;
+    }
+
+    if (dir_s->dev != dir_d->dev) {
+        vfs_close_inode(dir_s);
+        vfs_close_inode(dir_d);
+        errno = EXDEV;
+        return -1;
+    }
+
+    if (dir_d->ops->rename == NULL) {
+        vfs_close_inode(dir_s);
+        vfs_close_inode(dir_d);
+        errno = EXDEV;
+        return -1;
+    }
+
+    inode_t* ino = vfs_inodeof(src);
+    mtx_lock(&dir_s->dev->dual_lock);
+    mtx_lock(&dst->mtx);
+    mtx_lock(&src->mtx);
+    int ret = dir_d->ops->rename(dir_s, src->name, dir_d, dst->name);
+    if (ret == 0) {
+        vfs_resolve(dst, ino);
+        vfs_clear_fsnode(src, FN_NOENTRY);
+    }
+    mtx_unlock(&dst->mtx);
+    mtx_unlock(&src->mtx);
+    mtx_unlock(&dir_s->dev->dual_lock);
+    vfs_close_inode(ino);
+    vfs_close_inode(dir_s);
+    vfs_close_inode(dir_d);
+    errno = 0;
+    return 0;
+}
+EXPORT_SYMBOL(vfs_rename, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

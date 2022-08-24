@@ -78,6 +78,13 @@ enum {
     FD_RDONLY = (1 << 5),
 };
 
+enum {
+    FT_CREATED = 1,
+    FT_MODIFIED = 2,
+    FT_ACCESSED = 4,
+    FT_BIRTH = 8,
+};
+
 struct inode {
     unsigned no;
     int mode;
@@ -119,6 +126,7 @@ struct device {
     size_t block;
     inode_t *underlying;
     llnode_t node;
+    mtx_t dual_lock;
 };
 
 struct vfs_share
@@ -215,6 +223,8 @@ struct ino_ops {
     int (*chmod)(inode_t *ino, int mode);
     int (*chown)(inode_t *ino, void *acl);
     int (*utimes)(inode_t *ino, xtime_t time, int flags);
+
+    int (*rename)(inode_t* dir_src, const char* name_src, inode_t* dir_dst, const char* name_dst);
 };
   
 struct fl_ops {
@@ -245,7 +255,7 @@ int vfs_unlink(vfs_t *vfs, const char *name, user_t *user);
 int vfs_link(vfs_t *vfs, const char *name, user_t *user, fnode_t *target);
 inode_t *vfs_symlink(vfs_t *vfs, const char *name, user_t *user, const char *path);
 //int vfs_readlink(vfs_t *vfs, inode_t *node, char *buf, size_t len);
-//int vfs_rename(vfs_t *vfs, const char *path, const char *newname, acl_t *acl);
+int vfs_rename(fnode_t* src, fnode_t* dst, user_t* user);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
