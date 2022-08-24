@@ -522,6 +522,7 @@ inode_t *vfs_symlink(vfs_t *vfs, const char *name, user_t *user, const char *pat
     mtx_lock(&node->mtx);
     if (node->mode != FN_EMPTY && node->mode != FN_NOENTRY) {
         mtx_unlock(&node->mtx);
+        vfs_close_fnode(node);
         errno = EEXIST;
         return NULL;
     }
@@ -530,12 +531,14 @@ inode_t *vfs_symlink(vfs_t *vfs, const char *name, user_t *user, const char *pat
     inode_t *dir = vfs_parentof(node);
     if (dir->dev->flags & FD_RDONLY) {
         mtx_unlock(&node->mtx);
+        vfs_close_fnode(node);
         vfs_close_inode(dir);
         errno = EROFS;
         return NULL;
     }
     if (dir->ops->symlink == NULL) {
         mtx_unlock(&node->mtx);
+        vfs_close_fnode(node);
         vfs_close_inode(dir);
         errno = ENOSYS;
         return NULL;
@@ -545,8 +548,8 @@ inode_t *vfs_symlink(vfs_t *vfs, const char *name, user_t *user, const char *pat
     vfs_close_inode(dir);
     if (ino != NULL)
         vfs_resolve(node, ino);
-    vfs_close_fnode(node);
     mtx_unlock(&node->mtx);
+    vfs_close_fnode(node);
     return ino;
 }
 EXPORT_SYMBOL(vfs_symlink, 0);

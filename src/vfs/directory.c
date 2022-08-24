@@ -64,6 +64,7 @@ static fnode_t *vfs_readdir_std(fnode_t *dir, diterator_t *it)
     // TODO - Check for already resolved fnode_t
     vfs_resolve(node, ino);
     mtx_unlock(&node->mtx);
+    vfs_close_inode(ino);
     return node;
 }
 
@@ -85,6 +86,8 @@ fnode_t *vfs_readdir(fnode_t *dir, diterator_t *it)
     it->mode++;
     splock_lock(&dir->lock);
     node = ll_index(&dir->mnt, it->mode - 1, fnode_t, nmt);
+    if (node != NULL)
+        vfs_open_fnode(node);
     splock_unlock(&dir->lock);
     return node;
 }
