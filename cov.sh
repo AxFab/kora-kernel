@@ -15,7 +15,7 @@ cd tests
 # ../bin/cli-net net_ping0.sh
 # ../bin/cli-net net_ip0.sh
 # ../bin/cli-net net_udp0.sh
-../bin/cli-snd <(echo '# empty')
+# ../bin/cli-snd <(echo '# empty')
 # ../bin/cli-tsk <(echo '# empty')
 ../bin/cli-vfs fs_ext2.sh
 

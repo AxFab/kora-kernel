@@ -83,8 +83,11 @@ page_t block_fetch(inode_t *ino, xoff_t off)
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&block->lock);
 
-    assert(off >= 0 && off < (PAGE_SIZE * 0x100000000LL));
-    size_t lba = off / PAGE_SIZE;
+    if (off < 0 || off / PAGE_SIZE >= SIZE_MAX) {
+        kprintf(-1, "\033[35mError while reading page: %s, pg:%d. bad offset\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
+        return 0;
+    }
+    size_t lba = (size_t)(off / PAGE_SIZE);
     block_page_t *page = bbtree_search_eq(&block->tree, lba, block_page_t, node);
     if (page == NULL) {
         page = kalloc(sizeof(block_page_t));
@@ -129,8 +132,11 @@ void block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&block->lock);
 
-    assert(off >= 0 && off < (PAGE_SIZE * 0x100000000LL));
-    size_t lba = off / PAGE_SIZE;
+    if (off < 0 || off / PAGE_SIZE >= SIZE_MAX) {
+        kprintf(-1, "\033[35mError while syncing page: %s, pg:%d. bad offset\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
+        return;
+    }
+    size_t lba = (size_t)(off / PAGE_SIZE);
     block_page_t *page = bbtree_search_eq(&block->tree, lba, block_page_t, node);
     assert(page != NULL);
     splock_unlock(&block->lock);

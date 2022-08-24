@@ -22,7 +22,7 @@ INCLUDE fs_symlink.sh
 INCLUDE fs_link.sh
 INCLUDE fs_chmod.sh
 # INCLUDE fs_chown.sh
-# INCLUDE fs_truncate.sh
+INCLUDE fs_truncate.sh
 INCLUDE fs_rename.sh
 INCLUDE fs_utimes.sh
 INCLUDE fs_readwrite.sh

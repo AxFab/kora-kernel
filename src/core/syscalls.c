@@ -237,10 +237,6 @@ long sys_open(int dirfd, const char *path, int flags, int mode)
         // Clone VFS, look on flags AT_*
     }
 
-    int flg = vfs_open_access(flags);
-    if (flg < 0)
-        return -1;
-
     inode_t *ino = vfs_open(vfs, path, NULL, mode, flags);
     if (ino == NULL)
         return -1;
@@ -301,11 +297,11 @@ long sys_opendir(int dirfd, const char *path)
             return -1;
     }
 
-    fnode_t *node = vfs_search(__current->vfs, path, NULL, false, false);
+    fnode_t *node = vfs_search(__current->vfs, path, NULL, true, false);
     if (node == NULL)
         return -1;
 
-    if (vfs_lookup(node) != 0 || node->ino->type != FL_DIR) {
+    if (node->ino->type != FL_DIR) {
         vfs_close_fnode(node);
         errno = ENOENT;
         return -1;

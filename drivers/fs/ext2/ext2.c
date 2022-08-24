@@ -494,7 +494,7 @@ int ext2_rmdir(inode_t *dir, const char *name)
     }
 
     // TODO - Check directory is null
-    if (ext2_dir_is_empty(vol, ino_new) != 0) {
+    if (ext2_dir_is_empty(vol, ino_new) != 0 || ino_new->links != 2) {
         bkunmap(&bk_new);
         errno = ENOTEMPTY;
         return -1;
@@ -512,30 +512,18 @@ int ext2_rmdir(inode_t *dir, const char *name)
     
     // Update parent
     xtime_t now = xtime_read(XTIME_CLOCK);
-    ino_dir->ctime = now / _PwMicro_;
-    ino_dir->mtime = now / _PwMicro_;
     ino_dir->links--;
-    dir->ctime = ino_dir->ctime * _PwMicro_;
-    dir->ctime = ino_dir->mtime * _PwMicro_;
-    dir->links = ino_dir->links;
+    ext2_update_times(dir, ino_dir, now, FT_CREATED | FT_MODIFIED);
 
-    if (ino_new->links == 2) {
-        // Copy blocks
-        uint32_t blocks[15];
-        memcpy(blocks, ino_new->block, sizeof(ino_new->block));
 
-        // Free inodes
+    // Copy blocks
+    uint32_t blocks[15];
+    memcpy(blocks, ino_new->block, sizeof(ino_new->block));
 
-        // Free blocks
-    } else {
-        inode_t *ino = ext2_inode(vol, ino_no);
-        ino_new->links--;
-        ino_new->ctime = now / _PwMicro_;
-        ino_new->mtime = now / _PwMicro_;
-        ino->ctime = ino_new->ctime * _PwMicro_;
-        ino->ctime = ino_new->mtime * _PwMicro_;
-        ino->links = ino_new->links;
-    }
+    // Free inodes
+
+    // Free blocks
+
 
     bkunmap(&bk_dir);
     bkunmap(&bk_new);
@@ -572,12 +560,8 @@ int ext2_unlink(inode_t *dir, const char *name)
 
     // Update parent
     xtime_t now = xtime_read(XTIME_CLOCK);
-    ino_dir->ctime = now / _PwMicro_;
-    ino_dir->mtime = now / _PwMicro_;
-    dir->ctime = ino_dir->ctime * _PwMicro_;
-    dir->ctime = ino_dir->mtime * _PwMicro_;
-    dir->links = ino_dir->links;
     ino_new->links--;
+    ext2_update_times(dir, ino_dir, now, FT_CREATED | FT_MODIFIED);
 
     if (ino_new->links == 0) {
         // Copy blocks
@@ -589,11 +573,7 @@ int ext2_unlink(inode_t *dir, const char *name)
         // Free blocks
     } else {
         inode_t *ino = ext2_inode(vol, ino_no);
-        ino_new->ctime = now / _PwMicro_;
-        ino_new->mtime = now / _PwMicro_;
-        ino->ctime = ino_new->ctime * _PwMicro_;
-        ino->ctime = ino_new->mtime * _PwMicro_;
-        ino->links = ino_new->links;
+        ext2_update_times(ino, ino_new, now, FT_CREATED | FT_MODIFIED);
         vfs_close_inode(ino); // TODO -- Ino != ino_new !?
     }
 
@@ -659,8 +639,8 @@ int ext2_rename(inode_t* dir_src, const char* name_src, inode_t* dir_dst, const 
     int ret = ext2_add_link(vol, ino_dir_dst, ino_no, name_dst);
     if (ret != 0) {
         bkunmap(&bk_new);
-        bkunmap(&ino_dir_dst);
-        bkunmap(&ino_dir_src);
+        bkunmap(&bk_dir_dst);
+        bkunmap(&bk_dir_src);
         return ret;
     }
 
@@ -670,8 +650,8 @@ int ext2_rename(inode_t* dir_src, const char* name_src, inode_t* dir_dst, const 
         // TODO -- Rollback add_link !?
         ext2_rm_link(vol, ino_dir_dst, name_dst, ino_no);
         bkunmap(&bk_new);
-        bkunmap(&ino_dir_dst);
-        bkunmap(&ino_dir_src);
+        bkunmap(&bk_dir_dst);
+        bkunmap(&bk_dir_src);
         return ret;
     }
 

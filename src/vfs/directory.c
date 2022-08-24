@@ -26,84 +26,116 @@ struct diterator {
     int mode;
     void *ctx;
     char name[256];
+    inode_t *dir;
+    fnode_t *node;
 };
 
-diterator_t *vfs_opendir(fnode_t *dir, void *acl)
-{
-    assert(dir->mode == FN_OK);
-    if (dir->ino->type != FL_DIR) {
-        errno = ENOTDIR;
-        return NULL;
-        // } else if (vfs_access(dir, R_OK, acl) != 0) {
-        //        errno = EACCES;
-        //        return NULL;
-    }
 
-    void *ctx = dir->ino->ops->opendir(dir->ino);
-    if (ctx == NULL)
-        return NULL;
-    diterator_t *it = kalloc(sizeof(diterator_t));
-    it->ctx = ctx;
-    it->mode = 0;
-    return it;
-}
-
-static fnode_t *vfs_readdir_std(fnode_t *dir, diterator_t *it)
+static inode_t *vfs_readdir_std(diterator_t *it)
 {
-    inode_t *ino = dir->ino->ops->readdir(dir->ino, it->name, it->ctx);
+    inode_t *ino = it->dir->ops->readdir(it->dir, it->name, it->ctx);
     if (ino == NULL)
         return NULL;
 
-    fnode_t *node = vfs_fsnode_from(dir, it->name);
-    if (node->mode == FN_OK) {
-        vfs_close_inode(ino);
-        return node;
+    fnode_t *child = vfs_fsnode_from(it->node, it->name);
+    if (child->mode == FN_OK) {
+        vfs_close_fnode(child);
+        return ino;
     }
 
-    mtx_lock(&node->mtx);
-    // TODO - Check for already resolved fnode_t
-    vfs_resolve(node, ino);
-    mtx_unlock(&node->mtx);
-    vfs_close_inode(ino);
-    return node;
+    mtx_lock(&child->mtx);
+    if (child->mode == FN_EMPTY)
+        vfs_resolve(child, ino);
+    mtx_unlock(&child->mtx);
+    vfs_close_fnode(child);
+    return ino;
 }
 
-fnode_t *vfs_readdir(fnode_t *dir, diterator_t *it)
+diterator_t *vfs_opendir(vfs_t *vfs, const char *name, user_t *user)
 {
-    assert(dir->mode == FN_OK);
-    if (it == NULL || it->ctx == NULL) {
+    fnode_t *node = vfs_search(vfs, name, user, true, true);
+    if (node == NULL)
+        return NULL;
+
+    inode_t *dir = vfs_inodeof(node);
+    if (dir == NULL) {
+        errno = ENOENT;
+        vfs_close_fnode(node);
+        return NULL;
+    }
+
+    if (dir->type != FL_DIR) {
+        errno = ENOTDIR;
+        goto err;
+    } else if (vfs_access(dir, user, VM_RD) != 0) {
+        errno = EACCES;
+        goto err;
+    } else if (dir->ops->opendir == NULL) {
+        errno = EPERM;
+        goto err;
+    }
+
+    void *ctx = dir->ops->opendir(dir);
+    if (ctx == NULL)
+        goto err;
+
+    diterator_t *it = kalloc(sizeof(diterator_t));
+    it->ctx = ctx;
+    it->mode = 0;
+    it->dir = dir;
+    it->node = node;
+    return it;
+
+err:
+    assert(errno != 0);
+    vfs_close_fnode(node);
+    vfs_close_inode(dir);
+    return NULL;
+}
+
+inode_t *vfs_readdir(diterator_t *it, char *buf, int len)
+{
+    if (it == NULL || it->ctx == NULL || it->dir == NULL) {
         errno = EINVAL;
         return NULL;
     }
 
-    fnode_t *node = NULL;
-    if (it->mode == 0)
-        node = vfs_readdir_std(dir, it);
-    if (node != NULL)
-        return node;
+    inode_t *ino;
+    if (it->mode == 0) {
+        ino = vfs_readdir_std(it);
+        if (ino != NULL) {
+            strncpy(buf, it->name, len);
+            return ino;
+        }
+    }
 
-    // List mounted point!
-    it->mode++;
-    splock_lock(&dir->lock);
-    node = ll_index(&dir->mnt, it->mode - 1, fnode_t, nmt);
-    if (node != NULL)
-        vfs_open_fnode(node);
-    splock_unlock(&dir->lock);
-    return node;
+    for (;;) {
+        it->mode++;
+        splock_lock(&it->node->lock);
+        fnode_t *node = ll_index(&it->node->mnt, it->mode - 1, fnode_t, nmt);
+        splock_unlock(&it->node->lock);
+        if (node == NULL)
+            return NULL;
+
+        ino = vfs_inodeof(node);
+        if (unlikely(ino == NULL))
+            continue;
+        strncpy(buf, node->name, len);
+        return ino;
+    }
 }
 
-int vfs_closedir(fnode_t *dir, diterator_t *it)
+int vfs_closedir(diterator_t *it)
 {
-    assert(dir->mode == FN_OK);
-    if (it == NULL) {
+    if (it == NULL || it->ctx == NULL || it->dir == NULL) {
         errno = EINVAL;
         return -1;
     }
 
-    if (it->ctx != NULL)
-        dir->ino->ops->closedir(dir->ino, it->ctx);
+    it->dir->ops->closedir(it->dir, it->ctx);
+    vfs_close_fnode(it->node);
+    vfs_close_inode(it->dir);
     kfree(it);
     return 0;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

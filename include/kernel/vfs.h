@@ -163,33 +163,6 @@ enum fnode_status
 };
 
 
-// Complexe structure that handle file tree
-// Is private as data must be protected
-// The state of this node is tricky
-// 
-// Parent node is staded once, can only be set back to NULL while holing parent mutex
-// Name is fixed
-// Inode and mode change by paire while holding mutex
-// RCU and LRU is sinple to understand
-// MOUNTED is set as creation, or edited with parent mutex, same as child nodes
-struct fnode
-{
-    fnode_t *parent;
-    char name[256];
-    inode_t *ino;
-    atomic_int rcu;
-    llnode_t nlru;
-    fnode_status_t mode;
-    mtx_t mtx;
-    bool is_mount;
-
-    splock_t lock;
-    llhead_t mnt;
-    llnode_t nmt;
-
-    llhead_t clist;
-    llnode_t cnode;
-};
 
 
 struct ino_ops {
@@ -245,124 +218,147 @@ struct fl_ops {
 extern vfs_share_t *__vfs_share;
 
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-int vfs_open_access(int options);
-inode_t *vfs_mkdir(vfs_t *vfs, const char *name, user_t *user, int mode);
-int vfs_rmdir(vfs_t *vfs, const char *name, user_t *user);
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// INODE SYSCALLS
 inode_t *vfs_open(vfs_t *vfs, const char *name, user_t *user, int mode, int flags);
+inode_t *vfs_pipe(vfs_t *vfs);
+int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags);
+int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags);
+int vfs_truncate(inode_t *ino, xoff_t off);
+int vfs_fcntl(inode_t *ino, int cmd, void **args);
+int vfs_iocntl(inode_t *ino, int cmd, void **args);
+int vfs_access(inode_t *ino, user_t *user, int flags);
+inode_t *vfs_open_inode(inode_t *ino);
+void vfs_close_inode(inode_t *ino);
+// void vfs_stat(inode_t *ino, um_stat_t *stat);
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// FS SYSCALLS
+int vfs_mkdir(vfs_t *vfs, const char *name, user_t *user, int mode);
+int vfs_rmdir(vfs_t *vfs, const char *name, user_t *user);
+int vfs_link(vfs_t *vfs, const char *name, user_t *user, const char *path);
 int vfs_unlink(vfs_t *vfs, const char *name, user_t *user);
-int vfs_link(vfs_t *vfs, const char *name, user_t *user, fnode_t *target);
-inode_t *vfs_symlink(vfs_t *vfs, const char *name, user_t *user, const char *path);
-//int vfs_readlink(vfs_t *vfs, inode_t *node, char *buf, size_t len);
-int vfs_rename(fnode_t* src, fnode_t* dst, user_t* user);
+int vfs_symlink(vfs_t *vfs, const char *name, user_t *user, const char *path);
+int vfs_rename(vfs_t *vfs, const char *src, const char *dest, user_t* user);
+int vfs_chmod(vfs_t *vfs, const char *name, user_t *user, int mode);
+int vfs_chown(vfs_t *vfs, const char *name, user_t *user, user_t *nacl);
+int vfs_utimes(vfs_t *vfs, const char *name, user_t *user, xtime_t time, int flags);
+int vfs_readlink(vfs_t *vfs, const char *name, user_t *user, char *buf, int len);
+int vfs_readpath(vfs_t *vfs, const char *name, user_t *user, char *buf, int len, bool relative);
+int vfs_chdir(vfs_t *vfs, const char *path, user_t *user, bool root);
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-//inode_t *fs_mkfifo(vfs_t *vfs, const char *path, acl_t *acl, int mode);
-inode_t *vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path, user_t *user, const char *options);
-int vfs_umount_at(fnode_t *node, user_t *user, int flags);
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// VOLUME SYSCALLS
+int vfs_format(const char *name, inode_t *dev, const char *options);
+int vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path, user_t *user, const char *options);
 int vfs_umount(vfs_t *vfs, const char *path, user_t *user, int flags);
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int vfs_chmod(fnode_t *node, user_t *user, int mode);
-int vfs_chown(fnode_t *node, user_t *user, user_t *nacl);
-int vfs_utimes(fnode_t *node, user_t *user, xtime_t time, int flags);
-// int vfs_truncate(inode_t *ino, acl_t *acl, xoff_t length);
-
-// int vfs_readdir(inode_t *ino, void *dir, xstat_t *stat, char *buf, int len);
-// int vfs_stat(inode_t *ino, xstat_t *stat);
-int vfs_access(inode_t *ino, user_t *user, int flags);
-int vfs_readlink(inode_t *ino, char *buf, int len);
-
-// long vfs_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags);
-// long vfs_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags);
-
-size_t vfs_fetch_page(inode_t *ino, xoff_t off);
-int vfs_release_page(inode_t *ino, xoff_t off, size_t page, bool dirty);
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// DIRECTORY SYSCALLS
+diterator_t *vfs_opendir(vfs_t *vfs, const char *name, user_t *user);
+inode_t *vfs_readdir(diterator_t *it, char *buf, int len);
+int vfs_closedir(diterator_t *it);
 
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// DRIVERS ROUTINES
+int vfs_mkdev(inode_t *ino, const char *name);
+void vfs_rmdev(const char *name);
+void vfs_addfs(const char *name, fsmount_t mount, fsformat_t format);
+void vfs_rmfs(const char *name);
+char *vfs_inokey(inode_t *ino, char *buf);
+inode_t *vfs_inode(unsigned no, ftype_t type, device_t *dev, const ino_ops_t *ops);
+
+
+
+
+
+
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+
+// Complexe structure that handle file tree
+// Is private as data must be protected
+// The state of this node is tricky
+//
+// Parent node is staded once, can only be set back to NULL while holing parent mutex
+// Name is fixed
+// Inode and mode change by paire while holding mutex
+// RCU and LRU is sinple to understand
+// MOUNTED is set as creation, or edited with parent mutex, same as child nodes
+struct fnode
+{
+    fnode_t *parent;
+    char name[256];
+    inode_t *ino;
+    atomic_int rcu;
+    llnode_t nlru;
+    fnode_status_t mode;
+    mtx_t mtx;
+    bool is_mount;
+
+    splock_t lock;
+    llhead_t mnt;
+    llnode_t nmt;
+
+    llhead_t clist;
+    llnode_t cnode;
+};
+
+
+
+
+int vfs_umount_at(fnode_t *node, user_t *user, int flags);
+
+// // int vfs_stat(inode_t *ino, xstat_t *stat);
+int vfs_readsymlink(inode_t *ino, char *buf, int len);
+
+// size_t vfs_fetch_page(inode_t *ino, xoff_t off);
+// int vfs_release_page(inode_t *ino, xoff_t off, size_t page, bool dirty);
 
 void vfs_resolve(fnode_t *node, inode_t *ino);
-void vfs_fnode_zombify(fnode_t *node);
 inode_t *vfs_parentof(fnode_t *node);
 inode_t *vfs_inodeof(fnode_t *node);
 
-int vfs_readpath(vfs_t *vfs, fnode_t *node, char *buf, int len, bool relative);
-
 fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve, bool follow);
 inode_t *vfs_search_ino(vfs_t *vfs, const char *pathname, user_t *user, bool follow);
-
 
 void vfs_dev_scavenge(device_t *dev, int max);
 
 
 // Generic
 vfs_t *vfs_init();
-vfs_t *vfs_open_vfs(vfs_t *vfs);
+// vfs_t *vfs_open_vfs(vfs_t *vfs);
 vfs_t *vfs_clone_vfs(vfs_t *vfs);
-int vfs_sweep(vfs_t *vfs);
-// fnode_t *vfs_mount(vfs_t *vfs, const char *devname, const char *fs, const char *name, const char *options);
-int vfs_format(const char *name, inode_t *dev, const char *options);
-int vfs_umount_at(fnode_t *node, user_t *user, int flags);
-// int vfs_umount(vfs_t *vfs, const char *name, acl_t *acl, int flags);
-char *vfs_inokey(inode_t *ino, char *buf);
+// int vfs_sweep(vfs_t *vfs);
 
-// For drivers
-inode_t *vfs_inode(unsigned no, ftype_t type, device_t *dev, const ino_ops_t *ops);
-inode_t *vfs_open_inode(inode_t *ino);
-void vfs_close_inode(inode_t *ino);
-
-int vfs_mkdev(inode_t *ino, const char *name);
-void vfs_rmdev(const char *name);
-void vfs_addfs(const char *name, fsmount_t mount, fsformat_t format);
-void vfs_rmfs(const char *name);
-
-fnode_t *vfs_mknod(fnode_t *parent, const char *name, int devno);
-fnode_t *vfs_mkfifo(fnode_t *parent, const char *name);
-void vfs_usage(inode_t *ino, int access, int count);
+// fnode_t *vfs_mknod(fnode_t *parent, const char *name, int devno);
+// fnode_t *vfs_mkfifo(fnode_t *parent, const char *name);
+// void vfs_usage(inode_t *ino, int access, int count);
 
 
 // For kernel
 int vfs_lookup(fnode_t *node);
 fnode_t *vfs_open_fnode(fnode_t *node);
 void vfs_close_fnode(fnode_t *node);
-int vfs_chdir(vfs_t *vfs, const char *path, user_t *user, bool root);
-// int vfs_readlink(vfs_t *vfs, fnode_t *node, char *buf, int len, bool relative);
 
-
-int vfs_create(fnode_t *node, void *acl, int mode);
-// int vfs_open_access(int option);
-// fnode_t *vfs_open_2(vfs_t *vfs, const char *pathname, void *user, int option, int mode);
-// int vfs_symlink_2(fnode_t *node, void *user, const char *path);
-// int vfs_unlink(fnode_t *node);
-// int vfs_mkdir_2(fnode_t *node, int mode, void *acl);
-// int vfs_rmdir_2(fnode_t *node);
-
-// void vfs_usage(fnode_t *node, int flags, int use);
-
-diterator_t *vfs_opendir(fnode_t *dir, void *acl);
-fnode_t *vfs_readdir(fnode_t *dir, diterator_t *it);
-int vfs_closedir(fnode_t *dir, diterator_t *it);
-
-
-int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags);
-int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags);
-int vfs_truncate(inode_t *ino, xoff_t off);
 
 // Internal
 fnode_t *vfs_fsnode_from(fnode_t *parent, const char *name);
 
-int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags);
-int block_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags);
+// int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags);
+// int block_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags);
 
-int vfs_fcntl(inode_t *ino, int cmd, void **args);
-int vfs_seek(inode_t *ino, xoff_t off);
+// inode_t *tar_mount(void *base, size_t length, const char *name);
 
-inode_t *tar_mount(void *base, size_t length, const char *name);
 
 
 #define FB_RESIZE 0x8001

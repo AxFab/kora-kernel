@@ -67,6 +67,8 @@ int do_symlink(vfs_ctx_t *ctx, size_t *param);
 int do_mkdir(vfs_ctx_t *ctx, size_t *param);
 int do_rmdir(vfs_ctx_t *ctx, size_t *param);
 int do_dd(vfs_ctx_t *ctx, size_t *param);
+int do_truncate(vfs_ctx_t *ctx, size_t *param);
+int do_size(vfs_ctx_t *ctx, size_t *param);
 int do_clear_cache(vfs_ctx_t *ctx, size_t *param);
 int do_mount(vfs_ctx_t *ctx, size_t *param);
 int do_umount(vfs_ctx_t *ctx, size_t *param);
@@ -185,7 +187,9 @@ cli_cmd_t __commands[] = {
     { "MKDIR", "", { ARG_STR, ARG_INT, 0, 0, 0 }, (void*)do_mkdir, 1 },
     { "RMDIR", "", { ARG_STR, 0, 0, 0, 0 }, (void*)do_rmdir, 1 },
 
-    { "DD", "", { ARG_STR, ARG_STR, ARG_INT, 0, 0 }, (void*)do_dd, 3 },
+    { "DD", "", { ARG_STR, ARG_STR, ARG_INT, 0, 0 }, (void *)do_dd, 3 },
+    { "TRUNCATE", "", { ARG_STR, ARG_INT, 0, 0, 0 }, (void *)do_truncate, 2 },
+    { "SIZE", "", { ARG_STR, ARG_INT, 0, 0, 0 }, (void *)do_size, 2 },
     { "CLEAR_CACHE", "", { ARG_STR, 0, 0, 0, 0 }, (void*)do_clear_cache, 1 },
 
 
