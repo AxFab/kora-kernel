@@ -54,9 +54,12 @@ inode_t* ext2_inode_from(ext2_volume_t* vol, ext2_ino_t* entry, unsigned no)
         ino = vfs_inode(no, FL_LNK, vol->dev, &ext2_lnk_ops);
     else
         return NULL;
-    if (ino->rcu == 1)
-        atomic_inc(&vol->rcu);
 
+    if (ino->rcu == 1) {
+        char tmp[16];
+        kprintf(KL_FSA, "ext2] Open volume (%s)\n", vfs_inokey(ino, tmp));
+        atomic_inc(&vol->rcu);
+    }
     ino->length = entry->size;
     ino->mode = entry->mode & 0xFFF;
     ino->btime = (uint64_t)entry->ctime * _PwMicro_;
@@ -747,7 +750,9 @@ int ext2_readlink(inode_t *ino, char *buf, size_t len)
 
 void ext2_close(inode_t *ino)
 {
+    char tmp[16];
     ext2_volume_t *vol = ino->drv_data;
+    kprintf(KL_FSA, "ext2] Close volume (%s)\n", vfs_inokey(ino, tmp));
     if (atomic_xadd(&vol->rcu, -1) != 1)
         return;
     kprintf(KL_FSA, "ext2] Release volume data %s\n", vol->sb->volume_name); // TODO - Uuid to string
