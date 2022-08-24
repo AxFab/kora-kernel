@@ -131,6 +131,7 @@ char *vfs_inokey(inode_t *ino, char *buf)
     snprintf(buf, 16, "%02d-%04d-%c", ino->dev->no, ino->no, ftype_char[ino->type]);
     return buf;
 }
+EXPORT_SYMBOL(vfs_inokey, 0);
 
 int vfs_lookup(fnode_t *node)
 {
@@ -195,7 +196,7 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve
 
             if (lnk_buf == NULL)
                 lnk_buf = kalloc(PAGE_SIZE);
-            vfs_readlink(ino, lnk_buf, PAGE_SIZE);
+            vfs_readsymlink(ino, lnk_buf, PAGE_SIZE);
             if (vfs_concatpath(lnk_buf, path) != 0) {
                 if (lnk_buf != NULL)
                     kfree(lnk_buf);
@@ -261,7 +262,7 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve
 
                     if (lnk_buf == NULL)
                         lnk_buf = kalloc(PAGE_SIZE);
-                    vfs_readlink(ino, lnk_buf, PAGE_SIZE);
+                    vfs_readsymlink(ino, lnk_buf, PAGE_SIZE);
                     fnode_t *node = vfs_open_fnode(path->node->parent);
                     vfs_close_fnode(path->node);
                     path->node = node;

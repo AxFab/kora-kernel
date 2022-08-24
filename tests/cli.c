@@ -443,6 +443,8 @@ int do_include(const char *str, void *ctx)
     while (isblank(*str)) str++;
     for (i = 0; str[i] && !isspace(str[i]); ++i);
     char *path = malloc(i + 1);
+    if (path == NULL)
+        abort();
     memcpy(path, str, i);
     path[i] = '\0';
     FILE *fp = fopen(path, "r");
@@ -522,7 +524,7 @@ static int cli_read_string(const char **line, size_t *ptr)
     if (stop != ' ' && *str != stop)
         return -1;
 
-    buf[i] = 0;
+    buf[i] = '\0';
     if (stop != ' ')
         str++;
 
@@ -682,6 +684,8 @@ struct cli_slot
 void cli_store(char *name, void *obj, int type)
 {
     cli_slot_t *slot = malloc(sizeof(cli_slot_t));
+    if (slot == NULL)
+        abort();
     slot->obj = obj;
     slot->type = type;
     hmp_put(&storage, name, strlen(name), slot);

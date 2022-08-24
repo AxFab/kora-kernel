@@ -86,6 +86,7 @@ int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags)
 
     return ino->fops->read(ino, buf, size, off, flags);
 }
+EXPORT_SYMBOL(vfs_read, 0);
 
 int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags)
 {
@@ -97,11 +98,15 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags)
 
     return ino->fops->write(ino, buf, size, off, flags);
 }
+EXPORT_SYMBOL(vfs_write, 0);
 
 int vfs_truncate(inode_t *ino, xoff_t off)
 {
     assert(ino != NULL);
-    if (ino->ops == NULL || ino->ops->truncate == NULL) {
+    if (ino->type == FL_DIR) {
+        errno = EISDIR;
+        return -1;
+    } else if(ino->ops == NULL || ino->ops->truncate == NULL) {
         errno = ENOSYS;
         return -1;
     }
@@ -110,6 +115,7 @@ int vfs_truncate(inode_t *ino, xoff_t off)
     assert((ret != 0) != (ino->length == off));
     return ret;
 }
+EXPORT_SYMBOL(vfs_truncate, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -124,23 +130,31 @@ int vfs_fcntl(inode_t *ino, int cmd, void **args)
 
     return ino->fops->fcntl(ino, cmd, args);
 }
+EXPORT_SYMBOL(vfs_fcntl, 0);
 
-int vfs_seek(inode_t *ino, xoff_t off)
+int vfs_iocntl(inode_t *ino, int cmd, void **args)
 {
     assert(ino != NULL);
-    if (ino->fops == NULL) {
+    if (ino->ops->ioctl == NULL) {
         errno = ENOSYS;
         return -1;
     }
-    if (ino->fops->seek == NULL)
-        return off;
 
-    return ino->fops->seek(ino, off);
+    return ino->ops->ioctl(ino, cmd, args);
 }
+EXPORT_SYMBOL(vfs_iocntl, 0);
 
+//int vfs_seek(inode_t *ino, xoff_t off)
+//{
+//    assert(ino != NULL);
+//    if (ino->fops == NULL) {
+//        errno = ENOSYS;
+//        return -1;
+//    }
+//    if (ino->fops->seek == NULL)
+//        return off;
+//
+//    return ino->fops->seek(ino, off);
+//}
 
-EXPORT_SYMBOL(vfs_read, 0);
-EXPORT_SYMBOL(vfs_write, 0);
-EXPORT_SYMBOL(vfs_truncate, 0);
-EXPORT_SYMBOL(vfs_fcntl, 0);
 

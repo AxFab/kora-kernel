@@ -79,6 +79,7 @@ vfs_t *vfs_clone_vfs(vfs_t *vfs)
     cpy->umask = vfs->umask;
     return cpy;
 }
+
 void vfs_close_vfs(vfs_t *vfs)
 {
     if (atomic_xadd(&vfs->rcu, -1) != 1)
@@ -94,6 +95,7 @@ void vfs_dev_scavenge(device_t *dev, int max);
 
 int vfs_sweep(vfs_t *vfs)
 {
+    char tmp[16];
     vfs_close_vfs(vfs);
     if (__vfs_share->rcu != 0)
         return -1;
@@ -104,6 +106,7 @@ int vfs_sweep(vfs_t *vfs)
     fnode_t *node = ll_first(&__vfs_share->mnt_list, fnode_t, nlru);
     while (node) {
         inode_t *ino = vfs_inodeof(node);
+        kprintf(KL_FSA, "Force unmount of '%s/%s'\n", vfs_inokey(node->parent->ino, tmp), node->name);
         vfs_umount_at(node, NULL, 0);
         vfs_dev_scavenge(ino->dev, INT_MAX);
         vfs_close_inode(ino);
@@ -130,11 +133,12 @@ int vfs_mkdev(/* fnode_t *parent, */inode_t *ino, const char *name)
     devfs_register(ino, name);
     return 0;
 }
+EXPORT_SYMBOL(vfs_mkdev, 0);
 
 void vfs_rmdev(const char *name)
 {
 }
-
+EXPORT_SYMBOL(vfs_rmdev, 0);
 
 void vfs_addfs(const char *name, fsmount_t mount, fsformat_t format)
 {
@@ -146,6 +150,7 @@ void vfs_addfs(const char *name, fsmount_t mount, fsformat_t format)
     hmp_put(&__vfs_share->fs_hmap, name, strlen(name), reg);
     splock_unlock(&__vfs_share->lock);
 }
+EXPORT_SYMBOL(vfs_addfs, 0);
 
 void vfs_rmfs(const char *name)
 {
@@ -159,6 +164,8 @@ void vfs_rmfs(const char *name)
     splock_unlock(&__vfs_share->lock);
     kfree(fs);
 }
+EXPORT_SYMBOL(vfs_rmfs, 0);
+
 
 int vfs_format(const char *name, inode_t *dev, const char *options)
 {
@@ -209,15 +216,46 @@ int vfs_chdir(vfs_t *vfs, const char *path, user_t *user, bool root)
     return 0;
 }
 
-
-int vfs_readpath(vfs_t *vfs, fnode_t *node, char *buf, int len, bool relative)
+int vfs_readlink(vfs_t *vfs, const char *name, user_t *user, char *buf, int len)
 {
-    if (node == vfs->root)
-        return strncpy(buf, "/", len) != NULL ? 0 : -1;
-    if (relative && node == vfs->pwd)
-        return strncpy(buf, ".", len) != NULL ? 0 : -1;
-    if (node->parent == NULL)
-        return strncpy(buf, ":/", len) != NULL ? 0 : -1;
+    fnode_t *node = vfs_search(vfs, name, user, true, true);
+    if (node == NULL)
+        return -1;
+    
+    inode_t *ino = vfs_inodeof(node);
+    if (ino == NULL) {
+        errno = ENOENT;
+        return -1;
+    } else if (ino->mode != FL_LNK) {
+        vfs_close_inode(ino);
+        errno = ENOLINK;
+        return -1;
+    }
+
+    int ret = vfs_readsymlink(ino, buf, len);
+    vfs_close_inode(ino);
+    return ret;
+}
+
+int vfs_readpath(vfs_t *vfs, const char *name, user_t *user, char *buf, int len, bool relative)
+{
+    fnode_t *node = vfs_search(vfs, name, user, true, true);
+    if (node == NULL)
+        return -1;
+
+    if (node == vfs->root) {
+        vfs_close_fnode(node);
+        strncpy(buf, "/", len);
+        return 0;
+    } else if (relative && node == vfs->pwd) {
+        vfs_close_fnode(node);
+        strncpy(buf, ".", len);
+        return 0;
+    } else if (node->parent == NULL) {
+        vfs_close_fnode(node);
+        strncpy(buf, ":/", len);
+        return 0;
+    }
 
     char *cpy = kalloc(len);
     strncpy(cpy, node->name, len);
@@ -249,56 +287,60 @@ ino_ops_t pipe_ino_ops = {
     .read = NULL,
 };
 
-fnode_t *__private;
+//inode_t *vfs_mkfifo(vfs_t *vfs, const char *path, acl_t *acl, int mode)
 
-fnode_t *vfs_mkfifo(fnode_t *parent, const char *name)
+inode_t *vfs_pipe(vfs_t *vfs)
 {
-    int i;
-    if (__private == NULL) {
-        __private = kalloc(sizeof(fnode_t));
-        mtx_init(&__private->mtx, mtx_plain);
-        __private->parent = NULL;
-        __private->ino = vfs_inode(1, FL_DIR, NULL, &pipe_ino_ops);
-        __private->rcu = 1;
-        __private->mode = FN_OK;
-    }
-    if (parent == NULL)
-        parent = __private;
-
-    fnode_t *node = NULL;
-    char *fname = NULL;
-    if (name == NULL) {
-        fname = kalloc(17);
-        for (i = 0; i < 16; ++i)
-            fname[i] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"[rand8() % 64];
-        fname[16] = 0;
-        node = vfs_fsnode_from(parent, fname);
-        kfree(fname);
-    } else
-        node = vfs_fsnode_from(parent, name);
-
-    mtx_lock(&node->mtx);
-    if (node->mode != FN_EMPTY) {
-        mtx_unlock(&node->mtx);
-        vfs_close_fnode(node);
-        errno = EEXIST;
-        return NULL;
-    }
-
-    device_t *dev = NULL;
-    ino_ops_t *ops = &pipe_ino_ops;
-    int no = 1;
-    int type = FL_PIPE;
-
-    inode_t *ino = vfs_inode(no, type, dev, ops);
-
-    vfs_resolve(node, ino);
-    mtx_unlock(&node->mtx);
-    return node;
+    inode_t *ino = vfs_inode(1, FL_PIPE, NULL, &pipe_ino_ops);
+    ino->dev->block = 1;
+    return ino;
 }
+EXPORT_SYMBOL(vfs_pipe, 0);
 
 
-EXPORT_SYMBOL(vfs_mkdev, 0);
-EXPORT_SYMBOL(vfs_rmdev, 0);
-EXPORT_SYMBOL(vfs_addfs, 0);
-EXPORT_SYMBOL(vfs_rmfs, 0);
+//fnode_t *vfs_mkfifo(fnode_t *parent, const char *name)
+//{
+//    int i;
+//    if (__private == NULL) {
+//        __private = kalloc(sizeof(fnode_t));
+//        mtx_init(&__private->mtx, mtx_plain);
+//        __private->parent = NULL;
+//        __private->ino = vfs_inode(1, FL_DIR, NULL, &pipe_ino_ops);
+//        __private->rcu = 1;
+//        __private->mode = FN_OK;
+//    }
+//    if (parent == NULL)
+//        parent = __private;
+//
+//    fnode_t *node = NULL;
+//    char *fname = NULL;
+//    if (name == NULL) {
+//        fname = kalloc(17);
+//        for (i = 0; i < 16; ++i)
+//            fname[i] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"[rand8() % 64];
+//        fname[16] = 0;
+//        node = vfs_fsnode_from(parent, fname);
+//        kfree(fname);
+//    } else
+//        node = vfs_fsnode_from(parent, name);
+//
+//    mtx_lock(&node->mtx);
+//    if (node->mode != FN_EMPTY) {
+//        mtx_unlock(&node->mtx);
+//        vfs_close_fnode(node);
+//        errno = EEXIST;
+//        return NULL;
+//    }
+//
+//    device_t *dev = NULL;
+//    ino_ops_t *ops = &pipe_ino_ops;
+//    int no = 1;
+//    int type = FL_PIPE;
+//
+//    inode_t *ino = vfs_inode(no, type, dev, ops);
+//
+//    vfs_resolve(node, ino);
+//    mtx_unlock(&node->mtx);
+//    return node;
+//}
+//EXPORT_SYMBOL(vfs_mkfifo, 0);

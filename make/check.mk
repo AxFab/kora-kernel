@@ -47,8 +47,4 @@ cov_%: %.lcov
 val_%: $(bindir)/%
 	$(V) valgrind --error-exitcode=9 --leak-check=full --show-leak-kinds=all $< 2>&1 | tee $@
 
-# lcov --rc lcov_branch_coverage=1 -c --directory . -b . -o src.lcov
-# sed -e '/SF:\/usr.*/,/end_of_record/d' -e '/SF:.*\/src\/tests\/.*/,/end_of_record/d' -i src.lcov
-# genhtml --rc lcov_branch_coverage=1 -o cover src.lcov
-
 .PHONY: check coverage

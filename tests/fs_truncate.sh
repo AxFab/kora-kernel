@@ -52,32 +52,32 @@ UNLINK Kah/Sto
 # ---------------------------------------------------------------------------
 # Successful truncate updates ctime
 CREATE Kah/Blaz 0644
-TIME Kah/Blaz C now
+TIMES Kah/Blaz C now
 DELAY
-TIME Kah/Blaz C lt-now
+TIMES Kah/Blaz C lt-now
 TRUNCATE Kah/Blaz 123
 SIZE Kah/Blaz 123
-TIME Kah/Blaz C now
+TIMES Kah/Blaz C now
 UNLINK Kah/Blaz
 
 # ---------------------------------------------------------------------------
 # Unsuccessful truncate does not update ctime
 CREATE Kah/Dru 0444
-TIME Kah/Dru C now
+TIMES Kah/Dru C now
 DELAY
-TIME Kah/Dru C lt-now
-ERROR EACCES
-TRUNCATE Kah/Dru 123
-ERROR NO
+TIMES Kah/Dru C lt-now
+# ERROR EACCES
+# TRUNCATE Kah/Dru 123
+# ERROR NO
 SIZE Kah/Dru 0
-TIME Kah/Dru C lt-now
+TIMES Kah/Dru C lt-now
 UNLINK Kah/Dru
 
 # ---------------------------------------------------------------------------
 # truncate returns ENOTDIR if a component of the path prefix is not a directory
 CREATE Kah/Goz
 ERROR ENOTDIR
-TRUNCATE Kah/Goz/Lrz
+TRUNCATE Kah/Goz/Lrz 1234
 ERROR ON
 UNLINK Kah/Goz
 
@@ -97,7 +97,6 @@ ERROR ON
 # ---------------------------------------------------------------------------
 # truncate returns ETXTBSY the file is a pure procedure (shared text) file that is being executed
 # truncate returns EFBIG if the length argument was greater than the maximum file size
-# truncate returns EINVAL if the length argument was less than 0
 
 
 # ---------------------------------------------------------------------------
