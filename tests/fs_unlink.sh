@@ -182,6 +182,7 @@ RMDIR Tbz
 # ---------------------------------------------------------------------------
 # Unlink returns EACCES or EPERM if the directory containing the file is marked sticky, and neither the containing directory nor the file to be removed are owned by the effective user ID
 
+
 # ---------------------------------------------------------------------------
 # An open file will not be immediately freed by unlink
 # MKDIR Goz
@@ -198,4 +199,31 @@ RMDIR Tbz
 # ERROR ENOENT
 # STAT Goz/Lrz
 # ERROR ON
+
+
+# ---------------------------------------------------------------------------
+# Unlink remove entry by name, not inode number.
+CREATE Kah 0644
+LSTAT Kah REG 0644
+LINKS Kah 1
+LINK Kah Zig
+UNLINK Kah
+ERROR ENOENT
+LSTAT Kah REG 0644
+ERROR ON
+LSTAT Zig REG 0644
+LINKS Zig 1
+LINK Zig Kah
+LSTAT Kah REG 0644
+LINKS Kah 2
+LSTAT Zig REG 0644
+LINKS Zig 2
+UNLINK Kah
+ERROR ENOENT
+LSTAT Kah
+ERROR ON
+UNLINK Zig
+ERROR ENOENT
+LSTAT Zig
+ERROR ON
 

@@ -29,56 +29,76 @@
 # SUCH DAMAGE.
 # ---------------------------------------------------------------------------
 ERROR ON
-UMASK 022
-MKDIR Kah
+MKDIR Kah 0755
 
 # ---------------------------------------------------------------------------
-# chmod changes permission
-CREATE Kah/Zig
-CHMOD Kah/Zig 0111
-STAT Kah/Zig 0111
+# truncate descrease/increase file size
 
-SYMLINK Zig Kah/Sto
-LS Kah
-LSTAT Kah/Sto 0644
-CHMOD Kah/Sto 0222
-STAT Kah/Zig 0222
-STAT Kah/Sto 0222
-LSTAT Kah/Sto 0644
-
+CREATE Kah/Zig 0644
+TRUNCATE Kah/Zig 1234567
+SIZE Kah/Zig 1234567
+TRUNCATE Kah/Zig 567
+SIZE Kah/Zig 567
 UNLINK Kah/Zig
-UNLINK Kah/Sto
 
-
-MKDIR Kah/Zig
-CHMOD Kah/Zig 0111
-STAT Kah/Zig 0111
-
-SYMLINK Zig Kah/Sto
-LSTAT Kah/Sto 0644
-CHMOD Kah/Sto 0222
-STAT Kah/Zig 0222
-STAT Kah/Sto 0222
-LSTAT Kah/Sto 0644
-
-RMDIR Kah/Zig
+DD /dev/random Kah/Sto 12345
+SIZE Kah/Sto 12345
+TRUNCATE Kah/Sto 23456
+SIZE Kah/Sto 23456
+TRUNCATE Kah/Sto 1
+SIZE Kah/Sto 1
 UNLINK Kah/Sto
 
 # ---------------------------------------------------------------------------
-# Successful chmod updates ctime
+# Successful truncate updates ctime
+CREATE Kah/Blaz 0644
+TIME Kah/Blaz C now
+DELAY
+TIME Kah/Blaz C lt-now
+TRUNCATE Kah/Blaz 123
+SIZE Kah/Blaz 123
+TIME Kah/Blaz C now
+UNLINK Kah/Blaz
 
 # ---------------------------------------------------------------------------
-# Unsuccessful chmod does not updates ctime
+# Unsuccessful truncate does not update ctime
+CREATE Kah/Dru 0444
+TIME Kah/Dru C now
+DELAY
+TIME Kah/Dru C lt-now
+ERROR EACCES
+TRUNCATE Kah/Dru 123
+ERROR NO
+SIZE Kah/Dru 0
+TIME Kah/Dru C lt-now
+UNLINK Kah/Dru
 
-# chmod returns ENOTDIR if a component of the path prefix is not a directory
-# chmod returns ENAMETOOLONG if a component of a pathname exceeded the maximum of allowed characters
-# chmod returns ENOENT if the named file does not exist
-# chmod returns EACCES when search permission is denied for a component of the path prefix
-# chmod returns ELOOP if too many symbolic links were encountered in translating the pathname
-# chmod returns EPERM if the operation would change the ownership, but the effective user ID is not the super-user
-# chmod returns EPERM if the named file has its immutable or append-only flag set
-# chmod returns EFTYPE if the effective user ID is not the super-user, the mode includes the sticky bit (S_ISVTX), and path does not refer to a directory
-# Verify SUID/SGID bit behaviour
+# ---------------------------------------------------------------------------
+# truncate returns ENOTDIR if a component of the path prefix is not a directory
+CREATE Kah/Goz
+ERROR ENOTDIR
+TRUNCATE Kah/Goz/Lrz
+ERROR ON
+UNLINK Kah/Goz
+
+# truncate returns ENAMETOOLONG if a component of a pathname exceeded {NAME_MAX} characters
+# truncate returns ENOENT if the named file does not exist
+# truncate returns EACCES when search permission is denied for a component of the path prefix
+# truncate returns EACCES if the named file is not writable by the user
+# truncate returns ELOOP if too many symbolic links were encountered in translating the pathname
+# truncate returns EPERM if the named file has its immutable or append-only flag set
+
+# ---------------------------------------------------------------------------
+# truncate returns EISDIR if the named file is a directory
+ERROR EISDIR
+TRUNCATE Kah 123
+ERROR ON
+
+# ---------------------------------------------------------------------------
+# truncate returns ETXTBSY the file is a pure procedure (shared text) file that is being executed
+# truncate returns EFBIG if the length argument was greater than the maximum file size
+# truncate returns EINVAL if the length argument was less than 0
+
 
 # ---------------------------------------------------------------------------
 RMDIR Kah

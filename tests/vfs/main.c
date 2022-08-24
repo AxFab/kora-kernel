@@ -78,7 +78,11 @@ int do_img_copy(vfs_ctx_t *ctx, size_t *param);
 int do_img_remove(vfs_ctx_t *ctx, size_t *param);
 int do_tar_mount(vfs_ctx_t *ctx, size_t *param);
 int do_format(vfs_ctx_t *ctx, size_t *param);
-int do_chmod(vfs_ctx_t *ctx, size_t *param);
+int do_chmod(vfs_ctx_t* ctx, size_t* param);
+int do_chown(vfs_ctx_t* ctx, size_t* param);
+int do_utimes(vfs_ctx_t* ctx, size_t* param);
+int do_ino(vfs_ctx_t* ctx, size_t* param);
+int do_rename(vfs_ctx_t* ctx, size_t* param);
 
 void alloc_check();
 void kmap_check();
@@ -208,7 +212,12 @@ cli_cmd_t __commands[] = {
 
     { "FORMAT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_format, 2 },
 
-    { "CHMOD", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_chmod, 2 },
+    { "CHMOD", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void*)do_chmod, 2 },
+    { "CHOWN", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void*)do_chown, 2 },
+    { "UTIMES", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void*)do_utimes, 3 },
+
+    { "INO", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void*)do_ino, 2 },
+    { "RENAME", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void*)do_rename, 2 },
 
     CLI_END_OF_COMMANDS,
 };
