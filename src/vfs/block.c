@@ -83,7 +83,8 @@ page_t block_fetch(inode_t *ino, xoff_t off)
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&block->lock);
 
-    if (off < 0 || off / PAGE_SIZE >= SIZE_MAX) {
+    if (off < 0 || off / PAGE_SIZE >= (xoff_t)__SSIZE_MAX) {
+        kprintf(-1, "\033[35mSettings %lld / %lld / ...\033[0m\n", (xoff_t)PAGE_SIZE, (xoff_t)__SSIZE_MAX);
         kprintf(-1, "\033[35mError while reading page: %s, pg:%d. bad offset\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
         return 0;
     }
@@ -104,6 +105,7 @@ page_t block_fetch(inode_t *ino, xoff_t off)
         mtx_lock(&page->mtx);
         if (!page->ready) {
             void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VMA_PHYS);
+            assert(ptr != NULL);
             assert(irq_ready());
             page->phys = mmu_read((size_t)ptr);
             kprintf(KL_BIO, "Alloc page %p for inode %s, read at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
@@ -125,16 +127,16 @@ page_t block_fetch(inode_t *ino, xoff_t off)
     return page->phys;
 }
 
-void block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
+int block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
 {
     char tmp[20];
     block_file_t *block = ino->fl_data;
     assert(IS_ALIGNED(off, PAGE_SIZE));
     splock_lock(&block->lock);
 
-    if (off < 0 || off / PAGE_SIZE >= SIZE_MAX) {
+    if (off < 0 || off / PAGE_SIZE >= (xoff_t)__SSIZE_MAX) {
         kprintf(-1, "\033[35mError while syncing page: %s, pg:%d. bad offset\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
-        return;
+        return -1;
     }
     size_t lba = (size_t)(off / PAGE_SIZE);
     block_page_t *page = bbtree_search_eq(&block->tree, lba, block_page_t, node);
@@ -144,12 +146,24 @@ void block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
     if (dirty || page->dirty) { // TODO -- Check block is not RDONLY !?
         mtx_lock(&page->mtx);
         void *ptr = kmap(PAGE_SIZE, NULL, (xoff_t)page->phys, VM_RW | VM_RESOLVE | VMA_PHYS);
+        assert(ptr != NULL);
         assert(irq_ready());
         kprintf(KL_BIO, "Write back page %p for inode %s at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
-        int ret = ino->ops->write(ino, ptr, PAGE_SIZE, off, 0);
+
+        int len = PAGE_SIZE;
+        if (off > ino->length) {
+            kprintf(-1, "Why!");
+        }
+        if (off + len > ino->length)
+            len = ino->length - off;
+
+        int ret = ino->ops->write(ino, ptr, len, off, 0);
         if (ret != 0) {
             page->dirty = true;
             kprintf(-1, "\033[35mError while syncing page: %s, pg:%d\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
+            mtx_unlock(&page->mtx);
+            kunmap(ptr, PAGE_SIZE);
+            return -1;
         } else
             page->dirty = false;
         mtx_unlock(&page->mtx);
@@ -157,6 +171,7 @@ void block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
     }
 
     block_close_page(block, page);
+    return 0;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -164,8 +179,10 @@ void block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
 
 int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
 {
-    if (off >= ino->length && ino->length != 0)
+    if (off > ino->length) {
+        errno = EINVAL;
         return -1;
+    }
     xoff_t poff = -1;
     char *map = NULL;
     int bytes = 0;
@@ -181,22 +198,23 @@ int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
         }
         size_t disp = (size_t)(off & (PAGE_SIZE - 1));
         int cap = MIN3((size_t)len, PAGE_SIZE - disp, (size_t)(ino->length - off));
-        if (cap == 0)
+        if (cap == 0) {
+            kunmap(map, PAGE_SIZE);
             return bytes;
+        }
         memcpy(buf, map + disp, cap);
         len -= cap;
         off += cap;
         buf += cap;
         bytes += cap;
     }
-    kunmap(map, PAGE_SIZE);
+    if (map != NULL)
+        kunmap(map, PAGE_SIZE);
     return bytes;
 }
 
 int block_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags)
 {
-    if (off >= ino->length && ino->length != 0)
-        return -1;
     xoff_t poff = -1;
     char *map = NULL;
     int bytes = 0;
@@ -212,15 +230,23 @@ int block_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags
         }
         size_t disp = (size_t)(off & (PAGE_SIZE - 1));
         int cap = MIN3((size_t)len, PAGE_SIZE - disp, (size_t)(ino->length - off));
-        if (cap == 0)
+        if (cap == 0) {
+            int ret = -1;
+            if (ino->type == FL_REG && (xoff_t)(off + len) < ino->length)
+                ret = vfs_truncate(ino, off + len);
+            if (ret == 0)
+                continue;
+            kunmap(map, PAGE_SIZE);
             return bytes;
+        }
         memcpy(map + disp, buf, cap);
         len -= cap;
         off += cap;
         buf += cap;
         bytes += cap;
     }
-    kunmap(map, PAGE_SIZE);
+    if (map != NULL)
+        kunmap(map, PAGE_SIZE);
     return bytes;
 }
 
@@ -251,8 +277,8 @@ void block_destroy(inode_t *ino)
 fl_ops_t block_ops = {
     .read = block_read,
     .write = block_write,
-    .fetch = block_fetch,
-    .release = block_release,
+    //.fetch = block_fetch,
+    //.release = block_release,
     .destroy = block_destroy,
 };
 

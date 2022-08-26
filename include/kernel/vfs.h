@@ -188,8 +188,8 @@ struct ino_ops {
 
     int(*truncate)(inode_t *ino, xoff_t length);
 
-    page_t(*fetch)(inode_t *ino, xoff_t off);
-    void(*release)(inode_t *ino, xoff_t off, page_t pg, bool dirty);
+    page_t (*fetch)(inode_t *ino, xoff_t off);
+    int (*release)(inode_t *ino, xoff_t off, page_t pg, bool dirty);
 
     int (*ioctl)(inode_t *ino, int cmd, void **params);
 
@@ -204,12 +204,12 @@ struct fl_ops {
     int (*read)(inode_t *ino, char *buf, size_t len, xoff_t, int flags);
     int (*write)(inode_t *dir, const char *buf, size_t len, xoff_t, int flags);
 
-    page_t(*fetch)(inode_t *ino, xoff_t off);
-    void(*release)(inode_t *ino, xoff_t off, page_t pg, bool dirty);
-    int (*seek)(inode_t *ino, xoff_t off);
+    // page_t(*fetch)(inode_t *ino, xoff_t off);
+    // int(*release)(inode_t *ino, xoff_t off, page_t pg, bool dirty);
+    // int (*seek)(inode_t *ino, xoff_t off);
 
     void(*usage)(inode_t *ino, int flgas, int use);
-    int (*fcntl)(inode_t *ino, int cmd, void **params);
+    // int (*fcntl)(inode_t *ino, int cmd, void **params);
     void(*destroy)(inode_t *ino);
 };
 
@@ -225,8 +225,7 @@ inode_t *vfs_pipe(vfs_t *vfs);
 int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags);
 int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags);
 int vfs_truncate(inode_t *ino, xoff_t off);
-int vfs_fcntl(inode_t *ino, int cmd, void **args);
-int vfs_iocntl(inode_t *ino, int cmd, void **args);
+int vfs_ioctl(inode_t *ino, int cmd, void **args);
 int vfs_access(inode_t *ino, user_t *user, int flags);
 inode_t *vfs_open_inode(inode_t *ino);
 void vfs_close_inode(inode_t *ino);
@@ -337,8 +336,8 @@ void vfs_dev_scavenge(device_t *dev, int max);
 // Generic
 vfs_t *vfs_init();
 // vfs_t *vfs_open_vfs(vfs_t *vfs);
-vfs_t *vfs_clone_vfs(vfs_t *vfs);
-// int vfs_sweep(vfs_t *vfs);
+// vfs_t *vfs_clone_vfs(vfs_t *vfs);
+int vfs_sweep(vfs_t *vfs);
 
 // fnode_t *vfs_mknod(fnode_t *parent, const char *name, int devno);
 // fnode_t *vfs_mkfifo(fnode_t *parent, const char *name);
@@ -357,7 +356,10 @@ fnode_t *vfs_fsnode_from(fnode_t *parent, const char *name);
 // int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags);
 // int block_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags);
 
-// inode_t *tar_mount(void *base, size_t length, const char *name);
+inode_t *tar_mount(void *base, size_t length, const char *name);
+
+page_t block_fetch(inode_t *ino, xoff_t off);
+int block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty);
 
 
 
@@ -387,6 +389,8 @@ static inline void *bkmap(struct bkmap *bm, size_t blkno, size_t blksize, size_t
     bm->off = by - bo;
     bm->len = be - bo;
     bm->map = kmap(bm->len, dev, (xoff_t)bm->addr, flg); // TODO -- VM_BLK
+    if (bm->map == NULL)
+        return NULL;
     return ((char *)bm->map) + bm->off;
 }
 

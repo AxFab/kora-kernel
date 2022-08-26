@@ -52,13 +52,10 @@ void vfs_createfile(inode_t *ino)
         ino->fops = &chr_ops;
         break;
     case FL_SOCK:
-        ino->fl_data = socket_create();
-        ino->fops = &socket_ops;
-        break;
+        //ino->fl_data = socket_create();
+        //ino->fops = &socket_ops;
+        //break;
     case FL_FRM:
-        ino->fl_data = framebuffer_create();
-        ino->fops = &framebuffer_ops;
-        break;
     case FL_NET:
     case FL_LNK:
     case FL_DIR:
@@ -67,11 +64,6 @@ void vfs_createfile(inode_t *ino)
     }
 }
 
-void vfs_cleanfile(inode_t *ino)
-{
-    if (ino->fops && ino->fops->destroy)
-        ino->fops->destroy(ino);
-}
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -120,19 +112,7 @@ EXPORT_SYMBOL(vfs_truncate, 0);
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-int vfs_fcntl(inode_t *ino, int cmd, void **args)
-{
-    assert(ino != NULL);
-    if (ino->fops == NULL || ino->fops->fcntl == NULL) {
-        errno = ENOSYS;
-        return -1;
-    }
-
-    return ino->fops->fcntl(ino, cmd, args);
-}
-EXPORT_SYMBOL(vfs_fcntl, 0);
-
-int vfs_iocntl(inode_t *ino, int cmd, void **args)
+int vfs_ioctl(inode_t *ino, int cmd, void **args)
 {
     assert(ino != NULL);
     if (ino->ops->ioctl == NULL) {
@@ -142,19 +122,5 @@ int vfs_iocntl(inode_t *ino, int cmd, void **args)
 
     return ino->ops->ioctl(ino, cmd, args);
 }
-EXPORT_SYMBOL(vfs_iocntl, 0);
-
-//int vfs_seek(inode_t *ino, xoff_t off)
-//{
-//    assert(ino != NULL);
-//    if (ino->fops == NULL) {
-//        errno = ENOSYS;
-//        return -1;
-//    }
-//    if (ino->fops->seek == NULL)
-//        return off;
-//
-//    return ino->fops->seek(ino, off);
-//}
-
+EXPORT_SYMBOL(vfs_ioctl, 0);
 

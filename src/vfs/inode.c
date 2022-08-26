@@ -2,7 +2,6 @@
 #include <errno.h>
 
 void vfs_createfile(inode_t *ino);
-void vfs_cleanfile(inode_t *ino);
 
 
 /* An inode must be created by the driver using a call to `vfs_inode()' */
@@ -76,9 +75,13 @@ void vfs_close_inode(inode_t *ino)
     kprintf(KL_FSA, "Release inode `%s`\n", vfs_inokey(ino, tmp));
     bbtree_remove(&device->btree, ino->bnode.value_);
     splock_unlock(&device->lock);
-    vfs_cleanfile(ino);
+
+    if (ino->fops && ino->fops->destroy)
+        ino->fops->destroy(ino);
+    
     if (ino->ops->close)
         ino->ops->close(ino);
+    
     kfree(ino);
 
     if (atomic_xadd(&device->rcu, -1) != 1)
@@ -264,28 +267,6 @@ EXPORT_SYMBOL(vfs_access, 0);
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-size_t vfs_fetch_page(inode_t *ino, xoff_t off)
-{
-    if (ino->ops->fetch == NULL) {
-        errno = EPERM;
-        return 0;
-    }
-    return ino->ops->fetch(ino, off);
-}
-EXPORT_SYMBOL(vfs_fetch_page, 0);
-
-int vfs_release_page(inode_t *ino, xoff_t off, size_t page, bool dirty)
-{
-    if (ino->ops->release == NULL) {
-        errno = EPERM;
-        return -1;
-    }
-    ino->ops->release(ino, off, page, dirty);
-    return 0;
-}
-EXPORT_SYMBOL(vfs_release_page, 0);
-
 
 void vfs_usage(inode_t *ino, int access, int count)
 {

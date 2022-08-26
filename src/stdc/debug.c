@@ -199,6 +199,7 @@ char *sztoa_r(int64_t number, char *sz_format)
 
     return sz_format;
 }
+EXPORT_SYMBOL(sztoa_r, 0);
 
 /* Store in a temporary buffer a size in bytes in a human-friendly format. */
 char *sztoa(int64_t number)
@@ -206,6 +207,7 @@ char *sztoa(int64_t number)
     static char sz_format[20];
     return sztoa_r(number, sz_format);
 }
+EXPORT_SYMBOL(sztoa, 0);
 
 static uint32_t CRC32_T[] = { /* CRC polynomial 0xedb88320 */
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
@@ -253,16 +255,20 @@ static uint32_t CRC32_T[] = { /* CRC polynomial 0xedb88320 */
     0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-uint32_t crc32(const void *buf, size_t len)
+uint32_t crc32_r(uint32_t checksum, const void *buf, size_t len)
 {
     const uint8_t *ptr = (const uint8_t *)buf;
-    register uint32_t checksum = 0xFFFFFFFF;
 
     for (; len; --len, ++ptr)
         checksum = CRC32_T[(checksum ^ (*ptr)) & 0xFF] ^ (checksum >> 8);
     return ~checksum;
 }
+EXPORT_SYMBOL(crc32_r, 0);
 
-
+uint32_t crc32(const void *buf, size_t len)
+{
+    return crc32_r(0xFFFFFFFF, buf, len);
+}
 EXPORT_SYMBOL(crc32, 0);
-EXPORT_SYMBOL(sztoa_r, 0);
+
+

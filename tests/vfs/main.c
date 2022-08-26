@@ -187,7 +187,7 @@ cli_cmd_t __commands[] = {
     { "MKDIR", "", { ARG_STR, ARG_INT, 0, 0, 0 }, (void*)do_mkdir, 1 },
     { "RMDIR", "", { ARG_STR, 0, 0, 0, 0 }, (void*)do_rmdir, 1 },
 
-    { "DD", "", { ARG_STR, ARG_STR, ARG_INT, 0, 0 }, (void *)do_dd, 3 },
+    { "DD", "", { ARG_STR, ARG_STR, ARG_INT, ARG_INT, 0 }, (void *)do_dd, 2 },
     { "TRUNCATE", "", { ARG_STR, ARG_INT, 0, 0, 0 }, (void *)do_truncate, 2 },
     { "SIZE", "", { ARG_STR, ARG_INT, 0, 0, 0 }, (void *)do_size, 2 },
     { "CLEAR_CACHE", "", { ARG_STR, 0, 0, 0, 0 }, (void*)do_clear_cache, 1 },
@@ -206,6 +206,7 @@ cli_cmd_t __commands[] = {
 
     { "EXTRACT", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void*)do_extract, 1 },
     { "CKSUM", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void*)do_checksum, 1},
+    { "CRC32", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void*)do_checksum, 1},
 
     { "IMG_OPEN", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void*)do_img_open, 2 },
     { "IMG_CREATE", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void*)do_img_create, 2 },
