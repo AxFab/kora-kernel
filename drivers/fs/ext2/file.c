@@ -36,6 +36,11 @@ int ext2_read(inode_t *ino, char *buffer, size_t length, xoff_t offset, int flag
         if (blk && offset < ino->length) {
             struct bkmap bm;
             char *data = bkmap(&bm, blk, vol->blocksize, 0, ino->dev->underlying, VM_RD);
+            if (data == NULL) {
+                bkunmap(&bk);
+                errno = EIO;
+                return -1;
+            }
             cap = (size_t)MIN((xoff_t)cap, ino->length - offset);
             cap = MIN(cap, vol->blocksize - off);
             memcpy(buffer, &data[off], cap);
@@ -67,6 +72,11 @@ int ext2_write(inode_t *ino, const char *buffer, size_t length, xoff_t offset, i
         if (blk && offset < ino->length) {
             struct bkmap bm;
             char *data = bkmap(&bm, blk, vol->blocksize, 0, ino->dev->underlying, VM_WR);
+            if (data == NULL) {
+                bkunmap(&bk);
+                errno = EIO;
+                return -1;
+            }
             cap = (size_t)MIN((xoff_t)cap, ino->length - offset);
             cap = MIN(cap, vol->blocksize - off);
             memcpy(&data[off], buffer, cap);

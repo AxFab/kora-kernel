@@ -193,7 +193,7 @@ void kmap_check()
 }
 
 
-void *kmap(size_t len, void *ino, xoff_t off, int flags)
+void *kmap(size_t len, void *obj, xoff_t off, int flags)
 {
     assert(len > 0);
     assert((len & (PAGE_SIZE - 1)) == 0);
@@ -202,7 +202,7 @@ void *kmap(size_t len, void *ino, xoff_t off, int flags)
     int type = flags & VMA_TYPE;
     int getter = 0;
     int access = flags & (VM_RW | VM_EX | VM_RESOLVE);
-    if (type == 0 && ino != NULL)
+    if (type == 0 && obj != NULL)
         type = VMA_FILE;
     // assert((ino == NULL) != (type == VMA_FILE));
     switch (type) {
@@ -238,26 +238,34 @@ void *kmap(size_t len, void *ino, xoff_t off, int flags)
         map_init = true;
     }
 
-
+    char tmp[16];
     map_page_t *mp = NULL;
     if (getter == 0) {
         mp = kmap_new(access | type, NULL, 0, len, _valloc(len));
     } else if (getter == 1) {
         assert(irq_ready());
-        mp = kmap_search(ino, off, len, access & 7);
+        mp = kmap_search(obj, off, len, access & 7);
         if (mp != NULL)
             return mp->ptr;
         
-        mp = kmap_new(access | type, ino, off, len, NULL);
+        mp = kmap_new(access | type, obj, off, len, NULL);
+        inode_t *ino = obj;
         assert(len == PAGE_SIZE);
         assert(ino != NULL);
-        mp->ptr = (void *)((inode_t *)ino)->fops->fetch(ino, off);
+        if (ino->ops->fetch)
+            mp->ptr = (void *)ino->ops->fetch(ino, off);
+        else if (ino->type == FL_REG || ino->type == FL_BLK)
+            mp->ptr = (void*)block_fetch(ino, off);
+        if (mp->ptr == 0) {
+            fprintf(stderr, "Error on fetching page of %s\n", vfs_inokey(ino, tmp));
+            return NULL;
+        }
 
     } else if (getter == 4) {
         if (off == 0) {
             mp = kmap_new(access | type, NULL, 0, len, _valloc(len));
         } else {
-            mp = kmap_search(ino, off, len, access & 7); // ino is null !?
+            mp = kmap_search(obj, off, len, access & 7); // ino is null !?
             if (mp != NULL)
                 return mp->ptr;
             mp = kmap_new(access | type, (void *)off, 0, len, (void*)off); // is off required?
@@ -294,14 +302,21 @@ void kunmap(void *addr, size_t len)
         break;
     }
 
+    char tmp[16];
     bbtree_remove(&map_tree, (size_t)addr);
     if (getter == 0) {
         _vfree(addr);
     } else if (getter == 1) {
-
         bool dirty = mp->access & VM_WR ? true : false;
         size_t nx = 0;
-        mp->ino->fops->release(mp->ino, mp->off, (size_t)mp->ptr + nx, dirty);
+        int ret = 0;
+        if (mp->ino->ops->release)
+            ret = mp->ino->ops->release(mp->ino, mp->off, (size_t)mp->ptr + nx, dirty);
+        else if (mp->ino->type == FL_REG || mp->ino->type == FL_BLK)
+            ret = block_release(mp->ino, mp->off, (size_t)mp->ptr + nx, dirty);
+        if (ret != 0) {
+            fprintf(stderr, "Error on releasing page of %s\n", vfs_inokey(mp->ino, tmp));
+        }
 
     } else if (getter == 4) {
 

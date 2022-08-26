@@ -26,10 +26,17 @@ _Static_assert(sizeof(int) == 4, "Unsupported, int must be 32 bits");
 _Static_assert(sizeof(long long) == 8, "Unsupported, long long must be 64 bits");
 #endif
 
+#ifndef __LITTLE_ENDIAN
+#define __LITTLE_ENDIAN 1234
+#endif
+#ifndef __BIG_ENDIAN
+#define __BIG_ENDIAN 4321
+#endif
+
 /* Guess compiler and architecture */
 #if defined __amd64 || defined __x86_64
 # define __ARCH  "amd64"
-# define __BYTE_ORDER LITTLE_ENDIAN
+# define __ENDIANESS __LITTLE_ENDIAN
 # define WORDSIZE  64
 # define LONG_BIT  64
 # include <bits/cdefs/gcc.h>
@@ -41,14 +48,14 @@ _Static_assert(sizeof(long long) == 8, "Unsupported, long long must be 64 bits")
 
 #elif defined __i386
 # define __ARCH  "i386"
-# define __BYTE_ORDER LITTLE_ENDIAN
+# define __ENDIANESS __LITTLE_ENDIAN
 # define WORDSIZE 32
 # define LONG_BIT 32
 # include <bits/cdefs/gcc.h>
 
 #elif defined __ia64__
 # define __ARCH  "ia64"
-# define __BYTE_ORDER __LITTLE_ENDIAN
+# define __ENDIANESS __LITTLE_ENDIAN
 # define WORDSIZE 64
 # define LONG_BIT 64
 # include <bits/cdefs/gcc.h>
@@ -61,20 +68,32 @@ _Static_assert(sizeof(long long) == 8, "Unsupported, long long must be 64 bits")
 
 #elif defined _M_IX86
 # define __ARCH  "i386"
-# define __BYTE_ORDER __LITTLE_ENDIAN
+# define __ENDIANESS __LITTLE_ENDIAN
 # define WORDSIZE 32
 # define LONG_BIT 32
 # include <bits/cdefs/mcvs.h>
 
 #elif defined _M_IA64 || defined _M_AMD64
 # define __ARCH  "amd64"
-# define __BYTE_ORDER __LITTLE_ENDIAN
+# define __ENDIANESS __LITTLE_ENDIAN
 # define WORDSIZE 64
 # define LONG_BIT 32
 # include <bits/cdefs/mcvs.h>
 
 #else
 # error Unknown compiler
+#endif
+
+#ifndef __BYTE_ORDER
+# define __BYTE_ORDER  __ENDIANESS
+#endif
+
+#if WORDSIZE == 32
+# define __SIZE_MAX 0xFFFFFFFFUL
+# define __SSIZE_MAX 0x7FFFFFFFL
+#elif WORDSIZE == 64
+# define __SIZE_MAX 0xFFFFFFFFFFFFFFFFULL
+# define __SSIZE_MAX 0x7FFFFFFFFFFFFFFFLL
 #endif
 
 /* Define environment specific macros */

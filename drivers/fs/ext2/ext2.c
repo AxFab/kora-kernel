@@ -29,6 +29,7 @@ extern ino_ops_t ext2_dir_ops;
 extern ino_ops_t ext2_reg_ops;
 extern ino_ops_t ext2_lnk_ops;
 
+
 ext2_ino_t* ext2_entry(struct bkmap* bk, ext2_volume_t* vol, unsigned no, int flg)
 {
     uint32_t group = (no - 1) / vol->sb->inodes_per_group;
@@ -109,6 +110,23 @@ uint32_t ext2_alloc_inode(ext2_volume_t* vol)
     }
     bkunmap(&bm);
     return 0;
+}
+
+
+void ext2_free_inode(ext2_volume_t *vol, uint32_t ino)
+{
+    unsigned i = (ino - 1) / vol->sb->inodes_per_group;
+    unsigned j = (ino - 1 - i * vol->sb->inodes_per_group) / 8;
+    unsigned k = (ino - 1 - i * vol->sb->inodes_per_group) % 8;
+    //uint32_t no = i * vol->sb->inodes_per_group + j * 8 + k + 1;
+    if (i >= vol->groupCount || j >= vol->blocksize)
+        return; // TODO -- ERROR 
+
+    struct bkmap bm;
+    uint8_t *bitmap = bkmap(&bm, vol->grp[i].inode_bitmap, vol->blocksize, 0, vol->blkdev, VM_WR);
+
+    bitmap[j] &= ~(1 << k);
+    bkunmap(&bm);
 }
 
 
@@ -360,8 +378,6 @@ static inode_t *ext2_mknod_generic(ext2_volume_t *vol, inode_t *dir, const char 
     dir->links = ino_dir->links;
 
     // Create a new inode
-     // inode_t *ino = ext2_make_newinode(vol, no, now, EXT2_S_IFREG | 0644, 0);
-
     struct bkmap bk_new;
     ext2_ino_t *ino_new = ext2_entry(&bk_new, vol, no, VM_WR);
     memset(ino_new, 0, sizeof(ext2_ino_t));
@@ -474,6 +490,7 @@ int ext2_link(inode_t *dir, const char *name, inode_t *ino)
     return ret;
 }
 
+
 int ext2_rmdir(inode_t *dir, const char *name)
 {
     ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
@@ -521,8 +538,9 @@ int ext2_rmdir(inode_t *dir, const char *name)
     memcpy(blocks, ino_new->block, sizeof(ino_new->block));
 
     // Free inodes
-
+    ext2_free_inode(vol, ino_no);
     // Free blocks
+    ext2_free_blocks(vol, blocks);
 
 
     bkunmap(&bk_dir);
@@ -569,8 +587,10 @@ int ext2_unlink(inode_t *dir, const char *name)
         memcpy(blocks, ino_new->block, sizeof(ino_new->block));
 
         // Free inodes
-
+        ext2_free_inode(vol, ino_no);
         // Free blocks
+        ext2_free_blocks(vol, blocks);
+
     } else {
         inode_t *ino = ext2_inode(vol, ino_no);
         ext2_update_times(ino, ino_new, now, FT_CREATED | FT_MODIFIED);
@@ -724,6 +744,10 @@ inode_t* ext2_mount(inode_t* dev, const char* options)
     ext2_volume_t* vol = kalloc(sizeof(ext2_volume_t));
 
     uint8_t* ptr = kmap(PAGE_SIZE, dev, 0, VM_RD);
+    if (ptr == NULL) {
+        assert(errno != 0);
+        return NULL;
+    }
     ext2_sb_t* sb = (ext2_sb_t*)&ptr[1024];
     vol->sb = sb;
 
@@ -771,7 +795,8 @@ inode_t* ext2_mount(inode_t* dev, const char* options)
         return NULL;
     }
 
-    kprintf(KL_FSA, "ext2] Create volume data %s\n", vol->sb->volume_name); // TODO - Uuid to string
+    kprintf(KL_FSA, "ext2] Create volume data %s\n", vol->sb->volume_name);
+    memcpy(ino->dev->uuid, vol->sb->uuid, 16);
     vol->dev = ino->dev;
     ino->dev->devname = kstrdup(sb->volume_name);
     ino->dev->devclass = kstrdup("ext2");

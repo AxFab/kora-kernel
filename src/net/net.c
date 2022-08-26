@@ -335,6 +335,7 @@ void net_deamon(netstack_t *stack)
         kprintf(-1, "Rx %s:%s%d\n", skb->ifnet->stack->hostname, proto->name, skb->ifnet->idx);
         if (proto->receive(skb) != 0) {
             skb->ifnet->rx_dropped++;
+            kprintf(-1, "Rx dropped %s:%s%d\n", skb->ifnet->stack->hostname, skb->log);
             kfree(skb);
         }
     }

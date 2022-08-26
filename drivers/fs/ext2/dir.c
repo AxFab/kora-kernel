@@ -63,6 +63,7 @@ uint32_t ext2_nextdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
             // bkunmap(&it->bkm);
             if (it->cmap)
                 kunmap(it->cmap, PAGE_SIZE);
+            // TODO -- Use bkmap !!
             it->cmap = kmap(PAGE_SIZE, it->vol->dev->underlying, lba, VM_RD);
             it->lba = lba;
         }

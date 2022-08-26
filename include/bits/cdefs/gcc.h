@@ -19,7 +19,9 @@
  */
 #define _Noreturn __attribute__((noreturn))
 #define PACK(decl) decl __attribute__((packed))
-#define thread_local __thread
+#ifndef thread_local
+# define thread_local __thread
+#endif
 #define unlikely(c)  c
 #define likely(c)  c
 

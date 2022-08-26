@@ -20,34 +20,34 @@
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
 
-
-typedef struct socket socket_t;
-
-
-int socket_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
-{
-    return -1;
-}
-
-int socket_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags)
-{
-    return -1;
-}
-
-void socket_destroy(inode_t *ino)
-{
-}
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-fl_ops_t socket_ops = {
-    .read = socket_read,
-    .write = socket_write,
-    .destroy = socket_destroy,
-};
-
-socket_t *socket_create()
-{
-    return NULL;
-}
+//
+//typedef struct socket socket_t;
+//
+//
+//int socket_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
+//{
+//    return -1;
+//}
+//
+//int socket_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags)
+//{
+//    return -1;
+//}
+//
+//void socket_destroy(inode_t *ino)
+//{
+//}
+//
+//
+///* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+//
+//fl_ops_t socket_ops = {
+//    .read = socket_read,
+//    .write = socket_write,
+//    .destroy = socket_destroy,
+//};
+//
+//socket_t *socket_create()
+//{
+//    return NULL;
+//}

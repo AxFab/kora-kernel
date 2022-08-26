@@ -286,6 +286,8 @@ uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk);
 void ext2_truncate_direct(ext2_volume_t *vol, uint32_t *table, int len, int bcount, int offset);
 uint32_t ext2_truncate_indirect(ext2_volume_t *vol, uint32_t block, int bcount, int offset, int depth);
 
+int ext2_free_blocks(ext2_volume_t *vol, uint32_t *blocks);
+
 
 inode_t *ext2_inode(ext2_volume_t *vol, uint32_t no);
 

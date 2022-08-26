@@ -137,7 +137,8 @@ int imgdk_open(const char *path, const char *name)
         return -1;
 
     inode_t *ino = NULL;
-    if (strcmp(strrchr(path, '.'), ".img") == 0) {
+    const char* ext = strrchr(path, '.');
+    if (strcmp(ext, ".img") == 0 || strcmp(ext, ".txt") == 0) {
         ino = vfs_inode(fd, FL_BLK, NULL, &imgdk_ino_ops);
         ino->length = lseek(fd, 0, SEEK_END);
         if (ino->length == 0) {
@@ -151,13 +152,13 @@ int imgdk_open(const char *path, const char *name)
             ino->dev->model = kstrdup("Floppy-img");
         else
             ino->dev->model = kstrdup("RAW-image");
-    } else if (strcmp(strrchr(path, '.'), ".iso") == 0) {
+    } else if (strcmp(ext, ".iso") == 0) {
         ino = vfs_inode(fd, FL_BLK, NULL, &imgdk_ino_ops);
         ino->length = lseek(fd, 0, SEEK_END);
         ino->dev->block = 2048;
         ino->dev->flags = FD_RDONLY;
         ino->dev->model = kstrdup("ISO-image");
-    } else if (strcmp(strrchr(path, '.'), ".vhd") == 0) {
+    } else if (strcmp(ext, ".vhd") == 0) {
         ino = vfs_inode(fd, FL_BLK, NULL, &vhd_ino_ops);
         ino->dev->block = 512;
 
@@ -227,6 +228,7 @@ int imgdk_open(const char *path, const char *name)
     }
 
     if (ino == NULL) {
+        kprintf(-1, "imgdk] Unable to recognize format '%s'.\n", ext);
         close(fd);
         return -1;
     }
@@ -271,8 +273,10 @@ int imgdk_read(inode_t *ino, void *data, size_t size, xoff_t offset)
     splock_lock(&ino->lock);
     lseek(fd, offset, SEEK_SET);
     int r = read(fd, data, size);
-    if (errno != 0 || r != (int)size)
+    if (errno != 0 || r <= 0)
         kprintf(KL_ERR, "[IMG ] Read err: %s\n", strerror(errno));
+    if ((unsigned)r < size)
+        memset(&((char *)data)[r], 0, size - r);
     splock_unlock(&ino->lock);
     return 0;
 }

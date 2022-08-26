@@ -41,7 +41,7 @@ TRUNCATE Kah/Zig 567
 SIZE Kah/Zig 567
 UNLINK Kah/Zig
 
-DD /dev/random Kah/Sto 12345
+DD /dev/random Kah/Sto 512 12345
 SIZE Kah/Sto 12345
 TRUNCATE Kah/Sto 23456
 SIZE Kah/Sto 23456

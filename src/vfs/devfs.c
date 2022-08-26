@@ -182,44 +182,44 @@ static inode_t *devfs_inode(dfs_info_t *info, dfs_entry_t *entry)
     return ino;
 }
 
-/* Look for entry visible on a directory */
-inode_t *devfs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
-{
-    dfs_info_t *info = dir->drv_data;
-    if ((flags & (IO_OPEN | IO_CREAT)) == IO_CREAT) {
-        errno = EROFS;
-        return NULL;
-    }
-    dfs_entry_t *entry = devfs_fetch(info, dir->no);
-
-    int idx;
-    dfs_table_t *table = info->table;
-    for (idx = 0; ; ++idx) {
-        if (idx >= table->length) {
-            idx = 0;
-            table = table->next;
-            if (table == NULL) {
-                errno = ENOENT;
-                return NULL;
-            }
-        }
-
-        dfs_entry_t *en = &table->entries[idx];
-        if ((en->show & entry->filter) == 0)
-            continue;
-
-        int k = 0;
-        if (entry->flags & DF_BY_UUID)
-            k = strcmp(en->uuid, name);
-        else if (entry->flags & DF_BY_LABEL)
-            k = strcmp(en->label, name);
-        else
-            k = strcmp(en->name, name);
-        if (k == 0)
-            return devfs_inode(info, en);
-    }
-    return NULL;
-}
+///* Look for entry visible on a directory */
+//inode_t *devfs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
+//{
+//    dfs_info_t *info = dir->drv_data;
+//    if ((flags & (IO_OPEN | IO_CREAT)) == IO_CREAT) {
+//        errno = EROFS;
+//        return NULL;
+//    }
+//    dfs_entry_t *entry = devfs_fetch(info, dir->no);
+//
+//    int idx;
+//    dfs_table_t *table = info->table;
+//    for (idx = 0; ; ++idx) {
+//        if (idx >= table->length) {
+//            idx = 0;
+//            table = table->next;
+//            if (table == NULL) {
+//                errno = ENOENT;
+//                return NULL;
+//            }
+//        }
+//
+//        dfs_entry_t *en = &table->entries[idx];
+//        if ((en->show & entry->filter) == 0)
+//            continue;
+//
+//        int k = 0;
+//        if (entry->flags & DF_BY_UUID)
+//            k = strcmp(en->uuid, name);
+//        else if (entry->flags & DF_BY_LABEL)
+//            k = strcmp(en->label, name);
+//        else
+//            k = strcmp(en->name, name);
+//        if (k == 0)
+//            return devfs_inode(info, en);
+//    }
+//    return NULL;
+//}
 
 inode_t *devfs_lookup(inode_t *dir, const char *name, void *acl)
 {
@@ -426,7 +426,7 @@ void devfs_register(inode_t *ino, const char *name)
         break;
     case FL_BLK:
         entry->show = DF_DISK | DF_ROOT;
-        if (ino->dev->uuid[0] != '0') {
+        if (ino->dev->uuid[0] != 0 || ino->dev->uuid[1] != 0 || ino->dev->uuid[15] != 0) {
             snprintf(entry->uuid, 40, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
                      ino->dev->uuid[0], ino->dev->uuid[1], ino->dev->uuid[2], ino->dev->uuid[3],
                      ino->dev->uuid[4], ino->dev->uuid[5], ino->dev->uuid[6], ino->dev->uuid[7],

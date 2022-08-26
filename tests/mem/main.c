@@ -181,6 +181,9 @@ int vfs_read(inode_t *ino, char *buf, size_t length, xoff_t off, int flags)
     return length;
 }
 
+size_t block_fetch(inode_t *ino, xoff_t off) { return 0; }
+int block_release(inode_t *ino, xoff_t off, size_t page, bool dirty) { return -1; }
+
 void task_fatal(const char *msg, int signum)
 {
     printf("%s\n", msg);
