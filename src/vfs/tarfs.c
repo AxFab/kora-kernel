@@ -48,6 +48,7 @@ struct tar_entry {
 struct tar_info {
     void *base;
     size_t length;
+    atomic_int rcu;
 };
 
 struct tar_iterator {
@@ -68,7 +69,8 @@ static int tar_read_octal(char *count)
 }
 
 static inode_t *tar_inode(inode_t *dir, tar_entry_t *entry);
- 
+void tar_close(inode_t *ino);
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 static char *tar_strrchr(const char *str)
@@ -132,24 +134,6 @@ static tar_entry_t *tar_do_iterate(inode_t *dir, char *name, tar_iterator_t *ctx
     return entry;
 }
 
-///* Look for entry visible on a directory */
-//inode_t *tar_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
-//{
-//    tar_iterator_t ctx;
-//    tar_start_iterate(dir, &ctx);
-//    char tmp[256];
-//    for (;;) {
-//        tar_entry_t *entry = tar_do_iterate(dir, tmp, &ctx);
-//        if (entry == NULL) {
-//            errno = ENOENT;
-//            return NULL;
-//        }
-//
-//        if (strcmp(name, tmp) == 0)
-//            return tar_inode(dir, entry);
-//    }
-//}
-
 /* Look for entry visible on a directory */
 inode_t *tar_lookup(inode_t *dir, const char *name, void *acl)
 {
@@ -167,7 +151,6 @@ inode_t *tar_lookup(inode_t *dir, const char *name, void *acl)
             return tar_inode(dir, entry);
     }
 }
-
 
 /* Start an iterator to walk on a directory */
 tar_iterator_t *tar_opendir(inode_t *dir)
@@ -197,7 +180,6 @@ void tar_closedir(inode_t *dir, tar_iterator_t *ctx)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-
 int tar_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
 {
     tar_info_t *info = ino->drv_data;
@@ -214,24 +196,10 @@ int tar_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
     return 0;
 }
 
-int tar_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags)
-{
-    tar_info_t *info = ino->drv_data;
-    tar_entry_t *entry = ADDR_OFF(info->base, (ino->no - 2) * TAR_BLOCK_SIZE);
-    uint8_t *data = ADDR_OFF(entry, TAR_BLOCK_SIZE);
-    if (ino->length > (xoff_t)len + off) {
-        if ((xoff_t)len > ino->length)
-            return -1;
-        memcpy(&data[off], buf, (size_t)(ino->length - off));
-    } else
-        memcpy(&data[off], buf, len);
-    return 0;
-}
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 ino_ops_t tar_dir_ops = {
-    // .open = tar_open,
+    .close = tar_close,
     .lookup = tar_lookup,
     .opendir = (void *)tar_opendir,
     .readdir = (void *)tar_readdir,
@@ -239,12 +207,12 @@ ino_ops_t tar_dir_ops = {
 };
 
 ino_ops_t tar_reg_ops = {
+    .close = tar_close,
     .read = tar_read,
-    .write = tar_write,
 };
 
 ino_ops_t tar_lnk_ops = {
-    // .open = tar_open,
+    .close = tar_close,
     .lookup = tar_lookup,
 };
 
@@ -257,8 +225,6 @@ static inode_t *tar_inode(inode_t *dir, tar_entry_t *entry)
     inode_t *ino = NULL;
     if (entry->type_flag[0] == '0')
         ino = vfs_inode(lba, FL_REG, dir->dev, &tar_reg_ops);
-    else if (entry->type_flag[0] == '1')
-        ino = NULL;
     else if (entry->type_flag[0] == '2')
         ino = vfs_inode(lba, FL_LNK, dir->dev, &tar_lnk_ops);
     else if (entry->type_flag[0] == '5')
@@ -267,7 +233,11 @@ static inode_t *tar_inode(inode_t *dir, tar_entry_t *entry)
     if (ino == NULL)
         return NULL;
 
+    if (ino->rcu == 1)
+        atomic_inc(&info->rcu);
+
     ino->length = tar_read_octal(entry->file_size);
+    ino->mode = tar_read_octal(entry->filemode);
     ino->drv_data = dir->drv_data;
     int mtime = tar_read_octal(entry->last_mode_time);
     ino->atime = SEC_TO_USEC(mtime);
@@ -277,16 +247,26 @@ static inode_t *tar_inode(inode_t *dir, tar_entry_t *entry)
     return ino;
 }
 
+void tar_close(inode_t *ino)
+{
+    tar_info_t *info = ino->drv_data;
+    if (atomic_xadd(&info->rcu, -1) == 1) {
+        kfree(info->base);
+        kfree(info);
+    }
+}
 
 inode_t *tar_mount(void *base, size_t length, const char *name)
 {
     tar_info_t *info = kalloc(sizeof(tar_info_t));
+    info->rcu = 1;
     info->base = base;
     info->length = length;
     inode_t *ino = vfs_inode(1, FL_DIR, NULL, &tar_dir_ops);
     ino->lba = 0;
+    ino->mode = 0755;
     ino->drv_data = info;
-    ino->dev->devname = name != NULL && *name != '\0' ? strdup(name) : NULL;
-    ino->dev->devclass = strdup("tar");
+    ino->dev->devname = name != NULL && *name != '\0' ? kstrdup(name) : NULL;
+    ino->dev->devclass = kstrdup("tar");
     return ino;
 }

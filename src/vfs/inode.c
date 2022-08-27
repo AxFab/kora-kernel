@@ -40,10 +40,10 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t 
     vfs_createfile(inode);
     atomic_inc(&device->rcu);
 
-inode->bnode.value_ = no;
-bbtree_insert(&device->btree, &inode->bnode);
-splock_unlock(&device->lock);
-return inode;
+    inode->bnode.value_ = no;
+    bbtree_insert(&device->btree, &inode->bnode);
+    splock_unlock(&device->lock);
+    return inode;
 }
 EXPORT_SYMBOL(vfs_inode, 0);
 
@@ -78,10 +78,10 @@ void vfs_close_inode(inode_t *ino)
 
     if (ino->fops && ino->fops->destroy)
         ino->fops->destroy(ino);
-    
+
     if (ino->ops->close)
         ino->ops->close(ino);
-    
+
     kfree(ino);
 
     if (atomic_xadd(&device->rcu, -1) != 1)
@@ -210,18 +210,8 @@ err1:
 }
 EXPORT_SYMBOL(vfs_utimes, 0);
 
-//int vfs_truncate(inode_t *ino, acl_t *acl, xoff_t length)
-//{
-//
-//}
-//EXPORT_SYMBOL(vfs_truncate, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-// int vfs_readdir(inode_t *ino, void *dir, xstat_t *stat, char *buf, int len)
-//{
-//}
-//EXPORT_SYMBOL(vfs_readdir, 0);
 
 int vfs_readsymlink(inode_t *ino, char *buf, int len)
 {
@@ -233,11 +223,6 @@ int vfs_readsymlink(inode_t *ino, char *buf, int len)
 
     return ino->ops->readlink(ino, buf, len);
 }
-
-// int vfs_stat(inode_t *ino, xstat_t *stat)
-//{
-//}
-//EXPORT_SYMBOL(vfs_stat, 0);
 
 int vfs_access(inode_t *ino, user_t *user, int flags)
 {
@@ -251,25 +236,9 @@ int vfs_access(inode_t *ino, user_t *user, int flags)
 EXPORT_SYMBOL(vfs_access, 0);
 
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-//long vfs_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
-//{
-//
-//}
-//EXPORT_SYMBOL(vfs_read, 0);
-//
-//long vfs_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags)
-//{
-//
-//}
-//EXPORT_SYMBOL(vfs_write, 0);
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
 void vfs_usage(inode_t *ino, int access, int count)
 {
     if (ino->fops && ino->fops->usage != NULL)
         ino->fops->usage(ino, access, count);
 }
+EXPORT_SYMBOL(vfs_usage, 0);

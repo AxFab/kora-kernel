@@ -158,23 +158,43 @@ struct ext2_volume {
     atomic_int rcu;
 };
 
-struct ext2_dir_iter {
-    ext2_volume_t *vol;
-    // ext2_ino_t *entry;
-    // uint32_t blk;
-    int idx;
-    // int last;
-    // uint8_t *cur_block;
+typedef struct
+{
+    xoff_t off;
+    int lba;
+    unsigned blocks;
+    struct bkmap km;
+    ext2_dir_en_t *previous;
+    ext2_dir_en_t *entry;
+    uint8_t *ptr;
+    ext2_ino_t *dir;
+    bool create;
+    int flags;
+} ext2_diterator_t;
 
-    //void *emap;
-    struct bkmap bki;
+
+struct ext2_dir_iter {
+    ext2_diterator_t it;
+    struct bkmap bk;
     ext2_ino_t *entry;
 
-    // size_t off;
-    size_t lba;
-    struct bkmap bkm;
-    void *cmap;
+    //ext2_volume_t *vol;
+    //// ext2_ino_t *entry;
+    //// uint32_t blk;
+    //int idx;
+    //// int last;
+    //// uint8_t *cur_block;
+
+    ////void *emap;
+    //struct bkmap bki;
+    //ext2_ino_t *entry;
+
+    //// size_t off;
+    //size_t lba;
+    //struct bkmap bkm;
+    //void *cmap;
 };
+
 
 struct ext2_dir_en {
     uint32_t ino;
@@ -278,11 +298,15 @@ int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+
+void ext2_iterator_open(ext2_volume_t *vol, ext2_ino_t *dir, ext2_diterator_t *iter, bool create, int flags);
+void ext2_iterator_close(ext2_volume_t *vol, ext2_diterator_t *iter);
+int ext2_iterator_next(ext2_volume_t *vol, ext2_diterator_t *iter);
+ext2_dir_en_t *ext_iterator_find(ext2_volume_t *vol, ext2_diterator_t *iter, const char *name);
+
 uint32_t ext2_alloc_block(ext2_volume_t *vol);
 int ext2_release_block(ext2_volume_t *vol, uint32_t block);
-int ext2_getblock_direct(ext2_volume_t *vol, uint32_t *table, int len, int offset, uint32_t *buf, int cnt, int off);
-int ext2_getblock_indirect(ext2_volume_t *vol, uint32_t block, int offset, uint32_t *buf, int cnt, int off, int depth);
-uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk);
+uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk, bool alloc);
 void ext2_truncate_direct(ext2_volume_t *vol, uint32_t *table, int len, int bcount, int offset);
 uint32_t ext2_truncate_indirect(ext2_volume_t *vol, uint32_t block, int bcount, int offset, int depth);
 

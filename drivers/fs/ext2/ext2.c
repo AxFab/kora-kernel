@@ -177,154 +177,93 @@ static void ext2_read_symlink_on_block(ext2_volume_t *vol, uint32_t blkno, char 
 }
 
 
-int ext2_search_inode(inode_t* dir, const char* name, char* buf)
+
+int ext2_search_inode(inode_t* dir, const char* name)
 {
-    ext2_dir_iter_t* it = ext2_opendir(dir);
+    ext2_diterator_t iter;
+    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
+    struct bkmap bk;
+    ext2_ino_t *dir_ino = ext2_entry(&bk, vol, dir->no, VM_RD);
 
-    int ino_no;
-    while ((ino_no = ext2_nextdir(dir, buf, it)) != 0) {
-        if (strcmp(name, buf) != 0)
-            continue;
-
-        ext2_closedir(dir, it);
-        return ino_no;
+    ext2_iterator_open(vol, dir_ino, &iter, false, VM_RD);
+    ext2_dir_en_t *entry = ext_iterator_find(vol, &iter, name);
+    if (entry == NULL) {
+        bkunmap(&bk);
+        return 0;
     }
 
-    ext2_closedir(dir, it);
-    return ino_no;
+    int ino = entry->ino;
+    ext2_iterator_close(vol, &iter);
+    bkunmap(&bk);
+    return ino;
+ 
 }
 
 
 int ext2_add_link(ext2_volume_t* vol, ext2_ino_t* dir, unsigned no, const char* name)
 {
-    unsigned i;
-    unsigned lg = strnlen(name, 255);
-    unsigned sz = ALIGN_UP(sizeof(ext2_dir_en_t) + lg, 4);
-    unsigned pages = dir->blocks / (vol->blocksize / 512);
-    for (i = 0; i < pages; ++i) {
-        unsigned idx = 0;
-        unsigned blk = ext2_get_block(vol, dir, i);
-        if (blk == 0) {
-            errno = EIO;
+    unsigned name_len = strnlen(name, 255);
+    unsigned rec_len = ALIGN_UP(sizeof(ext2_dir_en_t) + name_len, 4);
+    ext2_diterator_t iter;
+
+    ext2_iterator_open(vol, dir, &iter, true, VM_WR);
+    for (;;) {
+        int ret = ext2_iterator_next(vol, &iter);
+        if (ret != 0) {
+            ext2_iterator_close(vol, &iter);
             return -1;
         }
-        struct bkmap bk;
-        ext2_dir_en_t* en = bkmap(&bk, blk, vol->blocksize, 0, vol->blkdev, VM_WR);
-        while (en->ino != 0) {
-            if (en->rec_len == 0) {
-                bkunmap(&bk);
-                errno = EIO;
-                return -1;
-            }
-            if (idx + en->rec_len >= vol->blocksize) {
-                if (idx + sizeof(ext2_dir_en_t) + ALIGN_UP(en->name_len, 4) + sz <= vol->blocksize) {
-                    // Write here
-                    en->rec_len = sizeof(ext2_dir_en_t) + ALIGN_UP(en->name_len, 4);
 
-                    idx += en->rec_len;
-                    en = ADDR_OFF(en, en->rec_len);
-                    en->ino = no;
-                    en->rec_len = vol->blocksize - idx;
-                    en->name_len = lg;
-                    en->type = 2;
-                    strcpy(en->name, name);
-                    bkunmap(&bk);
-                    errno = 0;
-                    return 0;
-                }
-                break;
-            }
-            idx += en->rec_len;
-            en = ADDR_OFF(en, en->rec_len);
+        assert(iter.entry != NULL);
+        ext2_dir_en_t *entry = iter.entry;
+        if (entry->type != 0) {
+            unsigned elen = ALIGN_UP(sizeof(ext2_dir_en_t) + entry->name_len, 4);
+            if (entry->rec_len < rec_len + elen)
+                continue;
+            ext2_dir_en_t *next = ADDR_OFF(entry, elen);
+            next->rec_len = entry->rec_len - elen;
+            entry->rec_len = elen;
+            entry = next;
         }
-        bkunmap(&bk);
+        if (entry->rec_len >= rec_len) {
+            memset(entry->name, 0, entry->rec_len - sizeof(ext2_dir_en_t));
+            entry->ino = no;
+            entry->type = 2;
+            entry->name_len = name_len;
+            memcpy(entry->name, name, name_len);
+            ext2_iterator_close(vol, &iter);
+            return 0;
+        }
     }
-
-    // No page found !! Add a new page !?
-    errno = EIO;
-    return -1;
 }
 
 int ext2_rm_link(ext2_volume_t *vol, ext2_ino_t *dir, const char *name, unsigned no)
 {
-    unsigned i;
-    unsigned pages = dir->blocks / (vol->blocksize / 512);
-    for (i = 0; i < pages; ++i) {
-        unsigned idx = 0;
-        unsigned blk = ext2_get_block(vol, dir, i);
-        struct bkmap bk;
-        ext2_dir_en_t *prev = NULL;
-        ext2_dir_en_t *next = NULL;
-        ext2_dir_en_t *en = bkmap(&bk, blk, vol->blocksize, 0, vol->blkdev, VM_WR);
-        ext2_dir_en_t *start = en;
-        while (en->ino != 0) {
-            if (idx + en->rec_len >= vol->blocksize)
-                next = NULL;
-            else
-                next = ADDR_OFF(en, en->rec_len);
+    ext2_diterator_t iter;
+    ext2_iterator_open(vol, dir, &iter, false, VM_WR);
+    ext2_dir_en_t *entry = ext_iterator_find(vol, &iter, name);
+    if (entry == NULL)
+        return 0;
 
-            if (en->rec_len == 0) {
-                bkunmap(&bk);
-                errno = EIO;
-                return -1;
-            }
-            if (strncmp(en->name, name, en->name_len) == 0) {
-                assert(no == en->ino);
-                next = ADDR_OFF(en, en->rec_len);
-                if ((size_t)next >= (size_t)start + vol->blocksize) {
-                    if (prev == NULL) {
-                        bkunmap(&bk);
-                        errno = EIO;
-                        return -1;
-                    }
-                    prev->rec_len += en->rec_len;
-                } else {
-                    unsigned sz = en->rec_len;
-                    unsigned lf = (size_t)start + vol->blocksize - (size_t)next;
-                    if (lf > 0)
-                        memmove(en, next, lf);
-                    while (en->rec_len > 0 && idx + en->rec_len + sz < lf)
-                        en = ADDR_OFF(en, en->rec_len);
-                    if (en->rec_len == 0) {
-                        bkunmap(&bk);
-                        errno = EIO;
-                        return -1;
-                    }
-                    en->rec_len += sz;
-                    unsigned check = (size_t)start + vol->blocksize - (size_t)en;
-                    if (en->rec_len != check) {
-                        bkunmap(&bk);
-                        errno = EIO;
-                        return -1;
-                    }
-                }
-
-                bkunmap(&bk);
-                return 0;
-            }
-
-            // Nothing more on this block
-            if (next == NULL)
-                break; 
-
-            idx += en->rec_len;
-            prev = en;
-            en = next;
-        }
-        bkunmap(&bk);
+    // Found it !!
+    entry->ino = 0;
+    entry->type = 0;
+    if (iter.previous && iter.previous->type == 0) {
+        iter.previous->rec_len += entry->rec_len;
+        entry = iter.previous;
     }
 
-    // No page found !! Add a new page !?
-    errno = EIO;
-    return -1;
+    if (ext2_iterator_next(vol, &iter) == 0 && iter.previous == entry && iter.entry && iter.entry->type == 0) {
+        entry->rec_len += iter.entry->rec_len;
+    }
+    ext2_iterator_close(vol, &iter);
+    return 0;
 }
 
 
 inode_t* ext2_lookup(inode_t* dir, const char* name, void* acl)
 {
-    char* filename = kalloc(256);
-    int ino_no = ext2_search_inode(dir, name, filename);
-    kfree(filename);
+    int ino_no = ext2_search_inode(dir, name);
     if (ino_no == 0) {
         errno = ENOENT;
         return NULL;
@@ -337,9 +276,7 @@ inode_t* ext2_lookup(inode_t* dir, const char* name, void* acl)
 
 static inode_t *ext2_mknod_generic(ext2_volume_t *vol, inode_t *dir, const char *name, void *acl, int mode, const char *data)
 {
-    char *filename = kalloc(256);
-    int ino_no = ext2_search_inode(dir, name, filename);
-    kfree(filename);
+    int ino_no = ext2_search_inode(dir, name);
 
     if (ino_no != 0) {
         errno = EEXIST;
@@ -457,9 +394,7 @@ int ext2_link(inode_t *dir, const char *name, inode_t *ino)
         return -1;
     }
 
-    char *filename = kalloc(256);
-    int ino_no = ext2_search_inode(dir, name, filename);
-    kfree(filename);
+    int ino_no = ext2_search_inode(dir, name);
     if (ino_no != 0) {
         bkunmap(&bk_new);
         errno = EEXIST;
@@ -494,9 +429,7 @@ int ext2_link(inode_t *dir, const char *name, inode_t *ino)
 int ext2_rmdir(inode_t *dir, const char *name)
 {
     ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
-    char *filename = kalloc(256);
-    int ino_no = ext2_search_inode(dir, name, filename);
-    kfree(filename);
+    int ino_no = ext2_search_inode(dir, name);
     if (ino_no == 0) {
         errno = ENOENT;
         return -1;
@@ -551,9 +484,7 @@ int ext2_rmdir(inode_t *dir, const char *name)
 int ext2_unlink(inode_t *dir, const char *name)
 {
     ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
-    char *filename = kalloc(256);
-    int ino_no = ext2_search_inode(dir, name, filename);
-    kfree(filename);
+    int ino_no = ext2_search_inode(dir, name);
     if (ino_no == 0) {
         errno = ENOENT;
         return -1;
@@ -637,14 +568,11 @@ int ext2_rename(inode_t* dir_src, const char* name_src, inode_t* dir_dst, const 
     ext2_volume_t* vol = (ext2_volume_t*)dir_src->drv_data;
     struct bkmap bk_new;
 
-    char* filename = kalloc(256);
-    int ino_no = ext2_search_inode(dir_src, name_src, filename);
+    int ino_no = ext2_search_inode(dir_src, name_src);
     if (ino_no == 0) {
         errno = ENOENT;
         return -1;
     }
-
-    kfree(filename);
 
     xtime_t now = xtime_read(XTIME_CLOCK);
     ext2_ino_t* eino = ext2_entry(&bk_new, vol, ino_no, VM_WR);

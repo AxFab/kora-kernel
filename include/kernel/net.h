@@ -251,6 +251,8 @@ netstack_t* net_stack();
 /* Setup of the kernel network stack */
 void net_setup();
 
+int net_destroy_stack(netstack_t *stack);
+
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Socket kernel buffer
 

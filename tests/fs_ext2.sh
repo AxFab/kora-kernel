@@ -5,6 +5,7 @@ IMG_RM hdd.img
 ERROR ON
 
 IMG_CREATE hdd.img 24M
+
 IMG_OPEN hdd.img hdd
 FORMAT ext2 /hdd
 MOUNT /hdd ext2 /mnt/ldk
@@ -26,19 +27,28 @@ INCLUDE fs_truncate.sh
 INCLUDE fs_rename.sh
 INCLUDE fs_utimes.sh
 INCLUDE fs_readwrite.sh
-INCLUDE fs_paths.sh
+RESTART
 
-# INCLUDE fs_persist1.sh # Create large files hierarchy
-# CHROOT /dev
-# UMOUNT /mnt/ldk/dev
-# UMOUNT /mnt/ldk
+# ---------------------------------------------------------------------------
+
+IMG_RM hdd.img # Format should be enough
+IMG_CREATE hdd.img 24M
+IMG_OPEN hdd.img hdd
+FORMAT ext2 /hdd
+MOUNT /hdd ext2 /mnt/ldk
+CHROOT /mnt/ldk
+MOUNT - devfs /dev
+
+INCLUDE fs_persist_wr.sh # Create large files hierarchy
 # RESTART
+
+# # ---------------------------------------------------------------------------
 # IMG_OPEN hdd.img hdd
 # MOUNT /hdd ext2 /mnt/ldk
 # CHROOT /mnt/ldk
 # MOUNT - devfs /dev
-# INCLUDE fs_persist2.sh # Read large files hierarchy
-# INCLUDE fs_rofs.sh
+
+# INCLUDE fs_persist_rd.sh
 
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------

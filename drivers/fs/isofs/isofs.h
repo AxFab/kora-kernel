@@ -123,12 +123,13 @@ PACK(struct ISOFS_descriptor {
 
 struct ISO_info {
     time_t created;
-    char bootable;
+    bool bootable;
     int lbaroot;
     int lgthroot;
     int sectorCount;
     int sectorSize;
     char name[128];
+    atomic_int rcu;
 };
 
 struct ISO_dirctx {

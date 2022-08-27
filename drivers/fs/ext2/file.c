@@ -30,7 +30,7 @@ int ext2_read(inode_t *ino, char *buffer, size_t length, xoff_t offset, int flag
 
     while (length > 0) {
         size_t cap = MIN(vol->blocksize, length);
-        uint32_t blk = ext2_get_block(vol, en, offset / vol->blocksize);
+        uint32_t blk = ext2_get_block(vol, en, offset / vol->blocksize, false);
         int off = offset % vol->blocksize;
          
         if (blk && offset < ino->length) {
@@ -62,34 +62,37 @@ int ext2_write(inode_t *ino, const char *buffer, size_t length, xoff_t offset, i
 {
     struct bkmap bk;
     ext2_volume_t *vol = (ext2_volume_t *)ino->drv_data;
-    ext2_ino_t *en = ext2_entry(&bk, vol, ino->no, VM_RD);
+    ext2_ino_t *en = ext2_entry(&bk, vol, ino->no, VM_WR);
 
     while (length > 0) {
         size_t cap = MIN(vol->blocksize, length);
-        uint32_t blk = ext2_get_block(vol, en, offset / vol->blocksize);
-        int off = offset % vol->blocksize;
-
-        if (blk && offset < ino->length) {
-            struct bkmap bm;
-            char *data = bkmap(&bm, blk, vol->blocksize, 0, ino->dev->underlying, VM_WR);
-            if (data == NULL) {
-                bkunmap(&bk);
-                errno = EIO;
-                return -1;
-            }
-            cap = (size_t)MIN((xoff_t)cap, ino->length - offset);
-            cap = MIN(cap, vol->blocksize - off);
-            memcpy(&data[off], buffer, cap);
-            bkunmap(&bm);
-        } else {
+        uint32_t blk = ext2_get_block(vol, en, offset / vol->blocksize, true);
+        if (blk == 0) {
             bkunmap(&bk);
-            errno = EINVAL;
             return -1;
         }
+        int off = offset % vol->blocksize;
 
+        struct bkmap bm;
+        char *data = bkmap(&bm, blk, vol->blocksize, 0, ino->dev->underlying, VM_WR);
+        if (data == NULL) {
+            bkunmap(&bk);
+            errno = EIO;
+            return -1;
+        }
+        cap = (size_t)MIN((xoff_t)cap, ino->length - offset);
+        cap = MIN(cap, vol->blocksize - off);
+        memcpy(&data[off], buffer, cap);
+        bkunmap(&bm);
+        
         length -= cap;
         offset += cap;
         buffer = buffer + cap;
+        if (ino->length < offset) {
+            ino->length = offset;
+            en->size = offset;
+            en->blocks = ALIGN_UP(en->size, vol->blocksize) / 512;
+        }
     }
 
     bkunmap(&bk);

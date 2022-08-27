@@ -44,20 +44,20 @@ const int sdSize[] = { 512, 2048, };
 int imgdk_read(inode_t *ino, void *data, size_t size, xoff_t offset);
 int imgdk_write(inode_t *ino, const void *data, size_t size, xoff_t offset);
 int imgdk_ioctl(inode_t *ino, int cmd, void **params);
-int imgdk_close(inode_t* ino);
+void imgdk_close(inode_t *ino);
 
 int vhd_read(inode_t *ino, void *data, size_t size, xoff_t offset);
 int vhd_write(inode_t *ino, const void *data, size_t size, xoff_t offset);
 
 ino_ops_t imgdk_ino_ops = {
-    .close = (void *)imgdk_close,
+    .close = imgdk_close,
     .read = (void *)imgdk_read,
     .write = (void *)imgdk_write,
     .ioctl = imgdk_ioctl,
 };
 
 ino_ops_t vhd_ino_ops = {
-    .close = (void *)imgdk_close,
+    .close = imgdk_close,
     .read = (void *)vhd_read,
     .write = (void *)vhd_write,
     .ioctl = imgdk_ioctl,
@@ -252,10 +252,9 @@ int imgdk_open(const char *path, const char *name)
     return 0;
 }
 
-int imgdk_close(inode_t* ino)
+void imgdk_close(inode_t* ino)
 {
     close(ino->no);
-    return 0;
 }
 
 int imgdk_ioctl(inode_t *ino, int cmd, void **params)

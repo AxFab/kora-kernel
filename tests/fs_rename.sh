@@ -51,10 +51,7 @@ INO Kah @i1
 LSTAT Zig REG 0644
 LINKS Zig 2
 INO Zig @i1
-CLEAR_CACHE Kah
-LS .
 UNLINK Kah
-LS .
 UNLINK Zig
 
 

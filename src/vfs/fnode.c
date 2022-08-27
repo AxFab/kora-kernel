@@ -1,6 +1,7 @@
 #include <kernel/vfs.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 
 fnode_t *vfs_fsnode_from(fnode_t *parent, const char *name)
 {
@@ -43,7 +44,7 @@ fnode_t *vfs_fsnode_from(fnode_t *parent, const char *name)
 static void vfs_destroy_fsnode(device_t *dev, fnode_t *node, char *key)
 {
     char tmp[16];
-    
+
     if (node->parent == NULL) {
         kprintf(KL_FSA, "Release zombie fsnode `%s`\n", node->name);
         splock_unlock(&dev->lock);
@@ -60,9 +61,8 @@ static void vfs_destroy_fsnode(device_t *dev, fnode_t *node, char *key)
     splock_unlock(&dev->lock);
 
     mtx_lock(&node->parent->mtx);
-    if (node->is_mount) {
+    if (node->is_mount)
         ll_remove(&node->parent->mnt, &node->nmt);
-    }
 
     ll_remove(&node->parent->clist, &node->cnode);
     mtx_unlock(&node->parent->mtx);
@@ -176,7 +176,7 @@ static int vfs_clear_fsnode(fnode_t *node, int mode)
         mtx_lock(&node->mtx);
         child = ll_first(&node->clist, fnode_t, cnode);
     }
-    
+
     kprintf(KL_FSA, "Unlink fsnode `%s/%s`\n", vfs_inokey(node->parent->ino, tmp), node->name);
     vfs_close_inode(node->ino);
     node->ino = NULL;
@@ -295,8 +295,8 @@ int vfs_rmdir(vfs_t *vfs, const char *name, user_t *user)
         mtx_unlock(&node->mtx);
         errno = ENOENT;
         return -1;
-    } 
-    
+    }
+
     if (node->parent && node->parent->mode == FN_OK && node->ino->dev != node->parent->ino->dev) {
         mtx_unlock(&node->mtx);
         errno = EBUSY;
@@ -355,7 +355,7 @@ static int vfs_create(fnode_t *node, void *user, int mode)
     return ino ? 0 : -1;
 }
 
-inode_t *vfs_open(vfs_t *vfs, const char *name, user_t *user, int mode, int flags) 
+inode_t *vfs_open(vfs_t *vfs, const char *name, user_t *user, int mode, int flags)
 {
     int access = vfs_open_access(flags);
     if (access <= 0)
@@ -365,7 +365,7 @@ inode_t *vfs_open(vfs_t *vfs, const char *name, user_t *user, int mode, int flag
     fnode_t *node = vfs_search(vfs, name, user, false, false);
     if (node == NULL)
         return NULL;
-    
+
     bool created = false;
     if (vfs_lookup(node) != 0) {
         if (flags & O_CREAT) {
@@ -559,7 +559,7 @@ err1:
 }
 EXPORT_SYMBOL(vfs_symlink, 0);
 
-int vfs_rename(vfs_t *vfs, const char *src, const char *dest, user_t* user)
+int vfs_rename(vfs_t *vfs, const char *src, const char *dest, user_t *user)
 {
     int ret = -1;
     errno = 0;
@@ -570,13 +570,13 @@ int vfs_rename(vfs_t *vfs, const char *src, const char *dest, user_t* user)
     if (fdst == NULL)
         goto err2;
 
-    inode_t* dir_s = vfs_parentof(fsrc);
+    inode_t *dir_s = vfs_parentof(fsrc);
     if (dir_s == NULL) {
         errno = ENOENT;
         goto err3;
     }
 
-    inode_t* dir_d = vfs_parentof(fdst);
+    inode_t *dir_d = vfs_parentof(fdst);
     if (dir_d == NULL) {
         errno = ENOENT;
         goto err4;
@@ -590,7 +590,7 @@ int vfs_rename(vfs_t *vfs, const char *src, const char *dest, user_t* user)
         goto err5;
     }
 
-    inode_t* ino = vfs_inodeof(fsrc);
+    inode_t *ino = vfs_inodeof(fsrc);
     if (ino == NULL) {
         errno = ENOENT;
         goto err6;
@@ -628,52 +628,20 @@ EXPORT_SYMBOL(vfs_rename, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-
-
-int vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path, user_t *user, const char *options)
+int vfs_mount_at(fnode_t *node, inode_t *ino)
 {
-    assert(fstype != NULL && path != NULL);
-    fnode_t *node = vfs_search(vfs, path, user, false, false);
-    if (node == NULL)
-        goto err1;
-
-    if (vfs_lookup(node) == 0) {
-        errno = EEXIST;
-        goto err2;
-    }
-
+    vfs_lookup(node);
     mtx_lock(&node->mtx);
     if (node->mode != FN_NOENTRY) {
+        mtx_unlock(&node->mtx);
         errno = EEXIST;
-        goto err3;
+        return -1;
     }
-
-    splock_lock(&__vfs_share->lock);
-    fsreg_t *fs = hmp_get(&__vfs_share->fs_hmap, fstype, strlen(fstype));
-    splock_unlock(&__vfs_share->lock);
-    if (fs == NULL || fs->mount == NULL) {
-        errno = ENOSYS;
-        goto err3;
-    }
-
-    inode_t *dev_ino = NULL;
-    if (dev != NULL) {
-        dev_ino = vfs_search_ino(vfs, dev, user, true);
-        if (dev_ino == NULL) {
-            errno = ENODEV;
-            goto err3;
-        }
-    }
-
-    inode_t *ino = fs->mount(dev_ino, options);
-    if (dev_ino)
-        vfs_close_inode(dev_ino);
-    if (ino == NULL)
-        goto err3;
 
     if (ino->type != FL_DIR) {
+        mtx_unlock(&node->mtx);
         errno = ENOTDIR;
-        goto err4;
+        return -1;
     }
 
     fnode_t *dir = node->parent;
@@ -689,27 +657,75 @@ int vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path,
     ll_append(&__vfs_share->mnt_list, &node->nlru);
     splock_unlock(&__vfs_share->lock);
     mtx_unlock(&node->mtx);
+    kprintf(KL_MSG, "Mount drive as \033[35m%s\033[0m (%s)\n", ino->dev->devname, ino->dev->devclass);
+    return 0;
+}
+
+int vfs_early_mount(inode_t *ino, const char *name)
+{
+    fnode_t *mnt = vfs_fsnode_from(__vfs_share->vfs->root, "mnt");
+    if (vfs_lookup(mnt) != 0)
+        return -1;
+    fnode_t *node = vfs_fsnode_from(mnt, name);
+    vfs_close_fnode(mnt);
+    int ret = vfs_mount_at(node, ino);
+    return ret;
+}
+
+int vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path, user_t *user, const char *options)
+{
+    assert(fstype != NULL && path != NULL);
+    fnode_t *node = vfs_search(vfs, path, user, false, false);
+    if (node == NULL) {
+        assert(errno != 0);
+        return -1;
+    }
+
+    splock_lock(&__vfs_share->lock);
+    fsreg_t *fs = hmp_get(&__vfs_share->fs_hmap, fstype, strlen(fstype));
+    splock_unlock(&__vfs_share->lock);
+    if (fs == NULL || fs->mount == NULL) {
+        errno = ENOSYS;
+        vfs_close_fnode(node);
+        return -1;
+    }
+
+    inode_t *dev_ino = NULL;
+    if (dev != NULL) {
+        dev_ino = vfs_search_ino(vfs, dev, user, true);
+        if (dev_ino == NULL) {
+            errno = ENODEV;
+            vfs_close_fnode(node);
+            return -1;
+        }
+    }
+    inode_t *ino = fs->mount(dev_ino, options);
+    if (dev_ino)
+        vfs_close_inode(dev_ino);
+    if (ino == NULL) {
+        assert(errno != 0);
+        return -1;
+    }
+
+    int ret = vfs_mount_at(node, ino);
+    if (ret != 0) {
+        vfs_close_fnode(node);
+        return -1;
+    }
+
     vfs_close_inode(ino);
     return 0;
-
-err4:
-    vfs_close_inode(ino);
-err3:
-    mtx_unlock(&node->mtx);
-err2:
-    vfs_close_fnode(node);
-err1:
-    assert(errno != 0);
-    return -1;
 }
 EXPORT_SYMBOL(vfs_mount, 0);
 
 int vfs_umount_at(fnode_t *node, user_t *user, int flags)
 {
+    inode_t *ino = vfs_inodeof(node);
     splock_lock(&__vfs_share->lock);
     bool is_mounted = ll_contains(&__vfs_share->mnt_list, &node->nlru);
     splock_unlock(&__vfs_share->lock);
     if (!is_mounted /* || acl_cap(CAP_MOUNT) != 0 */) {
+        vfs_close_inode(ino);
         errno = EPERM;
         return -1;
     }
@@ -718,6 +734,7 @@ int vfs_umount_at(fnode_t *node, user_t *user, int flags)
     if (vfs_access(dir, NULL, VM_EX | VM_WR) != 0) {
         errno = EACCES;
         vfs_close_inode(dir);
+        vfs_close_inode(ino);
         return -1;
     }
 
@@ -726,6 +743,8 @@ int vfs_umount_at(fnode_t *node, user_t *user, int flags)
     ll_remove(&__vfs_share->mnt_list, &node->nlru);
     splock_unlock(&__vfs_share->lock);
     vfs_close_fnode(node);
+    vfs_dev_scavenge(ino->dev, INT_MAX);
+    vfs_close_inode(ino);
     return 0;
 }
 
@@ -734,7 +753,13 @@ int vfs_umount(vfs_t *vfs, const char *path, user_t *user, int flags)
     fnode_t *node = vfs_search(vfs, path, user, true, true);
     if (node == NULL)
         return -1;
-    return vfs_umount_at(node, user, flags);
+    if (!node->is_mount) {
+        vfs_close_fnode(node);
+        return -1;
+    }
+    int ret = vfs_umount_at(node, user, flags);
+    vfs_close_fnode(node);
+    return ret;
 }
 EXPORT_SYMBOL(vfs_umount, 0);
 

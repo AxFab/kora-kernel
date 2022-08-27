@@ -26,6 +26,8 @@
 #include <kora/time.h>
 #include <math.h>
 
+int alloc_check();
+
 #define ETH_ALEN 6
 #define IP4_ALEN 4
 
@@ -38,6 +40,10 @@ typedef struct icmp_ping icmp_ping_t;
 int icmp_ping(ip4_route_t *route, const char *buf, unsigned len, net_qry_t *qry);
 int ip4_find_route(netstack_t *stack, ip4_route_t *route, const uint8_t *ip);
 
+int ip4_readaddr(uint8_t *addr, const char *str);
+void icmp_forget(ip4_route_t *route, net_qry_t *qry);
+
+
 struct ip4_route
 {
     uint8_t ip[IP4_ALEN];
@@ -48,6 +54,13 @@ struct ip4_route
 
 
 // ======================================================
+
+typedef struct
+{
+    void *ptr;
+    size_t len;
+    int type;
+} buffer_t;
 
 typedef struct subnet subnet_t;
 
@@ -332,15 +345,15 @@ int do_text(void *cfg, size_t *params)
 {
     char *name = (char *)params[0];
     char *value = (char *)params[1];
-    size_t *buffer = cli_fetch(name, OBJ_BUFFER);
+    buffer_t *buffer = cli_fetch(name, OBJ_BUFFER);
     if (buffer != NULL) {
-        free((void *)buffer[0]);
+        free(buffer->ptr);
         free(buffer);
     }
-    buffer = malloc(3 * sizeof(size_t));
-    buffer[0] = (size_t)strdup(value);
-    buffer[1] = strlen(value);
-    buffer[2] = 1;
+    buffer = malloc(sizeof(buffer_t));
+    buffer->ptr = strdup(value);
+    buffer->len = strlen(value);
+    buffer->type = 1;
     cli_store(name, buffer, OBJ_BUFFER);
     return 0;
 }
@@ -348,9 +361,9 @@ int do_text(void *cfg, size_t *params)
 int do_print(void *cfg, size_t *params)
 {
     char *name = (char *)params[0];
-    size_t *buffer = cli_fetch(name, OBJ_BUFFER);
-    if (buffer[2] == 1)
-        printf("Value %s: '%s'\n", name, (char *)buffer[0]);
+    buffer_t *buffer = cli_fetch(name, OBJ_BUFFER);
+    if (buffer->type == 1)
+        printf("Value %s: '%s'\n", name, buffer->ptr);
     return 0;
 }
 
@@ -426,23 +439,23 @@ int do_recv(void *cfg, size_t *params)
     char *name = (char *)params[0];
     char *buff = (char *)params[1];
     socket_t *sock = cli_fetch(name, OBJ_SOCKET);
-    size_t *buffer = cli_fetch(buff, OBJ_BUFFER);
+    buffer_t *buffer = cli_fetch(buff, OBJ_BUFFER);
     if (buffer == NULL)
-        buffer = malloc(3 * sizeof(size_t));
+        buffer = malloc(sizeof(buffer_t));
     else
-        free((void *)buffer[0]);
-    buffer[0] = malloc(1500);
-    buffer[1] = 1500;
-    buffer[2] = 1;
+        free(buffer->ptr);
+    buffer->ptr = malloc(1500);
+    buffer->len = 1500;
+    buffer->type = 1;
     cli_store(buff, buffer, OBJ_BUFFER);
     if (sock == NULL || buffer == NULL) {
         fprintf(stderr, "Unknwon element\n");
         return -1;
     }
-    int ret = net_socket_read(sock, (char *)buffer[0], buffer[1], 0);
+    int ret = net_socket_read(sock, buffer->ptr, buffer->len, 0);
     if (ret == 0)
         cli_warn("Did not received any data\n");
-    buffer[1] = ret;
+    buffer->len = ret;
     return 0;
 }
 
@@ -534,7 +547,7 @@ int do_test(void *cfg, size_t *params)
 int do_restart(void *cfg, size_t *params)
 {
     cli_warn("Checking...\n");
-    return kalloc_check();
+    return alloc_check();
 }
 
 cli_cmd_t __commands[] = {

@@ -24,7 +24,6 @@
 #include <kernel/vfs.h>
 #include <errno.h>
 #include <stdbool.h>
-#include "fnode.h"
 #include <errno.h>
 #include <limits.h>
 
@@ -49,16 +48,15 @@ vfs_t *vfs_init()
     fnode_t *node = kalloc(sizeof(fnode_t));
     mtx_init(&node->mtx, mtx_plain);
     node->parent = NULL;
-    node->ino = vfs_open_inode(ino);
+    node->ino = ino;
     node->rcu = 2;
     node->mode = FN_OK;
 
+    __vfs_share->vfs = vfs;
     vfs->root = node;
     vfs->pwd = node;
     vfs->umask = 022;
     vfs->rcu = 1;
-    vfs_close_inode(ino);
-
     return vfs;
 }
 
@@ -96,6 +94,7 @@ void vfs_dev_scavenge(device_t *dev, int max);
 int vfs_sweep(vfs_t *vfs)
 {
     char tmp[16];
+    assert(vfs == __vfs_share->vfs);
     vfs_close_vfs(vfs);
     if (__vfs_share->rcu != 0)
         return -1;
@@ -105,11 +104,8 @@ int vfs_sweep(vfs_t *vfs)
     // Unmount all
     fnode_t *node = ll_first(&__vfs_share->mnt_list, fnode_t, nlru);
     while (node) {
-        inode_t *ino = vfs_inodeof(node);
         kprintf(KL_FSA, "Force unmount of '%s/%s'\n", vfs_inokey(node->parent->ino, tmp), node->name);
         vfs_umount_at(node, NULL, 0);
-        vfs_dev_scavenge(ino->dev, INT_MAX);
-        vfs_close_inode(ino);
         node = ll_first(&__vfs_share->mnt_list, fnode_t, nlru);
     }
 
@@ -212,6 +208,8 @@ int vfs_chdir(vfs_t *vfs, const char *path, user_t *user, bool root)
     if (vfs_fnode_bellow(vfs->root, vfs->pwd) != 0) {
         vfs_close_fnode(vfs->pwd);
         vfs->pwd = vfs_open_fnode(vfs->root);
+        if (!root)
+            return -1;
     }
     return 0;
 }
@@ -221,7 +219,7 @@ int vfs_readlink(vfs_t *vfs, const char *name, user_t *user, char *buf, int len)
     fnode_t *node = vfs_search(vfs, name, user, true, true);
     if (node == NULL)
         return -1;
-    
+
     inode_t *ino = vfs_inodeof(node);
     if (ino == NULL) {
         errno = ENOENT;
@@ -287,8 +285,6 @@ ino_ops_t pipe_ino_ops = {
     .read = NULL,
 };
 
-//inode_t *vfs_mkfifo(vfs_t *vfs, const char *path, acl_t *acl, int mode)
-
 inode_t *vfs_pipe(vfs_t *vfs)
 {
     inode_t *ino = vfs_inode(1, FL_PIPE, NULL, &pipe_ino_ops);
@@ -296,51 +292,3 @@ inode_t *vfs_pipe(vfs_t *vfs)
     return ino;
 }
 EXPORT_SYMBOL(vfs_pipe, 0);
-
-
-//fnode_t *vfs_mkfifo(fnode_t *parent, const char *name)
-//{
-//    int i;
-//    if (__private == NULL) {
-//        __private = kalloc(sizeof(fnode_t));
-//        mtx_init(&__private->mtx, mtx_plain);
-//        __private->parent = NULL;
-//        __private->ino = vfs_inode(1, FL_DIR, NULL, &pipe_ino_ops);
-//        __private->rcu = 1;
-//        __private->mode = FN_OK;
-//    }
-//    if (parent == NULL)
-//        parent = __private;
-//
-//    fnode_t *node = NULL;
-//    char *fname = NULL;
-//    if (name == NULL) {
-//        fname = kalloc(17);
-//        for (i = 0; i < 16; ++i)
-//            fname[i] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"[rand8() % 64];
-//        fname[16] = 0;
-//        node = vfs_fsnode_from(parent, fname);
-//        kfree(fname);
-//    } else
-//        node = vfs_fsnode_from(parent, name);
-//
-//    mtx_lock(&node->mtx);
-//    if (node->mode != FN_EMPTY) {
-//        mtx_unlock(&node->mtx);
-//        vfs_close_fnode(node);
-//        errno = EEXIST;
-//        return NULL;
-//    }
-//
-//    device_t *dev = NULL;
-//    ino_ops_t *ops = &pipe_ino_ops;
-//    int no = 1;
-//    int type = FL_PIPE;
-//
-//    inode_t *ino = vfs_inode(no, type, dev, ops);
-//
-//    vfs_resolve(node, ino);
-//    mtx_unlock(&node->mtx);
-//    return node;
-//}
-//EXPORT_SYMBOL(vfs_mkfifo, 0);

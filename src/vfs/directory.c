@@ -20,7 +20,6 @@
 #include <kernel/vfs.h>
 #include <assert.h>
 #include <errno.h>
-#include "fnode.h"
 
 struct diterator {
     int mode;

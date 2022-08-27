@@ -52,9 +52,9 @@ void vfs_createfile(inode_t *ino)
         ino->fops = &chr_ops;
         break;
     case FL_SOCK:
-        //ino->fl_data = socket_create();
-        //ino->fops = &socket_ops;
-        //break;
+    //ino->fl_data = socket_create();
+    //ino->fops = &socket_ops;
+    //break;
     case FL_FRM:
     case FL_NET:
     case FL_LNK:
@@ -98,7 +98,7 @@ int vfs_truncate(inode_t *ino, xoff_t off)
     if (ino->type == FL_DIR) {
         errno = EISDIR;
         return -1;
-    } else if(ino->ops == NULL || ino->ops->truncate == NULL) {
+    } else if (ino->ops == NULL || ino->ops->truncate == NULL) {
         errno = ENOSYS;
         return -1;
     }

@@ -137,6 +137,7 @@ struct vfs_share
     llhead_t mnt_list;
     atomic_int dev_no;
     hmap_t fs_hmap;
+    vfs_t *vfs;
 };
 
 struct vfs {
@@ -314,6 +315,7 @@ struct fnode
 
 
 
+void vfs_usage(inode_t *ino, int access, int count);
 
 int vfs_umount_at(fnode_t *node, user_t *user, int flags);
 
@@ -355,6 +357,8 @@ fnode_t *vfs_fsnode_from(fnode_t *parent, const char *name);
 
 // int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags);
 // int block_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags);
+
+int vfs_early_mount(inode_t *ino, const char *name);
 
 inode_t *tar_mount(void *base, size_t length, const char *name);
 

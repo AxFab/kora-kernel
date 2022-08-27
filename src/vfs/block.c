@@ -151,9 +151,8 @@ int block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
         kprintf(KL_BIO, "Write back page %p for inode %s at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
 
         int len = PAGE_SIZE;
-        if (off > ino->length) {
+        if (off > ino->length)
             kprintf(-1, "Why!");
-        }
         if (off + len > ino->length)
             len = ino->length - off;
 
@@ -179,7 +178,7 @@ int block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
 
 int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
 {
-    if (off > ino->length) {
+    if (ino->length != 0 && off > ino->length) {
         errno = EINVAL;
         return -1;
     }
@@ -197,7 +196,9 @@ int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
                 return -1;
         }
         size_t disp = (size_t)(off & (PAGE_SIZE - 1));
-        int cap = MIN3((size_t)len, PAGE_SIZE - disp, (size_t)(ino->length - off));
+        int cap = MIN((size_t)len, PAGE_SIZE - disp);
+        if (ino->length != 0)
+            cap = MIN(cap, (int)(ino->length - off));
         if (cap == 0) {
             kunmap(map, PAGE_SIZE);
             return bytes;
@@ -277,8 +278,6 @@ void block_destroy(inode_t *ino)
 fl_ops_t block_ops = {
     .read = block_read,
     .write = block_write,
-    //.fetch = block_fetch,
-    //.release = block_release,
     .destroy = block_destroy,
 };
 
