@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "ext2.h"
+#include <errno.h>
 
 /* Open a directory context for browsing files */
 ext2_dir_iter_t *ext2_opendir(inode_t *dir)
@@ -25,106 +26,176 @@ ext2_dir_iter_t *ext2_opendir(inode_t *dir)
     assert(dir != NULL);
     assert(dir->type == FL_DIR);
 
-    ext2_dir_iter_t *it = (ext2_dir_iter_t *)kalloc(sizeof(ext2_dir_iter_t));
     ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
-    it->vol = vol;
+    ext2_dir_iter_t *iter = kalloc(sizeof(ext2_dir_iter_t));
 
-    //uint32_t group = (dir->no - 1) / vol->sb->inodes_per_group;
-    //uint32_t index = (dir->no - 1) % vol->sb->inodes_per_group;
-    //// uint32_t block = (index * vol->sb->inode_size) / (1024 << vol->sb->log_block_size);
-    //uint32_t blk = vol->grp[group].inode_table;
-
-    //size_t off = (1024 << vol->sb->log_block_size) * blk + index * sizeof(ext2_ino_t);
-    //size_t lba = ALIGN_DW(off, PAGE_SIZE);
-
-    it->entry = ext2_entry(&it->bki, vol, dir->no, VM_RD);
-
-    //it->emap = kmap(PAGE_SIZE, dir->dev->underlying, lba, VM_RD);
-    //it->entry = ADDR_OFF(it->emap, off - lba);
-
-
-    // TODO -- Check that entry is correct !!
-    it->idx = 0;
-    return it;
-}
-
-/* Find the next inode on a directory context */
-uint32_t ext2_nextdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
-{
-    (void)dir;
-    // TODO -- If we read above file size, leave
-    for (;;) {
-
-        uint32_t blk = it->entry->block[it->idx / it->vol->blocksize]; // Look at IDX (for blk and off)
-
-        size_t off = it->vol->blocksize * blk + (it->idx % it->vol->blocksize);
-        size_t lba = ALIGN_DW(off, PAGE_SIZE);
-        if (it->lba != lba) {
-            // bkunmap(&it->bkm);
-            if (it->cmap)
-                kunmap(it->cmap, PAGE_SIZE);
-            // TODO -- Use bkmap !!
-            it->cmap = kmap(PAGE_SIZE, it->vol->dev->underlying, lba, VM_RD);
-            it->lba = lba;
-        }
-
-        ext2_dir_en_t *entry = ADDR_OFF(it->cmap, off - lba);
-        it->idx += entry->rec_len;
-        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0)
-            continue;
-
-        // Assert name is on the block ?
-        if (entry->type == 0)
-            return 0;
-
-        if (name) {
-            strncpy(name, entry->name, MIN(255, entry->name_len));
-            name[entry->name_len] = '\0';
-        }
-        return entry->ino;
-    }
+    iter->entry = ext2_entry(&iter->bk, vol, dir->no, VM_RD);
+    ext2_iterator_open(vol, iter->entry, &iter->it, false, VM_RD);
+    return iter;
 }
 
 /* Look for the next entry on a directoy context */
-inode_t *ext2_readdir(inode_t *dir, char *name, ext2_dir_iter_t *it)
+inode_t *ext2_readdir(inode_t *dir, char *name, ext2_dir_iter_t *iter)
 {
-    uint32_t ino_no = ext2_nextdir(dir, name, it);
-    if (ino_no == 0)
-        return NULL;
-    return ext2_inode(dir->drv_data, ino_no);
+    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
+    for (;;) {
+        int ret = ext2_iterator_next(vol, &iter->it);
+        if (ret != 0) {
+            return NULL; // TODO -- EIO and not ENOEMPTY
+        }
+        
+        if (iter->it.entry == NULL) {
+            errno = ENOENT;
+            return NULL;
+        }
+
+        if (iter->it.entry->type != 2 || iter->it.entry->ino == 0 || strcmp(iter->it.entry->name, ".") == 0 || strcmp(iter->it.entry->name, "..") == 0)
+            continue;
+
+        if (name) {
+            memcpy(name, iter->it.entry->name, iter->it.entry->name_len);
+            name[iter->it.entry->name_len] = '\0';
+        }
+        return ext2_inode(vol, iter->it.entry->ino);
+    }
 }
 
 /* Close a directory context */
-int ext2_closedir(inode_t *dir, ext2_dir_iter_t *it)
+int ext2_closedir(inode_t *dir, ext2_dir_iter_t *iter)
 {
-    if (it->cmap)
-        kunmap(it->cmap, PAGE_SIZE);
-    //if (it->emap)
-    //    kunmap(it->emap, PAGE_SIZE);
-    // bkunmap(&it->bkm);
-    bkunmap(&it->bki);
-
-
-    kfree(it);
+    ext2_volume_t *vol = (ext2_volume_t *)dir->drv_data;
+    ext2_iterator_close(vol, &iter->it);
+    bkunmap(&iter->bk);
+    kfree(iter);
     return 0;
 }
 
 int ext2_dir_is_empty(ext2_volume_t *vol, ext2_ino_t *dir)
 {
-    // Open directory
-    ext2_dir_iter_t it;
-    memset(&it, 0, sizeof(ext2_dir_iter_t));
-    it.vol = vol;
-    it.entry = dir;
-    it.idx = 0;
-    it.cmap = NULL;
+    int ret;
+    ext2_diterator_t iter;
+    ext2_iterator_open(vol, dir, &iter, false, VM_RD);
+    for (;;) {
+        ret = ext2_iterator_next(vol, &iter);
+        if (ret != 0) {
+            ext2_iterator_close(vol, &iter);
+            return -1; // TODO -- EIO and not ENOEMPTY
+        }
 
-    // Look first entry
-    uint32_t ino = ext2_nextdir(NULL, NULL, &it);
-
-    // Clear
-    if (it.cmap)
-        kunmap(it.cmap, PAGE_SIZE);
-    bkunmap(&it.bki);
-    return ino == 0 ? 0 : -1;
+        if (iter.entry == NULL)
+            break;
+        if (iter.entry->type == 2 && strcmp(iter.entry->name, ".") != 0 && strcmp(iter.entry->name, "..") != 0) {
+            ret = -1;
+            break;
+        }
+    }
+    ext2_iterator_close(vol, &iter);
+    return ret;
 }
+
+
+
+
+
+void ext2_iterator_open(ext2_volume_t *vol, ext2_ino_t *dir, ext2_diterator_t *iter, bool create, int flags)
+{
+    memset(iter, 0, sizeof(ext2_diterator_t));
+    iter->lba = -1;
+    iter->blocks = dir->blocks / (vol->blocksize / 512);
+    iter->dir = dir;
+    iter->create = create;
+    iter->flags = flags;
+}
+
+void ext2_iterator_close(ext2_volume_t *vol, ext2_diterator_t *iter)
+{
+    if (iter->lba >= 0)
+        bkunmap(&iter->km);
+}
+
+
+
+int ext2_iterator_next(ext2_volume_t *vol, ext2_diterator_t *iter)
+{
+    iter->previous = iter->entry;
+    for (unsigned lba = iter->off / vol->blocksize; ; ++lba) {
+        if (lba >= iter->blocks) {
+            if (!iter->create)
+                break;
+            iter->dir->size += vol->blocksize;
+            iter->dir->blocks = ALIGN_UP(iter->dir->size, vol->blocksize) / 512;
+        }
+
+        // Map block
+        if (iter->lba != (int)lba) {
+            iter->previous = NULL;
+            if (iter->lba >= 0)
+                bkunmap(&iter->km);
+            unsigned blkno = ext2_get_block(vol, iter->dir, lba, false);
+            if (blkno == 0 && !iter->create) {
+                iter->off += vol->blocksize;
+                continue;
+            }
+            if (blkno == 0) {
+                blkno = ext2_get_block(vol, iter->dir, lba, true);
+                iter->ptr = bkmap(&iter->km, blkno, vol->blocksize, 0, vol->blkdev, iter->flags);
+                iter->lba = lba;
+                ext2_dir_en_t *entry = (ext2_dir_en_t *)iter->ptr;
+                memset(entry, 0, sizeof(ext2_dir_en_t));
+                entry->rec_len = vol->blocksize;
+
+            } else {
+                iter->ptr = bkmap(&iter->km, blkno, vol->blocksize, 0, vol->blkdev, iter->flags);
+                iter->lba = lba;
+            }
+        }
+
+        if (iter->ptr == NULL) {
+            errno = EIO;
+            return -1;
+        }
+
+        // Loop over the block entries
+        while (lba == iter->off / vol->blocksize) {
+            ext2_dir_en_t *entry = ADDR_OFF(iter->ptr, iter->off - lba * vol->blocksize);
+            if (entry->rec_len == 0 || iter->off - lba * vol->blocksize + entry->rec_len > vol->blocksize) {
+                errno = EIO;
+                return -1;
+            }
+
+            iter->off += entry->rec_len;
+            iter->entry = entry;
+            return 0;
+        }
+    }
+
+
+    // End of directory
+    iter->entry = NULL;
+    return 0;
+}
+
+ext2_dir_en_t *ext_iterator_find(ext2_volume_t *vol, ext2_diterator_t *iter, const char *name)
+{
+    unsigned name_len = strnlen(name, 255);
+    for (;;) {
+        int ret = ext2_iterator_next(vol, iter);
+        if (ret != 0) {
+            ext2_iterator_close(vol, iter);
+            return NULL;
+        }
+
+        if (iter->entry == NULL) {
+            ext2_iterator_close(vol, iter);
+            errno = ENOENT;
+            return NULL;
+        }
+
+        ext2_dir_en_t *entry = iter->entry;
+        if (entry->type != 2 || entry->name_len != name_len || memcmp(name, entry->name, name_len) != 0)
+            continue;
+
+        return entry;
+    }
+}
+

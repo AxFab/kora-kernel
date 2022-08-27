@@ -115,12 +115,6 @@ int pipe_erase(pipe_t *pipe, size_t len)
     return ret;
 }
 
-int pipe_reset(pipe_t *pipe)
-{
-    return -1;
-}
-
-
 void pipe_hangup(pipe_t *pipe)
 {
     pipe->hangup = true;

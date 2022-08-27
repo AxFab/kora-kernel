@@ -496,6 +496,25 @@ static int do_error(const char *str, int *perr)
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+
+size_t cli_read_size(char *str)
+{
+    if (str == NULL)
+        return 0;
+    float len = strtod(str, &str);
+    int c = *str | 0x20;
+    if (c == 'k')
+        return len * 1024UL;
+    if (c == 'm')
+        return len * 1024UL * 1024UL;
+    if (c == 'g')
+        return len * 1024UL * 1024UL * 1024UL;
+    if (c == 't')
+        return len * 1024UL * 1024UL * 1024UL * 1024UL;
+    return len * 1UL;
+}
+
+
 static int cli_read_string(const char **line, size_t *ptr)
 {
     int i = 0;
@@ -759,9 +778,6 @@ static int cli_exec(void *ptr, char *path)
     return do_include(path, cfg->context);
 }
 
-int kalloc_count();
-int kmap_count();
-
 int cli_main(int argc, char **argv, void *context, void(*initialize)(), void(*teardown)())
 {
     cli_cfg_t cfg;
@@ -782,6 +798,5 @@ int cli_main(int argc, char **argv, void *context, void(*initialize)(), void(*te
         teardown();
 
     hmp_destroy(&storage);
-    printf("Ending program %d: alloc, %d map\n", kalloc_count(), kmap_count());
     return 0;
 }

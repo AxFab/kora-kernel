@@ -56,15 +56,15 @@ struct ktrack
     bbnode_t bnode;
 };
 
-int kalloc_count()
-{
-    return kallocCount;
-}
+// int kalloc_count()
+// {
+//     return kallocCount;
+// }
 
-int kmap_count()
-{
-    return kmapCount;
-}
+// int kmap_count()
+// {
+//     return kmapCount;
+// }
 
 void *kalloc_(size_t len, const char *msg)
 {
@@ -101,17 +101,17 @@ void kfree(void *ptr)
     free(tr);
 }
 
-void kalloc_check()
-{
-    splock_lock(&ktrack_lock);
-    struct ktrack *tr = bbtree_first(&ktrack_tree, struct ktrack, bnode);
-    while (tr) {
-        kprintf(-1, "- \033[31mMemory leak\033[0m at %p(%d) %s\n", tr->ptr, tr->len, tr->msg);
-        tr = bbtree_next(&tr->bnode, struct ktrack, bnode);
-    }
+// void kalloc_check()
+// {
+//     splock_lock(&ktrack_lock);
+//     struct ktrack *tr = bbtree_first(&ktrack_tree, struct ktrack, bnode);
+//     while (tr) {
+//         kprintf(-1, "- \033[31mMemory leak\033[0m at %p(%d) %s\n", tr->ptr, tr->len, tr->msg);
+//         tr = bbtree_next(&tr->bnode, struct ktrack, bnode);
+//     }
 
-    splock_unlock(&ktrack_lock);
-}
+//     splock_unlock(&ktrack_lock);
+// }
 
 char *kstrdup(const char *str)
 {
@@ -130,13 +130,23 @@ char *kstrndup(const char *str, size_t max)
     return ptr;
 }
 
-void alloc_check()
+int alloc_check()
 {
+    printf("Ending session: %d alloc, %d map\n", kallocCount, kmapCount);
+
     // struct ktrack *tr = bbtree_first(&ktrack_tree, struct ktrack, bnode);
     // while (tr) {
     //     printf("alloc leak: %p - %s\n", tr->ptr, tr->msg);
     //     tr = bbtree_next(&tr->bnode, struct ktrack, bnode);
     // }
+
+    //map_page_t *mp = bbtree_first(&map_tree, map_page_t, node);
+    //while (mp) {
+    //    printf("kmap leak: %p - %o - %p\n", mp->ptr, mp->access, mp->ino);
+    //    mp = bbtree_next(&mp->node, map_page_t, node);
+    //}
+
+    return kallocCount == 0 && kmapCount == 0 ? 0 : -1;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -183,14 +193,15 @@ map_page_t *kmap_search(void *ino, xoff_t off, size_t len, int mode)
     return NULL;
 }
 
-void kmap_check()
-{
-    map_page_t *mp = bbtree_first(&map_tree, map_page_t, node);
-    while (mp) {
-        printf("kmap leak: %p - %o - %p\n", mp->ptr, mp->access, mp->ino);
-        mp = bbtree_next(&mp->node, map_page_t, node);
-    }
-}
+// int kmap_check()
+// {
+//     //map_page_t *mp = bbtree_first(&map_tree, map_page_t, node);
+//     //while (mp) {
+//     //    printf("kmap leak: %p - %o - %p\n", mp->ptr, mp->access, mp->ino);
+//     //    mp = bbtree_next(&mp->node, map_page_t, node);
+//     //}
+//     return kmapCount == 0 ? 0 : -1;
+// }
 
 
 void *kmap(size_t len, void *obj, xoff_t off, int flags)
@@ -366,6 +377,7 @@ char kpbuf2[1024];
 
 // Change kernel log settings
 char *klog_lvl[KL_MAX] = {
+    // [KL_FSA] = KL_NONE,
     [KL_FSA] = "\033[35m%s\033[0m",
     [KL_VMA] = "\033[93m%s\033[0m",
     [KL_BIO] = KL_NONE,

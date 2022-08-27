@@ -39,7 +39,7 @@ PACK(struct ip4_header {
 /* Compute the checksum of a IP4 header */
 uint16_t ip4_checksum(uint16_t *ptr, unsigned len)
 {
-    int i, sum = 0;
+    unsigned i, sum = 0;
     for (i = 0; i < len / 2; i++)
         sum += ntohs(ptr[i]);
     if (sum > 0xFFFF)
@@ -143,12 +143,12 @@ int ip4_socket(socket_t *sock, int method)
     return -1;
 }
 
-long ip4_socket_send(socket_t *sock, const uint8_t *addr, const uint8_t *buf, size_t len, int flags)
+long ip4_socket_send(socket_t *sock, const uint8_t *addr, const char *buf, size_t len, int flags)
 {
     return -1;
 }
 
-long ip4_socket_recv(socket_t *sock, uint8_t *addr, uint8_t *buf, size_t len, int flags)
+long ip4_socket_recv(socket_t *sock, uint8_t *addr, char *buf, size_t len, int flags)
 {
     return -1;
 }

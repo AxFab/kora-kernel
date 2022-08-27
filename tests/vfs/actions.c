@@ -25,8 +25,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
-#include "../cli.h"
-#include <kernel/vfs.h>
+#include "cli-vfs.h"
 
 #ifndef O_BINARY
 # define O_BINARY 0
@@ -39,23 +38,7 @@
 #pragma warning(disable : 4996)
 #endif
 
-typedef struct vfs_ctx
-{
-    vfs_t *vfs;
-    user_t *user;
-} vfs_ctx_t;
-
-
-#ifdef __LP64
-#define XOFF_F "%ld"
-#else
-#define XOFF_F "%lld"
-#endif
-
-int imgdk_open(const char *path, const char *name);
-void imgdk_create(const char *name, size_t size);
-void vhd_create_dyn(const char *name, uint64_t size);
-
+size_t cli_read_size(char *str);
 
 int do_dump(vfs_ctx_t *ctx, size_t *param)
 {
@@ -104,7 +87,7 @@ int do_ls(vfs_ctx_t *ctx, size_t *param)
     return 0;
 }
 
-const char *vfs_timestr(xtime_t clock, char *tmp)
+static const char *__timestr(xtime_t clock, char *tmp)
 {
     time_t time = USEC_TO_SEC(clock);
     struct tm *tm = gmtime(&time);
@@ -131,10 +114,10 @@ static int __do_stat(vfs_ctx_t *ctx, size_t *param, bool follow)
     printf("Found file %s\n", vfs_inokey(node->ino, tmp));
     printf("    Size: %s\n", sztoa(node->ino->length));
     printf("    Mode: %s%s%s\n", rights[(node->ino->mode >> 6) & 7], rights[(node->ino->mode >> 3) & 7], rights[(node->ino->mode >> 0) & 7]);
-    printf("  Access: %s\n", vfs_timestr(node->ino->atime, tmp));
-    printf(" Created: %s\n", vfs_timestr(node->ino->ctime, tmp));
-    printf("Modified: %s\n", vfs_timestr(node->ino->mtime, tmp));
-    printf("   Birth: %s\n", vfs_timestr(node->ino->btime, tmp));
+    printf("  Access: %s\n", __timestr(node->ino->atime, tmp));
+    printf(" Created: %s\n", __timestr(node->ino->ctime, tmp));
+    printf("Modified: %s\n", __timestr(node->ino->mtime, tmp));
+    printf("   Birth: %s\n", __timestr(node->ino->btime, tmp));
 
     if (type != NULL) {
         if (strcmp(type, "DIR") == 0 && node->ino->type != FL_DIR) {
@@ -161,12 +144,10 @@ int do_stat(vfs_ctx_t *ctx, size_t *param)
     return __do_stat(ctx, param, true);
 }
 
-
 int do_lstat(vfs_ctx_t *ctx, size_t *param)
 {
     return __do_stat(ctx, param, false);
 }
-
 
 int do_link(vfs_ctx_t *ctx, size_t *param)
 {
@@ -177,7 +158,6 @@ int do_link(vfs_ctx_t *ctx, size_t *param)
         return cli_error("Unable to create link %s", path2);
     return 0;
 }
-
 
 int do_links(vfs_ctx_t *ctx, size_t * param)
 {
@@ -213,13 +193,13 @@ int do_times(vfs_ctx_t *ctx, size_t *param)
     char tmp[32];
     printf("%s: %s\n", path, vfs_inokey(node->ino, tmp));
     if (mode == NULL || strchr(mode, 'a') != NULL)
-        printf("  access: %s\n", vfs_timestr(node->ino->atime, tmp));
+        printf("  access: %s\n", __timestr(node->ino->atime, tmp));
     if (mode == NULL || strchr(mode, 'c') != NULL)
-        printf(" created: %s\n", vfs_timestr(node->ino->ctime, tmp));
+        printf(" created: %s\n", __timestr(node->ino->ctime, tmp));
     if (mode == NULL || strchr(mode, 'm') != NULL)
-        printf("modified: %s\n", vfs_timestr(node->ino->mtime, tmp));
+        printf("modified: %s\n", __timestr(node->ino->mtime, tmp));
     if (mode == NULL || strchr(mode, 'b') != NULL)
-        printf("   birth: %s\n", vfs_timestr(node->ino->btime, tmp));
+        printf("   birth: %s\n", __timestr(node->ino->btime, tmp));
 
     // TODO -- TESTS
     vfs_close_fnode(node);
@@ -260,6 +240,7 @@ int do_open(vfs_ctx_t *ctx, size_t *param)
     char *path = (char *)param[0];
     char *flags = (char *)param[1];
     int mode = (int)param[2];
+    char *save = (char *)param[3];
     if (mode == 0)
         mode = 0644;
 
@@ -287,7 +268,15 @@ int do_open(vfs_ctx_t *ctx, size_t *param)
     }
 
     inode_t *ino = vfs_open(ctx->vfs, path, ctx->user, mode, opt);
-    if (ino != NULL)
+    if (save != NULL && ino != NULL) {
+        file_t *fp = malloc(sizeof(fp));
+        fp->ino = ino;
+        fp->rights = ((opt & (O_RDONLY | O_RDWR)) ? VM_RD : 0) | ((opt & (O_WRONLY | O_RDWR)) ? VM_WR : 0);
+        if (fp->rights == 0)
+            fp->rights = VM_RD;
+        cli_store(save, fp, ST_INODE);
+    }
+    else if (ino != NULL)
         vfs_close_inode(ino);
     else
         return cli_error("Unable to open file: %s : [%d - %s]\n", path, errno, strerror(errno));
@@ -296,15 +285,94 @@ int do_open(vfs_ctx_t *ctx, size_t *param)
 
 int do_close(vfs_ctx_t *ctx, size_t *param)
 {
-    return cli_error("Not implemented: %s!\n", __func__);
+    char *save = (char *)param[0];
+    file_t *fp = cli_fetch(save, ST_INODE);
+    if (fp == NULL)
+        return cli_error("Unable to find inode : %s", save);
+    cli_remove(save, ST_INODE);
+    vfs_usage(fp->ino, fp->rights, -1);
+    vfs_close_inode(fp->ino);
+    free(fp);
+    return 0;
 }
 
-int do_look(vfs_ctx_t *ctx, size_t *param)
+int do_read(vfs_ctx_t *ctx, size_t *param)
 {
-    return cli_error("Not implemented: %s!\n", __func__);
+    char *buffer = (char *)param[0];
+    char *path = (char *)param[1];
+    size_t len = cli_read_size((char *)param[2]);
+    xoff_t off = cli_read_size((char *)param[3]);
+
+    inode_t *ino = NULL;
+    if (*path == '@') {
+        file_t *fp = cli_fetch(path, ST_INODE);
+        if (fp && fp->rights & VM_RD)
+            ino = fp->ino;
+    }
+    else
+        ino = vfs_search_ino(ctx->vfs, path, ctx->user, true);
+    if (ino == NULL)
+        return cli_error("Unable to find inode: %s", path);
+
+    buf_t *buf = cli_fetch(buffer, ST_BUFFER);
+    if (buf && buf->len < len) {
+        free(buf);
+        buf = NULL;
+    }
+    if (buf == NULL) {
+        buf = malloc(sizeof(buf_t) + len);
+        buf->len = len;
+        cli_store(buffer, buf, ST_BUFFER);
+    }
+
+    int ret = vfs_read(ino, buf->ptr, len, off, 0) > 0 ? 0 : -1;
+
+    if (*path != '@')
+        vfs_close_inode(ino);
+    return ret;
 }
 
-int do_delay(vfs_ctx_t *ctx, size_t *param)
+int do_write(vfs_ctx_t *ctx, size_t *param)
+{
+    char *buffer = (char *)param[0];
+    char *path = (char *)param[1];
+    size_t len = cli_read_size((char *)param[2]);
+    xoff_t off = cli_read_size((char *)param[3]);
+
+    inode_t *ino = NULL;
+    if (*path == '@') {
+        file_t *fp = cli_fetch(path, ST_INODE);
+        if (fp && fp->rights & VM_WR)
+            ino = fp->ino;
+    }
+    else
+        ino = vfs_search_ino(ctx->vfs, path, ctx->user, true);
+    if (ino == NULL)
+        return cli_error("Unable to find inode: %s", path);
+
+    int ret = -1;
+    buf_t *buf = cli_fetch(buffer, ST_BUFFER);
+    if (buf != NULL) {
+        ret = vfs_write(ino, buf->ptr, MAX(buf->len, len), off, 0) > 0 ? 0 : -1;
+    } else {
+        cli_error("Unable to find buffer: %s", buffer);
+    }
+
+    if (*path != '@')
+        vfs_close_inode(ino);
+    return ret;
+}
+
+int do_rmbuf(vfs_ctx_t *ctx, size_t *param)
+{
+    char *buffer = (char *)param[0];
+    buf_t *buf = cli_fetch(buffer, ST_BUFFER);
+    cli_remove(buffer, ST_BUFFER);
+    free(buf);
+    return 0;
+}
+
+int do_delay(vfs_ctx_t * ctx, size_t * param)
 {
     struct timespec xt;
     xt.tv_sec = 1;
@@ -378,8 +446,8 @@ int do_dd(vfs_ctx_t *ctx, size_t *param)
 {
     const char *src = (char *)param[0];
     const char *dst = (char *)param[1];
-    size_t bsz = param[2];
-    size_t len = param[3];
+    size_t bsz = cli_read_size((char *)param[2]);
+    size_t len = cli_read_size((char *)param[3]);
 
     if (bsz == 0)
         bsz = 512;
@@ -447,7 +515,9 @@ int do_size(vfs_ctx_t *ctx, size_t *param)
     if (ino == 0)
         return cli_error("Unable to find file %s\n", path);
     printf("File size is (%s)\n", sztoa(ino->length));
-    int ret = len == 0 || (xoff_t)len == ino->length ? 0 : -1;
+    int ret = 0;
+    if (len != 0 && (xoff_t)len != ino->length)
+        printf("Real size if "XOFF_F"\n", ino->length);
     vfs_close_inode(ino);
     return ret;
 }
@@ -520,10 +590,6 @@ int do_extract(vfs_ctx_t *ctx, size_t *param)
     vfs_close_fnode(node);
     return 0;
 }
-
-
-
-uint32_t crc32_r(uint32_t checksum, const void *buf, size_t len);
 
 int do_checksum(vfs_ctx_t *ctx, size_t *param)
 {
@@ -619,7 +685,6 @@ int do_img_remove(vfs_ctx_t *ctx, size_t *param)
     return 0;
 }
 
-
 int do_img_copy(vfs_ctx_t *ctx, size_t *param)
 {
     char *src = (char *)param[0];
@@ -676,10 +741,13 @@ int do_tar_mount(vfs_ctx_t *ctx, size_t *param)
     len = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    void *buf = malloc(ALIGN_UP(len, PAGE_SIZE));
+    void *buf = kalloc(ALIGN_UP(len, PAGE_SIZE));
     fread(buf, len, 1, fp);
-    tar_mount(buf, len, name);
-    return 0;
+    fclose(fp);
+    inode_t *ino = tar_mount(buf, len, name);
+    int ret = vfs_early_mount(ino, name);
+    vfs_close_inode(ino);
+    return ret;
 }
 
 int do_format(vfs_ctx_t *ctx, size_t *param)
@@ -707,7 +775,6 @@ int do_format(vfs_ctx_t *ctx, size_t *param)
     return 0;
 }
 
-
 int do_chmod(vfs_ctx_t *ctx, size_t *param)
 {
     char *path = (char *)param[0];
@@ -726,7 +793,6 @@ int do_chmod(vfs_ctx_t *ctx, size_t *param)
     return 0;
 }
 
-
 int do_chown(vfs_ctx_t *ctx, size_t *param)
 {
     char *path = (char *)param[0];
@@ -740,7 +806,6 @@ int do_chown(vfs_ctx_t *ctx, size_t *param)
         return cli_error("Error during chown of %s (%d)", path, errno);
     return 0;
 }
-
 
 int do_utimes(vfs_ctx_t *ctx, size_t *param)
 {
@@ -798,3 +863,22 @@ int do_rename(vfs_ctx_t* ctx, size_t* param)
     return ret;
 }
 
+int do_pipe(vfs_ctx_t *ctx, size_t *param)
+{
+    char *store_rd = (char *)param[0];
+    char *store_wr = (char *)param[1];
+    inode_t *ino = vfs_pipe(ctx->vfs);
+    if (ino == NULL)
+        return cli_error("Unable to open a pipe");
+
+    file_t *fp_rd = malloc(sizeof(file_t));
+    fp_rd->ino = ino;
+    fp_rd->rights = VM_RD;
+    cli_store(store_rd, fp_rd, ST_INODE);
+
+    file_t *fp_wr = malloc(sizeof(file_t));
+    fp_wr->ino = vfs_open_inode(ino);
+    fp_wr->rights = VM_WR;
+    cli_store(store_wr, fp_wr, ST_INODE);
+    return 0;
+}

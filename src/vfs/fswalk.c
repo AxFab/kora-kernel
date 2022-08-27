@@ -3,16 +3,14 @@
 
 typedef struct pelmt pelmt_t;
 
-struct path
-{
+struct path {
     llhead_t list;
     fnode_t *node;
     bool absolute;
     bool directory;
 };
 
-struct pelmt
-{
+struct pelmt {
     llnode_t node;
     char name[1];
 };
@@ -161,6 +159,39 @@ int vfs_lookup(fnode_t *node)
     return 0;
 }
 
+static int vfs_check_dir_inode(path_t *path, user_t *user, int *links, char **lnk_buf)
+{
+    inode_t *ino = vfs_inodeof(path->node);
+    if (ino->type == FL_LNK) {
+        if ((*links)++ > 25) {
+            errno = ELOOP;
+            vfs_close_inode(ino);
+            return -1;
+        }
+
+        if (*lnk_buf == NULL)
+            *lnk_buf = kalloc(PAGE_SIZE);
+        vfs_readsymlink(ino, *lnk_buf, PAGE_SIZE);
+        if (vfs_concatpath(*lnk_buf, path) != 0) {
+            vfs_close_inode(ino);
+            return -1;
+        }
+        fnode_t *node = vfs_open_fnode(path->node->parent);
+        vfs_close_fnode(path->node);
+        path->node = node;
+    } else if (ino->type != FL_DIR) {
+        errno = ENOTDIR;
+        vfs_close_inode(ino);
+        return -1;
+    } else if (vfs_access(ino, user, VM_EX) != 0) {
+        errno = EACCES;
+        vfs_close_inode(ino);
+        return -1;
+    }
+    vfs_close_inode(ino);
+    return 0;
+}
+
 fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve, bool follow)
 {
     char *lnk_buf = NULL;
@@ -184,42 +215,11 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve
             return vfs_release_path(path, false);
         }
 
-        inode_t *ino = vfs_inodeof(path->node);
-        if (ino->type == FL_LNK) {
-            if (links++ > 25) {
-                errno = ELOOP;
-                if (lnk_buf != NULL)
-                    kfree(lnk_buf);
-                vfs_close_inode(ino);
-                return vfs_release_path(path, false);
-            }
-
-            if (lnk_buf == NULL)
-                lnk_buf = kalloc(PAGE_SIZE);
-            vfs_readsymlink(ino, lnk_buf, PAGE_SIZE);
-            if (vfs_concatpath(lnk_buf, path) != 0) {
-                if (lnk_buf != NULL)
-                    kfree(lnk_buf);
-                vfs_close_inode(ino);
-                return vfs_release_path(path, false);
-            }
-            fnode_t *node = vfs_open_fnode(path->node->parent);
-            vfs_close_fnode(path->node);
-            path->node = node;
-        } else if (ino->type != FL_DIR) {
-            errno = ENOTDIR;
+        if (vfs_check_dir_inode(path, user, &links, &lnk_buf) != 0) {
             if (lnk_buf != NULL)
                 kfree(lnk_buf);
-            vfs_close_inode(ino);
-            return vfs_release_path(path, false);
-        } else if (vfs_access(ino, user, VM_EX) != 0) {
-            errno = EACCES;
-            if (lnk_buf != NULL)
-                kfree(lnk_buf);
-            vfs_close_inode(ino);
             return vfs_release_path(path, false);
         }
-        vfs_close_inode(ino);
 
         pelmt_t *el = itemof(ll_pop_front(&path->list), pelmt_t, node);
         assert(el != NULL);

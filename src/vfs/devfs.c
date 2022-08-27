@@ -22,6 +22,7 @@
 #include <threads.h>
 #include <errno.h>
 #include <assert.h>
+#include <limits.h>
 
 /*
   The devfs is an mandatory embed file system that keep a trace of every registered
@@ -182,45 +183,6 @@ static inode_t *devfs_inode(dfs_info_t *info, dfs_entry_t *entry)
     return ino;
 }
 
-///* Look for entry visible on a directory */
-//inode_t *devfs_open(inode_t *dir, const char *name, ftype_t type, void *acl, int flags)
-//{
-//    dfs_info_t *info = dir->drv_data;
-//    if ((flags & (IO_OPEN | IO_CREAT)) == IO_CREAT) {
-//        errno = EROFS;
-//        return NULL;
-//    }
-//    dfs_entry_t *entry = devfs_fetch(info, dir->no);
-//
-//    int idx;
-//    dfs_table_t *table = info->table;
-//    for (idx = 0; ; ++idx) {
-//        if (idx >= table->length) {
-//            idx = 0;
-//            table = table->next;
-//            if (table == NULL) {
-//                errno = ENOENT;
-//                return NULL;
-//            }
-//        }
-//
-//        dfs_entry_t *en = &table->entries[idx];
-//        if ((en->show & entry->filter) == 0)
-//            continue;
-//
-//        int k = 0;
-//        if (entry->flags & DF_BY_UUID)
-//            k = strcmp(en->uuid, name);
-//        else if (entry->flags & DF_BY_LABEL)
-//            k = strcmp(en->label, name);
-//        else
-//            k = strcmp(en->name, name);
-//        if (k == 0)
-//            return devfs_inode(info, en);
-//    }
-//    return NULL;
-//}
-
 inode_t *devfs_lookup(inode_t *dir, const char *name, void *acl)
 {
     dfs_info_t *info = dir->drv_data;
@@ -310,7 +272,6 @@ void devfs_closedir(inode_t *dir, dfs_iterator_t *ctx)
 
 
 ino_ops_t devfs_dir_ops = {
-    // .open = devfs_open,
     .lookup = devfs_lookup,
     .opendir = (void *)devfs_opendir,
     .readdir = (void *)devfs_readdir,
@@ -410,22 +371,17 @@ static inode_t *devfs_dev(dfs_info_t *info, const char *name, int type, int show
     return ino;
 }
 
-void devfs_register(inode_t *ino, const char *name)
+int devfs_register(inode_t *ino, const char *name)
 {
+    if (ino->type != FL_BLK && ino->type != FL_CHR)
+        return -1;
+
     // char tmp[12];
     dfs_info_t *info = DEV_INO->drv_data;
     dfs_entry_t *entry = devfs_fetch_new(info);
-    switch (ino->type) {
-    case FL_DIR:
-        entry->show = DF_MOUNT;
-        if (ino->dev->uuid[0] != '0')
-            entry->show |= DF_MOUNT1;
-        if (ino->dev->devname != NULL)
-            entry->show |= DF_MOUNT2;
-        kprintf(KL_MSG, "Mount drive as \033[35m%s\033[0m (%s)\n", ino->dev->devname, ino->dev->devclass);
-        break;
-    case FL_BLK:
-        entry->show = DF_DISK | DF_ROOT;
+    entry->show = DF_ROOT;
+    if (ino->type == FL_BLK) {
+        entry->show |= DF_DISK;
         if (ino->dev->uuid[0] != 0 || ino->dev->uuid[1] != 0 || ino->dev->uuid[15] != 0) {
             snprintf(entry->uuid, 40, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
                      ino->dev->uuid[0], ino->dev->uuid[1], ino->dev->uuid[2], ino->dev->uuid[3],
@@ -438,25 +394,20 @@ void devfs_register(inode_t *ino, const char *name)
             strncpy(entry->label, ino->dev->devname, 32);
             entry->show |= DF_DISK2;
         }
-        if (ino->length)
-            kprintf(KL_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
-                    ino->dev->model ? ino->dev->model : "", sztoa(ino->length), name);
-        else
-            kprintf(KL_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
-                    ino->dev->model ? ino->dev->model : "", name);
-        break;
-    default:
-        entry->show = DF_ROOT;
+    }
+    if (ino->length)
+        kprintf(KL_MSG, "%s %s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
+                ino->dev->model ? ino->dev->model : "", sztoa(ino->length), name);
+    else
         kprintf(KL_MSG, "%s %s <\033[33m%s\033[0m>\n", ino->dev->devclass,
                 ino->dev->model ? ino->dev->model : "", name);
-        break;
-    }
 
     // kprintf(-1, "Device %s\n", vfs_inokey(ino, tmp));
     entry->dev = vfs_open_inode(ino);
     strncpy(entry->name, name, 32);
     entry->flags &= ~DF_BUSY;
     entry->flags |= DF_USED;
+    return 0;
 }
 
 inode_t *devfs_mount(inode_t *dev, const char *options)
@@ -518,6 +469,9 @@ void devfs_sweep()
 {
     int i;
     dfs_info_t *info = DEV_INO->drv_data;
+    assert(info->table != NULL && info->table->entries[0].dev != NULL);
+    vfs_dev_scavenge(info->table->entries[0].dev->dev, INT_MAX);
+
     dfs_table_t *table = info->table;
     while (table) {
         for (i = 0; i < table->length; ++i) {

@@ -22,8 +22,7 @@
 typedef struct mbr_parts mbr_parts_t;
 typedef struct mbr_sector mbr_sector_t;
 
-PACK(struct mbr_parts
-{
+PACK(struct mbr_parts {
     uint8_t media;
     uint8_t start_chs[3];
     uint8_t fs;
@@ -32,8 +31,7 @@ PACK(struct mbr_parts
     uint32_t length;
 });
 
-PACK(struct mbr_sector
-{
+PACK(struct mbr_sector {
     int32_t jmp;
     char code[438];
     uint32_t uid;

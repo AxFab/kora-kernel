@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "ext2.h"
-
+#include <errno.h>
 
 static inline int math_power(int val, int exp)
 {
@@ -56,6 +56,7 @@ uint32_t ext2_alloc_block(ext2_volume_t *vol)
 		return i * vol->sb->blocks_per_group + j * 8 + k;
 	}
 	bkunmap(&bm);
+	errno = ENOSPC;
 	return 0;
 }
 
@@ -77,47 +78,81 @@ int ext2_release_block(ext2_volume_t *vol, uint32_t block)
 	return 0;
 }
 
-static uint32_t ext2_get_block_direct(ext2_volume_t *vol, uint32_t block, uint32_t no)
+static uint32_t ext2_get_block_direct(ext2_volume_t *vol, uint32_t block, uint32_t no, bool alloc)
 {
+	if (block == 0)
+		return 0;
 	struct bkmap km;
 	uint32_t *ptr = bkmap(&km, block, vol->blocksize, 0, vol->blkdev, VM_RD);
-	//if (ptr == NULL)
-	//	return 0;
+	if (ptr == NULL) {
+		errno = EIO;
+		return 0;
+	}
 	uint32_t lba = ptr[no];
+	if (lba == 0 && alloc)
+		lba = ptr[no] = ext2_alloc_block(vol);
 	bkunmap(&km);
 	return lba;
 }
 
-static uint32_t ext2_get_block_indirect(ext2_volume_t *vol, uint32_t block, uint32_t blkr, uint32_t no, int depth)
+static uint32_t ext2_get_block_indirect(ext2_volume_t *vol, uint32_t block, uint32_t blkr, uint32_t no, int depth, bool alloc)
 {
+	if (block == 0)
+		return 0;
 	struct bkmap km;
 	unsigned ip = no / blkr;
 	unsigned ix = no % blkr;
 	uint32_t *ptr = bkmap(&km, block, vol->blocksize, 0, vol->blkdev, VM_RD);
+	if (ptr == NULL) {
+		errno = EIO;
+		return 0;
+	}
 	uint32_t lba;
+	uint32_t blkno = ptr[ip];
+	if (blkno == 0 && alloc)
+		blkno = ptr[ip] = ext2_alloc_block(vol);
+
 	if (depth == 0)
-		lba = ext2_get_block_direct(vol, ptr[ip], ix);
+		lba = ext2_get_block_direct(vol, blkno, ix, alloc);
 	else
-		lba = ext2_get_block_indirect(vol, ptr[ip], ix, blkr, depth - 1);
+		lba = ext2_get_block_indirect(vol, blkno, ix, blkr, depth - 1, alloc);
 	bkunmap(&km);
 	return lba;
 }
 
-
-uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk)
+uint32_t ext2_get_block(ext2_volume_t *vol, ext2_ino_t *dir, uint32_t blk, bool alloc)
 {
-	if (blk < 12)
-		return dir->block[blk];
+	uint32_t blkno;
+	if (blk < 12) {
+		blkno = dir->block[blk];
+		if (alloc && blkno == 0)
+			blkno = dir->block[blk] = ext2_alloc_block(vol);
+		return blkno;
+	}
+
 	size_t blkr = vol->blocksize / sizeof(uint32_t);
-	if (blk < 12 + blkr)
-		return ext2_get_block_direct(vol, dir->block[12], blk - 12);
+	if (blk < 12 + blkr) {
+		blkno = dir->block[12];
+		if (alloc && blkno == 0)
+			blkno = dir->block[12] = ext2_alloc_block(vol);
+		return ext2_get_block_direct(vol, blkno, blk - 12, alloc);
+	}
 
 	blk -= 12 + blkr;
-	if (blk < blkr * blkr)
-		return ext2_get_block_indirect(vol, dir->block[13], blkr, blk, 0);
+	if (blk < blkr * blkr) {
+		blkno = dir->block[13];
+		if (alloc && blkno == 0)
+			blkno = dir->block[13] = ext2_alloc_block(vol);
+		return ext2_get_block_indirect(vol, dir->block[13], blkr, blk, 0, alloc);
+	}
 
-	if (blk < blkr * blkr * blkr)
-		return ext2_get_block_indirect(vol, dir->block[14], blkr, blk, 1);
+	blk -= blkr * blkr;
+	if (blk < blkr * blkr * blkr) {
+		blkno = dir->block[14];
+		if (alloc && blkno)
+			blkno = dir->block[14] = ext2_alloc_block(vol);
+		return ext2_get_block_indirect(vol, dir->block[14], blkr, blk, 1, alloc);
+	}
 
 	return 0;
 }
