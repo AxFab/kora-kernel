@@ -28,9 +28,10 @@
 
 enum {
 
-    VMA_SHARED = 0x10000,
+    // VMA_SHARED = 0x10000,
     VMA_COW = 0x20000,
     VMA_FIXED = 0x40000,
+    VMA_CLEAN = 0x80000,
 
     VMA_HEAP = 0x1000,
     VMA_STACK = 0x2000,
@@ -43,6 +44,7 @@ enum {
 };
 
 typedef struct inode inode_t;
+typedef struct dlproc dlproc_t;
 
 typedef struct vma vma_t;
 typedef struct mspace mspace_t;
@@ -81,21 +83,21 @@ int mspace_unmap(mspace_t *mspace, size_t address, size_t length);
 /* Search a VMA structure at a specific address */
 vma_t *mspace_search_vma(mspace_t *mspace, size_t address);
 /* Print the information of memory space -- used for /proc/{x}/mmap  */
-void mspace_display();
+void mspace_display(mspace_t *mspace);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* - */
 void page_range(long long base, long long length);
 /* Allocate a single page for the system and return it's physical address */
-page_t page_new();
+size_t page_new();
 /* Look for count pages in continuous memory */
-page_t page_get(int zone, int count);
+size_t page_get(int zone, int count);
 /* Mark a physique page, returned by `mmu_new_page`, as available again */
-void page_release(page_t paddress);
+void page_release(size_t paddress);
 /* Free all used pages into a range of virtual addresses */
 void page_sweep(mspace_t *mspace, size_t address, size_t length, bool clean);
 /* Resolve a page fault */
-int page_fault(mspace_t *mspace, size_t address, int reason);
+int page_fault(size_t address, int reason);
 /* - */
 void page_teardown();
 
@@ -107,17 +109,17 @@ void mmu_leave();
 /* - */
 void mmu_context(mspace_t *mspace);
 /* - */
-int mmu_resolve(size_t vaddr, page_t phys, int falgs);
+size_t mmu_resolve(mspace_t *mspace, size_t vaddr, size_t phys, int falgs);
 /* - */
-page_t mmu_read(size_t vaddr);
+size_t mmu_read(mspace_t *mspace, size_t vaddr);
 /* - */
-int mmu_read_flags(size_t vaddr);
+int mmu_read_flags(mspace_t *mspace, size_t vaddr);
 /* - */
-page_t mmu_drop(size_t vaddr);
+size_t mmu_drop(mspace_t *mspace, size_t vaddr);
 /* - */
-bool mmu_dirty(size_t vaddr);
+bool mmu_dirty(mspace_t *mspace, size_t vaddr);
 /* - */
-page_t mmu_protect(size_t vaddr, int falgs);
+size_t mmu_protect(mspace_t *mspace, size_t vaddr, int falgs);
 /* - */
 void mmu_create_uspace(mspace_t *mspace);
 /* - */
@@ -139,7 +141,7 @@ void memory_info();
 struct kMmu {
     size_t upper_physical_page;  /* Maximum amount of memory */
     size_t pages_amount;  /* Maximum pages amount */
-    size_t free_pages;  /* Number of unused free pages */
+    atomic_int free_pages;  /* Number of unused free pages */
     size_t page_size;  /* Page size */
     // size_t uspace_lower_bound;  /* Userspace lower bound */
     // size_t uspace_upper_bound;  /* Userspace upper bound */
@@ -150,6 +152,7 @@ struct kMmu {
     long soft_page_fault;
 
     mspace_t *kspace;  /* Kernel address space */
+    mspace_t *uspace;
 };
 
 /* - */
@@ -159,16 +162,17 @@ extern struct kMmu kMMU;
 struct mspace {
     atomic_int users;  /* Usage counter */
     bbtree_t tree;  /* Binary tree of VMAs sorted by addresses */
-    page_t directory;  /* Page global directory */
+    size_t directory;  /* Page global directory */
     size_t lower_bound;  /* Lower bound of the address space */
     size_t upper_bound;  /* Upper bound of the address space */
     size_t v_size;  /* Virtual allocated page counter */
     size_t p_size;  /* Physical allocated page counter */
-    size_t a_size;  /* Total allocated page counter */
+    size_t a_size;  /* Total allocated page counter ? */
     size_t s_size;  /* Shared allocated page counter */
     size_t t_size;  /* Table allocated page counter */
     size_t phys_pg_count;  /* Physical page used on this address space */
     splock_t lock;  /* Memory space protection lock */
+    dlproc_t *proc;
 };
 
 

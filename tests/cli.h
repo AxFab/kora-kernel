@@ -53,6 +53,8 @@ extern cli_cmd_t __commands[];
 int cli_commands(FILE *fp, void *ctx, bool reecho);
 int cli_main(int argc, char **argv, void *context, void(*initialize)(), void(*teardown)());
 
+size_t cli_read_size(char *str);
+
 void cli_store(char *name, void *obj, int type);
 void *cli_fetch(char *name, int type);
 void *cli_remove(char *name, int type);

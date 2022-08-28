@@ -124,3 +124,22 @@ int vfs_ioctl(inode_t *ino, int cmd, void **args)
 }
 EXPORT_SYMBOL(vfs_ioctl, 0);
 
+
+size_t vfs_fetch_page(inode_t *ino, xoff_t off)
+{
+    if (ino->ops->fetch)
+        return ino->ops->fetch(ino, off);
+    else if (ino->type == FL_REG || ino->type == FL_BLK)
+        return block_fetch(ino, off);
+    return 0;
+}
+
+int vfs_release_page(inode_t *ino, xoff_t off, size_t pg, bool dirty)
+{
+    if (ino->ops->release)
+        return ino->ops->release(ino, off, pg, dirty);
+    else if (ino->type == FL_REG || ino->type == FL_BLK)
+        return block_release(ino, off, pg, dirty);
+    return 0;
+}
+

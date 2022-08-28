@@ -38,6 +38,7 @@ void memory_initialize()
     kMMU.page_size = PAGE_SIZE;
 
     /* Init Kernel memory space structure */
+    memset(&kernel_space, 0, sizeof(kernel_space));
     bbtree_init(&kernel_space.tree);
     splock_init(&kernel_space.lock);
     kMMU.kspace = &kernel_space;
@@ -53,6 +54,7 @@ void memory_sweep()
 {
     mspace_sweep(kMMU.kspace);
     mmu_leave();
+    page_teardown();
 }
 
 void memory_info()

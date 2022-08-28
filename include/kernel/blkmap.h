@@ -18,9 +18,6 @@ struct blkmap
 };
 
 blkmap_t *blk_open(inode_t *ino, size_t blocksize);
-#ifndef KORA_KRN
-blkmap_t *blk_host_open(const char *path, size_t blocksize);
-#endif
 
 #define blk_map(b,n,r) (b)->map((b),(n),(r))
 #define blk_close(b) (b)->close(b)

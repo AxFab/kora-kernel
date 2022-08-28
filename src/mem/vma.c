@@ -31,6 +31,7 @@
 
 int vma_no_protect(vma_t *vma, int flags)
 {
+    errno = EPERM;
     return -1;
 }
 
@@ -38,8 +39,12 @@ int vma_std_protect(vma_t *vma, int flags)
 {
     int type = vma->flags & VMA_TYPE;
     int cap = vma->flags >> 3 & VM_RWX;
-    int opts = vma->flags & (VM_SHARED | VM_UNCACHABLE);
-    vma->flags = type | opts | (flags & cap) | (cap << 3);
+    if ((cap & flags) != flags) {
+        errno = EPERM;
+        return -1;
+    }
+    int opts = vma->flags & (VM_SHARED | VM_UNCACHABLE); 
+    vma->flags = type | opts | (flags & cap) | (cap << 3) | VM_RD;
     return 0;
 }
 
@@ -48,17 +53,17 @@ int vma_std_protect(vma_t *vma, int flags)
 int vma_anon_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 {
     // No Shared support yet
-    if (access & VMA_SHARED)
+    if (access & VM_SHARED)
         return -1;
-    vma->flags = VMA_ANON | (access & VM_RWX);
-    vma->flags |= ((access & VM_EX) ? VM_RX : VM_RW) << 3;
+    int mask = ((access & VM_EX) ? VM_RX : VM_RW);
+    vma->flags = VMA_ANON | (access & mask);
+    vma->flags |= mask << 3;
     return 0;
 }
 
 int vma_anon_resolve(vma_t *vma, size_t address)
 {
-    vma->mspace->t_size += mmu_resolve(address, 0, vma->flags);
-    vma->mspace->p_size++;
+    mmu_resolve(vma->mspace, address, 0, vma->flags);
     // TODO -- memset((void *)address, 0, PAGE_SIZE);
     return 0;
 }
@@ -70,13 +75,12 @@ int vma_anon_cow(vma_t *vma, size_t address)
 
 void vma_anon_close(vma_t *vma)
 {
-    bool clean = false;
     size_t length = vma->length;
     size_t address = vma->node.value_;
     while (length) {
-        if (clean && mmu_read(address) != 0)
+        if (vma->flags & VMA_CLEAN && mmu_read(vma->mspace, address) != 0)
             memset((void *)address, 0, PAGE_SIZE);
-        size_t pg = mmu_drop(address);
+        size_t pg = mmu_drop(vma->mspace, address);
         if (pg != 0) {
             vma->mspace->p_size--;
             page_release(pg);
@@ -119,28 +123,26 @@ int vma_heap_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
     return 0;
 }
 
-int vma_heap_resolve(vma_t *vma, size_t address)
-{
-    if (vma->cow_reg) {
-        int idx = (address - vma->node.value_ + vma->offset) / PAGE_SIZE;
-        size_t page = vma->cow_reg->pages[idx];
-        if (page != 0) {
-            vma->mspace->t_size += mmu_resolve(address, page, vma->flags & ~VM_WR);
-            vma->mspace->s_size++;
-            return 0;
-        }
-    }
-
-    vma->mspace->t_size += mmu_resolve(address, 0, vma->flags);
-    vma->mspace->p_size++;
-    // TODO -- memset((void *)address, 0, PAGE_SIZE);
-    return 0;
-}
+//int vma_heap_resolve(vma_t *vma, size_t address)
+//{
+//    if (vma->cow_reg) {
+//        int idx = (address - vma->node.value_ + vma->offset) / PAGE_SIZE;
+//        size_t page = vma->cow_reg->pages[idx];
+//        if (page != 0) {
+//            mmu_resolve(vma->mspace, address, page, vma->flags & ~VM_WR);
+//            return 0;
+//        }
+//    }
+//
+//    mmu_resolve(vma->mspace, address, 0, vma->flags);
+//    // TODO -- memset((void *)address, 0, PAGE_SIZE);
+//    return 0;
+//}
 
 int vma_heap_cow(vma_t *vma, size_t address)
 {
     // Check we are using the common page
-    size_t page = mmu_read(address);
+    size_t page = mmu_read(vma->mspace, address);
     int idx = (address - vma->node.value_ + vma->offset) / PAGE_SIZE;
     if (page != vma->cow_reg->pages[idx])
         return -1;
@@ -148,20 +150,18 @@ int vma_heap_cow(vma_t *vma, size_t address)
     // Copy the page
     void *des = kmap(PAGE_SIZE, NULL, 0, VMA_PHYS | VM_RW);
     void *src = kmap(PAGE_SIZE, NULL, page, VMA_PHYS | VM_RW);
-    page = mmu_read(des);
+    page = mmu_read(vma->mspace, (size_t)des);
     memcpy(des, src, PAGE_SIZE);
     kunmap(des, PAGE_SIZE);
 
     // Map the new private page
-    vma->mspace->t_size += mmu_resolve(address, page, vma->flags);
-    vma->mspace->p_size++;
-    vma->mspace->s_size--;
+    mmu_resolve(vma->mspace, address, page, vma->flags);
     return 0;
 }
 
 void vma_heap_cow_destroy(vma_cow_reg_t *reg)
 {
-    for (int i = 0; i < reg->pages_count; ++i) {
+    for (unsigned i = 0; i < reg->pages_count; ++i) {
         size_t pg = reg->pages[i];
         if (pg != 0) {
             page_release(pg);
@@ -170,27 +170,25 @@ void vma_heap_cow_destroy(vma_cow_reg_t *reg)
     kfree(reg);
 }
 
-void vma_heap_close(vma_t *vma)
-{
-    bool clean = false;
-    size_t length = vma->length;
-    size_t address = vma->node.value_;
-    while (length) {
-        if (clean && mmu_read(address) != 0)
-            memset((void *)address, 0, PAGE_SIZE);
-        size_t pg = mmu_drop(address);
-        if (pg != 0) {
-            vma->mspace->p_size--;
-            page_release(pg);
-        }
-        address += PAGE_SIZE;
-        length -= PAGE_SIZE;
-    }
-
-    vma_cow_reg_t *old = vma->cow_reg;
-    if (old && atomic_xadd(&old->rcu, -1) == 1)
-        vma_heap_cow_destroy(old);
-}
+//void vma_heap_close(vma_t *vma)
+//{
+//    size_t length = vma->length;
+//    size_t address = vma->node.value_;
+//    while (length) {
+//        if (vma->flags & VMA_CLEAN && mmu_read(vma->mspace, address) != 0)
+//            memset((void *)address, 0, PAGE_SIZE);
+//        size_t pg = mmu_drop(vma->mspace, address);
+//        if (pg != 0) {
+//            page_release(pg);
+//        }
+//        address += PAGE_SIZE;
+//        length -= PAGE_SIZE;
+//    }
+//
+//    vma_cow_reg_t *old = vma->cow_reg;
+//    if (old && atomic_xadd(&old->rcu, -1) == 1)
+//        vma_heap_cow_destroy(old);
+//}
 
 int vma_heap_clone(vma_t *vma, vma_t *model)
 {
@@ -210,12 +208,12 @@ int vma_heap_clone(vma_t *vma, vma_t *model)
     size_t idx = model->offset / PAGE_SIZE;
 
     for (size_t off = 0; off < length; off += PAGE_SIZE) {
-        size_t page = mmu_read(address + off);
+        size_t page = mmu_read(vma->mspace, address + off);
         if (page == 0 && model->cow_reg)
             page = model->cow_reg->pages[idx];
         reg->pages[idx] = page;
         if (page != 0) {
-            mmu_protect(address, VMA_COW | VM_RD);
+            mmu_protect(vma->mspace, address, VMA_COW | VM_RD);
             // Page info should be already set
         }
     }
@@ -240,9 +238,9 @@ char *vma_heap_print(vma_t *vma, char *buf, int len)
 
 vma_ops_t vma_heap_ops = {
     .open = vma_heap_open,
-    .resolve = vma_heap_resolve,
+    .resolve = vma_anon_resolve,
     .cow = vma_heap_cow,
-    .close = vma_heap_close,
+    .close = vma_anon_close,
     .print = vma_heap_print,
     .protect = vma_no_protect,
     .split = NULL,
@@ -250,88 +248,42 @@ vma_ops_t vma_heap_ops = {
 };
 
 
-int vma_file_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
+int vma_pipe_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 {
-    if (ino == NULL) // TODO -- Check can be mapped
+    if (vma->mspace != kMMU.kspace) {
+        errno = EPERM;
         return -1;
-    vma->ino = vfs_open_inode(ino);
-    vma->offset = offset;
-    // TODO -- Can be SHARED or COW !?
-    vma->flags = VMA_FILE | VMA_SHARED | (access & VM_RWX) | (VM_RW << 3);
-    return 0;
-}
-
-int vma_file_resolve(vma_t *vma, size_t address)
-{
-    xoff_t offset = vma->offset + (address - vma->node.value_);
-    size_t pg = vfs_fetch_page(vma->ino, offset);
-    if (pg == 0)
-        return -1;
-    vma->mspace->t_size += mmu_resolve(address, pg, vma->flags);
-    vma->mspace->s_size++;
-    return 0;
-}
-
-int vma_file_cow(vma_t *vma, size_t address)
-{
-    return 0;
-}
-
-void vma_file_close(vma_t *vma)
-{
-    bool dirty = vma->flags & VM_WR ? true : false;
-    size_t length = vma->length;
-    size_t address = vma->node.value_;
-    xoff_t offset = vma->offset;
-    while (length) {
-        bool isdirty = dirty && mmu_dirty(address);
-        size_t pg = mmu_drop(address);
-        if (pg != 0) {
-            vfs_release_page(vma->ino, offset, pg, isdirty);
-        }
-        address += PAGE_SIZE;
-        offset += PAGE_SIZE;
-        length -= PAGE_SIZE;
     }
-    vfs_close_inode(vma->ino);
-}
-
-int vma_file_clone(vma_t *vma, vma_t *model)
-{
-    // Should not be anything to do...
+    vma->ino = ino;
+    vma->flags = VMA_PIPE | VM_RW;
     return 0;
 }
 
-char *vma_file_print(vma_t *vma, char *buf, int len)
+char *vma_pipe_print(vma_t *vma, char *buf, int len)
 {
-    char tmp[16];
-    snprintf(buf, len, "%s @%x", vfs_inokey(vma->ino, tmp), vma->offset);
+    // int type = vma->flags & VMA_TYPE;
+    snprintf(buf, len, "[pipe.%03x]", (int)((size_t)vma->ino));
     return buf;
 }
 
-void vma_file_split(vma_t *vma, vma_t *area, size_t length)
-{
-    vma->ino = vfs_open_inode(area->ino);
-    vma->offset = area->offset + length; 
-}
-
-
-vma_ops_t vma_file_ops = {
-    .open = vma_file_open,
-    .resolve = vma_file_resolve,
-    .cow = vma_file_cow,
-    .close = vma_file_close,
-    .print = vma_file_print,
-    .protect = vma_std_protect,
-    .split = vma_file_split,
-    .clone = vma_file_clone,
+vma_ops_t vma_pipe_ops = {
+    .open = vma_pipe_open,
+    .resolve = vma_anon_resolve,
+    .cow = NULL,
+    .close = vma_anon_close,
+    .print = vma_pipe_print,
+    .protect = vma_no_protect,
+    .split = NULL,
+    .clone = NULL,
 };
 
 
 int vma_phys_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 {
-    if (vma->mspace != kMMU.kspace || access & VMA_SHARED)
+    if (vma->mspace != kMMU.kspace || access & VM_SHARED) {
+        errno = EPERM;
         return -1;
+    }
     vma->offset = offset;
     vma->flags = VMA_PHYS | access | (VM_RW << 3);
     return 0;
@@ -340,7 +292,7 @@ int vma_phys_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 int vma_phys_resolve(vma_t *vma, size_t address)
 {
     xoff_t offset = vma->offset != 0 ? vma->offset + (address - vma->node.value_) : 0;
-    vma->mspace->t_size += mmu_resolve(address, (page_t)offset, vma->flags);
+    mmu_resolve(vma->mspace, address, (page_t)offset, vma->flags);
     if (offset == 0)
         vma->mspace->a_size++;
     return 0;
@@ -351,7 +303,7 @@ void vma_phys_close(vma_t *vma)
     size_t length = vma->length;
     size_t address = vma->node.value_;
     while (length) {
-        size_t pg = mmu_drop(address);
+        size_t pg = mmu_drop(vma->mspace, address);
         if (pg && vma->offset == 0)
             vma->mspace->a_size--;
         address += PAGE_SIZE;
@@ -361,7 +313,7 @@ void vma_phys_close(vma_t *vma)
 
 char *vma_phys_print(vma_t *vma, char *buf, int len)
 {
-    snprintf(buf, len, "PHYS=%p", vma->offset);
+    snprintf(buf, len, "PHYS=%p", (void *)vma->offset);
     return buf;
 }
 
@@ -383,6 +335,83 @@ vma_ops_t vma_phys_ops = {
 };
 
 
+int vma_file_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
+{
+    if (ino == NULL) // TODO -- Check can be mapped
+        return -1;
+    vma->ino = vfs_open_inode(ino);
+    vma->offset = offset;
+    // TODO -- Check length or not !?
+    // TODO -- Can be SHARED or COW !?
+    vma->flags = VMA_FILE | VM_SHARED | (access & VM_RWX) | (VM_RW << 3);
+    return 0;
+}
+
+int vma_file_resolve(vma_t *vma, size_t address)
+{
+    xoff_t offset = vma->offset + (address - vma->node.value_);
+    // MUTEX ON VMA !?
+    size_t pg = vfs_fetch_page(vma->ino, offset);
+    if (pg == 0)
+        return -1;
+    mmu_resolve(vma->mspace, address, pg, vma->flags);
+    return 0;
+}
+
+int vma_file_cow(vma_t *vma, size_t address)
+{
+    return 0;
+}
+
+void vma_file_close(vma_t *vma)
+{
+    size_t length = vma->length;
+    size_t address = vma->node.value_;
+    xoff_t offset = vma->offset;
+    while (length) {
+        bool isdirty = mmu_dirty(vma->mspace, address);
+        size_t pg = mmu_drop(vma->mspace, address);
+        if (pg != 0) {
+            vfs_release_page(vma->ino, offset, pg, isdirty);
+        }
+        address += PAGE_SIZE;
+        offset += PAGE_SIZE;
+        length -= PAGE_SIZE;
+    }
+    vfs_close_inode(vma->ino);
+}
+
+int vma_file_clone(vma_t *vma, vma_t *model)
+{
+    // Should not be anything to do...
+    return 0;
+}
+
+char *vma_file_print(vma_t *vma, char *buf, int len)
+{
+    char tmp[16];
+    snprintf(buf, len, "%s @"XOFF_F, vfs_inokey(vma->ino, tmp), vma->offset);
+    return buf;
+}
+
+void vma_file_split(vma_t *vma, vma_t *area, size_t length)
+{
+    vma->ino = vfs_open_inode(area->ino);
+    vma->offset = area->offset + length; 
+}
+
+
+vma_ops_t vma_file_ops = {
+    .open = vma_file_open,
+    .resolve = vma_file_resolve,
+    .cow = vma_file_cow,
+    .close = vma_file_close,
+    .print = vma_file_print,
+    .protect = vma_std_protect,
+    .split = vma_file_split,
+    .clone = vma_file_clone,
+};
+
 int vma_exec_open(vma_t *vma, int access, inode_t *lib, xoff_t offset)
 {
     if (lib == NULL) // TODO -- Is ready?
@@ -396,24 +425,21 @@ int vma_exec_open(vma_t *vma, int access, inode_t *lib, xoff_t offset)
 int vma_exec_resolve(vma_t *vma, size_t address)
 {
     xoff_t offset = vma->offset + (address - vma->node.value_);
-    size_t pg = dlib_fetch_page(vma->ino, offset);
+    size_t pg = dlib_fetch_page((dlib_t *)vma->ino, offset);
     if (pg == 0)
         return -1;
-    vma->mspace->t_size += mmu_resolve(address, pg, vma->flags & ~VM_WR);
-    vma->mspace->s_size++;
+    mmu_resolve(vma->mspace, address, pg, vma->flags & ~VM_WR);
     return 0;
 }
 
 int vma_exec_cow(vma_t *vma, size_t address)
 {
-    page_t pg_shared = mmu_read(address);
+    page_t pg_shared = mmu_read(vma->mspace, address);
     void *src = kmap(PAGE_SIZE, NULL, pg_shared, VMA_PHYS | VM_RW);
-    void *trg = kmap(PAGE_SIZE, NULL, NULL, VMA_PHYS | VM_RW);
+    void *trg = kmap(PAGE_SIZE, NULL, 0, VMA_PHYS | VM_RW);
     memcpy(trg, src, PAGE_SIZE);
-    page_t pg_priv = mmu_read(trg);
-    vma->mspace->t_size += mmu_resolve(address, pg_priv, vma->flags);
-    vma->mspace->s_size--;
-    vma->mspace->p_size++;
+    page_t pg_priv = mmu_read(vma->mspace, (size_t)trg);
+    mmu_resolve(vma->mspace, address, pg_priv, vma->flags);
     return 0;
 }
 
@@ -423,15 +449,16 @@ void vma_exec_close(vma_t *vma)
     size_t address = vma->node.value_;
     xoff_t offset = vma->offset;
     while (length) {
-        size_t pg = mmu_drop(address);
-        size_t ac = dlib_fetch_page(vma->ino, offset);
-        if (pg == ac) {
-            dlib_release_page(vma->ino, offset, pg);
-            vma->mspace->s_size--;
-        }
-        else {
-            page_release(pg);
-            vma->mspace->p_size--;
+        size_t pg = mmu_drop(vma->mspace, address);
+        if (pg != 0) {
+            size_t ac = dlib_fetch_page((dlib_t *)vma->ino, offset);
+            if (pg == ac) {
+                dlib_release_page((dlib_t *)vma->ino, offset, pg);
+                vma->mspace->s_size--;
+            } else {
+                page_release(pg);
+                vma->mspace->p_size--;
+            }
         }
         address += PAGE_SIZE;
         offset += PAGE_SIZE;
@@ -458,10 +485,10 @@ char *vma_exec_print(vma_t *vma, char *buf, int len)
     else if (access == VM_RD)
         typ = "<rodata>";
     else
-        typ = "<???>";
+        typ = "<.?>";
 
     char tmp[64];
-    snprintf(buf, len, "%s %s", typ, dlib_name(vma->ino, tmp, 64));
+    snprintf(buf, len, "%s %s", typ, dlib_name((dlib_t *)vma->ino, tmp, 64));
     return buf;
 }
 
@@ -493,43 +520,15 @@ vma_ops_t vma_exec_ops = {
 };
 
 
-int vma_pipe_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
-{
-    vma->ino = ino;
-    vma->flags = VMA_PIPE | VM_RW;
-}
-
-char *vma_pipe_print(vma_t *vma, char *buf, int len)
-{
-    int type = vma->flags & VMA_TYPE;
-    snprintf(buf, len, "[pipe, %p]", vma->ino);
-    return buf;
-}
-
-vma_ops_t vma_pipe_ops = {
-    .open = vma_pipe_open,
-    .resolve = vma_anon_resolve,
-    .cow = NULL,
-    .close = vma_anon_close,
-    .print = vma_pipe_print,
-    .protect = vma_no_protect,
-    .split = NULL,
-    .clone = NULL,
-};
-
-
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 /* Helper to print VMA info into syslogs */
 char *vma_print(char *buf, int len, vma_t *vma)
 {
     static char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx" };
-    char nam[16];
-    int i = 0;
-    char sh = vma->flags & VMA_COW ? (vma->flags & VMA_SHARED ? 'W' : 'w')
-        : (vma->flags & VMA_SHARED ? 'S' : 'p');
-    i = snprintf(buf, len, "%p-%p %s%c %012llx {%04x} <%s>  ",
+    char sh = vma->flags & VMA_COW ? (vma->flags & VM_SHARED ? 'W' : 'w')
+        : (vma->flags & VM_SHARED ? 'S' : 'p');
+    int i = snprintf(buf, len, "%p-%p %s%c %012"XOFF_FX" {%04x} <%s>  ",
         (void *)vma->node.value_, (void *)(vma->node.value_ + vma->length),
         rights[vma->flags & 7], sh, vma->offset, vma->flags, sztoa(vma->length));
 
@@ -555,14 +554,17 @@ vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
     vma->mspace = mspace;
     vma->node.value_ = address;
     vma->length = length;
-    vma->flags = type;
+    vma->flags = type | (flags & (VMA_CLEAN));
 
     switch (type) {
     case VMA_ANON:
         vma->ops = &vma_anon_ops;
         break;
-    case VMA_HEAP:
     case VMA_STACK:
+        if (mspace == kMMU.kspace)
+            access |= VM_RESOLVE;
+        // fall through
+    case VMA_HEAP:
         vma->ops = &vma_heap_ops;
         break;
     case VMA_PIPE:
@@ -679,7 +681,7 @@ int vma_protect(mspace_t *mspace, vma_t *vma, int flags)
     // Change access flags
     size_t off;
     for (off = 0; off < vma->length; off += PAGE_SIZE)
-        mmu_protect(vma->node.value_ + off, vma->flags);
+        mmu_protect(vma->mspace, vma->node.value_ + off, vma->flags);
 
     kprintf(KL_VMA, "On %s%p, change protect vma %s\n", VMS_NAME(mspace), mspace, vma->ops->print(vma, tmp, 32));
     return 0;
@@ -728,22 +730,23 @@ int vma_copy_on_write(vma_t *vma, size_t address, size_t length)
 
 void vma_debug(vma_t *vma)
 {
-    char rgs[3];
+    char rgs[4];
     // char buf[128];
     // vma_print(buf, 128, vma);
     // kprintf(-1, buf);
     int sz = vma->length / PAGE_SIZE;
     size_t address = vma->node.value_;
-    rgs[2] = '\0';
+    rgs[3] = '\0';
     for (int i = 0; i < sz; ++i) {
         if ((i % 8) == 0)
             kprintf(-1, "\n  ");
-        size_t pg = mmu_read(address + i * PAGE_SIZE);
-        int flg = mmu_read_flags(address + i * PAGE_SIZE);
+        size_t pg = mmu_read(vma->mspace, address + i * PAGE_SIZE);
+        int flg = mmu_read_flags(vma->mspace, address + i * PAGE_SIZE);
         rgs[0] = (flg & VM_RD ? 'r' : '-');
         rgs[1] = (flg & VM_WR ? 'w' : '-');
+        rgs[2] = (flg & VM_EX ? 'x' : '-');
         if (pg == 0)
-            kprintf(-1, "  ........");
+            kprintf(-1, "  .........");
         else
             kprintf(-1, "  %05x.%s", pg >> 12, rgs);
     }

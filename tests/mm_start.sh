@@ -1,0 +1,287 @@
+
+ERROR ON
+
+START 64M 64M 6K
+# ----------------------------------------------------------------------------
+# Memory mapping
+KMAP ANON 4k rw
+KPROTECT 0x01000000 4K r
+KUNMAP 0x01000000 4K
+
+# Bad parameters on mmap
+ERROR EINVAL
+KMAP ANON 6K rw
+KMAP HEAP 11K
+KMAPX PHYS 1M ru - 0xcafe00
+ERROR E2BIG
+KMAP HEAP 2G
+ERROR ON
+
+# Bad parameters on munmap
+ERROR EINVAL
+KUNMAP 0xF000000 4k
+KUNMAP 0x1000000 3G
+KUNMAP 0x01103000 2K
+KUNMAP 0x01103000 0
+ERROR ENOENT
+KUNMAP 0x01104000 4k
+ERROR ON
+
+SHOW
+
+# ----------------------------------------------------------------------------
+# Manage user virtual memory space
+USPACE_CREATE @Usr_1
+MMAP STACK 128K
+
+USPACE_OPEN @Usr_2
+MMAP HEAP 4M
+
+USPACE_SELECT @Usr_1
+TOUCH 0x06020000 r
+
+MMAP ANON 12K r
+SHOW
+TOUCH 0x06420000 r
+ERROR ENOMEM
+TOUCH 0x06420000 w
+ERROR ON
+
+USPACE_CLOSE @Usr_1
+USPACE_SELECT @Usr_2
+
+TOUCH 0x06420000 r
+MUNMAP 0x06420000 12K
+
+SHOW
+USPACE_CLOSE @Usr_2
+
+USPACE_CREATE @Usr_3
+
+
+# ----------------------------------------------------------------------------
+# VirtualMemoryArea STACK
+KMAP STACK 8k
+TOUCH 0x01000000 rw
+TOUCH 0x01001000 rw
+ERROR EPERM
+KPROTECT 0x01000000 4k r
+ERROR ON
+KUNMAP 0x01000000 8k
+
+MMAP STACK 128k
+TOUCH 0x06000000 rw
+
+KMAP STACK 8k
+
+SHOW
+# ----------------------------------------------------------------------------
+# VirtualMemoryArea HEAP
+KMAP HEAP 16M
+TOUCH 0x01002000 w
+TOUCH 0x01004000 w
+TOUCH 0x01802000 w
+ERROR EPERM
+KPROTECT 0x01004000 4k r
+ERROR ON
+KUNMAP 0x01002000 8M
+
+MMAP HEAP 4M
+TOUCH 0x06020000 w
+TOUCH 0x06021000 w
+TOUCH 0x06022000 w
+
+KMAP HEAP 2M c
+TOUCH 0x01002000 w
+KUNMAP 0x01002000 2M
+
+SHOW
+# ----------------------------------------------------------------------------
+# VirtualMemoryArea ANON
+KMAP ANON 32k r
+# TOUCH 0x01002000
+TOUCH 0x01004000 r
+ERROR ENOMEM
+TOUCH 0x01005000 w
+ERROR ON
+KPROTECT 0x01005000 4k rw
+TOUCH 0x01005000 w
+
+MMAP ANON 32k rw
+TOUCH 0x06420000 w
+TOUCH 0x06421000 w
+TOUCH 0x06427000 w
+TOUCH 0x06425000 r
+MUNMAP 0x06420000 16k
+
+
+SHOW
+# ----------------------------------------------------------------------------
+# VirtualMemoryArea PIPE
+KMAP PIPE 4k
+TOUCH 0x0100A000 w
+TOUCH 0x0100A000 r
+KMAP PIPE 8k
+ERROR EPERM
+KPROTECT 0x0100B000 4k r
+ERROR ON
+KUNMAP 0x0100B000 8k
+
+ERROR EPERM
+MMAP PIPE 16k
+ERROR ON
+
+
+SHOW
+# ----------------------------------------------------------------------------
+# VirtualMemoryArea PHYS
+KMAPX PHYS 128k rwu - 0xbad00000
+ERROR EPERM
+KMAPX PHYS 128k rwus - 0xbac00000
+ERROR ON
+TOUCH 0x0100B000 rw
+TOUCH 0x0100C000 rw
+KPROTECT 0x0100B000 128K r
+TOUCH 0x0100D000 r
+ERROR ENOMEM
+TOUCH 0x0100D000 w
+TOUCH 0x0100F000 w
+ERROR ON
+
+KMAPX PHYS 12K rw - 0
+TOUCH 0x0102B000 rw
+TOUCH 0x0102C000 r
+TOUCH 0x0102D000 rw
+# Check dirty !!?
+KPROTECT 0x0102D000 4k r
+KUNMAP 0x0102D000 4K
+KUNMAP 0x0102B000 8K
+
+ERROR EPERM
+MMAPX PHYS 12K rw - 0
+ERROR ON
+
+SHOW
+# ----------------------------------------------------------------------------
+# VirtualMemoryArea FILE
+KMAPX FILE 12k rw lorem_sm.txt 0
+KPROTECT 0x0102B000 12k r
+TOUCH 0x0102B000 r
+KPROTECT 0x0102C000 4K rw
+TOUCH 0x0102C000 rw
+KPROTECT 0x0102C000 4K r
+KUNMAP 0x0102C000 8K
+
+MMAPX FILE 8k rw lorem_sm.txt 4k
+TOUCH 0x06421000 w
+
+MMAPX FILE 8k rws lorem_sm.txt 12k
+
+SHOW
+# ----------------------------------------------------------------------------
+# Library on Kernel
+KDLIB bootrd/ata.ko
+
+MDLIB cal
+
+
+SHOW
+# ----------------------------------------------------------------------------
+# Consumme lots of pages
+TOUCH 0x6020000 r
+TOUCH 0x6030000 r
+TOUCH 0x6040000 r
+TOUCH 0x6050000 r
+TOUCH 0x6060000 r
+TOUCH 0x6070000 r
+TOUCH 0x6080000 r
+TOUCH 0x6090000 r
+TOUCH 0x60A0000 r
+TOUCH 0x60B0000 r
+TOUCH 0x60C0000 r
+TOUCH 0x60D0000 r
+TOUCH 0x60E0000 r
+TOUCH 0x60F0000 r
+TOUCH 0x6100000 r
+TOUCH 0x6110000 r
+TOUCH 0x6120000 r
+TOUCH 0x6130000 r
+TOUCH 0x6140000 r
+TOUCH 0x6150000 r
+TOUCH 0x6160000 r
+TOUCH 0x6170000 r
+TOUCH 0x6180000 r
+TOUCH 0x6190000 r
+TOUCH 0x61A0000 r
+TOUCH 0x61B0000 r
+TOUCH 0x61C0000 r
+TOUCH 0x61D0000 r
+TOUCH 0x61E0000 r
+TOUCH 0x61F0000 r
+TOUCH 0x6200000 r
+TOUCH 0x6210000 r
+TOUCH 0x6220000 r
+TOUCH 0x6230000 r
+TOUCH 0x6240000 r
+TOUCH 0x6250000 r
+TOUCH 0x6260000 r
+TOUCH 0x6270000 r
+TOUCH 0x6280000 r
+TOUCH 0x6290000 r
+TOUCH 0x62A0000 r
+TOUCH 0x62B0000 r
+TOUCH 0x62C0000 r
+TOUCH 0x62D0000 r
+TOUCH 0x62E0000 r
+TOUCH 0x62F0000 r
+TOUCH 0x6300000 r
+TOUCH 0x6310000 r
+TOUCH 0x6320000 r
+TOUCH 0x6330000 r
+TOUCH 0x6340000 r
+TOUCH 0x6350000 r
+TOUCH 0x6360000 r
+TOUCH 0x6370000 r
+TOUCH 0x6380000 r
+TOUCH 0x6390000 r
+TOUCH 0x63A0000 r
+TOUCH 0x63B0000 r
+TOUCH 0x63C0000 r
+TOUCH 0x63D0000 r
+TOUCH 0x63E0000 r
+TOUCH 0x63F0000 r
+
+MUNMAP 0x6020000 2M
+
+SHOW
+# ----------------------------------------------------------------------------
+# Bad page-faults
+ERROR ENOMEM
+TOUCH 0xE000000 r
+TOUCH 0x102c000 r
+ERROR ON
+
+SHOW
+
+ERROR OFF
+QUIT
+EXIT
+
+# Library resolve / Fixed & Hint address / Copy-on-write
+
+
+
+# HEAP / STACK / ANON / PIPE / PHYS / FILE / EXEC
+#  KU     Ku      KU      K     K      KU     Ku
+#  LG     LG    LG+R+S   LG   LG+R+I  LG+R+I+S  LG+R+I
+
+#           HEAP / STACK / ANON / PIPE / PHYS / FILE / EXEC
+# .open     - H E A P -  / nshad/ heap /
+# .resolve
+# .cow
+# .close    - - - -  A N O N  - - - -  /
+# .print
+# .protect
+# .split
+# .clone
+

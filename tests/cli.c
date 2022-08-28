@@ -501,6 +501,11 @@ size_t cli_read_size(char *str)
 {
     if (str == NULL)
         return 0;
+    if (str[0] == '0' && str[1] == 'x')
+        return strtoul(&str[2], NULL, 16);
+    if (str[0] == '0')
+        return strtoul(&str[1], NULL, 8);
+
     float len = strtod(str, &str);
     int c = *str | 0x20;
     if (c == 'k')
@@ -676,7 +681,7 @@ int cli_commands(FILE *fp, void *ctx, bool reecho)
                 free((void *)args[i]);
         }
         if (retn != 0 && (error_handling < 0 || (error_handling > 0 && error_handling != errno))) {
-            printf("Error with %s (%d) at row %d\n", cmd, errno, row);
+            printf("Error with %s (%d-%s) at row %d\n", cmd, errno, strerror(errno), row);
             return -1;
         } else if (retn == 0 && error_handling > 0 && error_handling != errno) {
             printf("Expected an error with %s (%d) at row %d\n", cmd, errno, row);

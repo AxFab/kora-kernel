@@ -116,6 +116,7 @@ start:
     jmp .supportDone
 .support64:
     DEBUG_WRITE 80, msg_support64
+    ; Write flag !?
 .supportDone:
 
     ; Setup GDT

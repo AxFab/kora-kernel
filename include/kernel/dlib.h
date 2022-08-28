@@ -157,6 +157,7 @@ struct dlsym
     size_t address;
     size_t size;
     int flags;
+    int type; // 0extern, 1 global, 2 local
     llnode_t node;
 };
 
@@ -216,19 +217,20 @@ struct dlproc
     llhead_t libs;
     hmap_t libs_map;
     hmap_t symbols_map;
+    splock_t lock;
 };
 
-int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, user_t *user, const char *name);
+int dlib_open(mspace_t *mm, vfs_t *vfs, user_t *user, const char *name);
 
 dlproc_t *dlib_proc();
 int dlib_destroy(dlproc_t *proc);
 dlib_t *dlib_create(const char *name);
-void dlib_clean(dlib_t *lib);
+void dlib_clean(dlproc_t *proc, dlib_t *lib);
 int dlib_parse(dlib_t *lib, inode_t *ino);
 
 int dlib_rebase(mspace_t *mm, hmap_t *symbols_map, dlib_t *lib);
 int dlib_resolve(hmap_t *symbols_map, dlib_t *lib);
-int dlib_relloc(dlib_t *lib);
+int dlib_relloc(mspace_t *mm, dlib_t *lib);
 
 void *dlib_sym(dlproc_t *proc, const char *symbol);
 size_t dlib_fetch_page(dlib_t *lib, size_t off);
