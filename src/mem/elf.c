@@ -87,45 +87,45 @@ PACK(struct elf_sym32
 PACK(struct elf_reloc32
 {
     uint32_t offset;
-    uint8_t type:4;
-    uint8_t unused : 4;
+    uint32_t type:4;
+    uint32_t unused: 4;
     uint32_t symbol:24;
 });
 
 PACK(struct elf_dynamic
 {
-    size_t unused0;
-    size_t unused1;
-    size_t plt_rel_sz;
-    size_t plt_got;
-    size_t hash;
-    size_t str_tab;
-    size_t sym_tab;
-    size_t rela;
-    size_t rela_sz;
-    size_t rela_ent;
-    size_t str_sz;
-    size_t sym_ent;
-    size_t init;
-    size_t fini;
-    size_t soname;
-    size_t rpath;
-    size_t symbolic;
-    size_t rel;
-    size_t rel_sz;
-    size_t rel_ent;
-    size_t plt_rel;
-    size_t debug;
-    size_t text_rel;
-    size_t jmp_rel;
-    size_t reserved0;
-    size_t init_array;
-    size_t fini_array;
-    size_t init_array_sz;
-    size_t fini_array_sz;
-    size_t reserved1;
-    size_t reserved2;
-    size_t reserved3;
+    uint32_t unused0;
+    uint32_t unused1;
+    uint32_t plt_rel_sz;
+    uint32_t plt_got;
+    uint32_t hash;
+    uint32_t str_tab;
+    uint32_t sym_tab;
+    uint32_t rela;
+    uint32_t rela_sz;
+    uint32_t rela_ent;
+    uint32_t str_sz;
+    uint32_t sym_ent;
+    uint32_t init;
+    uint32_t fini;
+    uint32_t soname;
+    uint32_t rpath;
+    uint32_t symbolic;
+    uint32_t rel;
+    uint32_t rel_sz;
+    uint32_t rel_ent;
+    uint32_t plt_rel;
+    uint32_t debug;
+    uint32_t text_rel;
+    uint32_t jmp_rel;
+    uint32_t reserved0;
+    uint32_t init_array;
+    uint32_t fini_array;
+    uint32_t init_array_sz;
+    uint32_t fini_array_sz;
+    uint32_t reserved1;
+    uint32_t reserved2;
+    uint32_t reserved3;
 });
 
 typedef struct elf_string_helper elf_string_helper_t;
@@ -144,7 +144,17 @@ struct elf_string_helper
 #define ELF_PH_LOAD  1
 #define ELF_PH_DYNAMIC  2
 #define ELF_PH_INTERP 3
+#define ELF_PH_NOTE 4
+#define ELF_PT_SHLIB 5
 #define ELF_PH_PHDR 6
+
+
+#define SHT_NONE     0
+#define SHT_PROGBITS 1
+#define SHT_SYMTAB   2
+#define SHT_STRTAB   3
+#define SHT_NOBITS   8
+#define SHT_REL      9
 
 #define ELF_DYN_NEEDED  1
 
@@ -152,17 +162,17 @@ struct elf_string_helper
 uint8_t elf_sign[16] = { 0x7F, 'E', 'L', 'F', 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 
-unsigned long elf_hash(const uint8_t *name)
-{
-    unsigned long h = 0, g;
-    while (*name) {
-        h = (h << 4) + *name++;
-        if ((g = h & 0xF0000000))
-            h ^= g >> 24;
-        h &= ~g;
-    }
-    return h;
-}
+//unsigned long elf_hash(const uint8_t *name)
+//{
+//    unsigned long h = 0, g;
+//    while (*name) {
+//        h = (h << 4) + *name++;
+//        if ((g = h & 0xF0000000))
+//            h ^= g >> 24;
+//        h &= ~g;
+//    }
+//    return h;
+//}
 
 int elf_check_header(elf_header_t *head)
 {
@@ -176,6 +186,7 @@ int elf_check_header(elf_header_t *head)
         return -1;
     if (head->ph_off + head->ph_size > PAGE_SIZE)
         return -1;
+    kprintf(-1, "\nFile format elf32-i386\n");
     return 0;
 }
 
@@ -188,14 +199,16 @@ const char *elf_string(elf_string_helper_t *string_table, int idx)
     int max = PAGE_SIZE - off % PAGE_SIZE;
     char *str = ADDR_OFF(ptr, off % PAGE_SIZE);
     int lg = strnlen(str, max);
-    if (lg >= max)
+    if (lg > max)
         return NULL;
-    return str;
+    char *buf = kalloc(lg + 1);
+    memcpy(buf, str, lg);
+    buf[lg] = '\0';
+    return buf;
 }
 
-void elf_section(elf_phead_t *ph, dlsection_t *section)
+int elf_section(elf_phead_t *ph, dlsection_t *section)
 {
-    int ret = 0;
     section->foff = ph->file_addr;
     section->offset = ph->virt_addr;
     section->csize = ph->file_size;
@@ -207,10 +220,10 @@ void elf_section(elf_phead_t *ph, dlsection_t *section)
         section->offset -= off;
         section->csize = off;
         section->length = ALIGN_UP(ph->virt_size + off, PAGE_SIZE);
-        ret = -1;
+        return -1;
     }
     if (ph->align < PAGE_SIZE)
-        ret - 1;
+        return -1;
     //section->lower = ALIGN_DW(ph->file_addr, PAGE_SIZE);
     //section->upper = ALIGN_UP(ph->file_addr + ph->virt_size, PAGE_SIZE);
     //section->start = ph->file_addr - section->lower;
@@ -218,6 +231,7 @@ void elf_section(elf_phead_t *ph, dlsection_t *section)
 
     // section->offset = ph->virt_addr - ph->file_addr;
     // kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->lower, section->upper, section->start, section->end, section->offset, rights[(int)section->rights]);
+    return 0;
 }
 
 void elf_dynamic(dlib_t *lib, elf_phead_t *ph, blkmap_t *bkm, elf_dynamic_t *dynamic)
@@ -256,7 +270,7 @@ void elf_requires(dlib_t *lib, elf_phead_t *ph, blkmap_t *bkm, elf_string_helper
         dyen = ADDR_OFF(blk_map(bkm, off / PAGE_SIZE, VM_RD), off % PAGE_SIZE);
         int idx = *dyen;
         dlname_t *dep = kalloc(sizeof(dlname_t));
-        dep->name = strdup(elf_string(string_table, idx));
+        dep->name = elf_string(string_table, idx);
         // kprintf(-1, "Rq:  %s \n", dep->name);
         ll_append(&lib->depends, &dep->node);
         off += 4;
@@ -266,12 +280,42 @@ void elf_requires(dlib_t *lib, elf_phead_t *ph, blkmap_t *bkm, elf_string_helper
 void elf_symbol(dlsym_t *symbol, elf_sym32_t *sym, dlib_t *lib, elf_dynamic_t *dynamic, elf_string_helper_t *string_table)
 {
     symbol->address = sym->value;
-    symbol->name = strdup(elf_string(string_table, sym->name));
+    symbol->name = elf_string(string_table, sym->name);
     symbol->size = sym->size;
     symbol->flags = 0;
+
+    if (sym->info == 0x10)
+        symbol->type = 0;
+    else if (sym->info < 0x10)
+        symbol->type = 2;
+    else if (sym->info < 0x20)
+        symbol->type = 1;
+    else 
+        symbol->type = 3;
+
     if (sym->info >= 32 || sym->shndx > 0x7fff)
-        symbol->flags |= 0x80;
-    kprintf(-1, "S: %06x  %s [%d-%d-%d-%d]\n", symbol->address, symbol->name, sym->size, sym->info, sym->other, sym->shndx);
+        symbol->flags |= 0x80; // !!?
+
+    const char *type = "             ";
+    if (sym->info == 0x10)
+        type = "        *UND*";
+    else if (sym->info == 0x11)
+        type = "g     O .    ";
+    else if (sym->info == 0x12)
+        type = "g     F .    ";
+    else if (sym->info == 0x20)
+        type = " w      *UND*";
+    else if (sym->info == 0x00)
+        type = "l       .    ";
+    else if (sym->info == 0x01)
+        type = "l     O .    ";
+    else if (sym->info == 0x02)
+        type = "l     F .    ";
+    else if (sym->info == 0x04)
+        type = "l    df *ABS*";
+    else 
+        type = "             ";
+    kprintf(-1, "%08x %s %08x %s \n", sym->value, type, sym->size, symbol->name);
 }
 
 
@@ -281,7 +325,7 @@ void elf_relocation(dlreloc_t *reloc, elf_reloc32_t *rel, llhead_t *symbols)
     int sym_idx = rel->symbol;
     reloc->offset = rel->offset;
     reloc->type = rel[1].type;// &0xF;
-    if (sym_idx != 0) {
+    if (sym_idx != 0 && sym_idx < 0x10000) {
         reloc->symbol = ll_index(symbols, sym_idx - 1, dlsym_t, node);
         if (reloc->symbol == NULL)
             kprintf(-1, "Missing RelSym: %06x  %x  (%d) \n", reloc->offset, reloc->type, sym_idx);
@@ -307,9 +351,13 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
     lib->entry = head->entry;
     lib->base = 0xffffffff;
     // Open program table
+    kprintf(-1, "Program Header:\n");
+
     elf_phead_t *ph_tbl = ADDR_OFF(head, head->ph_off);
     for (i = 0; i < head->ph_count; ++i) {
+        const char *sname = "   ....";
         if (ph_tbl[i].type == ELF_PH_LOAD) {
+            sname = "   LOAD";
             dlsection_t *section = kalloc(sizeof(dlsection_t));
             ll_append(&lib->sections, &section->node);
             elf_section(&ph_tbl[i], section);
@@ -318,9 +366,16 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
             if (lib->length < section->offset + section->length)
                 lib->length = section->offset + section->length;
         } else if (ph_tbl[i].type == ELF_PH_DYNAMIC) {
+            sname = "DYNAMIC";
             dyn_idx = i;
             elf_dynamic(lib, &ph_tbl[i], blk_clone(bkm), &dynamic);
+        } else if (ph_tbl[i].type == ELF_PH_PHDR) {
+            sname = "   PHDR";
+        } else if (ph_tbl[i].type == ELF_PH_INTERP) {
+            sname = " INTERP";
         }
+        kprintf(-1, " %s off    0x%08x vaddr 0x%08x paddr 0x%08x\n", sname, ph_tbl[i].file_addr, ph_tbl[i].virt_addr, ph_tbl[i].phys_addr);
+        kprintf(-1, "         filesz 0x%08x memsz 0x%08x flags %s\n", ph_tbl[i].file_size, ph_tbl[i].virt_size, "---");
     }
 
 
@@ -338,6 +393,21 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
 
 
     /* Relocate executable to address zero */
+    kprintf(-1, "Dynamic Section:\n");
+    kprintf(-1, "  HASH                 0x%08x\n", dynamic.hash);
+    kprintf(-1, "  STRTAB               0x%08x\n", dynamic.str_tab);
+    kprintf(-1, "  SYMTAB               0x%08x\n", dynamic.sym_tab);
+    kprintf(-1, "  STRSZ                0x%08x\n", dynamic.str_sz);
+    kprintf(-1, "  SYMENT               0x%08x\n", dynamic.sym_ent);
+    kprintf(-1, "  PLTGOT               0x%08x\n", dynamic.plt_got);
+    kprintf(-1, "  PLTRELSZ             0x%08x\n", dynamic.plt_rel_sz);
+    kprintf(-1, "  PLTREL               0x%08x\n", dynamic.plt_rel);
+    kprintf(-1, "  JMPREL               0x%08x\n", dynamic.jmp_rel);
+    kprintf(-1, "  REL                  0x%08x\n", dynamic.rel);
+    kprintf(-1, "  RELSZ                0x%08x\n", dynamic.rel_sz);
+    kprintf(-1, "  RELENT               0x%08x\n", dynamic.rel_ent);
+    // kprintf(-1, "  RELCOUNT             0x%08x\n", dynamic.text_rel); TODO -- Fix that !
+
     dynamic.hash -= lib->base;
     dynamic.init -= lib->base;
     dynamic.fini -= lib->base;
@@ -368,36 +438,87 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
 
     /* Build symbol table */
     llhead_t symbols = INIT_LLHEAD;
-    unsigned sym_count = hash[1];
     blkmap_t *bkm_sym = blk_clone(bkm);
-    // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
-    for (i = 1; i < sym_count; ++i) {
-        size_t off = dynamic.sym_tab + i * dynamic.sym_ent;
-        elf_sym32_t *sym_tbl = ADDR_OFF(blk_map(bkm_sym, off / PAGE_SIZE, VM_RD), off % PAGE_SIZE);
-        dlsym_t *sym = kalloc(sizeof(dlsym_t));
-        ll_append(&symbols, &sym->node);
-        elf_symbol(sym, sym_tbl, lib, &dynamic, &string_table);
-    }
-    // blk_close(bkm_sym);
+    blkmap_t *bkm_sec = blk_clone(bkm);
 
     /* Browse sections */
     unsigned rel_sz = 0;
     size_t sh_off = head->sh_off + head->sh_str_ndx * sizeof(elf_shead_t);
-    elf_shead_t *sh_tbl = ADDR_OFF(blk_map(bkm_sym, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
+    elf_shead_t *sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
     elf_string_helper_t sh_strings;
     sh_strings.bkm = blk_clone(bkm);
     sh_strings.offset = sh_tbl->offset;
-
-    for (i = 0; i < head->sh_count; ++i) {
+    kprintf(-1, "Sections:\n");
+    kprintf(-1, "Idx Name             Size      VMA/LMA   File off  Align\n");
+    for (i = 1; i < head->sh_count; ++i) {
         sh_off = head->sh_off + i * sizeof(elf_shead_t);
-        sh_tbl = ADDR_OFF(blk_map(bkm_sym, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
-        char *sh_name = elf_string(&sh_strings, sh_tbl->name_idx);
+        sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
+        const char *sh_name = elf_string(&sh_strings, sh_tbl->name_idx);
+        kprintf(-1, " %2d %-16s %08x  %08x  %08x  .\n", i - 1, sh_name, sh_tbl->size, sh_tbl->addr, sh_tbl->offset);
         if (sh_tbl->type == 9)
             rel_sz += sh_tbl[i].size / dynamic.rel_ent;
         if (sh_tbl->type == 1 && strcmp(sh_name, ".text") == 0)
             lib->text_off = sh_tbl->addr - lib->base;
+        if (sh_name != NULL)
+            kfree(sh_name);
         // kprintf(-1, "Section %s - %p\n", &sh_strtab[sh_tbl[i].name_idx], sh_tbl[i].addr);
     }
+
+
+    unsigned sym_count = hash[1];
+    elf_sym32_t sym_bkp;
+    kprintf(-1, "Symbols table:\n");
+    //for (i = 1; i < sym_count; ++i) {
+    //    size_t off = dynamic.sym_tab + i * dynamic.sym_ent;
+    //    elf_sym32_t *sym_tbl = ADDR_OFF(blk_map(bkm_sym, off / PAGE_SIZE, VM_RD), off % PAGE_SIZE);
+    //    dlsym_t *sym = kalloc(sizeof(dlsym_t));
+    //    ll_append(&symbols, &sym->node);
+    //    if (off % PAGE_SIZE + sizeof(elf_sym32_t) > PAGE_SIZE) {
+    //        int ds = PAGE_SIZE - off % PAGE_SIZE;
+    //        memcpy(&sym_bkp, sym_tbl, ds);
+    //        sym_tbl = blk_map(bkm_sym, off / PAGE_SIZE + 1, VM_RD);
+    //        memcpy(ADDR_OFF(&sym_bkp, ds), ADDR_OFF(sym_tbl, -ds), sizeof(elf_sym32_t) - ds);
+    //        elf_symbol(sym, &sym_bkp, lib, &dynamic, &string_table);
+    //    } else
+    //        elf_symbol(sym, sym_tbl, lib, &dynamic, &string_table);
+    //}
+
+
+    for (i = 1; i < head->sh_count; ++i) {
+        sh_off = head->sh_off + i * sizeof(elf_shead_t);
+        sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
+        if (sh_tbl->type != SHT_SYMTAB)
+            continue;
+
+        size_t str_of = head->sh_off + sh_tbl->link * sizeof(elf_shead_t);
+        elf_shead_t *sh_str = ADDR_OFF(blk_map(bkm_sec, str_of / PAGE_SIZE, VM_RD), str_of % PAGE_SIZE);
+        elf_string_helper_t str_strings;
+        str_strings.bkm = blk_clone(bkm);
+        str_strings.offset = sh_str->offset;
+
+        sym_count = sh_tbl->size / sizeof(elf_sym32_t);
+        for (unsigned j = 1; j < sym_count; ++j) {
+            size_t off = sh_tbl->offset + j * dynamic.sym_ent;
+            elf_sym32_t *sym_tbl = ADDR_OFF(blk_map(bkm_sym, off / PAGE_SIZE, VM_RD), off % PAGE_SIZE);
+            if (sym_tbl->name == 0)
+                continue;
+
+            dlsym_t *sym = kalloc(sizeof(dlsym_t));
+            ll_append(&symbols, &sym->node);
+            if (off % PAGE_SIZE + sizeof(elf_sym32_t) > PAGE_SIZE) {
+                int ds = PAGE_SIZE - off % PAGE_SIZE;
+                memcpy(&sym_bkp, sym_tbl, ds);
+                sym_tbl = blk_map(bkm_sym, off / PAGE_SIZE + 1, VM_RD);
+                memcpy(ADDR_OFF(&sym_bkp, ds), sym_tbl, sizeof(elf_sym32_t) - ds);
+                elf_symbol(sym, &sym_bkp, lib, &dynamic, &str_strings);
+            } else
+                elf_symbol(sym, sym_tbl, lib, &dynamic, &str_strings);
+        }
+
+        blk_close(str_strings.bkm);
+    }
+
+    // blk_close(bkm_sym);
 
     /* Read relocation table */
     for (i = 0; i < rel_sz; ++i) {
@@ -418,7 +539,7 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
     /* Organize symbols */
     while (symbols.count_ > 0) {
         dlsym_t *sym = ll_dequeue(&symbols, dlsym_t, node);
-        if (sym->address != 0)
+        if (sym->type != 0 || sym->address != 0)
             ll_append(&lib->intern_symbols, &sym->node);
         else
             ll_append(&lib->extern_symbols, &sym->node);
@@ -428,6 +549,7 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
     blk_close(string_table.bkm);
     blk_close(sh_strings.bkm);
     blk_close(bkm_sym);
+    blk_close(bkm_sec);
     blk_close(bkm);
     return 0;
 }

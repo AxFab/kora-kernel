@@ -11,7 +11,7 @@
 static inode_t *dlib_lookfor_at(vfs_t *vfs, user_t *user, const char *name, const char *xpath)
 {
     char *rl;
-    char *path = strdup(xpath);
+    char *path = kstrdup(xpath);
     char *buf = kalloc(4096);
 
     for (char *dir = strtok_r(path, ":;", &rl); dir; dir = strtok_r(NULL, ":;", &rl)) {
@@ -40,20 +40,22 @@ static inode_t *dlib_lookfor(vfs_t *vfs, user_t *user, const char *name, const c
             return ino;
     }
 
-    if (!req_uid) {
-        if (lpath != NULL) {
-            ino = dlib_lookfor_at(vfs, user, name, lpath);
-            if (ino != NULL)
-                return ino;
-        }
+    if (!req_uid && lpath != NULL) {
+        ino = dlib_lookfor_at(vfs, user, name, lpath);
+        if (ino != NULL)
+            return ino;
     }
 
     return  dlib_lookfor_at(vfs, user, name, sys);
 }
 
-int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, user_t *user, const char *name)
+int dlib_open(mspace_t *mm, vfs_t *vfs, user_t *user, const char *name)
 {
     dlib_t *lib;
+    if (mm->proc == NULL)
+        mm->proc = dlib_proc();
+    dlproc_t *proc = mm->proc;
+
     // Open executable
     proc->exec = dlib_create(name);
     const char *path = NULL; // proc_getenv(proc, "PATH");
@@ -62,6 +64,7 @@ int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, user_t *user, const char
     // proc->exec = dlib_create(name, ino);
     if (ino == NULL || dlib_parse(proc->exec, ino) != 0)
         return -1; // TODO -- proc->exec won't be clean by destroy!
+    hmp_put(&proc->libs_map, proc->exec->name, strlen(proc->exec->name), proc->exec);
 
     // Open shared libraries
     bool req_uid = false;
@@ -71,42 +74,48 @@ int dlib_open(dlproc_t *proc, mspace_t *mm, vfs_t *vfs, user_t *user, const char
         lib = ll_dequeue(&queue, dlib_t, node);
         ll_append(&proc->libs, &lib->node);
         dlname_t *dep;
-        for ll_each (&lib->depends, dep, dlname_t, node) {
-            dlib_t *sl = hmp_get(&proc->libs_map, dep, strlen(dep));
+        for ll_each(&lib->depends, dep, dlname_t, node)
+        {
+            dlib_t *sl = hmp_get(&proc->libs_map, dep->name, strlen(dep->name));
             if (sl == NULL) {
                 sl = dlib_create(dep->name);
                 ino = dlib_lookfor(vfs, user, dep->name, lpath, proc->exec->rpath, "/usr/lib:/lib", req_uid);
                 // sl = dlib_create(dep->name, ino);
                 if (ino == NULL || dlib_parse(sl, ino) != 0) {
-                    dlib_clean(sl);
+                    dlib_clean(NULL, sl);
                     // Missing library
                     return -1; // TODO -- Clean data on queue!
                 }
-                hmp_put(&proc->libs_map, dep, strlen(dep), sl);
+                hmp_put(&proc->libs_map, dep->name, strlen(dep->name), sl);
                 ll_enqueue(&queue, &sl->node);
             }
         }
     }
 
-    // Map all libraries
-    for ll_each_reverse(&proc->libs, lib, dlib_t, node)
-        if (dlib_rebase(mm, &proc->symbols_map, lib) != 0) {
-            // Missing memory space
-            return -1;
-        }
-
     // Resolve symbols
     for ll_each(&proc->libs, lib, dlib_t, node)
+    {
         if (dlib_resolve(&proc->symbols_map, lib) != 0) {
             // Missing symbols
             return -1;
         }
+    }
 
-    for ll_each(&proc->libs, lib, dlib_t, node)
-        if (dlib_relloc(lib) != 0) {
-            // Relloc error
+    // Map all libraries
+    for ll_each_reverse(&proc->libs, lib, dlib_t, node)
+    {
+        if (dlib_rebase(mm, &proc->symbols_map, lib) != 0) {
+            // Missing memory space
             return -1;
         }
+    }
+
+    //for ll_each(&proc->libs, lib, dlib_t, node) {
+    //    if (dlib_relloc(mm, lib) != 0) {
+    //        // Relloc error
+    //        return -1; // TODO -- Unmap !?
+    //    }
+    //}
 
     return 0;
 }
@@ -118,6 +127,7 @@ dlproc_t *dlib_proc()
     dlproc_t *proc = kalloc(sizeof(dlproc_t));
     hmp_init(&proc->libs_map, 8);
     hmp_init(&proc->symbols_map, 8);
+    splock_init(&proc->lock);
     return proc;
 }
 
@@ -126,12 +136,15 @@ int dlib_destroy(dlproc_t *proc)
     while (proc->libs.count_ > 0) {
         dlib_t *lib = ll_dequeue(&proc->libs, dlib_t, node);
         hmp_remove(&proc->libs_map, lib->name, strlen(lib->name));
-        dlsym_t *symb;
-        for ll_each(&lib->intern_symbols, symb, dlsym_t, node)
-            hmp_remove(&proc->symbols_map, symb->name, strlen(symb->name));
-        dlib_clean(lib);
+        dlib_clean(proc, lib);
     }
-    proc->exec = NULL;
+
+    int ret = 0; // proc->symbols_map.count == 0 ? 0 : -1;
+    hmp_destroy(&proc->libs_map);
+    hmp_destroy(&proc->symbols_map);
+    // TODO -- proc->exec = NULL;
+    kfree(proc);
+    return ret;
 }
 
 dlib_t *dlib_create(const char *name)
@@ -141,8 +154,15 @@ dlib_t *dlib_create(const char *name)
     return lib;
 }
 
-void dlib_clean(dlib_t *lib)
+void dlib_clean(dlproc_t *proc, dlib_t *lib)
 {
+    while (lib->intern_symbols.count_ > 0) {
+        dlsym_t *symb = ll_dequeue(&lib->intern_symbols, dlsym_t, node);
+        if (proc != NULL)
+            hmp_remove(&proc->symbols_map, symb->name, strlen(symb->name));
+        kfree(symb->name);
+        kfree(symb);
+    }
     // TODO -- Symbols / Section / Depends / Reloc...
     kfree(lib->name);
     kfree(lib);
@@ -150,12 +170,14 @@ void dlib_clean(dlib_t *lib)
 
 int dlib_parse(dlib_t *lib, inode_t *ino)
 {
-
+    blkmap_t *blkmap = blk_open(ino, PAGE_SIZE);
+    int ret = elf_parse(lib, blkmap);
+    return ret;
 }
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-#ifndef NDEBUG
+#if !defined NDEBUG && defined KORA_KRN
 static size_t dlib_override_map(const char *name, size_t base)
 {
 #define _UA(x)  (0x2000000 + (x) * 0x80000)
@@ -183,21 +205,20 @@ static size_t dlib_override_map(const char *name, size_t base)
 
 int dlib_rebase(mspace_t *mm, hmap_t *symbols_map, dlib_t *lib)
 {
+    // Find map address
     void *base = NULL;
 
-#ifndef NDEBUG
+#if !defined NDEBUG && defined KORA_KRN
     lib->base = dlib_override_map(lib->name, lib->base);
+    if (lib->base)
+        base = mspace_map(mm, lib->base, lib->length, (void *)lib, 0, VMA_CODE | VMA_FIXED | VM_RWX);
 #endif
 
-    // Find map address
-    if (lib->base)
-        base = mspace_map(mm, lib->base, lib->length, lib, 0, VMA_CODE | VMA_FIXED | VM_RWX);
-    
     // Use ASRL
     int max = (mm->upper_bound - lib->length - mm->lower_bound) / PAGE_SIZE;
-    while (base == NULL && true) {
+    while (base == NULL && true) { // TODO -- When to give up
         size_t addr = mm->lower_bound + (rand32() % max) * PAGE_SIZE;
-        base = mspace_map(mm, addr, lib->length, lib, 0, VMA_CODE | VMA_FIXED | VM_RWX);
+        base = mspace_map(mm, addr, lib->length, (void *)lib, 0, VMA_CODE | VMA_FIXED | VM_RWX);
     }
 
     if (base == NULL)
@@ -245,7 +266,7 @@ int dlib_resolve(hmap_t *symbols_map, dlib_t *lib)
     return missing == 0 ? 0 : -1;
 }
 
-int dlib_relloc(dlib_t *lib)
+int dlib_relloc(mspace_t *mm, dlib_t *lib)
 {
     int pages = lib->length / PAGE_SIZE;
     lib->pages = kalloc(sizeof(size_t) * pages);
@@ -259,7 +280,7 @@ int dlib_relloc(dlib_t *lib)
     }
 
     for (int i = 0; i < pages; ++i) {
-        lib->pages[i] = mmu_read((size_t)ptr + i * PAGE_SIZE);
+        lib->pages[i] = mmu_read(mm, (size_t)ptr + i * PAGE_SIZE);
     }
 
     dlreloc_t *reloc;
@@ -287,26 +308,28 @@ int dlib_relloc(dlib_t *lib)
     }
 
     kunmap(ptr, lib->length);
+    return 0;
 }
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 void *dlib_sym(dlproc_t *proc, const char *symbol)
 {
-    // splock_lock(&proc->lock);
+    if (proc == NULL)
+        return NULL;
+    splock_lock(&proc->lock);
     dlsym_t *symb = hmp_get(&proc->symbols_map, symbol, strlen(symbol));
     size_t addr = symb ? symb->address : 0;
-    // splock_unlock(&lib->lock);
-    return addr;
+    splock_unlock(&proc->lock);
+    return (void *)addr;
 }
 
 size_t dlib_fetch_page(dlib_t *lib, size_t off)
 {
-    int i = 0;
     lib->page_rcu++;
     int idx = off / PAGE_SIZE;
     size_t pg = lib->pages[idx];
-    if (pg == NULL) {
+    if (pg == 0) {
         // TODO -- !?
     }
     return pg;

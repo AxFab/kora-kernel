@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <stdint.h>
+#include <kora/mcrs.h>
 
 void bitsclr(uint8_t *ptr, int start, int count)
 {

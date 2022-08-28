@@ -32,6 +32,14 @@
 #include <bits/atomic.h>
 #include <threads.h>
 
+#ifdef __LP64
+#define XOFF_F "%ld"
+#define XOFF_FX "lx"
+#else
+#define XOFF_F "%lld"
+#define XOFF_FX "llx"
+#endif
+
 typedef struct vfs vfs_t;
 typedef struct vfs_share vfs_share_t;
 typedef struct inode inode_t;
@@ -312,6 +320,11 @@ struct fnode
     llhead_t clist;
     llnode_t cnode;
 };
+
+
+// For map/unmap
+size_t vfs_fetch_page(inode_t *ino, xoff_t off);
+int vfs_release_page(inode_t *ino, xoff_t off, size_t pg, bool dirty);
 
 
 

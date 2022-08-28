@@ -33,7 +33,7 @@ void page_release(page_t page)
 }
 
 page_t mmu_read_kmap_stub(size_t address);
-page_t mmu_read(size_t vaddr)
+page_t mmu_read(void *mspace, size_t vaddr)
 {
 	return mmu_read_kmap_stub(vaddr);
 }
@@ -74,7 +74,7 @@ void initialize()
 	ctx.vfs = vfs_init();
 
 #ifdef _EMBEDED_FS
-	fat_setup();
+	// fat_setup();
 	isofs_setup();
 	ext2_setup();
 #endif
@@ -83,7 +83,7 @@ void initialize()
 int teardown()
 {
 #ifdef _EMBEDED_FS
-	fat_teardown();
+	// fat_teardown();
 	isofs_teardown();
 	ext2_teardown();
 #endif

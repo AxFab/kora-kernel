@@ -94,12 +94,5 @@ void vhd_create_dyn(const char *name, uint64_t size);
 uint32_t crc32_r(uint32_t checksum, const void *buf, size_t len);
 
 
-#ifdef __LP64
-#define XOFF_F "%ld"
-#else
-#define XOFF_F "%lld"
-#endif
-
-
 
 #endif /* __CLI_VFS_H */

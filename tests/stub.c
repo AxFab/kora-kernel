@@ -263,11 +263,8 @@ void *kmap(size_t len, void *obj, xoff_t off, int flags)
         inode_t *ino = obj;
         assert(len == PAGE_SIZE);
         assert(ino != NULL);
-        if (ino->ops->fetch)
-            mp->ptr = (void *)ino->ops->fetch(ino, off);
-        else if (ino->type == FL_REG || ino->type == FL_BLK)
-            mp->ptr = (void*)block_fetch(ino, off);
-        if (mp->ptr == 0) {
+        mp->ptr = (void *)vfs_fetch_page(ino, off);
+        if (mp->ptr == NULL) {
             fprintf(stderr, "Error on fetching page of %s\n", vfs_inokey(ino, tmp));
             return NULL;
         }
@@ -320,11 +317,7 @@ void kunmap(void *addr, size_t len)
     } else if (getter == 1) {
         bool dirty = mp->access & VM_WR ? true : false;
         size_t nx = 0;
-        int ret = 0;
-        if (mp->ino->ops->release)
-            ret = mp->ino->ops->release(mp->ino, mp->off, (size_t)mp->ptr + nx, dirty);
-        else if (mp->ino->type == FL_REG || mp->ino->type == FL_BLK)
-            ret = block_release(mp->ino, mp->off, (size_t)mp->ptr + nx, dirty);
+        int ret = vfs_release_page(mp->ino, mp->off, (size_t)mp->ptr + nx, dirty);
         if (ret != 0) {
             fprintf(stderr, "Error on releasing page of %s\n", vfs_inokey(mp->ino, tmp));
         }
