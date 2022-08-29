@@ -30,6 +30,12 @@ struct subnet
     ifnet_t *slots[0];
 };
 
+netstack_t *lan_init(const char *name, int cards);
+int lan_connect(subnet_t *subnet, ifnet_t *ifnet);
+int lan_disconnect(subnet_t *subnet, ifnet_t *ifnet);
+void eth_setup(netstack_t *);
+int ip4_start(netstack_t *);
+
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #define ETH_ALEN 6
 
@@ -82,10 +88,10 @@ struct net_ops fake_eth_ops = {
 
 void fake_eth_setup(netstack_t *stack)
 {
-    char hwaddr[ETH_ALEN];
+    uint8_t hwaddr[ETH_ALEN];
     hwaddr[0] = 0x80;
     for (int i = 1; i < 6; ++i)
-        hwaddr[i] = rand();
+        hwaddr[i] = rand8();
     ifnet_t *net = net_device(stack, NET_AF_ETH, hwaddr, &fake_eth_ops, NULL);
     net->mtu = 1500;
 }
@@ -143,7 +149,7 @@ int lan_disconnect(subnet_t *subnet, ifnet_t *ifnet)
     for (unsigned i = 0; i < subnet->len; ++i) {
         if (subnet->slots[i] == ifnet)
             subnet->slots[i] = NULL;
-        else if (subnet->slots[i] != ifnet)
+        else if (subnet->slots[i] != ifnet && subnet->slots[i] != NULL)
             count++;
     }
 

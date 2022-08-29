@@ -36,6 +36,10 @@
 #define KEEP_FSET 2
 #define KEEP_VM 4
 
+
+#define RESX_FILE 1
+#define RESX_DIR 1
+
 enum task_status {
     TS_ZOMBIE = 0,  /* The task structure is not used. */
     TS_BLOCKED,  /* The task is paused and listen only for its own events. */
@@ -45,6 +49,14 @@ enum task_status {
     TS_ABORTED,  /* Task should be aborded, but is currently running. */
 };
 
+
+#define CKS_NONE 0
+#define CKS_IDLE 1
+#define CKS_USER 2
+#define CKS_SYS 3
+#define CKS_IRQ 4
+#define CKS_MAX 5
+
 typedef struct task task_t;
 typedef enum task_status task_status_t;
 typedef struct scheduler scheduler_t;
@@ -53,7 +65,6 @@ typedef void *sig_handler_t;
 typedef struct task_params task_params_t;
 typedef struct masterclock masterclock_t;
 typedef struct advent advent_t;
-typedef struct fstream fstream_t;
 typedef struct streamset streamset_t;
 
 
@@ -63,6 +74,7 @@ struct scheduler {
 
     splock_t sch_lock;
     llhead_t sch_queue;
+    llhead_t sch_zombie;
 
     vfs_t *vfs;
     void *net;
@@ -78,6 +90,10 @@ struct masterclock {
     xtime_t boot;
     xtime_t monotonic;
     xtime_t next_advent;
+
+    int last_state;
+    xtime_t last_time;
+    xtime_t elapsed_counters[CKS_MAX];
 };
 
 struct task {
@@ -107,40 +123,60 @@ struct task {
     vfs_t *vfs;
     streamset_t *fset;
     void *net;
+    user_t *user;
     // proc_t *proc;
+    xtime_t elapsed_counters[CKS_MAX];
+    xtime_t start_time;
+    xtime_t kill_time;
 };
 
-
-struct fstream {
-    fnode_t *fnode;
-    inode_t *ino;
-    xoff_t position;
-    bbnode_t node;
-    int fd;
-    int flags;
-    int io_flags;
-    void *dir_ctx;
-    splock_t lock;
+struct task_params
+{
+    void *func;
+    size_t *params;
+    size_t len;
+    bool start;
 };
 
+struct advent
+{
+    llnode_t tm_node;
+    xtime_t until;
+    unsigned repeat;
+    bool did_timeout;
+    task_t *task;
+
+    void *object;
+    llnode_t node;
+
+    void (*wake)(masterclock_t *, advent_t *);
+    void (*dtor)(masterclock_t *, advent_t *);
+};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 extern scheduler_t __scheduler;
 extern task_t *__current; // TODO - Per CPU
 extern masterclock_t __clock;
 
-void cpu_setjmp(cpu_state_t *buf, void *stack, void *func, void *arg);
-int cpu_save(cpu_state_t *buf);
-_Noreturn void cpu_restore(cpu_state_t *buf);
+// void cpu_setjmp(cpu_state_t *buf, void *stack, void *func, void *arg);
+// void cpu_prepare(cpu_state_t *buf, void *stack, void *func, void *arg);
+void cpu_prepare(task_t *task, void *func, void *arg);
+//int cpu_save(cpu_state_t *buf);
+//_Noreturn void cpu_restore(cpu_state_t *buf);
+int cpu_save(task_t *task);
+_Noreturn void cpu_restore(task_t *task);
 _Noreturn void cpu_halt();
 _Noreturn void cpu_usermode(void *start, void *stack);
 int cpu_no();
 
+
 // int task_fork(const char *name, void *func, void *arg, int flags);
+task_t *task_search(size_t pid);
+task_t *task_next(size_t pid);
 int task_start(const char *name, void *func, void *arg);
 void task_raise(scheduler_t *sch, task_t *task, unsigned signum);
 void task_stop(task_t *task, int code);
-void task_fatal(const char *msg, unsigned signum);
+// void task_fatal(const char *msg, unsigned signum);
 
 int task_spawn(const char *program, const char **args, inode_t **nodes);
 int task_thread(const char *name, void *entry, void *params, size_t len, int flags);
@@ -160,10 +196,10 @@ streamset_t *stream_open_set(streamset_t *strms);
 void stream_close_set(streamset_t *strms);
 
 
-fstream_t *stream_put(streamset_t *strms, fnode_t* node, inode_t *ino, int flags);
-fstream_t *stream_get(streamset_t *strms, int fd);
-void stream_remove(streamset_t *strms, fstream_t *stm);
 
+int resx_put(streamset_t *strms, int type, void *data, void(*close)(void *));
+void *resx_get(streamset_t *strms, int type, int handle);
+void resx_remove(streamset_t *strms, int handle);
 
 
 int futex_wait(int *addr, int val, long timeout, int flags);
@@ -178,5 +214,14 @@ masterclock_t *clock_init(xtime_t now);
 void clock_adjtime(masterclock_t *clock, xtime_t now);
 xtime_t clock_read(masterclock_t *clock, xtime_name_t name);
 void clock_ticks(masterclock_t *clock, unsigned elapsed);
+
+
+typedef struct file file_t;
+file_t *file_from_inode(inode_t *ino, int flags);
+void file_close(file_t *);
+
+
+void clock_state(int state);
+
 
 #endif  /* _KERNEL_TASKS_H */

@@ -36,7 +36,7 @@ PACK(struct udp_check_header
     uint8_t mbz;
     uint8_t proto;
     uint16_t length;
-};)
+});
 
 /* Look for an ephemeral port on UDP */
 uint16_t udp_ephemeral_port(socket_t *sock)
@@ -76,8 +76,8 @@ int udp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, 
 
 uint16_t udp_do_checksum(udp_check_header_t *check, uint16_t *data, size_t len)
 {
-    int i, sum = 0;
-    uint16_t *cptr = check;
+    unsigned i, sum = 0;
+    uint16_t *cptr = (uint16_t *)check;
     for (i = 0; i < sizeof(udp_check_header_t) / 2; i++)
         sum += ntohs(cptr[i]);
     for (i = 0; i < len / 2; i++)
@@ -87,7 +87,7 @@ uint16_t udp_do_checksum(udp_check_header_t *check, uint16_t *data, size_t len)
     return htons(~(sum & 0xFFFF) & 0xFFFF);
 }
 
-int udp_checksum(skb_t *skb, ip4_route_t *route, unsigned length)
+void udp_checksum(skb_t *skb, ip4_route_t *route, unsigned length)
 {
     udp_header_t *header = (void *)(&skb->buf[skb->pen - length - sizeof(udp_header_t)]);
     udp_check_header_t check;
@@ -151,7 +151,7 @@ int udp_socket_accept(socket_t *sock, socket_t *model, skb_t *skb)
     return ip4_socket_accept(master, &master->udp_ports, sock, model, skb);
 }
 
-long udp_socket_send(socket_t* sock, const uint8_t* addr, const uint8_t* buf, size_t len, int flags)
+long udp_socket_send(socket_t* sock, const uint8_t* addr, const char* buf, size_t len, int flags)
 {
     assert(sock && addr && buf);
     
@@ -184,6 +184,7 @@ long udp_socket_send(socket_t* sock, const uint8_t* addr, const uint8_t* buf, si
     }
 
     uint16_t off = 0;
+    long bytes = 0;
     while (len > 0) {
         unsigned pack = MIN(packsize, len);
         skb_t* skb = net_packet(route.net);
@@ -201,11 +202,12 @@ long udp_socket_send(socket_t* sock, const uint8_t* addr, const uint8_t* buf, si
         len -= pack;
         buf += pack;
         off++;
+        bytes += pack;
     }
-    return 0;
+    return bytes;
 }
 
-long udp_socket_recv(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, int flags)
+long udp_socket_recv(socket_t* sock, uint8_t* addr, char* buf, size_t len, int flags)
 {
     while (len > 0) {
         skb_t *skb = net_socket_pull(sock, addr, 6, -1);

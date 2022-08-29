@@ -94,7 +94,7 @@ int ip4_header(skb_t *skb, ip4_route_t *route, int protocol, unsigned length, ui
 int ip4_receive(skb_t *skb)
 {
     net_log(skb, ",ipv4");
-    ip4_info_t *info = ip4_readinfo(skb->ifnet);
+    // ip4_info_t *info = ip4_readinfo(skb->ifnet);
     ip4_header_t *header = net_skb_reserve(skb, sizeof(ip4_header_t));
     if (header == NULL) {
         net_log(skb, ":Unexpected end of data");
@@ -159,9 +159,9 @@ int ip4_clear(netstack_t * stack, ifnet_t * ifnet)
     ip4_master_t *master = ip4_readmaster(stack);
     ip4_info_t *info = ip4_readinfo(ifnet);
     if (info->qry_arps.count_ > 0)
-        return -1;
+        return -1; // TODO -- Forget them all...
     if (info->qry_pings.count_ > 0)
-        return -1;
+        return -1; // TODO -- Forget them all...
     if (info->dhcp != NULL)
         dhcmp_clear(ifnet, info);
 

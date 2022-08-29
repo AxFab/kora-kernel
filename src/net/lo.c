@@ -156,8 +156,10 @@ int lo_teardown(netstack_t *stack)
     if (proto == NULL)
         return -1;
     lo_info_t *info = proto->data;
-    if (info->recv_map.count > 0)
+    if (info->recv_map.count > 0) {
+        kprintf(-1, "\033[31mCan't remove network protocol LO, still on use\033[0m\n");
         return -1;
+    }
     net_rm_protocol(stack, NET_AF_LO);
     hmp_destroy(&info->recv_map);
     kfree(info);

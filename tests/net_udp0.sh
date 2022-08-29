@@ -1,59 +1,59 @@
 # Udp simple exchange testing
-# Scenari: I connect to a UDP service and excahnge some packets
-node server 1
-ip4_config server:eth:1 ip=192.168.0.1
-link lan server:eth:1
+# Scenari: I CONNECT to a UDP service and excahnge some packets
+NODE server 1
+IP4_CONFIG server:eth:1 ip=192.168.0.1
+LINK lan server:eth:1
 
-node alice 1
-ip4_config alice:eth:1 ip=192.168.0.4
-link lan alice:eth:1
+NODE alice 1
+IP4_CONFIG alice:eth:1 ip=192.168.0.4
+LINK lan alice:eth:1
 
-socket server sks udp
-bind sks 0.0.0.0:7003
-accept sks sk0 0
+SOCKET server @sks udp
+BIND @sks 0.0.0.0:7003
+ACCEPT @sks @sk0 0
 
-socket alice ska udp
-connect ska 192.168.0.1:7003
+SOCKET alice @ska udp
+CONNECT @ska 192.168.0.1:7003
 
-text ba "Hello, I'm Alice\n"
-send ska ba
+TEXT @ba "Hello, I'm Alice\n"
+SEND @ska @ba
 
-accept sks sk0 50
-recv sk0 bs
-cmp ba bs
-text bs "Hello Alice\n"
-send sk0 bs
+ACCEPT @sks @sk0 50
+RECV @sk0 @bs
+EXPECT EQ @ba @bs
+TEXT @bs "Hello Alice\n"
+SEND @sk0 @bs
 
-recv ska ba
-print ba
-close ska
+RECV @ska @ba
+# PRINT @ba
+CLOSE @ska
 
 # Create a second client
 
-node bob 1
-ip4_config bob:eth:1 ip=192.168.0.5
-link lan bob:eth:1
+NODE @bob 1
+IP4_CONFIG bob:eth:1 ip=192.168.0.5
+LINK lan bob:eth:1
 
-text ba "Nice to meet you!\n"
-send ska ba
+TEXT @ba "Nice to meet you!\n"
+SEND @ska @ba
 
-socket bob skb udp
-connect skb 192.168.0.1:7003
+SOCKET @bob @skb udp
+CONNECT @skb 192.168.0.1:7003
 
-text bb "Hello, I'm Bob\n"
-send skb bb
+TEXT @bb "Hello, I'm Bob\n"
+SEND @skb @bb
 
-accept sks sk1 500
+ACCEPT @sks @sk1 500
 
-recv sk0 bs
-print bs
+RECV @sk0 @bs
+# PRINT @bs
 
-recv sk1 bs
-print bs
+RECV @sk1 @bs
+# PRINT @bs
 
-text bs "Hello Bob\n"
-send sk1 bs
+TEXT @bs "Hello Bob\n"
+SEND @sk1 @bs
 
-text bs "Is someone there?\n"
-send sks bs
+TEXT @bs "Is someone there?\n"
+SEND @sks @bs
 

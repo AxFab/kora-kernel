@@ -253,7 +253,7 @@ static int dhcp_opts_length_res(ifnet_t *net, dhcp_lease_t *lease)
 
 static int dhcp_opts_write_res(ifnet_t *net, skb_t *skb, dhcp_lease_t *lease)
 {
-    dhcp_info_t *info = dhcp_readinfo(net);
+    // dhcp_info_t *info = dhcp_readinfo(net);
     ip4_info_t *ip4 = ip4_readinfo(net);
 
     dhcp_option_buf(skb, DHCP_OPT_SERVERIP, IP4_ALEN, ip4->subnet.address);
@@ -433,7 +433,7 @@ static void dhcp_on_offer(ifnet_t *net, dhcp_msg_t *msg)
 static void dhcp_on_ack(ifnet_t *ifnet, dhcp_msg_t *msg)
 {
     dhcp_info_t *info = dhcp_readinfo(ifnet);
-    ip4_info_t *ip4 = ip4_readinfo(ifnet);
+    // ip4_info_t *ip4 = ip4_readinfo(ifnet);
 
     // Ignore unsolicited packets
     if (msg->uid != info->transaction || info->mode != DHCP_REQUEST)

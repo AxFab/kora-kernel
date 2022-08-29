@@ -25,28 +25,14 @@
 #include <kora/llist.h>
 
 
-struct task_params {
-    void *func;
-    size_t *params;
-    size_t len;
-    bool needmap;
-};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static _Noreturn void task_usermode(task_params_t *info)
+_Noreturn void task_usermode(task_params_t *info)
 {
     assert(info != NULL);
-
-    if (info->needmap) {
-        int ret = dlib_map_all(__current->proc);
-        if (ret != 0) {
-            kprintf(-1, "Task.%d] Error while mapping executable\n",
-                    __current->pid);
-            task_fatal("Unable to map the program", -1);
-            for (;;);
-        }
-        info->func = dlib_exec_entry(__current->proc);
+    if (info->start) {
+        // TODO -- Find info->func (need remap?)
     }
 
     // Prepare stack
@@ -55,7 +41,7 @@ static _Noreturn void task_usermode(task_params_t *info)
     stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
     size_t *args = ADDR_PUSH(stack, ALIGN_UP(info->len, sizeof(void *)));
     memcpy(args, info->params, info->len);
-    if (info->needmap) {
+    if (info->start) {
         args[1] = (size_t)&args[3];
         int i, argc = args[0];
         for (i = 0; i < argc; ++i)
@@ -79,7 +65,7 @@ static task_t *task_create(scheduler_t *sch, task_t *parent, const char *name, i
     task->stack = kmap(KSTACK_PAGES * PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VMA_STACK);
     task->status = TS_ZOMBIE;
     task->parent = parent;
-    task->name = name != NULL ? strdup(name) : NULL;
+    task->name = name != NULL ? kstrdup(name) : NULL;
 
     // Register
     splock_lock(&sch->lock);
@@ -102,7 +88,31 @@ static task_t *task_create(scheduler_t *sch, task_t *parent, const char *name, i
         task->net = parent->net;
     }
 
-    kprintf(-1, "Alloc task %d with stack %p-%p\n", task->pid, task->stack, (char *)task->stack + KSTACK_PAGES * PAGE_SIZE);
+    kprintf(-1, "Alloc task %d with stack %p\n", task->pid, (char *)task->stack + KSTACK_PAGES * PAGE_SIZE);
+    return task;
+}
+
+task_t *task_search(size_t pid)
+{
+    scheduler_t *sch = &__scheduler;
+    splock_lock(&sch->lock);
+    task_t *task;
+    if (pid == 0)
+        task = bbtree_first(&sch->task_tree, task_t, node);
+    else
+        task = bbtree_search_eq(&sch->task_tree, pid, task_t, node);
+    splock_unlock(&sch->lock);
+    return task;
+}
+
+task_t *task_next(size_t pid)
+{
+    scheduler_t *sch = &__scheduler;
+    splock_lock(&sch->lock);
+    task_t *task = bbtree_search_eq(&sch->task_tree, pid, task_t, node);
+    if (task != NULL)
+        task = bbtree_next(&task->node, task_t, node);
+    splock_unlock(&sch->lock);
     return task;
 }
 
@@ -113,32 +123,35 @@ int task_spawn(const char *program, const char **args, inode_t **nodes)
     if (name == NULL)
         name = program;
     task_t *task = task_create(&__scheduler, __current, name, 0);
-    task->proc = dlib_process(task->vfs, task->vm);
+    // task->proc = dlib_process(task->vfs, task->vm);
 
     // Init stream
     int flags = 0;
-    inode_t *null = vfs_search_ino(task->vfs, "/dev/null", NULL, true);
-    stream_put(task->fset, NULL, nodes[0] != NULL ? nodes[0] : null, flags | VM_RD);
-    stream_put(task->fset, NULL, nodes[1] != NULL ? nodes[1] : null, flags | VM_WR);
-    stream_put(task->fset, NULL, nodes[2] != NULL ? nodes[2] : null, flags | VM_WR);
-    vfs_close_inode(null);
+    if (nodes == NULL || nodes[0] == NULL || nodes[1] == NULL || nodes[2] == NULL)
+        return -1;
+    resx_put(task->fset, RESX_FILE, file_from_inode(nodes[0], flags | VM_RD), (void *)file_close);
+    resx_put(task->fset, RESX_FILE, file_from_inode(nodes[1], flags | VM_WR), (void *)file_close);
+    resx_put(task->fset, RESX_FILE, file_from_inode(nodes[2], flags | VM_WR), (void *)file_close);
 
     // Load image
-    int ret = dlib_openexec(task->proc, program);
+    int ret = dlib_open(task->vm, task->vfs, task->user, program);
     if (ret != 0) {
         kprintf(-1, "Task.%d] Unable to open executable image %s \n",
                 __current->pid, program);
+        // TODO -- Task destroy !!
         return 0;
     }
 
     // Save args
     task_params_t *info = kalloc(sizeof(task_params_t));
-    info->needmap = true;
+    info->start = true;
     int i, count = 1;
     int len = ALIGN_UP(strlen(program) + 1, 4);
-    for (i = 0; args[i]; ++i) {
-        count++;
-        len += ALIGN_UP(strlen(args[i]) + 1, 4);
+    if (args) {
+        for (i = 0; args[i]; ++i) {
+            count++;
+            len += ALIGN_UP(strlen(args[i]) + 1, 4);
+        }
     }
 
     len += sizeof(void *) * (count + 3);
@@ -153,14 +166,16 @@ int task_spawn(const char *program, const char **args, inode_t **nodes)
     strcpy((char *)&info->params[len], program);
     len += ALIGN_UP(strlen(program) + 1, 4) / 4;
 
-    for (i = 0; args[i]; ++i) {
-        info->params[i + 4] = len; //(size_t)(&info->params[len]);
-        strcpy((char *)&info->params[len], args[i]);
-        len += ALIGN_UP(strlen(args[i]) + 1, 4) / 4;
+    if (args) {
+        for (i = 0; args[i]; ++i) {
+            info->params[i + 4] = len; //(size_t)(&info->params[len]);
+            strcpy((char *)&info->params[len], args[i]);
+            len += ALIGN_UP(strlen(args[i]) + 1, 4) / 4;
+        }
     }
 
     // Schedule
-    cpu_prepare(&task->jmpbuf, task->stack, task_usermode, info);
+    cpu_prepare(task, task_usermode, info);
     scheduler_add(&__scheduler, task);
     return task->pid;
 }
@@ -168,17 +183,17 @@ int task_spawn(const char *program, const char **args, inode_t **nodes)
 int task_thread(const char *name, void *entry, void *params, size_t len, int flags)
 {
     task_t *task = task_create(&__scheduler, __current, name, flags);
-    task->proc = __current->proc;
 
     // Save args
     task_params_t *info = kalloc(sizeof(task_params_t));
     info->func = entry;
-    info->needmap = false;
-    info->params = memdup(params, len);
+    info->start = false;
+    info->params = kalloc(sizeof(len));
+    memcpy(info->params, params, len);
     info->len = len;
 
     // Schedule
-    cpu_prepare(&task->jmpbuf, task->stack, task_usermode, info);
+    cpu_prepare(task, task_usermode, info);
     scheduler_add(&__scheduler, task);
     return task->pid;
 }
@@ -186,29 +201,45 @@ int task_thread(const char *name, void *entry, void *params, size_t len, int fla
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-#ifdef KORA_KRN
 int task_start(const char *name, void *func, void *arg)
 {
     scheduler_t *sch = &__scheduler;
     task_t *parent = __current;
     task_t *task = task_create(sch, parent, name, 0);
 
-    cpu_prepare(&task->jmpbuf, task->stack, func, arg);
+    cpu_prepare(task, func, arg);
     scheduler_add(sch, task);
     return task->pid;
 }
 EXPORT_SYMBOL(task_start, 0);
-#endif
 
-void task_stop(task_t *task, int code)
+void task_stop(task_t * task, int code)
 {
+    splock_lock(&__scheduler.lock);
     task->ret_code = code;
-    // TODO - For each thread -> Aborted !
+    if (task->status >= TS_RUNNING)
+        task->status = TS_ABORTED;
+    else {
+        if (task->status == TS_READY)
+            ll_remove(&__scheduler.sch_queue, &task->sch_node);
+        if (task->status != TS_ZOMBIE) {
+            task->status = TS_ZOMBIE;
+            ll_append(&__scheduler.sch_queue, &task->sch_node);
+            while (task->advent_list.count_ > 0) {
+                advent_t *adv = ll_dequeue(&task->advent_list, advent_t, node);
+                adv->dtor(&__clock, adv);
+            }
+        }
+    }
+
+    splock_unlock(&__scheduler.lock);
 }
 
 void task_raise(scheduler_t *sch, task_t *task, unsigned signum)
 {
     assert(signum > 0 && signum < 31);
+    if (task == NULL)
+        return;
 
     splock_lock(&task->lock);
     task->raised |= 1 << signum;
@@ -220,12 +251,3 @@ void task_raise(scheduler_t *sch, task_t *task, unsigned signum)
     splock_unlock(&task->lock);
 }
 
-void task_fatal(const char *msg, unsigned signum)
-{
-    task_t *task = __current;
-    kprintf(KL_ERR, "Task.%d] \033[31mFatal error %d: %s\033[0m\n", task->pid, signum, msg);
-    stackdump(20);
-    scheduler_switch(TS_ZOMBIE);
-    // task_raise(sch, task, signum);
-}
-EXPORT_SYMBOL(task_fatal, 0);

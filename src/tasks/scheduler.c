@@ -26,6 +26,7 @@
 scheduler_t __scheduler;
 task_t *__current = NULL;
 
+
 void scheduler_init(vfs_t *vfs, void *net)
 {
     splock_init(&__scheduler.lock);
@@ -41,6 +42,8 @@ void scheduler_add(scheduler_t *sch, task_t *task)
     splock_lock(&sch->sch_lock);
     ll_enqueue(&sch->sch_queue, &task->sch_node);
     task->status = TS_READY;
+    if (task->start_time == 0)
+        task->start_time = xtime_read(XTIME_CLOCK);
     splock_unlock(&sch->sch_lock);
 }
 
@@ -57,6 +60,8 @@ static task_t *scheduler_next(scheduler_t *sch)
 {
     splock_lock(&sch->sch_lock);
     task_t *task = ll_dequeue(&sch->sch_queue, task_t, sch_node);
+    if (task)
+        task->status = TS_RUNNING;
     splock_unlock(&sch->sch_lock);
     return task;
 }
@@ -71,41 +76,45 @@ void scheduler_switch(int status)
     // Save the current task
     task_t *task = __current;
     if (task) {
-        splock_lock(&task->lock);
-        if (cpu_save(&task->jmpbuf) != 0)
+        if (cpu_save(task) != 0)
             return;
 
-        if (task->status == TS_ABORTED)
-            status = TS_ZOMBIE;
-
-        if (status == TS_READY)
-            scheduler_add(sch, task);
-
-        task->status = status;
-        splock_unlock(&task->lock);
-
-        if (status == TS_ZOMBIE) {
+        // TODO -- Register elapsed time !
+        splock_lock(&sch->sch_lock);
+        if (task->status == TS_ABORTED || status == TS_ZOMBIE) {
+            ll_enqueue(&sch->sch_zombie, &task->sch_node);
+            task->status = TS_ZOMBIE;
             task_raise(sch, task->parent, SIGCHLD);
-            // TODO -- Events
-        } else if (task->sc_log[0] != '\0') {
-            strncat(task->sc_log, " .....", 64);
-            kprintf(-1, "Task.%d] \033[96m%s\033[0m\n", task->pid, task->sc_log);
-            task->sc_log[0] = '\0';
+        } else if (status == TS_READY) {
+            ll_enqueue(&sch->sch_queue, &task->sch_node);
+            task->status = TS_READY;
+            // .. SYSCALL LOGS IS INTERRUPTED...
+            if (task->sc_log[0] != '\0') {
+                strncat(task->sc_log, " .....", 64 - strlen(task->sc_log));
+                kprintf(-1, "Task.%d] \033[96m%s\033[0m\n", task->pid, task->sc_log);
+                task->sc_log[0] = '\0';
+            }
+        } else {
+            task->status = status;
         }
+        splock_unlock(&sch->sch_lock);
     }
 
     // Restore next task
     task = scheduler_next(sch);
+    irq_zero();
+    clock_state(task == NULL ? CKS_IDLE : CKS_SYS);
     __current = task;
+#ifdef KORA_KRN
     if (task == NULL) {
         // clock_elapsed(CPU_IDLE);
-        irq_zero();
         cpu_halt();
+    } else {
+        // clock_elapsed(CPU_USER/CPU_SYSTEM);
+        if (task->vm != NULL)
+            mmu_context(task->vm);
+        cpu_restore(task);
     }
-    // clock_elapsed(CPU_USER/CPU_SYSTEM);
-    if (task->vm != NULL)
-        mmu_context(task->vm);
-    irq_zero();
-    cpu_restore(&task->jmpbuf);
+#endif
 }
 EXPORT_SYMBOL(scheduler_switch, 0);

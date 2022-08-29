@@ -189,10 +189,10 @@ int ip4_teardown_stack(netstack_t *stack)
     ip4_master_t *info = proto->data;
     if (info->ifinfos.count > 0)
         return -1;
-    if (info->tcp_ports.count_ > 0)
+    if (info->tcp_ports.count_ > 0 || info->udp_ports.count_ > 0) {
+        kprintf(-1, "\033[31mCan't remove network protocol IP4, ports are still opened\033[0m\n");
         return -1;
-    if (info->udp_ports.count_ > 0)
-        return -1;
+    }
 
     net_unregister(stack, ip4_checkup);
     net_rm_protocol(stack, NET_AF_TCP);
@@ -204,6 +204,8 @@ int ip4_teardown_stack(netstack_t *stack)
     lo_unregister(stack, ETH_IP4, ip4_receive);
 
     hmp_destroy(&info->ifinfos);
+    //hmp_destroy(&info->tcp_ports);
+    //hmp_destroy(&info->udp_ports);
     kfree(info);
     kfree(proto);
     kfree(tcp_proto);
@@ -274,14 +276,13 @@ void ip4_config(ifnet_t *net, const char *str)
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-int ip4_setup()
+void ip4_setup()
 {
-    return ip4_start(net_stack());
+    ip4_start(net_stack());
 }
 
-int ip4_teardown()
+void ip4_teardown()
 {
-    return -1;
 }
 
 EXPORT_MODULE(ip4, ip4_setup, ip4_teardown);

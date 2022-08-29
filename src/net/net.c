@@ -246,29 +246,37 @@ int net_destroy_ifnet(netstack_t *stack, ifnet_t *ifnet)
     return 0;
 }
 
+
 int net_destroy_stack(netstack_t *stack)
 {
+    // Send kill message to deamon
+    stack->running = 0;
+    sem_release(&stack->rx_sem);
+
+    // Check deamon is stopped
+    while (stack->running != -1) {
+        // TODO -- sleep 
+        kprintf(-1, "Waiting...\n");
+    }
+
+
     // Remove all interfaces
     for (;;) {
-        splock_lock(&stack->lock);
+         splock_lock(&stack->lock);
         ifnet_t *ifnet = ll_dequeue(&stack->list, ifnet_t, node);
         splock_unlock(&stack->lock);
         if (ifnet == NULL)
             break;
 
         if (net_destroy_ifnet(stack, ifnet) != 0) {
-            splock_lock(&stack->lock);
-            ll_enqueue(&stack->list, &ifnet->node);
-            splock_unlock(&stack->lock);
+            //splock_lock(&stack->lock); TODO
+            //ll_enqueue(&stack->list, &ifnet->node);
+            //splock_unlock(&stack->lock);
             return -1;
         }
     }
 
-    // Send kill message to deamon
-    stack->running = 0;
-    sem_release(&stack->rx_sem);
-
-    // Removing all protocols
+    // Removing all protocols (they unregister themself, and some register also others)
     splock_lock(&stack->lock);
     nproto_t *proto = bbtree_last(&stack->protocols, nproto_t, bnode);
     splock_unlock(&stack->lock);
@@ -286,17 +294,13 @@ int net_destroy_stack(netstack_t *stack)
             splock_lock(&stack->lock);
             proto = bbtree_previous(&proto->bnode, nproto_t, bnode);
             splock_unlock(&stack->lock);
+            if (proto == NULL)
+                break;
         }
     }
 
     if (stack->protocols.count_ > 0)
         return -1;
-
-    // Check deamon is stopped
-    while (stack->running != -1) {
-        // TODO -- sleep 
-        kprintf(-1, "Waiting...\n");
-    }
 
     // Release all memory
     if (stack->hostname)
@@ -335,7 +339,8 @@ void net_deamon(netstack_t *stack)
         kprintf(-1, "Rx %s:%s%d\n", skb->ifnet->stack->hostname, proto->name, skb->ifnet->idx);
         if (proto->receive(skb) != 0) {
             skb->ifnet->rx_dropped++;
-            kprintf(-1, "Rx dropped %s:%s%d\n", skb->ifnet->stack->hostname, skb->log);
+            kprintf(-1, "Rx dropped %s:%s%d %s\n", 
+                skb->ifnet->stack->hostname, skb->ifnet->proto->name, skb->ifnet->idx, skb->log);
             kfree(skb);
         }
     }

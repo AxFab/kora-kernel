@@ -22,8 +22,8 @@ typedef struct file
     size_t pages;
     size_t alloc;
     size_t *pcache;
-    atomic_int *rcus;
-    atomic_int prcu;
+    int *rcus;
+    int prcu;
 } file_t;
 
 static void __vfs_init()
@@ -57,7 +57,7 @@ void vfs_close_inode(inode_t *ino)
     assert(file->prcu == 0);
     if (file->pages > 0) {
         free(file->pcache);
-        free(file->rcus);
+        free((int *)file->rcus);
     }
     kfree(ino);
     free(file);
@@ -73,9 +73,9 @@ size_t vfs_fetch_page(inode_t *ino, xoff_t off)
     if (file->pages <= idx) {
         size_t len = ALIGN_UP(idx + 1, 8);
         file->pcache = realloc(file->pcache, len * sizeof(size_t));
-        file->rcus = realloc(file->rcus, len * sizeof(atomic_int));
+        file->rcus = realloc(file->rcus, len * sizeof(int));
         memset(&file->pcache[file->pages], 0, (len - file->pages) * sizeof(size_t));
-        memset(&file->rcus[file->pages], 0, (len - file->pages) * sizeof(atomic_int));
+        memset(&file->rcus[file->pages], 0, (len - file->pages) * sizeof(int));
         file->pages = len;
     }
     
@@ -84,8 +84,8 @@ size_t vfs_fetch_page(inode_t *ino, xoff_t off)
         file->alloc++;
     }
     size_t pg = file->pcache[idx];
-    atomic_inc(&file->prcu);
-    atomic_inc(&file->rcus[idx]);
+    file->prcu++;
+    file->rcus[idx]++;
     return pg;
 }
 
@@ -95,8 +95,8 @@ int vfs_release_page(inode_t *ino, xoff_t off, size_t pg, bool dirty)
     size_t idx = (size_t)(off / PAGE_SIZE);
     if (file->pages <= idx || file->pcache[idx] == 0)
         return -1;
-    atomic_dec(&file->prcu);
-    if (atomic_xadd(&file->rcus[idx], -1) == 1) {
+    file->prcu--;
+    if (--file->rcus[idx] == 0) {
         // TODO -- Simul write-back !
         page_release(file->pcache[idx]);
         file->pcache[idx] = 0;
