@@ -350,8 +350,8 @@ void vfs_dev_scavenge(device_t *dev, int max);
 
 // Generic
 vfs_t *vfs_init();
-// vfs_t *vfs_open_vfs(vfs_t *vfs);
-// vfs_t *vfs_clone_vfs(vfs_t *vfs);
+vfs_t *vfs_open_vfs(vfs_t *vfs);
+vfs_t *vfs_clone_vfs(vfs_t *vfs);
 int vfs_sweep(vfs_t *vfs);
 
 // fnode_t *vfs_mknod(fnode_t *parent, const char *name, int devno);

@@ -28,7 +28,7 @@
 typedef int64_t xoff_t;
 size_t vfs_fetch_page(void *ino, xoff_t off) { return 0; }
 int vfs_release_page(void *ino, xoff_t off, size_t pg, bool dirty) { return -1; }
-char *vfs_inokey(void *ino, char *buf) {}
+char *vfs_inokey(void *ino, char *buf) { return buf; }
 
 
 void initialize()

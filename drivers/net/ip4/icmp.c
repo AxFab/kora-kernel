@@ -108,8 +108,8 @@ int icmp_receive(skb_t *skb, unsigned length)
 
     } else if (header->type == ICMP_PONG) {
         ip4_info_t *info = ip4_readinfo(skb->ifnet);
-        uint16_t id = header->data & 0xFFFF;
-        uint32_t data = header->data;
+        // uint16_t id = header->data & 0xFFFF;
+        // uint32_t data = header->data;
         splock_lock(&info->qry_lock);
         net_qry_t *qry = bbtree_search_eq(&info->qry_pings, header->data, net_qry_t, bnode);
         if (qry != NULL)
@@ -120,7 +120,7 @@ int icmp_receive(skb_t *skb, unsigned length)
             // Check the payload!
             bool match = true;
             if (qry->len > 0) {
-                int len = MIN3(qry->len, length, NET_MAX_RESPONSE);
+                unsigned len = MIN3(qry->len, length, NET_MAX_RESPONSE);
                 match = length == len && buf != NULL && memcmp(qry->res, buf, len) == 0;
                 qry->len = len;
                 if (buf != NULL)

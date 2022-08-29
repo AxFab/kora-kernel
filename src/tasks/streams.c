@@ -30,52 +30,55 @@ struct streamset {
     atomic_int rcu;
 };
 
+typedef struct fstream resx_t;
+struct fstream
+{
+    void *data;
+    int type;
+    bbnode_t node;
+    void(*close)(void *);
+};
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static void stream_destroy(fstream_t *stm)
+
+int resx_put(streamset_t *strms, int type, void *data, void(*close)(void *))
 {
-    vfs_usage(stm->ino, stm->flags, -1);
-    if (stm->fnode)
-        vfs_close_fnode(stm->fnode);
-    if (stm->ino)
-        vfs_close_inode(stm->ino);
-    kfree(stm);
+    resx_t *resx = kalloc(sizeof(resx_t));
+    splock_lock(&strms->lock);
+    resx_t *p = bbtree_last(&strms->tree, resx_t, node);
+    size_t handle = p == NULL ? 0 : p->node.value_ + 1;
+    resx->node.value_ = handle;
+    resx->type = type;
+    resx->data = data;
+    resx->close = close;
+    bbtree_insert(&strms->tree, &resx->node);
+    splock_unlock(&strms->lock);
+    return resx->node.value_;
 }
 
-fstream_t *stream_put(streamset_t *strms, fnode_t *fnode, inode_t *ino, int flags)
+void *resx_get(streamset_t *strms, int type, int handle)
 {
-    fstream_t *stm = kalloc(sizeof(fstream_t));
-    stm->fnode = fnode ? vfs_open_fnode(fnode) : NULL;
-    stm->ino = ino ? vfs_open_inode(ino) : NULL;
-    stm->position = 0;
-    stm->flags = flags;
-    vfs_usage(stm->ino, flags, 1);
     splock_lock(&strms->lock);
-    fstream_t *p = bbtree_last(&strms->tree, fstream_t, node);
-    stm->fd = p == NULL ? 0 : p->fd + 1;
-    stm->node.value_ = stm->fd;
-    bbtree_insert(&strms->tree, &stm->node);
+    resx_t *resx = bbtree_search_eq(&strms->tree, handle, resx_t, node);
     splock_unlock(&strms->lock);
-    errno = 0;
-    return stm;
+    return resx->type == type ? resx : NULL;
 }
 
-fstream_t *stream_get(streamset_t *strms, int fd)
+void resx_remove(streamset_t *strms, int handle)
 {
     splock_lock(&strms->lock);
-    fstream_t *stm = bbtree_search_eq(&strms->tree, fd, fstream_t, node);
+    resx_t *resx = bbtree_search_eq(&strms->tree, handle, resx_t, node);
+    if (resx != NULL) {
+        bbtree_remove(&strms->tree, resx->node.value_);
+        if (resx->close) {
+            splock_unlock(&strms->lock);
+            resx->close(resx->data);
+            splock_lock(&strms->lock);
+        }
+        kfree(resx);
+    }
     splock_unlock(&strms->lock);
-    errno = stm == NULL ? EBADF : 0;
-    return stm;
-}
-
-void stream_remove(streamset_t *strms, fstream_t *stm)
-{
-    splock_lock(&strms->lock);
-    bbtree_remove(&strms->tree, stm->node.value_);
-    splock_unlock(&strms->lock);
-    stream_destroy(stm);
-    errno = 0;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -101,8 +104,10 @@ void stream_close_set(streamset_t *strms)
         return;
 
     while (strms->tree.count_ > 0) {
-        fstream_t *stream = bbtree_first(&strms->tree, fstream_t, node);
-        stream_destroy(stream);
+        resx_t *resx = bbtree_first(&strms->tree, resx_t, node);
+        if (resx->close)
+            resx->close(resx->data);
+        kfree(resx);
     }
     kfree(strms);
 }

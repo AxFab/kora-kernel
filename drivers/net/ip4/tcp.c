@@ -90,7 +90,7 @@ int tcp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offse
     length -= sizeof(tcp_header_t);
 
     uint16_t port = htons(header->dest_port);
-    ip4_info_t *info = ip4_readinfo(skb->ifnet);
+    // ip4_info_t *info = ip4_readinfo(skb->ifnet);
 
     memcpy(&skb->addr[skb->addrlen], &header->src_port, sizeof(uint16_t));
     skb->addrlen += sizeof(uint16_t);
@@ -114,7 +114,7 @@ int tcp_socket_bind(socket_t *sock, const uint8_t *addr, size_t len)
 
 int tcp_socket_connect(socket_t *sock, const uint8_t *addr, size_t len)
 {
-    ip4_master_t *master = ip4_readmaster(sock->stack);
+    // ip4_master_t *master = ip4_readmaster(sock->stack);
     // Start handshake
     return -1;
 }
@@ -132,12 +132,12 @@ int tcp_socket_accept(socket_t *sock, socket_t *model, skb_t *skb)
 }
 
 
-long tcp_socket_send(socket_t* sock, const uint8_t* addr, const uint8_t* buf, size_t len, int flags)
+long tcp_socket_send(socket_t* sock, const uint8_t* addr, const char* buf, size_t len, int flags)
 {
     return -1;
 }
 
-long tcp_socket_recv(socket_t* sock, uint8_t* addr, uint8_t* buf, size_t len, int flags)
+long tcp_socket_recv(socket_t* sock, uint8_t* addr, char * buf, size_t len, int flags)
 {
     return -1;
 }

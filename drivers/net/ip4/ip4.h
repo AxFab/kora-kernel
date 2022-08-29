@@ -94,7 +94,7 @@ uint16_t udp_ephemeral_port(socket_t *sock);
 /* Write an UDP header on a packet using the provided parameters */
 int udp_header(skb_t *skb, ip4_route_t *route, unsigned length, uint16_t rport, uint16_t lport, uint16_t identifier, uint16_t offset);
 /* Compute UDP checksum */
-int udp_checksum(skb_t *skb, ip4_route_t *route, unsigned length);
+void udp_checksum(skb_t *skb, ip4_route_t *route, unsigned length);
 /* Handle the reception of a UDP packet */
 int udp_receive(skb_t *skb, unsigned length, uint16_t identifier, uint16_t offset);
 /* Fill-out the prototype structure for UDP */
@@ -209,7 +209,7 @@ int ip4_socket_accept(ip4_master_t *master, bbtree_t *tree, socket_t *sock, sock
 
 
 
-
+int ip4_socket_close(ip4_master_t *master, bbtree_t *tree, socket_t *sock);
 
 
 int ip4_readip(uint8_t *ip, const char *str);

@@ -46,19 +46,20 @@ int ip4_socket_bind(ip4_master_t *master, bbtree_t *tree, socket_t *sock, const 
     // Looking for the port
     splock_lock(&master->plock);
     ip4_port_t *iport = bbtree_search_eq(tree, port, ip4_port_t, bnode);
-    if (iport == NULL) {
-        nport->sock = sock;
-        nport->bnode.value_ = nport->port = port;
-        nport->listen = false;
-        nport->binded = true;
-        bbtree_insert(tree, &nport->bnode);
-    }
-
-    splock_unlock(&master->plock);
     if (iport != NULL) {
+        splock_unlock(&master->plock);
         kfree(nport);
         return -1;
     }
+
+    nport->sock = sock;
+    nport->bnode.value_ = nport->port = port;
+    nport->listen = false;
+    nport->binded = true;
+    hmp_init(&nport->clients, 8);
+    bbtree_insert(tree, &nport->bnode);
+
+    splock_unlock(&master->plock);
     return 0;
 }
 
@@ -99,6 +100,7 @@ uint16_t ip4_ephemeral_port(ip4_master_t *master, bbtree_t *tree, socket_t *sock
     nport->bnode.value_ = nport->port = port;
     nport->listen = false;
     nport->binded = false;
+    hmp_init(&nport->clients, 8);
     bbtree_insert(tree, &nport->bnode);
 
 
@@ -116,28 +118,38 @@ int ip4_socket_close(ip4_master_t *master, bbtree_t *tree, socket_t *sock)
         return 0;
     }
     if (iport->sock != sock) {
-        // TODO -- Must be one of the client
-        splock_unlock(&master->plock);
-        return -1;
+        socket_t *scpy = hmp_get(&iport->clients, (char *)sock->raddr, 6);
+        if (scpy != sock) {
+            splock_unlock(&master->plock);
+            return -1;
+        }
+        hmp_remove(&iport->clients, (char *)sock->raddr, 6);
+
     } else {
         // TODO -- Race condition if recently given away by 'ip4_lookfor_socket'
         iport->listen = false;
         iport->sock = NULL;
-        if (iport->clients.count == 0)
-            bbtree_remove(tree, port);
-        splock_unlock(&master->plock);
-        return 0;
     }
+
+    if (iport->sock == NULL && iport->clients.count == 0) {
+        bbtree_remove(tree, port);
+        hmp_destroy(&iport->clients);
+        kfree(iport);
+    }
+    splock_unlock(&master->plock);
+    return 0;
 }
 
 /* Check if a socket is listen a port */
 socket_t *ip4_lookfor_socket(ip4_master_t *master, bbtree_t *tree, ifnet_t *ifnet, uint16_t port)
 {
-    socket_t *sock = NULL;
     splock_lock(&master->plock);
     ip4_port_t *iport = bbtree_search_le(tree, port, ip4_port_t, bnode);
-    if (iport != NULL)
-        sock = iport->sock;
+    if (iport == NULL) {
+        splock_unlock(&master->plock);
+        return NULL;
+    }
+    socket_t *sock = iport->sock;
     if (iport->listen) {
         // TODO -- Look is this a new packet or for a client socket ?
     }
@@ -170,11 +182,9 @@ int ip4_socket_accept(ip4_master_t *master, bbtree_t *tree, socket_t *sock, sock
     }
 
     assert(iport->sock == model);
-    if (iport->listen == false) {
-        hmp_init(&iport->clients, 8);
-        iport->listen = true;
-    }
-    hmp_put(&iport->clients, sock->raddr, 6, sock);
+    iport->listen = true;
+    
+    hmp_put(&iport->clients, (char *)sock->raddr, 6, sock);
     splock_unlock(&master->plock);
     return 0;
 }

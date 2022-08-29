@@ -192,7 +192,7 @@ int elf_check_header(elf_header_t *head)
 
 char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx", };
 
-const char *elf_string(elf_string_helper_t *string_table, int idx)
+char *elf_string(elf_string_helper_t *string_table, int idx)
 {
     size_t off = string_table->offset + idx;
     void *ptr = blk_map(string_table->bkm, off / PAGE_SIZE, VM_RD);
@@ -453,7 +453,7 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
     for (i = 1; i < head->sh_count; ++i) {
         sh_off = head->sh_off + i * sizeof(elf_shead_t);
         sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
-        const char *sh_name = elf_string(&sh_strings, sh_tbl->name_idx);
+        char *sh_name = elf_string(&sh_strings, sh_tbl->name_idx);
         kprintf(-1, " %2d %-16s %08x  %08x  %08x  .\n", i - 1, sh_name, sh_tbl->size, sh_tbl->addr, sh_tbl->offset);
         if (sh_tbl->type == 9)
             rel_sz += sh_tbl[i].size / dynamic.rel_ent;

@@ -155,7 +155,7 @@ static int net_socket_xchg(socket_t *sock, const netmsg_t *msg, int flags, long 
             mtx_unlock(&sock->lock);
             return -1;
         }
-        bytes += ret;
+        bytes += ret; // iov->len;
     }
 
     if (xchg == sock->proto->recv && msg->addrlen == sock->proto->addrlen)
@@ -188,7 +188,9 @@ long net_socket_write(socket_t *sock, const char *buf, size_t len, int flags)
     msg->iolven = 1;
     msg->iov[0].buf = (char *)buf;
     msg->iov[0].len = len;
-    return net_socket_send(sock, msg, flags);
+    long bytes = net_socket_send(sock, msg, flags);
+    kfree(msg);
+    return bytes;
 }
 
 /* Reading data from a socket */
@@ -198,7 +200,9 @@ long net_socket_read(socket_t *sock, char *buf, size_t len, int flags)
     msg->iolven = 1;
     msg->iov[0].buf = buf;
     msg->iov[0].len = len;
-    return net_socket_recv(sock, msg, flags);
+    long bytes = net_socket_recv(sock, msg, flags);
+    kfree(msg);
+    return bytes;
 }
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -237,7 +241,7 @@ skb_t *net_socket_pull(socket_t *sock, uint8_t *addr, int length, xtime_t timeou
     else if (timeout == 0 && sem_tryacquire(&sock->rsem) == thrd_busy)
         return NULL;
     else if (timeout > 0 && sem_timedacquire(&sock->rsem, &xt) == thrd_busy)
-        return NULL; // TODO -- sem_timedacquire();
+        return NULL;
 
     splock_lock(&sock->rlock);
     skb_t *skb = ll_dequeue(&sock->lskb, skb_t, node);

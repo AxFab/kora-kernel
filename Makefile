@@ -129,18 +129,21 @@ SRC_kcore += $(topdir)/src/stdc/debug.c
 SRC_kcore += $(topdir)/src/stdc/hmap.c
 SRC_kcore += $(topdir)/src/stdc/sem.c
 SRC_kcore += $(topdir)/src/stdc/bits.c
-SRC_kcore += $(wildcard $(topdir)/tests/*.c)
+SRC_kcore += $(topdir)/tests/cli.c
+SRC_kcore += $(topdir)/tests/stub.c
+SRC_kcore += $(topdir)/tests/threads.c
 
 CFLAGS_cli += -D_EMBEDED_FS
 
 SRC_climem += $(wildcard $(topdir)/src/mem/*.c)
 SRC_climem += $(wildcard $(topdir)/tests/mem/*.c)
-SRC_kcore += $(topdir)/tests/localfiles.c
+SRC_climem += $(topdir)/tests/localfiles.c
 SRC_climem += $(SRC_kcore)
 
 SRC_clinet += $(wildcard $(topdir)/drivers/net/ip4/*.c)
 SRC_clinet += $(wildcard $(topdir)/src/net/*.c)
 SRC_clinet += $(wildcard $(topdir)/tests/net/*.c)
+SRC_clinet += $(topdir)/tests/task.c
 SRC_clinet += $(SRC_kcore)
 
 SRC_clisnd += $(wildcard $(topdir)/src/snd/*.c)

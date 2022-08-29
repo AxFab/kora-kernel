@@ -165,19 +165,6 @@ int eth_receive(skb_t *skb)
     return recv(skb);
 }
 
-
-int eth_destroy(netstack_t *stack)
-{
-    nproto_t *proto = net_protocol(stack, NET_AF_ETH);
-    eth_info_t *info = proto->data;
-    if (info->recv_map.count > 0)
-        return -1;
-    kfree(info);
-    hmp_destroy(&info->recv_map);
-    kfree(proto);
-    return 0;
-}
-
 /* Exit point of the ethernet module */
 int eth_teardown(netstack_t *stack)
 {
@@ -185,21 +172,25 @@ int eth_teardown(netstack_t *stack)
     if (proto == NULL)
         return -1;
     eth_info_t *info = proto->data;
-    if (info->recv_map.count > 0)
+    if (info->recv_map.count > 0) {
+        kprintf(-1, "\033[31mCan't remove network protocol ETH, still on use\033[0m\n");
         return -1;
+    }
 
     net_rm_protocol(stack, NET_AF_ETH);
-    kfree(proto->data);
+    hmp_destroy(&info->recv_map);
+    kfree(info);
+    // kfree(proto->data);
     kfree(proto);
     return 0;
 }
 
 /* Entry point of the ethernet module */
-int eth_setup(netstack_t* stack)
+void eth_setup(netstack_t* stack)
 {
     nproto_t* proto = net_protocol(stack, NET_AF_ETH);
     if (proto != NULL)
-        return -1;
+        return;
 
     proto = kalloc(sizeof(nproto_t));
     eth_info_t *info = kalloc(sizeof(eth_info_t));
@@ -211,11 +202,10 @@ int eth_setup(netstack_t* stack)
     proto->paddr = eth_writemac;
     proto->teardown = eth_teardown;
     net_set_protocol(stack, NET_AF_ETH, proto);
-    return 0;
 }
 
 EXPORT_SYMBOL(eth_writemac, 0);
-EXPORT_SYMBOL(eth_broadcast, 0);
+// EXPORT_SYMBOL(eth_broadcast, 0);
 EXPORT_SYMBOL(eth_handshake, 0);
 EXPORT_SYMBOL(eth_unregister, 0);
 EXPORT_SYMBOL(eth_header, 0);

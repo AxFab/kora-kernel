@@ -30,19 +30,19 @@
 
 typedef struct ftx ftx_t;
 
-struct advent {
-    llnode_t tm_node;
-    xtime_t until;
-    unsigned repeat;
-    bool did_timeout;
-    task_t *task;
-
-    void *object;
-    llnode_t node;
-
-    void (*wake)(masterclock_t *, advent_t *);
-    void (*dtor)(masterclock_t *, advent_t *);
-};
+//struct advent {
+//    llnode_t tm_node;
+//    xtime_t until;
+//    unsigned repeat;
+//    bool did_timeout;
+//    task_t *task;
+//
+//    void *object;
+//    llnode_t node;
+//
+//    void (*wake)(masterclock_t *, advent_t *);
+//    void (*dtor)(masterclock_t *, advent_t *);
+//};
 
 struct ftx {
     splock_t lock;
@@ -57,7 +57,7 @@ masterclock_t __clock;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void advent_register(masterclock_t *clock, advent_t *advent, long timeout, long interval)
+static void advent_register(masterclock_t *clock, advent_t *advent, long timeout, long interval)
 {
     assert(__current != NULL);
     advent->task = __current;
@@ -77,7 +77,7 @@ void advent_register(masterclock_t *clock, advent_t *advent, long timeout, long 
     // TODO -- Register inside the task, to close on exit
 }
 
-void advent_unregister(masterclock_t *clock, advent_t *advent)
+static void advent_unregister(masterclock_t *clock, advent_t *advent)
 {
     if (advent->until != 0) {
         // assert(splock_locked(&clock->lock));
@@ -344,6 +344,32 @@ void clock_ticks(masterclock_t *clock, unsigned elapsed)
         splock_unlock(&clock->lock);
     }
 }
+
+
+void clock_state(int state)
+{
+    assert(state >= CKS_NONE && state < CKS_MAX);
+    static char *__state_names[] = { "none", "idle", "user", "system", "irq" };
+    xtime_t now = xtime_read(XTIME_CLOCK);
+    if (__clock.last_state != CKS_NONE) {
+        xtime_t elapsed = now - __clock.last_time;
+        __clock.elapsed_counters[0] += elapsed;
+        __clock.elapsed_counters[__clock.last_state] += elapsed;
+        if (__clock.last_state == CKS_SYS || __clock.last_state == CKS_USER) {
+            assert(__current != NULL);
+            __current->elapsed_counters[0] += elapsed;
+            __current->elapsed_counters[__clock.last_state] += elapsed;
+            kprintf(-1, "Last state was '%s on %d', elapsed %d us... going %s\n",
+                __state_names[__clock.last_state], __current->pid, (int)elapsed, __state_names[state]);
+        } else {
+            kprintf(-1, "Last state was '%s', elapsed %d us... going %s\n",
+                __state_names[__clock.last_state], (int)elapsed, __state_names[state]);
+        }
+    }
+    __clock.last_time = now;
+    __clock.last_state = state;
+}
+
 
 void clock_handler(masterclock_t *clock)
 {

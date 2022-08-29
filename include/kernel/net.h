@@ -69,7 +69,7 @@ struct netstack {
     int running;
     char *hostname;
     char *domain;
-    llhead_t list;
+    llhead_t list; // of ifnets
     splock_t lock;
 
     sem_t rx_sem;
@@ -116,6 +116,7 @@ struct ifnet {
     long tx_broadcast;
     long tx_errors;
     long tx_dropped;
+
 };
 
 // Socket kernel buffer

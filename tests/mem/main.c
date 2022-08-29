@@ -34,6 +34,8 @@
 #define ST_MSPACE 1
 #define ST_ADDRESS 2
 
+int alloc_check();
+
 
 struct
 {
@@ -345,7 +347,7 @@ int read_access(char *mode)
 
 int do_show(void *ctx, size_t *params)
 {
-    char *checks = (char *)params[0];
+    // char *checks = (char *)params[0];
 
     mspace_display(kMMU.kspace);
     if (kMMU.uspace)

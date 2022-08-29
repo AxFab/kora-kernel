@@ -302,8 +302,8 @@ int do_kill(void *cfg, size_t *params)
     if (stack == NULL)
         return cli_error("Unable to find the stack named '%s'\n", host);
     cli_remove(host, OBJ_NSTACK);
-    net_destroy_stack(stack);
-    return 0;
+    int ret = net_destroy_stack(stack);
+    return ret;
 }
 
 int do_link(void *cfg, size_t * params)
@@ -329,7 +329,7 @@ int do_unlink(void *cfg, size_t *params)
     int stay = lan_disconnect(subnet, ifnet);
     if (stay == 0) {
         cli_remove(lan, OBJ_SUBNET);
-        free(lan);
+        free(subnet);
     }
     return 0;
 }
@@ -360,12 +360,52 @@ int do_text(void *cfg, size_t *params)
     return 0;
 }
 
+
+int do_rmbuf(void *cfg, size_t *params)
+{
+    char *name = (char *)params[0];
+    buffer_t *buffer = cli_fetch(name, OBJ_BUFFER);
+    if (buffer == NULL)
+        return cli_error("Unknwon buffer");
+    free(buffer->ptr);
+    free(buffer);
+    cli_remove(name, OBJ_BUFFER);
+    return 0;
+}
+
+int do_expect(void *cfg, size_t * params)
+{
+    char *cmd = (char *)params[0];
+    char *oprd0 = (char *)params[1];
+    char *oprd1 = (char *)params[2];
+
+    if (strcmp(cmd, "EQ") == 0) {
+        buffer_t *buf0 = cli_fetch(oprd0, OBJ_BUFFER);
+        buffer_t *buf1 = cli_fetch(oprd1, OBJ_BUFFER);
+        if (buf0 == NULL || buf1 == NULL)
+            return cli_error("Unavailable operands");
+        if (buf0->len != buf1->len || memcmp(buf0->ptr, buf1->ptr, buf0->len) != 0)
+            return -1;
+        return 0;
+
+    } else if (strcmp(cmd, "NONULL") == 0) {
+        socket_t *sock = cli_fetch(oprd0, OBJ_SOCKET);
+        if (sock == NULL)
+            return -1;
+        return 0;
+    }
+
+    return cli_error("Unknown operator %s", cmd);
+}
+
+void kdump(void *, size_t);
+
 int do_print(void *cfg, size_t *params)
 {
     char *name = (char *)params[0];
     buffer_t *buffer = cli_fetch(name, OBJ_BUFFER);
-    if (buffer->type == 1)
-        printf("Value %s: '%s'\n", name, buffer->ptr);
+    printf("Value %s:\n", name);
+    kdump(buffer->ptr, buffer->len);
     return 0;
 }
 
@@ -374,10 +414,10 @@ int do_socket(void *cfg, size_t *params)
     char *host = (char *)params[0];
     char *name = (char *)params[1];
     char *protol = (char *)params[2];
-    char *method = (char *)params[3];
+    // char *method = (char *)params[3];
     netstack_t *stack = cli_fetch(host, OBJ_NSTACK);
     int protocol = 0;
-    if (strcmp(protol, "udp") == 0 || strcmp(protol, "upd/ip4") == 0)
+    if (strcmp(protol, "udp") == 0 || strcmp(protol, "udp/ip4") == 0)
         protocol = NET_AF_UDP;
     else if (strcmp(protol, "tcp") == 0 || strcmp(protol, "tcp/ip4") == 0)
         protocol = NET_AF_TCP;
@@ -388,6 +428,18 @@ int do_socket(void *cfg, size_t *params)
     }
     cli_store(name, sock, OBJ_SOCKET);
     return 0;
+}
+
+int do_close(void *cfg, size_t *params)
+{
+    char *name = (char *)params[0];
+    socket_t *sock = cli_fetch(name, OBJ_SOCKET);
+    if (sock == NULL)
+        return cli_error("Unknwon socket\n");
+    int ret = net_socket_close(sock);
+    if (ret == 0)
+        cli_remove(name, OBJ_SOCKET);
+    return ret;
 }
 
 int do_bind(void *cfg, size_t *params)
@@ -405,7 +457,6 @@ int do_bind(void *cfg, size_t *params)
     return 0;
 }
 
-
 int do_connect(void *cfg, size_t *params)
 {
     char *name = (char *)params[0];
@@ -421,19 +472,16 @@ int do_connect(void *cfg, size_t *params)
     return 0;
 }
 
-
 int do_send(void *cfg, size_t *params)
 {
     char *name = (char *)params[0];
     char *buff = (char *)params[1];
     socket_t *sock = cli_fetch(name, OBJ_SOCKET);
-    size_t *buffer = cli_fetch(buff, OBJ_BUFFER);
-    if (sock == NULL || buffer == NULL) {
-        fprintf(stderr, "Unknwon element\n");
-        return -1;
-    }
-    int ret = net_socket_write(sock, (const char *)buffer[0], buffer[1], 0);
-    return 0;
+    buffer_t *buffer = cli_fetch(buff, OBJ_BUFFER);
+    if (sock == NULL || buffer == NULL)
+        return cli_error("Unknwon element");
+    long bytes = net_socket_write(sock, (const char *)buffer->ptr, buffer->len, 0);
+    return bytes == (long)buffer->len ? 0 : -1;
 }
 
 int do_recv(void *cfg, size_t *params)
@@ -450,11 +498,9 @@ int do_recv(void *cfg, size_t *params)
     buffer->len = 1500;
     buffer->type = 1;
     cli_store(buff, buffer, OBJ_BUFFER);
-    if (sock == NULL || buffer == NULL) {
-        fprintf(stderr, "Unknwon element\n");
-        return -1;
-    }
-    int ret = net_socket_read(sock, buffer->ptr, buffer->len, 0);
+    if (sock == NULL || buffer == NULL)
+        return cli_error("Unknwon element");
+    long ret = net_socket_read(sock, buffer->ptr, buffer->len, 0);
     if (ret == 0)
         cli_warn("Did not received any data\n");
     buffer->len = ret;
@@ -474,16 +520,6 @@ int do_accept(void *cfg, size_t *params)
         cli_store(name2, client, OBJ_SOCKET);
     else
         cli_warn("No incoming socket\n");
-    return 0;
-}
-
-int do_close(void *cfg, size_t *params)
-{
-    char *name = (char *)params[0];
-    socket_t *sock = cli_fetch(name, OBJ_SOCKET);
-    if (sock == NULL)
-        return cli_error("Unknwon socket\n");
-    net_socket_close(sock);
     return 0;
 }
 
@@ -517,7 +553,7 @@ int do_ping(void *cfg, size_t *params)
     if (ip4_find_route(stack, &route, ip) != 0)
         return cli_error("Unable to find a route to '%s' from '%s'\n", target, host);
     net_qry_t qry;
-    int ret = icmp_ping(&route, payload, len, &qry);
+    int ret = icmp_ping(&route, (char *)payload, len, &qry);
     if (ret != 0)
         return cli_error("Unable to complete ping request on %s\n", host);
 
@@ -539,7 +575,6 @@ int do_ping(void *cfg, size_t *params)
     return 0;
 }
 
-
 int do_test(void *cfg, size_t *params)
 {
     test_service();
@@ -552,8 +587,10 @@ int do_restart(void *cfg, size_t *params)
     return alloc_check();
 }
 
+
 cli_cmd_t __commands[] = {
     { "RESTART", "", { 0, 0, 0, 0, 0 }, do_restart, 1 },
+    { "QUIT", "", { 0, 0, 0, 0, 0 }, do_restart, 1 },
     // LAN
     { "NODE", "", { ARG_STR, ARG_INT, 0, 0, 0 }, do_node, 1 },
     { "KILL", "", { ARG_STR, 0, 0, 0, 0 }, do_kill, 1 },
@@ -561,8 +598,10 @@ cli_cmd_t __commands[] = {
     { "UNLINK", "", { ARG_STR, ARG_STR, 0, 0, 0 }, do_unlink, 1 },
     { "TEMPO", "", { 0, 0, 0, 0, 0 }, do_tempo, 1 },
     { "TEXT", "", { ARG_STR, ARG_STR, 0, 0, 0 }, do_text, 1 },
+    { "RMBUF", "", { ARG_STR, 0, 0, 0, 0 }, do_rmbuf, 1 },
     // SOCK
     { "SOCKET", "", { ARG_STR, ARG_STR, ARG_STR, ARG_STR, 0 }, do_socket, 3 },
+    { "CLOSE", "", { ARG_STR, 0, 0, 0, 0 }, do_close, 1 },
     { "BIND", "", { ARG_STR, ARG_STR, 0, 0, 0 }, do_bind, 2 },
     { "CONNECT", "", { ARG_STR, ARG_STR, 0, 0, 0 }, do_connect, 2 },
     { "SEND", "", { ARG_STR, ARG_STR, 0, 0, 0 }, do_send, 2 },
@@ -572,7 +611,8 @@ cli_cmd_t __commands[] = {
     { "IP4_CONFIG", "", { ARG_STR, ARG_STR, 0, 0, 0 }, do_ip4_config, 1 },
     { "PING", "", { ARG_STR, ARG_STR, 0, 0, 0 }, do_ping, 1 },
 
-    { "TEST", "", { 0, 0, 0, 0, 0 }, do_test, 1 },
+    { "TEST", "", { 0, 0, 0, 0, 0 }, do_test, 0 },
+    { "EXPECT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, do_expect, 2 },
     CLI_END_OF_COMMANDS,
 };
 
