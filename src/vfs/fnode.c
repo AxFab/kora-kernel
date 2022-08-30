@@ -7,89 +7,95 @@ fnode_t *vfs_fsnode_from(fnode_t *parent, const char *name)
 {
     char tmp[16];
     assert(parent && parent->mode == FN_OK && parent->ino);
-    device_t *device = parent->ino->dev;
-    mtx_lock(&parent->mtx);
-    splock_lock(&device->lock);
-    int len = 4 + strnlen(name, 256);
-    if (len >= 260) {
+    //device_t *device = parent->ino->dev;
+    // mtx_lock(&parent->mtx);
+    int len = strnlen(name, 256);
+    if (len >= 256) {
         errno = ENAMETOOLONG;
         return NULL;
     }
-    char *key = kalloc(len + 1); // TODO -- Annoying alloc
-    *((uint32_t *)key) = parent->ino->no;
-    strcpy(&key[4], name);
-    fnode_t *node = hmp_get(&device->map, key, len);
+    splock_lock(&__vfs_share->fnode_lock);
+    fnode_t *node = hmp_get(&parent->map, name, len);
     if (node == NULL) {
         node = kalloc(sizeof(fnode_t));
         kprintf(KL_FSA, "Alloc new fsnode `%s/%s`\n", vfs_inokey(parent->ino, tmp), name);
         mtx_init(&node->mtx, mtx_plain);
         node->parent = vfs_open_fnode(parent);
         ll_append(&parent->clist, &node->cnode);
-        hmp_put(&device->map, key, len, node);
+        hmp_init(&node->map, 8);
+        hmp_put(&parent->map, name, len, node);
         strcpy(node->name, name);
-    } else if (ll_contains(&device->llru, &node->nlru)) {
-        ll_remove(&device->llru, &node->nlru);
+    } else if (ll_contains(&__vfs_share->fnode_llru, &node->nlru)) {
+        ll_remove(&__vfs_share->fnode_llru, &node->nlru);
         kprintf(KL_FSA, "Remove fsnode from LRU `%s/%s`\n", vfs_inokey(parent->ino, tmp), name);
     }
 
-    splock_unlock(&device->lock);
-    mtx_unlock(&parent->mtx);
-    kfree(key);
     atomic_inc(&node->rcu);
+    splock_unlock(&__vfs_share->fnode_lock);
+    // mtx_unlock(&parent->mtx);
     // kprintf(KL_FSA, "Open fsnode `%s/%s` (%d)\n", vfs_inokey(parent->ino, tmp), name, node->rcu);
     return node;
 }
 
-// /!\ We must have the mutex on parent, and lock on device
-static void vfs_destroy_fsnode(device_t *dev, fnode_t *node, char *key)
+static void vfs_close_fnode_unlocked(fnode_t *node)
+{
+    char tmp[16];
+    assert(node);
+    // kprintf(KL_FSA, "Close fsnode `%s/%s` (%d)\n", node->parent ? vfs_inokey(node->parent->ino, tmp) : "", node->name, node->rcu);
+    if (atomic_xadd(&node->rcu, -1) != 1)
+        return;
+
+    // TODO -- Do we destroy on some case !!?
+    kprintf(KL_FSA, "Add fsnode to LRU `%s/%s`\n", node->parent ? vfs_inokey(node->parent->ino, tmp) : "", node->name);
+    ll_enqueue(&__vfs_share->fnode_llru, &node->nlru);
+}
+
+// /!\ We must have spinlock on __vfs_share
+static void vfs_destroy_fsnode(fnode_t *node)
 {
     char tmp[16];
 
-    if (node->parent == NULL) {
-        kprintf(KL_FSA, "Release zombie fsnode `%s`\n", node->name);
-        splock_unlock(&dev->lock);
-        mtx_destroy(&node->mtx);
-        vfs_close_inode(node->ino);
-        kfree(node);
-        return;
-    }
+    fnode_t *parent = node->parent;
+    int len = strnlen(node->name, 256);
+    assert(len < 256);
+    hmp_remove(&parent->map, node->name, len);
 
-    int len = 4 + strlen(node->name);
-    *((uint32_t *)key) = node->parent->ino->no;
-    strcpy(&key[4], node->name);
-    hmp_remove(&dev->map, key, len);
-    splock_unlock(&dev->lock);
-
-    mtx_lock(&node->parent->mtx);
+    // mtx_lock(&node->parent->mtx);
     if (node->is_mount)
         ll_remove(&node->parent->mnt, &node->nmt);
 
-    ll_remove(&node->parent->clist, &node->cnode);
-    mtx_unlock(&node->parent->mtx);
-    kprintf(KL_FSA, "Release fsnode `%s/%s`\n", vfs_inokey(node->parent->ino, tmp), node->name);
+    ll_remove(&node->parent->clist, &node->cnode); // TODO -- IS clist usefull !!?
+    kprintf(KL_FSA, "Release fsnode `%s/%s`\n", vfs_inokey(parent->ino, tmp), node->name);
     mtx_destroy(&node->mtx);
-    vfs_close_fnode(node->parent);
+    vfs_close_fnode_unlocked(node->parent);
     vfs_close_inode(node->ino);
     kfree(node);
 }
 
-void vfs_dev_scavenge(device_t *dev, int max)
+void vfs_close_fnode(fnode_t *node)
 {
-    char *key = kalloc(256 + 4); // TODO Annoying alloc
-    if (max < 0)
-        max = dev->llru.count_;
+    assert(node);
+    // kprintf(KL_FSA, "Close fsnode `%s/%s` (%d)\n", node->parent ? vfs_inokey(node->parent->ino, tmp) : "", node->name, node->rcu);
+    if (atomic_xadd(&node->rcu, -1) != 1)
+        return;
+    splock_lock(&__vfs_share->fnode_lock);
+    atomic_inc(&node->rcu);
+    vfs_close_fnode_unlocked(node);
+    splock_unlock(&__vfs_share->fnode_lock);
+}
+
+void vfs_scavenge(int max)
+{
+    if (max <= 0)
+        max = __vfs_share->fnode_llru.count_;
+    splock_lock(&__vfs_share->fnode_lock);
     while (max-- > 0) {
-        splock_lock(&dev->lock);
-
-        fnode_t *node = ll_dequeue(&dev->llru, fnode_t, nlru);
-        if (node == NULL) {
-            splock_unlock(&dev->lock);
+        fnode_t *node = ll_dequeue(&__vfs_share->fnode_llru, fnode_t, nlru);
+        if (node == NULL)
             break;
-        }
-
-        vfs_destroy_fsnode(dev, node, key);
+        vfs_destroy_fsnode(node);
     }
-    kfree(key);
+    splock_unlock(&__vfs_share->fnode_lock);
 }
 
 fnode_t *vfs_open_fnode(fnode_t *node)
@@ -100,91 +106,55 @@ fnode_t *vfs_open_fnode(fnode_t *node)
     return node;
 }
 
-void vfs_close_fnode(fnode_t *node)
-{
-    char tmp[16];
-    assert(node);
-    // kprintf(KL_FSA, "Close fsnode `%s/%s` (%d)\n", node->parent ? vfs_inokey(node->parent->ino, tmp) : "", node->name, node->rcu);
-    if (atomic_xadd(&node->rcu, -1) == 1) {
-        device_t *device = node->parent ? node->parent->ino->dev : node->ino->dev;
-        splock_lock(&device->lock);
-        if (node->mode == FN_EMPTY || node->is_mount) {
-            char *key = kalloc(256 + 4); // TODO Annoying alloc
-            vfs_destroy_fsnode(device, node, key);
-            kfree(key);
-        } else if (node->rcu == 0) {
-            kprintf(KL_FSA, "Add fsnode to LRU `%s/%s`\n", node->parent ? vfs_inokey(node->parent ->ino, tmp) : "", node->name);
-            ll_enqueue(&device->llru, &node->nlru);
-            splock_unlock(&device->lock);
-        }
-    }
-}
-
-static void vfs_fnode_zombify(fnode_t *node)
-{
-    char tmp[16];
-    fnode_t *parent = node->parent;
-    assert(!node->is_mount);
-
-    mtx_lock(&parent->mtx);
-
-    device_t *dev = parent->ino->dev;
-    splock_lock(&dev->lock);
-    char *key = kalloc(256 + 4);
-    int len = 4 + strlen(node->name);
-    *((uint32_t *)key) = node->parent->ino->no;
-    strcpy(&key[4], node->name);
-    hmp_remove(&dev->map, key, len);
-    splock_unlock(&dev->lock);
-
-
-    ll_remove(&node->parent->clist, &node->cnode);
-    mtx_unlock(&node->parent->mtx);
-
-    inode_t *ino = vfs_parentof(node);
-    kprintf(KL_FSA, "Zombify fsnode `%s/%s`\n", vfs_inokey(ino, tmp), node->name);
-    vfs_close_fnode(parent);
-    vfs_close_inode(ino);
-    node->parent = NULL;
-    // node->zombie = true; (parent = NULL);
-}
-
 static int vfs_clear_fsnode(fnode_t *node, int mode)
 {
     char tmp[16];
     assert(mode != FN_OK);
-    char *key = kalloc(256 + 4); // TODO Annoying alloc
-    int ret = 0;
-    inode_t *pino = vfs_parentof(node);
-    device_t *dev = pino->dev;
-    vfs_close_inode(pino);
+    assert(node->parent);
 
-    // mtx_lock(&node->mtx); TODO -- Keep lock, destroy child later (move list)...
-    fnode_t *child = ll_first(&node->clist, fnode_t, cnode);
-    while (child) {
-        mtx_unlock(&node->mtx);
-        if (child->rcu != 0 || (child->mode != FN_EMPTY && child->mode != FN_NOENTRY)) {
-            vfs_fnode_zombify(child);
-            //kprintf(-1, "Error, unable to clean child fsnode\n");
-            //ret = -1;
-        } else {
-            splock_lock(&dev->lock);
-            ll_remove(&dev->llru, &child->nlru);
-            vfs_destroy_fsnode(dev, child, key);
-            // splock_unlock(&dev->lock);
-        }
-        mtx_lock(&node->mtx);
-        child = ll_first(&node->clist, fnode_t, cnode);
-    }
-
+    mtx_lock(&node->mtx); // TODO -- Keep lock, destroy child later (move list)...
     kprintf(KL_FSA, "Unlink fsnode `%s/%s`\n", vfs_inokey(node->parent->ino, tmp), node->name);
     vfs_close_inode(node->ino);
     node->ino = NULL;
     node->mode = mode;
-    // mtx_unlock(&node->mtx);
-    kfree(key);
-    return ret;
+    mtx_unlock(&node->mtx);
+    return 0;
 }
+
+int vfs_lookup(fnode_t *node)
+{
+    if (node->mode == FN_EMPTY) {
+        mtx_lock(&node->mtx);
+        if (node->mode != FN_EMPTY)
+            mtx_unlock(&node->mtx);
+        else {
+            inode_t *dir = node->parent->ino;
+            assert(dir->ops->lookup != NULL);
+            inode_t *ino = dir->ops->lookup(dir, node->name, NULL);
+            // TODO - Handle error
+            if (ino != NULL) {
+                vfs_resolve(node, ino);
+                vfs_close_inode(ino);
+            } else
+                node->mode = FN_NOENTRY;
+
+            mtx_unlock(&node->mtx);
+        }
+    }
+    if (node->mode == FN_NOENTRY) {
+        errno = ENOENT;
+        // vfs_close_fnode(node);
+        return -1;
+    }
+    return 0;
+}
+
+inode_t *vfs_inodeof(fnode_t *node)
+{
+    assert(node && node->mode == FN_OK && node->ino);
+    return vfs_open_inode(node->ino); // TODO -- Should we use RCU !?
+}
+
 
 void vfs_resolve(fnode_t *node, inode_t *ino)
 {
@@ -203,20 +173,6 @@ int vfs_fnode_bellow(fnode_t *root, fnode_t *dir)
     while (dir && dir != root)
         dir = dir->parent;
     return dir == NULL ? -1 : 0;
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-inode_t *vfs_parentof(fnode_t *node)
-{
-    assert(node && node->parent && node->parent->mode == FN_OK && node->parent->ino);
-    return vfs_open_inode(node->parent->ino); // TODO -- Should we use RCU !?
-}
-
-inode_t *vfs_inodeof(fnode_t *node)
-{
-    assert(node && node->mode == FN_OK && node->ino);
-    return vfs_open_inode(node->ino); // TODO -- Should we use RCU !?
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -244,9 +200,9 @@ int vfs_mkdir(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode)
 {
     int ret = -1;
     errno = 0;
-    // TODO -- Check last entry can't be . or .. -> EINVAL
+    // TODO -- Check last entry can't be . or .. -> EINVAL or 'root'
     fnode_t *node = vfs_search(fsanchor, name, user, false, false);
-    if (node == NULL)
+    if (node == NULL || node->parent == NULL)
         goto err1;
 
     mtx_lock(&node->mtx);
@@ -255,7 +211,7 @@ int vfs_mkdir(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode)
         goto err2;
     }
 
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     assert(dir != NULL);
     if (dir->ops->mkdir == NULL) {
         errno = EPERM;
@@ -284,7 +240,7 @@ EXPORT_SYMBOL(vfs_mkdir, 0);
 int vfs_rmdir(fs_anchor_t *fsanchor, const char *name, user_t *user)
 {
     errno = 0;
-    fnode_t *node = vfs_search(fsanchor, name, user, true, false); // TODO !!?
+    fnode_t *node = vfs_search(fsanchor, name, user, true, false); // TODO -- can't be '.', '..' or '/'
     if (node == NULL) {
         assert(errno != 0);
         return -1;
@@ -303,7 +259,7 @@ int vfs_rmdir(fs_anchor_t *fsanchor, const char *name, user_t *user)
         return -1;
     }
 
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     assert(dir != NULL);
     if (dir->ops->rmdir == NULL) {
         mtx_unlock(&node->mtx);
@@ -332,7 +288,7 @@ static int vfs_create(fnode_t *node, void *user, int mode)
     }
 
     assert(node->parent);
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     if (dir->dev->flags & FD_RDONLY) {
         mtx_unlock(&node->mtx);
         vfs_close_inode(dir);
@@ -439,7 +395,7 @@ int vfs_unlink(fs_anchor_t *fsanchor, const char *name, user_t *user)
         goto err2;
     }
 
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     assert(dir != NULL);
     if (dir->ops->unlink == NULL) {
         errno = ENOSYS;
@@ -485,7 +441,7 @@ int vfs_link(fs_anchor_t *fsanchor, const char *name, user_t *user, const char *
         goto err3;
     }
 
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     assert(dir != NULL);
     if (dir->ops->link == NULL) {
         errno = EPERM;
@@ -531,7 +487,7 @@ int vfs_symlink(fs_anchor_t *fsanchor, const char *name, user_t *user, const cha
     }
 
     assert(node->parent && node->parent->ino);
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     if (dir->dev->flags & FD_RDONLY) {
         errno = EROFS;
         goto err3;
@@ -570,13 +526,13 @@ int vfs_rename(fs_anchor_t *fsanchor, const char *src, const char *dest, user_t 
     if (fdst == NULL)
         goto err2;
 
-    inode_t *dir_s = vfs_parentof(fsrc);
+    inode_t *dir_s = vfs_inodeof(fsrc->parent);
     if (dir_s == NULL) {
         errno = ENOENT;
         goto err3;
     }
 
-    inode_t *dir_d = vfs_parentof(fdst);
+    inode_t *dir_d = vfs_inodeof(fdst->parent);
     if (dir_d == NULL) {
         errno = ENOENT;
         goto err4;
@@ -730,7 +686,7 @@ int vfs_umount_at(fnode_t *node, user_t *user, int flags)
         return -1;
     }
 
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     if (vfs_access(dir, NULL, VM_EX | VM_WR) != 0) {
         errno = EACCES;
         vfs_close_inode(dir);
@@ -743,7 +699,6 @@ int vfs_umount_at(fnode_t *node, user_t *user, int flags)
     ll_remove(&__vfs_share->mnt_list, &node->nlru);
     splock_unlock(&__vfs_share->lock);
     vfs_close_fnode(node);
-    vfs_dev_scavenge(ino->dev, INT_MAX);
     vfs_close_inode(ino);
     return 0;
 }

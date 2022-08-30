@@ -470,7 +470,7 @@ void devfs_sweep()
     int i;
     dfs_info_t *info = DEV_INO->drv_data;
     assert(info->table != NULL && info->table->entries[0].dev != NULL);
-    vfs_dev_scavenge(info->table->entries[0].dev->dev, INT_MAX);
+    vfs_scavenge(0);
 
     dfs_table_t *table = info->table;
     while (table) {

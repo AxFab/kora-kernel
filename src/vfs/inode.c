@@ -17,7 +17,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t 
         splock_unlock(&__vfs_share->lock);
         kprintf(KL_FSA, "Alloc new device `%d`\n", device->no);
         bbtree_init(&device->btree);
-        hmp_init(&device->map, 16);
+        //hmp_init(&device->map, 16);
         mtx_init(&device->dual_lock, mtx_plain);
     }
 
@@ -87,8 +87,6 @@ void vfs_close_inode(inode_t *ino)
     if (atomic_xadd(&device->rcu, -1) != 1)
         return;
 
-    assert(device->map.count == 0);
-    hmp_destroy(&device->map);
     if (device->devclass)
         kfree(device->devclass);
     if (device->devname)
@@ -114,7 +112,7 @@ int vfs_chmod(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode)
     fnode_t *node = vfs_search(fsanchor, name, user, true, true);
     if (node == NULL)
         goto err1;
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     if (dir->ops->chmod == NULL) {
         errno = EPERM;
         goto err2;
@@ -148,7 +146,7 @@ int vfs_chown(fs_anchor_t *fsanchor, const char *name, user_t *user, user_t *nac
     fnode_t *node = vfs_search(fsanchor, name, user, true, true);
     if (node == NULL)
         goto err1;
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     if (dir->ops->chmod == NULL) {
         errno = EPERM;
         goto err2;
@@ -182,7 +180,7 @@ int vfs_utimes(fs_anchor_t *fsanchor, const char *name, user_t *user, xtime_t ti
     fnode_t *node = vfs_search(fsanchor, name, user, true, true);
     if (node == NULL)
         goto err1;
-    inode_t *dir = vfs_parentof(node);
+    inode_t *dir = vfs_inodeof(node->parent);
     if (dir->ops->chmod == NULL) {
         errno = EPERM;
         goto err2;
