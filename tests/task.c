@@ -18,6 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <bits/cdefs.h>
 #include <threads.h>

@@ -229,7 +229,7 @@ long sys_open(int dirfd, const char *path, int flags, int mode)
     if (mspace_check_str(__current->vm, path, 4096) != 0)
         return -1;
 
-    vfs_t *vfs = __current->vfs;
+    fs_anchor_t *fsanchor = __current->fsa;
     if (dirfd >= 0) {
         fstream_t *strm = stream_get(__current->fset, dirfd);
         if (strm == NULL)
@@ -237,13 +237,13 @@ long sys_open(int dirfd, const char *path, int flags, int mode)
         // Clone VFS, look on flags AT_*
     }
 
-    inode_t *ino = vfs_open(vfs, path, NULL, mode, flags);
+    inode_t *ino = vfs_open(fsanchor, path, NULL, mode, flags);
     if (ino == NULL)
         return -1;
 
     fstream_t *strm = stream_put(__current->fset, NULL, ino, flg);
     vfs_close_inode(ino);
-    if (vfs != __current->vfs) {
+    if (fsanchor != __current->fsa) {
         // Close
     }
     return strm->fd;

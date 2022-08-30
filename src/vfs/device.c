@@ -33,15 +33,13 @@ inode_t *devfs_setup();
 void devfs_sweep();
 void devfs_register(inode_t *ino, const char *name);
 
-vfs_t *vfs_init()
+fs_anchor_t *vfs_init()
 {
     assert(__vfs_share == NULL);
-    vfs_t *vfs = kalloc(sizeof(vfs_t));
+    fs_anchor_t *fsanchor = kalloc(sizeof(fs_anchor_t));
     __vfs_share = kalloc(sizeof(vfs_share_t));
-    vfs->share = __vfs_share;
-    atomic_inc(&vfs->share->rcu);
-    vfs->share->dev_no = 1;
-    hmp_init(&vfs->share->fs_hmap, 16);
+    atomic_inc(&__vfs_share->rcu);
+    hmp_init(&__vfs_share->fs_hmap, 16);
 
     inode_t *ino = devfs_setup();
 
@@ -52,50 +50,48 @@ vfs_t *vfs_init()
     node->rcu = 2;
     node->mode = FN_OK;
 
-    __vfs_share->vfs = vfs;
-    vfs->root = node;
-    vfs->pwd = node;
-    vfs->umask = 022;
-    vfs->rcu = 1;
-    return vfs;
+    __vfs_share->fsanchor = fsanchor;
+    fsanchor->root = node;
+    fsanchor->pwd = node;
+    fsanchor->umask = 022;
+    fsanchor->rcu = 1;
+    return fsanchor;
 }
 
-vfs_t *vfs_open_vfs(vfs_t *vfs)
+fs_anchor_t *vfs_open_vfs(fs_anchor_t *fsanchor)
 {
-    atomic_inc(&vfs->rcu);
-    return vfs;
+    atomic_inc(&fsanchor->rcu);
+    return fsanchor;
 }
 
-vfs_t *vfs_clone_vfs(vfs_t *vfs)
+fs_anchor_t *vfs_clone_vfs(fs_anchor_t *fsanchor)
 {
-    vfs_t *cpy = kalloc(sizeof(vfs_t));
+    fs_anchor_t *cpy = kalloc(sizeof(fs_anchor_t));
     cpy->rcu = 1;
-    cpy->share = vfs->share;
-    atomic_inc(&vfs->share->rcu);
-    cpy->root = vfs_open_fnode(vfs->root);
-    cpy->pwd = vfs_open_fnode(vfs->pwd);
-    cpy->umask = vfs->umask;
+    atomic_inc(&__vfs_share->rcu);
+    cpy->root = vfs_open_fnode(fsanchor->root);
+    cpy->pwd = vfs_open_fnode(fsanchor->pwd);
+    cpy->umask = fsanchor->umask;
     return cpy;
 }
 
-void vfs_close_vfs(vfs_t *vfs)
+void vfs_close_vfs(fs_anchor_t *fsanchor)
 {
-    if (atomic_xadd(&vfs->rcu, -1) != 1)
+    if (atomic_xadd(&fsanchor->rcu, -1) != 1)
         return;
 
-    vfs_close_fnode(vfs->pwd);
-    vfs_close_fnode(vfs->root);
-    atomic_dec(&vfs->share->rcu);
-    kfree(vfs);
+    vfs_close_fnode(fsanchor->pwd);
+    vfs_close_fnode(fsanchor->root);
+    atomic_dec(&__vfs_share->rcu);
+    kfree(fsanchor);
 }
 
 void vfs_dev_scavenge(device_t *dev, int max);
 
-int vfs_sweep(vfs_t *vfs)
+int vfs_sweep(fs_anchor_t *fsanchor)
 {
     char tmp[16];
-    assert(vfs == __vfs_share->vfs);
-    vfs_close_vfs(vfs);
+    vfs_close_vfs(fsanchor);
     if (__vfs_share->rcu != 0)
         return -1;
 
@@ -177,9 +173,9 @@ int vfs_format(const char *name, inode_t *dev, const char *options)
 
 int vfs_fnode_bellow(fnode_t *root, fnode_t *dir);
 
-int vfs_chdir(vfs_t *vfs, const char *path, user_t *user, bool root)
+int vfs_chdir(fs_anchor_t *fsanchor, const char *path, user_t *user, bool root)
 {
-    fnode_t *node = vfs_search(vfs, path, user, true, true);
+    fnode_t *node = vfs_search(fsanchor, path, user, true, true);
     if (node == NULL)
         return -1;
     inode_t *ino = vfs_inodeof(node);
@@ -196,27 +192,27 @@ int vfs_chdir(vfs_t *vfs, const char *path, user_t *user, bool root)
     vfs_close_inode(ino);
     fnode_t *prev;
     if (root) {
-        prev = vfs->root;
-        vfs->root = node;
+        prev = fsanchor->root;
+        fsanchor->root = node;
     } else {
-        prev = vfs->pwd;
-        vfs->pwd = node;
+        prev = fsanchor->pwd;
+        fsanchor->pwd = node;
     }
     vfs_close_fnode(prev);
 
     // Check pwd is below root
-    if (vfs_fnode_bellow(vfs->root, vfs->pwd) != 0) {
-        vfs_close_fnode(vfs->pwd);
-        vfs->pwd = vfs_open_fnode(vfs->root);
+    if (vfs_fnode_bellow(fsanchor->root, fsanchor->pwd) != 0) {
+        vfs_close_fnode(fsanchor->pwd);
+        fsanchor->pwd = vfs_open_fnode(fsanchor->root);
         if (!root)
             return -1;
     }
     return 0;
 }
 
-int vfs_readlink(vfs_t *vfs, const char *name, user_t *user, char *buf, int len)
+int vfs_readlink(fs_anchor_t *fsanchor, const char *name, user_t *user, char *buf, int len)
 {
-    fnode_t *node = vfs_search(vfs, name, user, true, true);
+    fnode_t *node = vfs_search(fsanchor, name, user, true, true);
     if (node == NULL)
         return -1;
 
@@ -235,17 +231,17 @@ int vfs_readlink(vfs_t *vfs, const char *name, user_t *user, char *buf, int len)
     return ret;
 }
 
-int vfs_readpath(vfs_t *vfs, const char *name, user_t *user, char *buf, int len, bool relative)
+int vfs_readpath(fs_anchor_t *fsanchor, const char *name, user_t *user, char *buf, int len, bool relative)
 {
-    fnode_t *node = vfs_search(vfs, name, user, true, true);
+    fnode_t *node = vfs_search(fsanchor, name, user, true, true);
     if (node == NULL)
         return -1;
 
-    if (node == vfs->root) {
+    if (node == fsanchor->root) {
         vfs_close_fnode(node);
         strncpy(buf, "/", len);
         return 0;
-    } else if (relative && node == vfs->pwd) {
+    } else if (relative && node == fsanchor->pwd) {
         vfs_close_fnode(node);
         strncpy(buf, ".", len);
         return 0;
@@ -260,9 +256,9 @@ int vfs_readpath(vfs_t *vfs, const char *name, user_t *user, char *buf, int len,
     for (;;) {
         node = node->parent;
         int ret = 0;
-        if (node == vfs->root)
+        if (node == fsanchor->root)
             ret = snprintf(buf, len, "/%s", cpy);
-        else if (relative && node == vfs->pwd)
+        else if (relative && node == fsanchor->pwd)
             ret = snprintf(buf, len, "./%s", cpy);
         else if (node->parent == NULL)
             ret = snprintf(buf, len, ":/%s", cpy);
@@ -281,12 +277,20 @@ int vfs_readpath(vfs_t *vfs, const char *name, user_t *user, char *buf, int len,
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+static void vfs_pipe_close(inode_t *ino)
+{
+    // TODO -- release unique NO
+}
+
 ino_ops_t pipe_ino_ops = {
     .read = NULL,
+    .close = vfs_pipe_close,
 };
 
-inode_t *vfs_pipe(vfs_t *vfs)
+inode_t *vfs_pipe()
 {
+    // TODO -- Assign uniq NO -- Keep one device only -- No need to be use in kmap!
     inode_t *ino = vfs_inode(1, FL_PIPE, NULL, &pipe_ino_ops);
     ino->dev->block = 1;
     return ino;

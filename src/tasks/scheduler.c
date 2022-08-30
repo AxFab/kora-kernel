@@ -27,14 +27,14 @@ scheduler_t __scheduler;
 task_t *__current = NULL;
 
 
-void scheduler_init(vfs_t *vfs, void *net)
+void scheduler_init(/*fs_anchor_t *fsanchor, void *net*/)
 {
     splock_init(&__scheduler.lock);
     splock_init(&__scheduler.sch_lock);
     bbtree_init(&__scheduler.task_tree);
     llist_init(&__scheduler.sch_queue);
-    __scheduler.net = net;
-    __scheduler.vfs = vfs;
+    //__scheduler.net = net;
+    //__scheduler.vfs = vfs;
 }
 
 void scheduler_add(scheduler_t *sch, task_t *task)
@@ -111,8 +111,6 @@ void scheduler_switch(int status)
         cpu_halt();
     } else {
         // clock_elapsed(CPU_USER/CPU_SYSTEM);
-        if (task->vm != NULL)
-            mmu_context(task->vm);
         cpu_restore(task);
     }
 #endif

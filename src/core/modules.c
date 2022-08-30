@@ -86,7 +86,7 @@ extern char ksymbols_end[];
 void mmu_read();
 EXPORT_SYMBOL(mmu_read, 0);
 
-void module_init(vfs_t *vfs, mspace_t *vm)
+void module_init(fs_anchor_t *fsanchor, mspace_t *vm)
 {
     // splock_init(&__kmodules_lock);
     // ll_init(&__kmodules_list);

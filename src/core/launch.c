@@ -25,7 +25,7 @@
 #include <kernel/core.h>
 #include <bits/atomic.h>
 
-void module_init(vfs_t *vfs, mspace_t *vm);
+void module_init(fs_anchor_t *fsanchor, mspace_t *vm);
 
 
 sys_info_t sysinfo;
@@ -46,12 +46,12 @@ void kstart()
 
     // Kernel initialization
     clock_init(sysinfo.uptime);
-    vfs_t *vfs = vfs_init();
-    scheduler_init(vfs, NULL);
+    fs_anchor_t *fsanchor = vfs_init();
+    scheduler_init(/*fsanchor, NULL*/);
     net_setup();
 
     // Read Symbols
-    module_init(vfs, kMMU.kspace);
+    module_init(fsanchor, kMMU.kspace);
 
     arch_init();
 

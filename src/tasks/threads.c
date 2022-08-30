@@ -77,12 +77,12 @@ static task_t *task_create(scheduler_t *sch, task_t *parent, const char *name, i
 
     // Setup
     if (parent == NULL) {
-        task->vfs = vfs_open_vfs(sch->vfs);
+        task->fsa = NULL; // vfs_open_vfs(sch->vfs);
         task->fset = stream_create_set();
         task->vm = mspace_create();
-        task->net = sch->net;
+        task->net = NULL; // sch->net;
     } else {
-        task->vfs = flags & KEEP_FS ? vfs_open_vfs(parent->vfs) : vfs_clone_vfs(parent->vfs);
+        task->fsa = flags & KEEP_FS ? vfs_open_vfs(parent->fsa) : vfs_clone_vfs(parent->fsa);
         task->fset = flags & KEEP_FSET ? stream_open_set(parent->fset) : stream_create_set();
         task->vm = flags & KEEP_VM ? mspace_open(parent->vm) : mspace_create();
         task->net = parent->net;
@@ -117,7 +117,7 @@ task_t *task_next(size_t pid)
 }
 
 
-int task_spawn(const char *program, const char **args, inode_t **nodes)
+size_t task_spawn(const char *program, const char **args, inode_t **nodes)
 {
     const char *name = strrchr(program, '/');
     if (name == NULL)
@@ -134,10 +134,9 @@ int task_spawn(const char *program, const char **args, inode_t **nodes)
     resx_put(task->fset, RESX_FILE, file_from_inode(nodes[2], flags | VM_WR), (void *)file_close);
 
     // Load image
-    int ret = dlib_open(task->vm, task->vfs, task->user, program);
+    int ret = dlib_open(task->vm, task->fsa, task->user, program);
     if (ret != 0) {
-        kprintf(-1, "Task.%d] Unable to open executable image %s \n",
-                __current->pid, program);
+        kprintf(-1, "Task.%d] Unable to open executable image %s \n", __current->pid, program);
         // TODO -- Task destroy !!
         return 0;
     }
@@ -180,7 +179,7 @@ int task_spawn(const char *program, const char **args, inode_t **nodes)
     return task->pid;
 }
 
-int task_thread(const char *name, void *entry, void *params, size_t len, int flags)
+size_t task_thread(const char *name, void *entry, void *params, size_t len, int flags)
 {
     task_t *task = task_create(&__scheduler, __current, name, flags);
 
@@ -201,7 +200,7 @@ int task_thread(const char *name, void *entry, void *params, size_t len, int fla
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int task_start(const char *name, void *func, void *arg)
+size_t task_start(const char *name, void *func, void *arg)
 {
     scheduler_t *sch = &__scheduler;
     task_t *parent = __current;

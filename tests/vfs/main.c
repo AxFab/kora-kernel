@@ -71,7 +71,7 @@ vfs_ctx_t ctx;
 void initialize()
 {
 	ctx.user = NULL; // usr_system();
-	ctx.vfs = vfs_init();
+	ctx.fsa = vfs_init();
 
 #ifdef _EMBEDED_FS
 	// fat_setup();
@@ -87,13 +87,13 @@ int teardown()
 	isofs_teardown();
 	ext2_teardown();
 #endif
-	vfs_sweep(ctx.vfs);
+	vfs_sweep(ctx.fsa);
 	// usr_sweep();
 
 	return alloc_check();
 }
 
-int do_restart(vfs_t *fs, size_t *param)
+int do_restart(fs_anchor_t *fsa, size_t *param)
 {
 	int ret = teardown();
 	initialize();

@@ -40,7 +40,7 @@
 #define XOFF_FX "llx"
 #endif
 
-typedef struct vfs vfs_t;
+typedef struct fs_anchor fs_anchor_t;
 typedef struct vfs_share vfs_share_t;
 typedef struct inode inode_t;
 typedef struct device device_t;
@@ -145,11 +145,10 @@ struct vfs_share
     llhead_t mnt_list;
     atomic_int dev_no;
     hmap_t fs_hmap;
-    vfs_t *vfs;
+    fs_anchor_t *fsanchor;
 };
 
-struct vfs {
-    vfs_share_t *share;
+struct fs_anchor {
     fnode_t *root;
     fnode_t *pwd;
     int umask;
@@ -229,8 +228,8 @@ extern vfs_share_t *__vfs_share;
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // INODE SYSCALLS
-inode_t *vfs_open(vfs_t *vfs, const char *name, user_t *user, int mode, int flags);
-inode_t *vfs_pipe(vfs_t *vfs);
+inode_t *vfs_open(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode, int flags);
+inode_t *vfs_pipe();
 int vfs_read(inode_t *ino, char *buf, size_t size, xoff_t off, int flags);
 int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags);
 int vfs_truncate(inode_t *ino, xoff_t off);
@@ -243,30 +242,30 @@ void vfs_close_inode(inode_t *ino);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // FS SYSCALLS
-int vfs_mkdir(vfs_t *vfs, const char *name, user_t *user, int mode);
-int vfs_rmdir(vfs_t *vfs, const char *name, user_t *user);
-int vfs_link(vfs_t *vfs, const char *name, user_t *user, const char *path);
-int vfs_unlink(vfs_t *vfs, const char *name, user_t *user);
-int vfs_symlink(vfs_t *vfs, const char *name, user_t *user, const char *path);
-int vfs_rename(vfs_t *vfs, const char *src, const char *dest, user_t* user);
-int vfs_chmod(vfs_t *vfs, const char *name, user_t *user, int mode);
-int vfs_chown(vfs_t *vfs, const char *name, user_t *user, user_t *nacl);
-int vfs_utimes(vfs_t *vfs, const char *name, user_t *user, xtime_t time, int flags);
-int vfs_readlink(vfs_t *vfs, const char *name, user_t *user, char *buf, int len);
-int vfs_readpath(vfs_t *vfs, const char *name, user_t *user, char *buf, int len, bool relative);
-int vfs_chdir(vfs_t *vfs, const char *path, user_t *user, bool root);
+int vfs_mkdir(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode);
+int vfs_rmdir(fs_anchor_t *fsanchor, const char *name, user_t *user);
+int vfs_link(fs_anchor_t *fsanchor, const char *name, user_t *user, const char *path);
+int vfs_unlink(fs_anchor_t *fsanchor, const char *name, user_t *user);
+int vfs_symlink(fs_anchor_t *fsanchor, const char *name, user_t *user, const char *path);
+int vfs_rename(fs_anchor_t *fsanchor, const char *src, const char *dest, user_t* user);
+int vfs_chmod(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode);
+int vfs_chown(fs_anchor_t *fsanchor, const char *name, user_t *user, user_t *nacl);
+int vfs_utimes(fs_anchor_t *fsanchor, const char *name, user_t *user, xtime_t time, int flags);
+int vfs_readlink(fs_anchor_t *fsanchor, const char *name, user_t *user, char *buf, int len);
+int vfs_readpath(fs_anchor_t *fsanchor, const char *name, user_t *user, char *buf, int len, bool relative);
+int vfs_chdir(fs_anchor_t *fsanchor, const char *path, user_t *user, bool root);
 
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // VOLUME SYSCALLS
 int vfs_format(const char *name, inode_t *dev, const char *options);
-int vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path, user_t *user, const char *options);
-int vfs_umount(vfs_t *vfs, const char *path, user_t *user, int flags);
+int vfs_mount(fs_anchor_t *fsanchor, const char *dev, const char *fstype, const char *path, user_t *user, const char *options);
+int vfs_umount(fs_anchor_t *fsanchor, const char *path, user_t *user, int flags);
 
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // DIRECTORY SYSCALLS
-diterator_t *vfs_opendir(vfs_t *vfs, const char *name, user_t *user);
+diterator_t *vfs_opendir(fs_anchor_t *fsanchor, const char *name, user_t *user);
 inode_t *vfs_readdir(diterator_t *it, char *buf, int len);
 int vfs_closedir(diterator_t *it);
 
@@ -342,17 +341,17 @@ void vfs_resolve(fnode_t *node, inode_t *ino);
 inode_t *vfs_parentof(fnode_t *node);
 inode_t *vfs_inodeof(fnode_t *node);
 
-fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve, bool follow);
-inode_t *vfs_search_ino(vfs_t *vfs, const char *pathname, user_t *user, bool follow);
+fnode_t *vfs_search(fs_anchor_t *fsanchor, const char *pathname, user_t *user, bool resolve, bool follow);
+inode_t *vfs_search_ino(fs_anchor_t *fsanchor, const char *pathname, user_t *user, bool follow);
 
 void vfs_dev_scavenge(device_t *dev, int max);
 
 
 // Generic
-vfs_t *vfs_init();
-vfs_t *vfs_open_vfs(vfs_t *vfs);
-vfs_t *vfs_clone_vfs(vfs_t *vfs);
-int vfs_sweep(vfs_t *vfs);
+fs_anchor_t *vfs_init();
+fs_anchor_t *vfs_open_vfs(fs_anchor_t *fsanchor);
+fs_anchor_t *vfs_clone_vfs(fs_anchor_t *fsanchor);
+int vfs_sweep(fs_anchor_t *fsanchor);
 
 // fnode_t *vfs_mknod(fnode_t *parent, const char *name, int devno);
 // fnode_t *vfs_mkfifo(fnode_t *parent, const char *name);

@@ -104,7 +104,7 @@ int vfs_release_page(inode_t *ino, xoff_t off, size_t pg, bool dirty)
     return 0;
 }
 
-inode_t *vfs_search_ino(vfs_t *vfs, const char *name, user_t *user, bool follow)
+inode_t *vfs_search_ino(fs_anchor_t *fsanchor, const char *name, user_t *user, bool follow)
 {
     __vfs_init();
 

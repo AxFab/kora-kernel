@@ -240,12 +240,12 @@ int vfs_open_access(int options)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int vfs_mkdir(vfs_t *vfs, const char *name, user_t *user, int mode)
+int vfs_mkdir(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode)
 {
     int ret = -1;
     errno = 0;
     // TODO -- Check last entry can't be . or .. -> EINVAL
-    fnode_t *node = vfs_search(vfs, name, user, false, false);
+    fnode_t *node = vfs_search(fsanchor, name, user, false, false);
     if (node == NULL)
         goto err1;
 
@@ -263,7 +263,7 @@ int vfs_mkdir(vfs_t *vfs, const char *name, user_t *user, int mode)
     }
 
     assert(irq_ready());
-    inode_t *ino = dir->ops->mkdir(dir, node->name, mode & (~vfs->umask & 07777), user);
+    inode_t *ino = dir->ops->mkdir(dir, node->name, mode & (~fsanchor->umask & 07777), user);
     if (ino != NULL) {
         ret = 0;
         vfs_resolve(node, ino);
@@ -281,10 +281,10 @@ err1:
 }
 EXPORT_SYMBOL(vfs_mkdir, 0);
 
-int vfs_rmdir(vfs_t *vfs, const char *name, user_t *user)
+int vfs_rmdir(fs_anchor_t *fsanchor, const char *name, user_t *user)
 {
     errno = 0;
-    fnode_t *node = vfs_search(vfs, name, user, true, false); // TODO !!?
+    fnode_t *node = vfs_search(fsanchor, name, user, true, false); // TODO !!?
     if (node == NULL) {
         assert(errno != 0);
         return -1;
@@ -355,14 +355,14 @@ static int vfs_create(fnode_t *node, void *user, int mode)
     return ino ? 0 : -1;
 }
 
-inode_t *vfs_open(vfs_t *vfs, const char *name, user_t *user, int mode, int flags)
+inode_t *vfs_open(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode, int flags)
 {
     int access = vfs_open_access(flags);
     if (access <= 0)
         return NULL;
 
     errno = 0;
-    fnode_t *node = vfs_search(vfs, name, user, false, false);
+    fnode_t *node = vfs_search(fsanchor, name, user, false, false);
     if (node == NULL)
         return NULL;
 
@@ -370,7 +370,7 @@ inode_t *vfs_open(vfs_t *vfs, const char *name, user_t *user, int mode, int flag
     if (vfs_lookup(node) != 0) {
         if (flags & O_CREAT) {
             created = true;
-            int ret = vfs_create(node, NULL, mode & (~vfs->umask & 0777));
+            int ret = vfs_create(node, NULL, mode & (~fsanchor->umask & 0777));
             if (ret != 0) {
                 if (unlikely(node->mode == FN_OK)) {
                     if (flags & O_EXCL) {
@@ -425,11 +425,11 @@ inode_t *vfs_open(vfs_t *vfs, const char *name, user_t *user, int mode, int flag
 }
 EXPORT_SYMBOL(vfs_open, 0);
 
-int vfs_unlink(vfs_t *vfs, const char *name, user_t *user)
+int vfs_unlink(fs_anchor_t *fsanchor, const char *name, user_t *user)
 {
     int ret = -1;
     errno = 0;
-    fnode_t *node = vfs_search(vfs, name, user, true, false);
+    fnode_t *node = vfs_search(fsanchor, name, user, true, false);
     if (node == NULL)
         goto err1;
 
@@ -459,16 +459,16 @@ err1:
 }
 EXPORT_SYMBOL(vfs_unlink, 0);
 
-int vfs_link(vfs_t *vfs, const char *name, user_t *user, const char *path)
+int vfs_link(fs_anchor_t *fsanchor, const char *name, user_t *user, const char *path)
 {
     int ret = -1;
-    fnode_t *target = vfs_search(vfs, path, user, true, true);
+    fnode_t *target = vfs_search(fsanchor, path, user, true, true);
     if (target == NULL)
         goto err1;
 
     errno = 0;
     // TODO -- Check last entry can't be . or .. -> EINVAL
-    fnode_t *node = vfs_search(vfs, name, user, false, false);
+    fnode_t *node = vfs_search(fsanchor, name, user, false, false);
     if (node == NULL)
         goto err2;
 
@@ -516,11 +516,11 @@ err1:
 }
 EXPORT_SYMBOL(vfs_link, 0);
 
-int vfs_symlink(vfs_t *vfs, const char *name, user_t *user, const char *path)
+int vfs_symlink(fs_anchor_t *fsanchor, const char *name, user_t *user, const char *path)
 {
     int ret = -1;
     errno = 0;
-    fnode_t *node = vfs_search(vfs, name, user, false, false);
+    fnode_t *node = vfs_search(fsanchor, name, user, false, false);
     if (node == NULL)
         goto err1;
 
@@ -559,14 +559,14 @@ err1:
 }
 EXPORT_SYMBOL(vfs_symlink, 0);
 
-int vfs_rename(vfs_t *vfs, const char *src, const char *dest, user_t *user)
+int vfs_rename(fs_anchor_t *fsanchor, const char *src, const char *dest, user_t *user)
 {
     int ret = -1;
     errno = 0;
-    fnode_t *fsrc = vfs_search(vfs, src, user, true, true);
+    fnode_t *fsrc = vfs_search(fsanchor, src, user, true, true);
     if (fsrc == NULL)
         goto err1;
-    fnode_t *fdst = vfs_search(vfs, dest, user, false, false);
+    fnode_t *fdst = vfs_search(fsanchor, dest, user, false, false);
     if (fdst == NULL)
         goto err2;
 
@@ -663,7 +663,7 @@ int vfs_mount_at(fnode_t *node, inode_t *ino)
 
 int vfs_early_mount(inode_t *ino, const char *name)
 {
-    fnode_t *mnt = vfs_fsnode_from(__vfs_share->vfs->root, "mnt");
+    fnode_t *mnt = vfs_fsnode_from(__vfs_share->fsanchor->root, "mnt");
     if (vfs_lookup(mnt) != 0)
         return -1;
     fnode_t *node = vfs_fsnode_from(mnt, name);
@@ -672,10 +672,10 @@ int vfs_early_mount(inode_t *ino, const char *name)
     return ret;
 }
 
-int vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path, user_t *user, const char *options)
+int vfs_mount(fs_anchor_t *fsanchor, const char *dev, const char *fstype, const char *path, user_t *user, const char *options)
 {
     assert(fstype != NULL && path != NULL);
-    fnode_t *node = vfs_search(vfs, path, user, false, false);
+    fnode_t *node = vfs_search(fsanchor, path, user, false, false);
     if (node == NULL) {
         assert(errno != 0);
         return -1;
@@ -692,7 +692,7 @@ int vfs_mount(vfs_t *vfs, const char *dev, const char *fstype, const char *path,
 
     inode_t *dev_ino = NULL;
     if (dev != NULL) {
-        dev_ino = vfs_search_ino(vfs, dev, user, true);
+        dev_ino = vfs_search_ino(fsanchor, dev, user, true);
         if (dev_ino == NULL) {
             errno = ENODEV;
             vfs_close_fnode(node);
@@ -748,9 +748,9 @@ int vfs_umount_at(fnode_t *node, user_t *user, int flags)
     return 0;
 }
 
-int vfs_umount(vfs_t *vfs, const char *path, user_t *user, int flags)
+int vfs_umount(fs_anchor_t *fsanchor, const char *path, user_t *user, int flags)
 {
-    fnode_t *node = vfs_search(vfs, path, user, true, true);
+    fnode_t *node = vfs_search(fsanchor, path, user, true, true);
     if (node == NULL)
         return -1;
     if (!node->is_mount) {

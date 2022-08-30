@@ -29,115 +29,66 @@
 #include <kernel/blkmap.h>
 
 
-#define R_386_32 1
-#define R_386_PC32 2
-#define R_386_COPY 5
-#define R_386_GLOB_DAT 6
-#define R_386_JUMP_SLOT 7
-#define R_386_RELATIVE 8
+// Relocation types
+// P: Address pointer
+// S: Address of symnol
+// A: Value at address
+// B: Base library address
+#define R_386_32                    1 // word32 (S + A)
+#define R_386_PC32                  2 // word32 (S + A - P)
+#define R_386_COPY                  5
+#define R_386_GLOB_DAT              6 // word32 (S)
+#define R_386_JUMP_SLOT             7 // word32 (S)
+#define R_386_RELATIVE              8 // word32 (B + A)
 
-#if 0 
-typedef struct dynsym dynsym_t;
-typedef struct dynlib dynlib_t;
-typedef struct dyndep dyndep_t;
-typedef struct dynsec dynsec_t;
-typedef struct dynrel dynrel_t;
-
-struct dynsec {
-    size_t lower;
-    size_t upper;
-    size_t start;
-    size_t end;
-    size_t offset;
-    char rights;
-    llnode_t node;
-};
-
-struct dynsym {
-    char *name;
-    size_t address;
-    size_t size;
-    int flags;
-    llnode_t node;
-};
-
-struct dynrel {
-    size_t address;
-    int type;
-    dynsym_t *symbol;
-    llnode_t node;
-};
-
-struct dyndep {
-    char *name;
-    inode_t *ino;
-    dynlib_t *lib;
-    llnode_t node;
-};
-
-struct dynlib {
-    char *name;
-    int rcu;
-    size_t entry;
-    size_t init;
-    size_t fini;
-    size_t base;
-    size_t length;
-    size_t text_off;
-    void *iomap;
-    size_t iolg;
-    inode_t *ino;
-    llnode_t node;
-    llhead_t sections;
-    llhead_t depends;
-    llhead_t intern_symbols;
-    llhead_t extern_symbols;
-    llhead_t relocations;
-    char *rpath;
-};
+#define R_X86_64_NONE             0  /**< @brief @p none none */
+#define R_X86_64_64               1  /**< @brief @p word64 S + A */
+#define R_X86_64_PC32             2  /**< @brief @p word32 S + A - P */
+#define R_X86_64_GOT32            3  /**< @brief @p word32 G + A */
+#define R_X86_64_PLT32            4  /**< @brief @p word32 L + A - P */
+#define R_X86_64_COPY             5  /**< @brief @p none none */
+#define R_X86_64_GLOB_DAT         6  /**< @brief @p word64 S */
+#define R_X86_64_JUMP_SLOT        7  /**< @brief @p word64 S */
+#define R_X86_64_RELATIVE         8  /**< @brief @p word64 B + A */
+#define R_X86_64_GOTPCREL         9  /**< @brief @p word32 G + GOT + A - P */
+#define R_X86_64_32               10 /**< @brief @p word32 S + A */
+#define R_X86_64_32S              11 /**< @brief @p word32 S + A */
+/* vvv These should not appear in a valid file */
+#define R_X86_64_16               12 /**< @brief @p word16 S + A */
+#define R_X86_64_PC16             13 /**< @brief @p word16 S + A - P */
+#define R_X86_64_8                14 /**< @brief @p word8  S + A */
+#define R_X86_64_PC8              15 /**< @brief @p word8  S + A - P */
+/* ^^^ These should not appear in a valid file */
+#define R_X86_64_DTPMOD64         16 /**< @brief @p word64 */
+#define R_X86_64_DTPOFF64         17 /**< @brief @p word64 */
+#define R_X86_64_TPOFF64          18 /**< @brief @p word64 */
+#define R_X86_64_TLSGD            19 /**< @brief @p word32 */
+#define R_X86_64_TLSLD            20 /**< @brief @p word32 */
+#define R_X86_64_DTPOFF32         21 /**< @brief @p word32 */
+#define R_X86_64_GOTTPOFF         22 /**< @brief @p word32 */
+#define R_X86_64_TPOFF32          23 /**< @brief @p word32 */
+#define R_X86_64_PC64             24 /**< @brief @p word64 S + A - P */
+#define R_X86_64_GOTOFF64         25 /**< @brief @p word64 S + A - GOT */
+#define R_X86_64_GOTPC32          26 /**< @brief @p word32 GOT + A - P */
+/* Large model */
+#define R_X86_64_GOT64            27 /**< @brief @p word64 G + A */
+#define R_X86_64_GOTPCREL64       28 /**< @brief @p word64 G + GOT - P + A */
+#define R_X86_64_GOTPC64          29 /**< @brief @p word64 GOT - P + A */
+#define R_X86_64_GOTPLT64         30 /**< @brief @p word64 G + A */
+#define R_X86_64_PLTOFF64         31 /**< @brief @p word64 L - GOT + A */
+/* ... */
+#define R_X86_64_SIZE32           32 /**< @brief @p word32 Z + A */
+#define R_X86_64_SIZE64           33 /**< @brief @p word64 Z + A */
+#define R_X86_64_GOTPC32_TLSDESC  34 /**< @brief @p word32 */
+#define R_X86_64_TLSDESC_CALL     35 /**< @brief @p none */
+#define R_X86_64_TLSDESC          36 /**< @brief @p word64*2 */
+#define R_X86_64_IRELATIVE        37 /**< @brief @p word64 indirect (B + A) */
 
 
-typedef struct process process_t;
-typedef struct proc proc_t;
-struct process {
-    llhead_t stage1;
-    llhead_t stage2;
-    llhead_t stage3;
-    llhead_t libraries;
-    fnode_t **paths;
-    int path_sz;
-    hmap_t symbols;
-};
+#define R_AARCH64_COPY          1024
+#define R_AARCH64_GLOB_DAT      1025
 
-struct proc {
-    dynlib_t exec;
-    hmap_t symbols;
-    hmap_t libs_map;
-    llhead_t queue;
-    llhead_t libraries;
-    mspace_t *mspace;
-    char *execname;
-    vfs_t *fs;
-    void *acl;
-    char *env;
-    bool req_set_uid;
-};
-
-proc_t *dlib_process(vfs_t *fs, mspace_t *mspace);
-bool dlib_resolve_symbols(proc_t *proc, dynlib_t *lib);
-void dlib_destroy(dynlib_t *lib);
-void dlib_rebase(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
-int dlib_openexec(proc_t *proc, const char *execname);
-void dlib_unload(proc_t *proc, mspace_t *mspace, dynlib_t *lib);
-int dlib_map(dynlib_t *dlib, mspace_t *mspace);
-int dlib_map_all(proc_t *proc);
-void *dlib_exec_entry(proc_t *proc);
-
-
-int elf_parse(dynlib_t *dlib);
-
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#else
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 typedef struct dlib dlib_t;
 typedef struct dlsection dlsection_t;
@@ -220,7 +171,7 @@ struct dlproc
     splock_t lock;
 };
 
-int dlib_open(mspace_t *mm, vfs_t *vfs, user_t *user, const char *name);
+int dlib_open(mspace_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *name);
 
 dlproc_t *dlib_proc();
 int dlib_destroy(dlproc_t *proc);
@@ -240,7 +191,5 @@ char *dlib_name(dlib_t *lib, char *buf, int len);
 
 int elf_parse(dlib_t *lib, blkmap_t *bkm);
 
-
-#endif
 
 #endif  /* _KERNEL_DLIB_H */

@@ -16,7 +16,7 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 typedef struct vfs_ctx
 {
-    vfs_t *vfs;
+    fs_anchor_t *fsa;
     user_t *user;
 } vfs_ctx_t;
 

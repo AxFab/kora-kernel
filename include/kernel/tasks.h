@@ -76,8 +76,8 @@ struct scheduler {
     llhead_t sch_queue;
     llhead_t sch_zombie;
 
-    vfs_t *vfs;
-    void *net;
+    // fs_anchor_t *vfs;
+    // void *net;
 };
 
 
@@ -97,7 +97,7 @@ struct masterclock {
 };
 
 struct task {
-    int pid;
+    size_t pid;
     char *name;
     void *stack;
     cpu_state_t jmpbuf;
@@ -120,7 +120,7 @@ struct task {
     llnode_t sch_node;
 
     mspace_t *vm;
-    vfs_t *vfs;
+    fs_anchor_t *fsa;
     streamset_t *fset;
     void *net;
     user_t *user;
@@ -173,13 +173,13 @@ int cpu_no();
 // int task_fork(const char *name, void *func, void *arg, int flags);
 task_t *task_search(size_t pid);
 task_t *task_next(size_t pid);
-int task_start(const char *name, void *func, void *arg);
+size_t task_start(const char *name, void *func, void *arg);
 void task_raise(scheduler_t *sch, task_t *task, unsigned signum);
 void task_stop(task_t *task, int code);
 // void task_fatal(const char *msg, unsigned signum);
 
-int task_spawn(const char *program, const char **args, inode_t **nodes);
-int task_thread(const char *name, void *entry, void *params, size_t len, int flags);
+size_t task_spawn(const char *program, const char **args, inode_t **nodes);
+size_t task_thread(const char *name, void *entry, void *params, size_t len, int flags);
 
 // _Noreturn void task_firstinit();
 // _Noreturn void task_init(task_info_t *info);
@@ -190,7 +190,8 @@ void scheduler_rm(scheduler_t *sch, task_t *task, int status);
 void scheduler_switch(int status);
 
 
-void scheduler_init(vfs_t *vfs, void *net);
+void scheduler_init();
+// void scheduler_init(fs_anchor_t *fsanchor, void *net);
 streamset_t *stream_create_set();
 streamset_t *stream_open_set(streamset_t *strms);
 void stream_close_set(streamset_t *strms);
