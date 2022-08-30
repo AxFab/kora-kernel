@@ -108,10 +108,10 @@ EXPORT_SYMBOL(vfs_close_inode, 0);
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 
-int vfs_chmod(vfs_t *vfs, const char *name, user_t *user, int mode)
+int vfs_chmod(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode)
 {
     int ret = -1;
-    fnode_t *node = vfs_search(vfs, name, user, true, true);
+    fnode_t *node = vfs_search(fsanchor, name, user, true, true);
     if (node == NULL)
         goto err1;
     inode_t *dir = vfs_parentof(node);
@@ -142,10 +142,10 @@ err1:
 }
 EXPORT_SYMBOL(vfs_chmod, 0);
 
-int vfs_chown(vfs_t *vfs, const char *name, user_t *user, user_t *nacl)
+int vfs_chown(fs_anchor_t *fsanchor, const char *name, user_t *user, user_t *nacl)
 {
     int ret = -1;
-    fnode_t *node = vfs_search(vfs, name, user, true, true);
+    fnode_t *node = vfs_search(fsanchor, name, user, true, true);
     if (node == NULL)
         goto err1;
     inode_t *dir = vfs_parentof(node);
@@ -176,10 +176,10 @@ err1:
 }
 EXPORT_SYMBOL(vfs_chown, 0);
 
-int vfs_utimes(vfs_t *vfs, const char *name, user_t *user, xtime_t time, int flags)
+int vfs_utimes(fs_anchor_t *fsanchor, const char *name, user_t *user, xtime_t time, int flags)
 {
     int ret = -1;
-    fnode_t *node = vfs_search(vfs, name, user, true, true);
+    fnode_t *node = vfs_search(fsanchor, name, user, true, true);
     if (node == NULL)
         goto err1;
     inode_t *dir = vfs_parentof(node);

@@ -50,9 +50,9 @@ static inode_t *vfs_readdir_std(diterator_t *it)
     return ino;
 }
 
-diterator_t *vfs_opendir(vfs_t *vfs, const char *name, user_t *user)
+diterator_t *vfs_opendir(fs_anchor_t *fsanchor, const char *name, user_t *user)
 {
-    fnode_t *node = vfs_search(vfs, name, user, true, true);
+    fnode_t *node = vfs_search(fsanchor, name, user, true, true);
     if (node == NULL)
         return NULL;
 

@@ -42,15 +42,15 @@ int vfs_write(inode_t *ino, const char *buf, size_t size, xoff_t off, int flags)
 // void vfs_usage(inode_t *ino, int access, int count) {}
 // inode_t *vfs_open_inode(inode_t *ino) { return  ino; }
 // void vfs_close_inode(inode_t *ino) { }
-vfs_t *vfs_open_vfs(vfs_t *vfs) { return vfs; }
-vfs_t *vfs_clone_vfs(vfs_t *vfs) { return vfs; }
+fs_anchor_t *vfs_open_vfs(fs_anchor_t *fsanchor) { return fsanchor; }
+fs_anchor_t *vfs_clone_vfs(fs_anchor_t *fsanchor) { return fsanchor; }
 char *vfs_inokey(inode_t *ino, char *buf)
 {
     strcpy(buf, "?");
     return buf;
 }
 
-// inode_t *vfs_search_ino(vfs_t *vfs, const char *pathname, user_t *user, bool follow)  { return NULL;}
+// inode_t *vfs_search_ino(fs_anchor_t *fsanchor, const char *pathname, user_t *user, bool follow)  { return NULL;}
 
 size_t vfs_fetch_page(inode_t *ino, xoff_t off)
 {
@@ -76,7 +76,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, 
 void mmu_context(mspace_t *mspace) {}
 // void mmu_context() {}
 
-int dlib_open(mspace_t *mm, vfs_t *vfs, user_t *user, const char *name)
+int dlib_open(mspace_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *name)
 {
     return 0;
 }
@@ -149,7 +149,7 @@ void clock_ticks(masterclock_t *clock, unsigned elapsed);
 
 void clock_handler(masterclock_t *clock);
 
-void scheduler_init(vfs_t *vfs, void *net);
+void scheduler_init(/*fs_anchor_t *fsanchor, void *net*/);
 
 int resx_put(streamset_t *strms, int type, void *data, void(*close)(void *));
 
@@ -157,11 +157,11 @@ void *resx_get(streamset_t *strms, int type, int handle);
 
 void resx_remove(streamset_t *strms, int handle);
 
-int task_spawn(const char *program, const char **args, inode_t **nodes);
+size_t task_spawn(const char *program, const char **args, inode_t **nodes);
 
-int task_thread(const char *name, void *entry, void *params, size_t len, int flags);
+size_t task_thread(const char *name, void *entry, void *params, size_t len, int flags);
 
-int task_start(const char *name, void *func, void *arg);
+size_t task_start(const char *name, void *func, void *arg);
 
 void task_stop(task_t *task, int code);
 
@@ -210,7 +210,7 @@ int do_start(void *ctx, size_t *params)
 {
     char *name = (char *)params[0];
     char *store = (char *)params[1];
-    int pid = task_start(name, NULL, NULL);
+    size_t pid = task_start(name, NULL, NULL);
     if (pid == 0)
         return cli_error("Unable to create new task");
     if (store)
@@ -223,7 +223,7 @@ int do_spawn(void *ctx, size_t *params)
     char *name = (char *)params[0];
     char *store = (char *)params[1];
     inode_t *inodes[3] = { (inode_t*)0x1000, (inode_t *)0x2000, (inode_t *)0x3000 };
-    int pid = task_spawn(name, NULL, &inodes);
+    size_t pid = task_spawn(name, NULL, inodes);
     if (pid == 0)
         return cli_error("Unable to create new task");
     if (store)
@@ -235,7 +235,7 @@ int do_thread(void *ctx, size_t *params)
 {
     char *name = (char *)params[0];
     char *store = (char *)params[1];
-    int pid = task_thread(name, NULL, NULL, 0, 0);
+    size_t pid = task_thread(name, NULL, NULL, 0, 0);
     if (pid == 0)
         return cli_error("Unable to create new task");
     if (store)
@@ -245,9 +245,9 @@ int do_thread(void *ctx, size_t *params)
 
 int do_fork(void *ctx, size_t *params)
 {
-    char *name = (char *)params[0];
+    // char *name = (char *)params[0];
     char *store = (char *)params[1];
-    int pid = 0; // task_fork(name, NULL, NULL, 0, 0);
+    size_t pid = 0; // task_fork(name, NULL, NULL, 0, 0);
     if (pid == 0)
         return cli_error("Unable to create new task");
     if (store)
@@ -279,6 +279,9 @@ int do_tick(void *ctx, size_t *params)
             clock_state(CKS_USER);
     }
 
+    if (__current == NULL)
+        return cli_error("Can't find task %d on scheduler", pid);
+
     size_t old = __current->pid;
     while (__current->pid != pid && pid != 0) {
         clock_state(CKS_IRQ);
@@ -286,10 +289,10 @@ int do_tick(void *ctx, size_t *params)
         if (__current != NULL && __is_userspace(__current))
             clock_state(CKS_USER);
 
-        if (__current->pid == 0)
+        if (__current->pid == old)
             return cli_error("Can't find task %d on scheduler", pid);
     }
-    printf("Execute task.%d\n", __current->pid);
+    printf("Execute task.%ld\n", __current->pid);
     return 0;
 }
 
@@ -298,6 +301,7 @@ int do_yield(void *ctx, size_t *params)
     scheduler_switch(TS_READY);
     if (__current != NULL && __is_userspace(__current))
         clock_state(CKS_USER);
+    return 0;
 }
 
 
@@ -323,9 +327,9 @@ int do_show(void *ctx, size_t *params)
         task_t *parent = task->parent;
         int cpu_time = (int)((task->elapsed_counters[CKS_USER] + task->elapsed_counters[CKS_SYS]) * 100 / (now - task->start_time));
         if (parent)
-            printf(" %3d  %3d  %c  %2d%%  %s\n", task->pid, parent->pid, status_mark[task->status], cpu_time, task->name);
+            printf(" %3ld  %3ld  %c  %2d%%  %s\n", task->pid, parent->pid, status_mark[task->status], cpu_time, task->name);
         else
-            printf(" %3d    -  %c  %2d%%  %s\n", task->pid, status_mark[task->status], cpu_time, task->name);
+            printf(" %3ld    -  %c  %2d%%  %s\n", task->pid, status_mark[task->status], cpu_time, task->name);
     }
     // NAME / PID / Desc / STATUS / THRD? / %CPU / %MEM / NICE
     // CPU: USER / KERNEL / START
@@ -356,7 +360,7 @@ int do_kill(void *ctx, size_t *params)
     else {
         for (int i = 0; i < 3; ++i) {
             if (strcmp(signal, __signames[i]) == 0) {
-                signum == i;
+                signum = i;
                 break;
             }
         }
@@ -423,16 +427,8 @@ void teardown()
 {
 }
 
-int do_restart(void *ctx, size_t *param)
-{
-    teardown();
-    // TODO -- Check all is clean
-    initialize();
-}
-
 
 cli_cmd_t __commands[] = {
-    { "RESTART", "", { 0, 0, 0, 0, 0 }, (void *)do_restart, 1 },
     { "QUIT", "", { 0, 0, 0, 0, 0 }, (void *)do_quit, 1 },
 
     { "START", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_start, 1 },

@@ -34,11 +34,11 @@ static fnode_t *vfs_release_path(path_t *path, bool keep_node)
     return node;
 }
 
-static path_t *vfs_breakup_path(vfs_t *vfs, const char *path)
+static path_t *vfs_breakup_path(fs_anchor_t *fsanchor, const char *path)
 {
     pelmt_t *el;
     path_t *pl = kalloc(sizeof(path_t));
-    pl->node = vfs_open_fnode(*path == '/' ? vfs->root : vfs->pwd);
+    pl->node = vfs_open_fnode(*path == '/' ? fsanchor->root : fsanchor->pwd);
 
     while (*path) {
         while (*path == '/')
@@ -192,10 +192,10 @@ static int vfs_check_dir_inode(path_t *path, user_t *user, int *links, char **ln
     return 0;
 }
 
-fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve, bool follow)
+fnode_t *vfs_search(fs_anchor_t *fsanchor, const char *pathname, user_t *user, bool resolve, bool follow)
 {
     char *lnk_buf = NULL;
-    path_t *path = vfs_breakup_path(vfs, pathname);
+    path_t *path = vfs_breakup_path(fsanchor, pathname);
     if (path == NULL)
         return NULL;
     else if (path->list.count_ == 0) {
@@ -225,7 +225,7 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve
         assert(el != NULL);
 
         if (strcmp(el->name, "..") == 0) {
-            if (path->node == vfs->root) {
+            if (path->node == fsanchor->root) {
                 errno = EPERM;
                 if (lnk_buf != NULL)
                     kfree(lnk_buf);
@@ -282,9 +282,9 @@ fnode_t *vfs_search(vfs_t *vfs, const char *pathname, user_t *user, bool resolve
     }
 }
 
-inode_t *vfs_search_ino(vfs_t *vfs, const char *pathname, user_t *user, bool follow)
+inode_t *vfs_search_ino(fs_anchor_t *fsanchor, const char *pathname, user_t *user, bool follow)
 {
-    fnode_t *node = vfs_search(vfs, pathname, user, true, follow);
+    fnode_t *node = vfs_search(fsanchor, pathname, user, true, follow);
     if (node == NULL)
         return NULL;
     inode_t *ino = vfs_inodeof(node);
