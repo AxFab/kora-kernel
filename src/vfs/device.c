@@ -45,6 +45,7 @@ fs_anchor_t *vfs_init()
 
     fnode_t *node = kalloc(sizeof(fnode_t));
     mtx_init(&node->mtx, mtx_plain);
+    hmp_init(&node->map, 8);
     node->parent = NULL;
     node->ino = ino;
     node->rcu = 2;
@@ -85,8 +86,6 @@ void vfs_close_vfs(fs_anchor_t *fsanchor)
     atomic_dec(&__vfs_share->rcu);
     kfree(fsanchor);
 }
-
-void vfs_dev_scavenge(device_t *dev, int max);
 
 int vfs_sweep(fs_anchor_t *fsanchor)
 {

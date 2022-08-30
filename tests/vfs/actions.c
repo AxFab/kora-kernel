@@ -42,7 +42,8 @@ size_t cli_read_size(char *str);
 
 int do_dump(vfs_ctx_t *ctx, size_t *param)
 {
-
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     fnode_t *node = ctx->fsa->root;
     int indent = 0;
     char tmp[16];
@@ -54,6 +55,8 @@ int do_dump(vfs_ctx_t *ctx, size_t *param)
 
 int do_umask(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     int mask = param[0];
     if ((mask & 0777) != mask) {
         printf("Invalid value for umask: %o\n", mask);
@@ -66,6 +69,8 @@ int do_umask(vfs_ctx_t *ctx, size_t *param)
 
 int do_ls(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     inode_t *ino;
 
@@ -98,6 +103,8 @@ static const char *__timestr(xtime_t clock, char *tmp)
 
 static int __do_stat(vfs_ctx_t *ctx, size_t *param, bool follow)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     static const char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx" };
 
     char *path = (char *)param[0];
@@ -151,6 +158,8 @@ int do_lstat(vfs_ctx_t *ctx, size_t *param)
 
 int do_link(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     char *path2 = (char *)param[1];
     int ret = vfs_link(ctx->fsa, path2, ctx->user, path);
@@ -161,6 +170,8 @@ int do_link(vfs_ctx_t *ctx, size_t *param)
 
 int do_links(vfs_ctx_t *ctx, size_t * param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     int count = param[1];
 
@@ -180,6 +191,8 @@ int do_links(vfs_ctx_t *ctx, size_t * param)
 
 int do_times(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     char *mode = (char *)param[1];
     // char *cmp = (char *)param[2];
@@ -208,6 +221,8 @@ int do_times(vfs_ctx_t *ctx, size_t *param)
 
 int do_cd(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     int ret = vfs_chdir(ctx->fsa, path, ctx->user, false);
     if (ret != 0)
@@ -217,6 +232,8 @@ int do_cd(vfs_ctx_t *ctx, size_t *param)
 
 int do_chroot(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     int ret = vfs_chdir(ctx->fsa, path, ctx->user, true);
     if (ret != 0)
@@ -226,6 +243,8 @@ int do_chroot(vfs_ctx_t *ctx, size_t *param)
 
 int do_pwd(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char buf[4096];
     int ret = vfs_readpath(ctx->fsa, ".", ctx->user, buf, 4096, false);
     if (ret == 0)
@@ -237,6 +256,8 @@ int do_pwd(vfs_ctx_t *ctx, size_t *param)
 
 int do_open(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     char *flags = (char *)param[1];
     int mode = (int)param[2];
@@ -285,6 +306,8 @@ int do_open(vfs_ctx_t *ctx, size_t *param)
 
 int do_close(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *save = (char *)param[0];
     file_t *fp = cli_fetch(save, ST_INODE);
     if (fp == NULL)
@@ -298,6 +321,8 @@ int do_close(vfs_ctx_t *ctx, size_t *param)
 
 int do_read(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *buffer = (char *)param[0];
     char *path = (char *)param[1];
     size_t len = cli_read_size((char *)param[2]);
@@ -334,6 +359,8 @@ int do_read(vfs_ctx_t *ctx, size_t *param)
 
 int do_write(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *buffer = (char *)param[0];
     char *path = (char *)param[1];
     size_t len = cli_read_size((char *)param[2]);
@@ -365,6 +392,8 @@ int do_write(vfs_ctx_t *ctx, size_t *param)
 
 int do_rmbuf(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *buffer = (char *)param[0];
     buf_t *buf = cli_fetch(buffer, ST_BUFFER);
     cli_remove(buffer, ST_BUFFER);
@@ -374,6 +403,8 @@ int do_rmbuf(vfs_ctx_t *ctx, size_t *param)
 
 int do_delay(vfs_ctx_t * ctx, size_t * param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     struct timespec xt;
     xt.tv_sec = 1;
     xt.tv_nsec = 0;
@@ -383,6 +414,8 @@ int do_delay(vfs_ctx_t * ctx, size_t * param)
 
 int do_create(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *name = (char *)param[0];
     int mode = param[1];
     if (mode == 0)
@@ -398,6 +431,8 @@ int do_create(vfs_ctx_t *ctx, size_t *param)
 
 int do_unlink(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     const char *name = (char *)param[0];
 
     int ret = vfs_unlink(ctx->fsa, name, ctx->user);
@@ -409,6 +444,8 @@ int do_unlink(vfs_ctx_t *ctx, size_t *param)
 
 int do_symlink(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     const char *name = (char *)param[0];
     const char *name2 = (char *)param[1];
 
@@ -420,6 +457,8 @@ int do_symlink(vfs_ctx_t *ctx, size_t *param)
 
 int do_mkdir(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *name = (char *)param[0];
     int mask = param[1];
     if (mask == 0)
@@ -433,6 +472,8 @@ int do_mkdir(vfs_ctx_t *ctx, size_t *param)
 
 int do_rmdir(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     const char *name = (char *)param[0];
 
     int ret = vfs_rmdir(ctx->fsa, name, ctx->user);
@@ -444,6 +485,8 @@ int do_rmdir(vfs_ctx_t *ctx, size_t *param)
 
 int do_dd(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     const char *src = (char *)param[0];
     const char *dst = (char *)param[1];
     size_t bsz = cli_read_size((char *)param[2]);
@@ -495,6 +538,8 @@ int do_dd(vfs_ctx_t *ctx, size_t *param)
 
 int do_truncate(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     const char *path = (char *)param[0];
     size_t len = (size_t)param[1];
 
@@ -508,6 +553,8 @@ int do_truncate(vfs_ctx_t *ctx, size_t *param)
 
 int do_size(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     const char *path = (char *)param[0];
     size_t len = (size_t)param[1];
 
@@ -524,20 +571,14 @@ int do_size(vfs_ctx_t *ctx, size_t *param)
 
 int do_clear_cache(vfs_ctx_t *ctx, size_t *param)
 {
-    char *path = (char *)param[0];
-
-    fnode_t *node = vfs_search(ctx->fsa, path, ctx->user, true, true);
-    if (node == NULL)
-        return cli_error("No such entry\n");
-    device_t *dev = node->ino->dev;
-    int ret = node->rcu == 1 ? 0 : -1;
-    vfs_close_fnode(node);
-    vfs_dev_scavenge(dev, -1);
-    return ret;
+    vfs_scavenge(0);
+    return 0;
 }
 
 int do_mount(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *dev = (char *)param[0];
     char *fstype = (char *)param[1];
     char *name = (char *)param[2];
@@ -549,6 +590,8 @@ int do_mount(vfs_ctx_t *ctx, size_t *param)
 
 int do_umount(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
 
     int ret = vfs_umount(ctx->fsa, path, ctx->user, 0);
@@ -559,6 +602,8 @@ int do_umount(vfs_ctx_t *ctx, size_t *param)
 
 int do_extract(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     char *out = (char *)param[1];
     fnode_t *node = vfs_search(ctx->fsa, path, ctx->user, true, true);
@@ -593,6 +638,8 @@ int do_extract(vfs_ctx_t *ctx, size_t *param)
 
 int do_checksum(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     char* out = (char*)param[1];
     uint32_t chk = out == NULL ? 0 : strtoul(out, NULL, 16);
@@ -632,8 +679,11 @@ int do_checksum(vfs_ctx_t *ctx, size_t *param)
     return (chk == 0 || chk == checksum) ? 0 : -1;
 }
 
+
 int do_img_open(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     char *name = (char *)param[1];
     int ret = imgdk_open(path, name);
@@ -730,6 +780,8 @@ int do_img_copy(vfs_ctx_t *ctx, size_t *param)
 
 int do_tar_mount(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     char *name = (char *)param[1];
 
@@ -752,6 +804,8 @@ int do_tar_mount(vfs_ctx_t *ctx, size_t *param)
 
 int do_format(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *fs = (char *)param[0];
     char *path = (char *)param[1];
     char *options = (char *)param[2];
@@ -777,6 +831,8 @@ int do_format(vfs_ctx_t *ctx, size_t *param)
 
 int do_chmod(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     char *mode_str = (char *)param[1];
 
@@ -795,6 +851,8 @@ int do_chmod(vfs_ctx_t *ctx, size_t *param)
 
 int do_chown(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     // char *uid = (char *)param[1];
     // char *gid = (char *)param[2];
@@ -809,6 +867,8 @@ int do_chown(vfs_ctx_t *ctx, size_t *param)
 
 int do_utimes(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *path = (char *)param[0];
     char *utime = (char *)param[1];
     char *flags = (char *)param[2];
@@ -837,6 +897,8 @@ int do_utimes(vfs_ctx_t *ctx, size_t *param)
 
 int do_ino(vfs_ctx_t* ctx, size_t* param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char* path = (char*)param[0];
     // char* check = (char*)param[1];
     // char* save = (char*)param[2];
@@ -855,6 +917,8 @@ int do_ino(vfs_ctx_t* ctx, size_t* param)
 
 int do_rename(vfs_ctx_t* ctx, size_t* param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char* path_src = (char*)param[0];
     char* path_dst = (char*)param[1];
     int ret = vfs_rename(ctx->fsa, path_src, path_dst, ctx->user);
@@ -865,6 +929,8 @@ int do_rename(vfs_ctx_t* ctx, size_t* param)
 
 int do_pipe(vfs_ctx_t *ctx, size_t *param)
 {
+    if (ctx->auto_scavenge)
+        vfs_scavenge(0);
     char *store_rd = (char *)param[0];
     char *store_wr = (char *)param[1];
     inode_t *ino = vfs_pipe();

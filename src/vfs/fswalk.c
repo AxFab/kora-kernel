@@ -126,38 +126,15 @@ const char *ftype_char = "?rbpcnslfd";
 
 char *vfs_inokey(inode_t *ino, char *buf)
 {
-    snprintf(buf, 16, "%02d-%04d-%c", ino->dev->no, ino->no, ftype_char[ino->type]);
+    if (ino == NULL)
+        snprintf(buf, 16, "..-....-?");
+    else
+       snprintf(buf, 16, "%02d-%04d-%c", ino->dev->no, ino->no, ftype_char[ino->type]);
     return buf;
 }
 EXPORT_SYMBOL(vfs_inokey, 0);
 
-int vfs_lookup(fnode_t *node)
-{
-    if (node->mode == FN_EMPTY) {
-        mtx_lock(&node->mtx);
-        if (node->mode != FN_EMPTY)
-            mtx_unlock(&node->mtx);
-        else {
-            inode_t *dir = node->parent->ino;
-            assert(dir->ops->lookup != NULL);
-            inode_t *ino = dir->ops->lookup(dir, node->name, NULL);
-            // TODO - Handle error
-            if (ino != NULL) {
-                vfs_resolve(node, ino);
-                vfs_close_inode(ino);
-            } else
-                node->mode = FN_NOENTRY;
-
-            mtx_unlock(&node->mtx);
-        }
-    }
-    if (node->mode == FN_NOENTRY) {
-        errno = ENOENT;
-        // vfs_close_fnode(node);
-        return -1;
-    }
-    return 0;
-}
+int vfs_lookup(fnode_t *node);
 
 static int vfs_check_dir_inode(path_t *path, user_t *user, int *links, char **lnk_buf)
 {

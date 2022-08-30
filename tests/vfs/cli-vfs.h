@@ -18,6 +18,7 @@ typedef struct vfs_ctx
 {
     fs_anchor_t *fsa;
     user_t *user;
+    bool auto_scavenge;
 } vfs_ctx_t;
 
 typedef struct buf

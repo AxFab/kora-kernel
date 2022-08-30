@@ -72,6 +72,7 @@ void initialize()
 {
 	ctx.user = NULL; // usr_system();
 	ctx.fsa = vfs_init();
+	ctx.auto_scavenge = true;
 
 #ifdef _EMBEDED_FS
 	// fat_setup();

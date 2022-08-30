@@ -126,11 +126,11 @@ struct device {
     char *model;
     char *vendor;
     uint8_t uuid[16];
-    hmap_t map;
-    bbtree_t btree;
+
     splock_t lock;
+    bbtree_t btree;
+
     atomic_int rcu;
-    llhead_t llru;
     size_t block;
     inode_t *underlying;
     llnode_t node;
@@ -146,6 +146,9 @@ struct vfs_share
     atomic_int dev_no;
     hmap_t fs_hmap;
     fs_anchor_t *fsanchor;
+
+    splock_t fnode_lock;
+    llhead_t fnode_llru;
 };
 
 struct fs_anchor {
@@ -318,6 +321,8 @@ struct fnode
 
     llhead_t clist;
     llnode_t cnode;
+
+    hmap_t map;
 };
 
 
@@ -338,13 +343,12 @@ int vfs_readsymlink(inode_t *ino, char *buf, int len);
 // int vfs_release_page(inode_t *ino, xoff_t off, size_t page, bool dirty);
 
 void vfs_resolve(fnode_t *node, inode_t *ino);
-inode_t *vfs_parentof(fnode_t *node);
 inode_t *vfs_inodeof(fnode_t *node);
 
 fnode_t *vfs_search(fs_anchor_t *fsanchor, const char *pathname, user_t *user, bool resolve, bool follow);
 inode_t *vfs_search_ino(fs_anchor_t *fsanchor, const char *pathname, user_t *user, bool follow);
 
-void vfs_dev_scavenge(device_t *dev, int max);
+void vfs_scavenge(int max);
 
 
 // Generic

@@ -72,10 +72,19 @@ SRCS_kr += $(wildcard $(srcdir)/net/*.c)
 SRCS_kr += $(wildcard $(arcdir)/*.$(ASM_EXT))
 SRCS_kr += $(wildcard $(arcdir)/*.c)
 
+SRCS_bs += $(wildcard $(arcdir)/*.$(ASM_EXT))
+SRCS_bs += $(wildcard $(arcdir)/*.c)
+SRCS_bs += $(srcdir)/tests/bootstrap.c
+
 include $(topdir)/arch/$(target_arch)/make.mk
 
 $(eval $(call comp_source,kr,CFLAGS_kr))
 $(bindir)/$(kname): $(call fn_objs,SRCS_kr,kr)
+	$(S) mkdir -p $(dir $@)
+	$(Q) echo "    LD  "$@
+	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
+
+$(bindir)/bootstrap: $(call fn_objs,SRCS_bs,kr)
 	$(S) mkdir -p $(dir $@)
 	$(Q) echo "    LD  "$@
 	$(V) $(CC) -T $(arcdir)/kernel.ld -o $@ $^ -nostdlib -lgcc
