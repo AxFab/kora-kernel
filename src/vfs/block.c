@@ -42,7 +42,7 @@ struct block_page {
     llnode_t nlru;
 };
 
-page_t mmu_read(mspace_t *mspace, size_t address);
+page_t mmu_read(size_t address);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -107,7 +107,7 @@ page_t block_fetch(inode_t *ino, xoff_t off)
             void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VMA_PHYS);
             assert(ptr != NULL);
             assert(irq_ready());
-            page->phys = mmu_read(NULL, (size_t)ptr);
+            page->phys = mmu_read((size_t)ptr);
             kprintf(KL_BIO, "Alloc page %p for inode %s, read at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
             int ret = ino->ops->read(ino, ptr, PAGE_SIZE, off, 0);
             if (ret != 0) {

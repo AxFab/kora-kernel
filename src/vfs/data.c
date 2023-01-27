@@ -111,7 +111,6 @@ EXPORT_SYMBOL(vfs_truncate, 0);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-
 int vfs_ioctl(inode_t *ino, int cmd, void **args)
 {
     assert(ino != NULL);

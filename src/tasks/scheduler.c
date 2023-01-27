@@ -56,16 +56,6 @@ void scheduler_rm(scheduler_t *sch, task_t *task, int status)
     splock_unlock(&sch->sch_lock);
 }
 
-static task_t *scheduler_next(scheduler_t *sch)
-{
-    splock_lock(&sch->sch_lock);
-    task_t *task = ll_dequeue(&sch->sch_queue, task_t, sch_node);
-    if (task)
-        task->status = TS_RUNNING;
-    splock_unlock(&sch->sch_lock);
-    return task;
-}
-
 /* */
 void scheduler_switch(int status)
 {
@@ -76,7 +66,7 @@ void scheduler_switch(int status)
     // Save the current task
     task_t *task = __current;
     if (task) {
-        if (cpu_save(task) != 0)
+        if (cpu_save(&task->jmpbuf) != 0)
             return;
 
         // TODO -- Register elapsed time !
@@ -84,7 +74,7 @@ void scheduler_switch(int status)
         if (task->status == TS_ABORTED || status == TS_ZOMBIE) {
             ll_enqueue(&sch->sch_zombie, &task->sch_node);
             task->status = TS_ZOMBIE;
-            task_raise(sch, task->parent, SIGCHLD);
+            task_raise(task->parent, SIGCHLD);
         } else if (status == TS_READY) {
             ll_enqueue(&sch->sch_queue, &task->sch_node);
             task->status = TS_READY;
@@ -97,21 +87,24 @@ void scheduler_switch(int status)
         } else {
             task->status = status;
         }
-        splock_unlock(&sch->sch_lock);
+    } else {
+        splock_lock(&sch->sch_lock);
     }
 
     // Restore next task
-    task = scheduler_next(sch);
+    task = ll_dequeue(&sch->sch_queue, task_t, sch_node);
+    if (task)
+        task->status = TS_RUNNING;
+    splock_unlock(&sch->sch_lock);
     irq_zero();
     clock_state(task == NULL ? CKS_IDLE : CKS_SYS);
     __current = task;
 #ifdef KORA_KRN
     if (task == NULL) {
-        // clock_elapsed(CPU_IDLE);
         cpu_halt();
     } else {
-        // clock_elapsed(CPU_USER/CPU_SYSTEM);
-        cpu_restore(task);
+        // mmu_context(task->vm);
+        cpu_restore(&task->jmpbuf);
     }
 #endif
 }

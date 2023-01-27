@@ -50,9 +50,9 @@ void *kmap(size_t length, void *ino, xoff_t offset, int flags)
 {
     length = ALIGN_UP(length, PAGE_SIZE);
     int type = flags & VMA_TYPE;
-    if (type == 0 && ino != NULL)
-        flags |= VMA_FILE;
-    void *ptr = mspace_map(kMMU.kspace, 0, length, (inode_t *)ino, offset, flags);
+    if (type == 0)
+        flags |= (ino != NULL ? VMA_FILE : VMA_ANON);
+    void *ptr = mspace_map(__mmu.kspace, 0, length, (inode_t *)ino, offset, flags);
     if (ptr == NULL) {
         kprintf(KL_ERR, "Unable to map memory on the kernel\n");
         for (;;);
@@ -62,7 +62,7 @@ void *kmap(size_t length, void *ino, xoff_t offset, int flags)
 
 void kunmap(void *address, size_t length)
 {
-    mspace_unmap(kMMU.kspace, (size_t)address, length);
+    mspace_unmap(__mmu.kspace, (size_t)address, length);
 }
 
 EXPORT_SYMBOL(kmap, 0);
@@ -146,9 +146,9 @@ void kprintf(klog_t log, const char *msg, ...)
     va_end(ap);
     if (pk != NULL) {
         lg = snprintf(kpbuf2, 1024, pk, kpbuf);
-        kwrite(kpbuf2, lg);
+        kwrite(kpbuf2);
     } else {
-        kwrite(kpbuf, lg);
+        kwrite(kpbuf);
     }
     splock_unlock(&kplock);
 }

@@ -87,7 +87,7 @@ void serial_irq(int o)
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-int serial_write(inode_t *ino, const char *buf, size_t len, int flags)
+int serial_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags)
 {
     return serial_send(ino->no - 1, buf, len);
 }

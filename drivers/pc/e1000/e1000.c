@@ -80,6 +80,8 @@ typedef struct e1000_device {
 
 } e1000_device_t;
 
+void e1000_init_hw(ifnet_t *net);
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 void e1000_link(ifnet_t *net)
@@ -145,7 +147,7 @@ int e1000_recv(struct PCI_device *pci, e1000_device_t *ifnet)
             uint8_t *buffer = ifnet->rx_virt[ifnet->rx_index];
             uint16_t length = ifnet->rx_base[ifnet->rx_index].length;
             kprintf(KL_DBG, "RECEIVE NETWORK PACKET (%d bytes)\n", length);
-            net_skb_recv(&ifnet->dev, buffer, length);
+            net_skb_recv(ifnet->dev, buffer, length);
         }
 
         count++;
@@ -259,9 +261,10 @@ static int e1000_read_mac(struct PCI_device *pci, uint8_t *mac)
     return 0;
 }
 
-void e1000_init_hw(e1000_device_t *ifnet)
+void e1000_init_hw(ifnet_t *net)
 {
     int i;
+    e1000_device_t *ifnet = net->drv_data;
     struct PCI_device *pci = ifnet->pci;
 
     // Reset

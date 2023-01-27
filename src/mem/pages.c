@@ -55,11 +55,11 @@ void page_range(long long base, long long length)
 	long count = length / PAGE_SIZE;
 	long start = base / PAGE_SIZE;
 
-	if (kMMU.upper_physical_page < (size_t)(start + count))
-		kMMU.upper_physical_page = (size_t)(start + count);
+	if (__mmu.upper_physical_page < (size_t)(start + count))
+		__mmu.upper_physical_page = (size_t)(start + count);
 
-	kMMU.pages_amount += count;
-	kMMU.free_pages += count;
+	__mmu.pages_amount += count;
+	__mmu.free_pages += count;
 	while (count > 0) {
 		int i = start / 8;
 		int j = start % 8;
@@ -90,14 +90,12 @@ void page_teardown()
 			mz->ptr = NULL;
 		}
 		splock_unlock(&mz->lock);
-		// kprintf(-1, "pz %x\n", mz);
 	}
 
 	mzone_t *it = ll_first(&lzone, mzone_t, node);
 	while (it) {
 		mz = it;
 		it = ll_next(&it->node, mzone_t, node);
-		//
 		kfree(mz);
 	}
 }
@@ -126,10 +124,11 @@ size_t page_new()
 		long idx = bitschrz(mz->ptr, mz->count);
 		assert(idx >= 0);
 		mz->free--;
-		atomic_dec(&kMMU.free_pages);
+		atomic_dec(&__mmu.free_pages);
 		bitsset(mz->ptr, idx, 1);
 		idx += mz->offset;
 		splock_unlock(&mz->lock);
+		// kprintf(-1, "===> %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
 		return idx * PAGE_SIZE;
 	}
 
@@ -154,8 +153,9 @@ void page_release(size_t paddress)
 		/* Release page */
 		bitsclr(mz->ptr, idx - mz->offset, 1);
 		mz->free++;
-		atomic_inc(&kMMU.free_pages);
+		atomic_inc(&__mmu.free_pages);
 		splock_unlock(&mz->lock);
+		// kprintf(-1, "<=== %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
 		return;
 	}
 	kprintf(KL_ERR, "Page '%p' provided to page_release is not referenced.\n", paddress);
@@ -188,11 +188,7 @@ void page_release(size_t paddress)
 int page_fault(size_t address, int reason)
 {
 	int ret = 0;
-	mspace_t *mspace = NULL;
-	if (address >= kMMU.kspace->lower_bound && address < kMMU.kspace->upper_bound)
-		mspace = kMMU.kspace;
-	else
-		mspace = kMMU.uspace;
+	mspace_t *mspace = mspace_from(address);
 	if (mspace == NULL) {
 		kprintf(KL_PF, PF_ERR"Address is outside of addressable space '%p'\n", (void *)address);
 		return -1;
@@ -214,7 +210,13 @@ int page_fault(size_t address, int reason)
 
 	size_t vaddr = ALIGN_DW(address, PAGE_SIZE);
 	if (reason & PGFLT_MISSING) {
-		++kMMU.soft_page_fault;
+		++__mmu.soft_page_fault;
+		// size_t pg = vma_readpage(vma, vaddr);
+		// if (pg == 0) {
+		//    splock_unlock(&mspace->lock);
+		//    page = look_for_page();
+		//    -- redo find and check we don't already have the page !?
+		// }
 		ret = vma_resolve(vma, vaddr, PAGE_SIZE);
 		if (ret != 0) {
 			splock_unlock(&mspace->lock);

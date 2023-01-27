@@ -251,7 +251,7 @@ void tar_close(inode_t *ino)
 {
     tar_info_t *info = ino->drv_data;
     if (atomic_xadd(&info->rcu, -1) == 1) {
-        kfree(info->base);
+        // kfree(info->base); -- TODO flags ownership of memory
         kfree(info);
     }
 }

@@ -74,6 +74,8 @@ void mspace_close(mspace_t *mspace);
 /* Copy all VMA and associated pages */
 mspace_t *mspace_clone(mspace_t *model);
 
+mspace_t *mspace_from(size_t vaddr);
+
 /* Map a memory area inside the provided address space. */
 void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, xoff_t offset, int flags);
 /* Change the protection flags of a memory area. */
@@ -109,17 +111,17 @@ void mmu_leave();
 /* - */
 void mmu_context(mspace_t *mspace);
 /* - */
-size_t mmu_resolve(mspace_t *mspace, size_t vaddr, size_t phys, int falgs);
+size_t mmu_resolve(size_t vaddr, size_t phys, int falgs);
 /* - */
-size_t mmu_read(mspace_t *mspace, size_t vaddr);
+size_t mmu_read(size_t vaddr);
 /* - */
-int mmu_read_flags(mspace_t *mspace, size_t vaddr);
+int mmu_read_flags(size_t vaddr);
 /* - */
-size_t mmu_drop(mspace_t *mspace, size_t vaddr);
+size_t mmu_drop(size_t vaddr);
 /* - */
-bool mmu_dirty(mspace_t *mspace, size_t vaddr);
+bool mmu_dirty(size_t vaddr);
 /* - */
-size_t mmu_protect(mspace_t *mspace, size_t vaddr, int falgs);
+size_t mmu_protect(size_t vaddr, int falgs);
 /* - */
 void mmu_create_uspace(mspace_t *mspace);
 /* - */
@@ -156,7 +158,7 @@ struct kMmu {
 };
 
 /* - */
-extern struct kMmu kMMU;
+extern struct kMmu __mmu;
 
 
 struct mspace {
@@ -222,7 +224,7 @@ void mspace_sweep(mspace_t *mspace);
 
 int mspace_check(mspace_t *mspace, const void *ptr, size_t len, int flags);
 int mspace_check_str(mspace_t *mspace, const char *str, size_t max);
-
+int mspace_check_strarray(mspace_t *mspace, const char **str);
 
 
 #endif /* _KERNEL_MEMORY_H */

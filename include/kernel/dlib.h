@@ -159,6 +159,8 @@ struct dlib
     inode_t *ino;
     size_t *pages;
     char *rpath;
+    bool resolved;
+    bool mapped;
 };
 
 typedef struct dlproc dlproc_t;
@@ -175,9 +177,9 @@ int dlib_open(mspace_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *nam
 
 dlproc_t *dlib_proc();
 int dlib_destroy(dlproc_t *proc);
-dlib_t *dlib_create(const char *name);
+dlib_t *dlib_create(const char *name, inode_t *ino);
 void dlib_clean(dlproc_t *proc, dlib_t *lib);
-int dlib_parse(dlib_t *lib, inode_t *ino);
+int dlib_parse(dlproc_t *proc, dlib_t *lib);
 
 int dlib_rebase(mspace_t *mm, hmap_t *symbols_map, dlib_t *lib);
 int dlib_resolve(hmap_t *symbols_map, dlib_t *lib);
@@ -188,6 +190,8 @@ size_t dlib_fetch_page(dlib_t *lib, size_t off);
 void dlib_release_page(dlib_t *lib, size_t off, size_t pg);
 char *dlib_name(dlib_t *lib, char *buf, int len);
 
+void dlib_add_symbol(dlproc_t *proc, dlib_t *lib, const char *name, size_t value);
+const char *dlib_rev_ksymbol(dlproc_t *proc, size_t ip, char *buf, int lg);
 
 int elf_parse(dlib_t *lib, blkmap_t *bkm);
 

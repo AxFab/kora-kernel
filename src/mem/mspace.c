@@ -21,7 +21,17 @@
 #include <kora/mcrs.h>
 #include <assert.h>
 #include <errno.h>
+#include <kernel/dlib.h>
 
+mspace_t *mspace_from(size_t vaddr)
+{
+	mspace_t *mspace = NULL;
+	if (vaddr >= __mmu.kspace->lower_bound && vaddr < __mmu.kspace->upper_bound)
+		mspace = __mmu.kspace;
+	else if (vaddr >= __mmu.uspace->lower_bound && vaddr < __mmu.uspace->upper_bound)
+		mspace = __mmu.uspace;
+	return mspace;
+}
 
  /* Check in an address interval is available on this address space */
 static bool mspace_is_available(mspace_t *mspace, size_t address, size_t length)
@@ -132,7 +142,7 @@ void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, 
 	} else if ((offset & (PAGE_SIZE - 1)) != 0) {
 		errno = EINVAL;
 		return NULL;
-	} else if (length == 0 || length > kMMU.max_vma_size) {
+	} else if (length == 0 || length > __mmu.max_vma_size) {
 		errno = E2BIG;
 		return NULL;
 	}
@@ -206,7 +216,7 @@ mspace_t *mspace_open(mspace_t *mspace)
 /* - */
 mspace_t *mspace_clone(mspace_t *model)
 {
-	assert(model != kMMU.kspace);
+	assert(model != __mmu.kspace);
 	mspace_t *mspace = mspace_create();
 	splock_lock(&model->lock);
 	assert(mspace->lower_bound == model->lower_bound);
@@ -242,6 +252,9 @@ void mspace_close(mspace_t *mspace)
 	mspace_sweep(mspace);
 	// Free memory space
 	mmu_destroy_uspace(mspace);
+	if (mspace->proc) {
+		dlib_destroy(mspace->proc);
+	}
 	kfree(mspace);
 }
 
