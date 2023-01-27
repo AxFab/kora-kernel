@@ -19,6 +19,7 @@
  */
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
+#include <kernel/memory.h>
 #include <kernel/bus/pci.h>
 
 #define VGA_PORT_CMD 0x1CE
@@ -49,7 +50,7 @@ struct vga_info {
     size_t pitch;
 };
 
-uint16_t size[] = {
+uint16_t screen_size[] = {
     320, 200, // 16:10
     640, 480,  // 4:3
     720, 400, // 9:5
@@ -178,9 +179,9 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *devinfo)
 
     // Load surface device !
     i = 7;
-    while (size[i * 2] * size[i * 2 + 1] * 8U > mem)
+    while (screen_size[i * 2] * screen_size[i * 2 + 1] * 8U > mem)
         --i;
-    vga_change_resol(size[i * 2], size[i * 2 + 1]);
+    vga_change_resol(screen_size[i * 2], screen_size[i * 2 + 1]);
 
 
     inode_t *ino = vfs_inode(1, FL_FRM, NULL, &vga_ino_ops);
@@ -190,15 +191,15 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *devinfo)
     vga_info_t *info = kalloc(sizeof(vga_info_t));
     ino->drv_data = info;
     info->pci = pci;
-    info->width = size[i * 2];
-    info->height = size[i * 2 + 1];
+    info->width = screen_size[i * 2];
+    info->height = screen_size[i * 2 + 1];
     info->offset = 0;
     info->pitch = ALIGN_UP(info->width * 4, 4);
     info->pixels0 = pixels0;
     info->pixels1 = pixels0 + info->pitch * info->height;
 
     vga_change_offset(info->pitch * info->height);
-    // vfs_fcntl(ino, FB_RESIZE, &size[i * 2]);
+    // vfs_fcntl(ino, FB_RESIZE, &screen_size[i * 2]);
     vfs_mkdev(ino, "fb0");
     vfs_close_inode(ino);
 }

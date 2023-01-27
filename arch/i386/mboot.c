@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <kernel/memory.h>
+#include <kernel/vfs.h>
+
 
 extern PACK(struct mboot_info {
     uint32_t flags;
@@ -77,11 +79,10 @@ void mboot_modules()
         for (i = 0; i < mboot_table->mods_count; ++i) {
             size_t len = (size_t)(((char *)mods->end) - ((char *)mods->start));
             kprintf(-1, "Module preloaded [%s] '%s'\n", sztoa(len), mods->string);
-            inode_t *root = tar_mount(mods->start, len, mods->string);
+            inode_t *ino = tar_mount(mods->start, len, mods->string);
             snprintf(tmp, 12, "boot%d", i);
-            vfs_mkdev(root, tmp);
-            // kmod_mount(root);
-            vfs_close_inode(root);
+            int ret = vfs_early_mount(ino, tmp);
+            vfs_close_inode(ino);
         }
     }
 }

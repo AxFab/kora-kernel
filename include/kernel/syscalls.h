@@ -136,15 +136,16 @@ long sys_ginfo(unsigned info, char *buf, size_t len);
 long sys_sinfo(unsigned info, const char *buf, size_t len);
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 // File system
-long sys_open(int dirfd, const char *path, int flags, int mode);
+long sys_open(const char *path, int flags, int mode);
 long sys_close(int fd);
 long sys_readdir(int fd, char *buf, size_t len);
-long sys_seek(int fd, xoff_t offset, int whence);
+long sys_seek(int fd, xoff_t *poffset, int whence);
 long sys_read(int fd, char *buf, int len);
 long sys_write(int fd, const char *buf, int len);
-long sys_access(int dirfd, const char *path, int flags);
-long sys_fcntl(int fd, int cmd, void **args);
-long sys_fstat(int dirfd, const char *path, struct filemeta *meta, int flags);
+long sys_access(const char *path, int flags);
+// long sys_fcntl(int fd, int cmd, void **args);
+long sys_ioctl(int fd, int cmd, void **args);
+long sys_fstat(const char *path, struct filemeta *meta, int flags);
 
 // #define SYS_WINDOW  18
 // #define SYS_PIPE  19

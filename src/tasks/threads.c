@@ -174,7 +174,7 @@ size_t task_spawn(const char *program, const char **args, inode_t **nodes)
     }
 
     // Schedule
-    cpu_prepare(task, task_usermode, info);
+    cpu_prepare(&task->jmpbuf, task->stack, task_usermode, info);
     scheduler_add(&__scheduler, task);
     return task->pid;
 }
@@ -192,7 +192,7 @@ size_t task_thread(const char *name, void *entry, void *params, size_t len, int 
     info->len = len;
 
     // Schedule
-    cpu_prepare(task, task_usermode, info);
+    cpu_prepare(&task->jmpbuf, task->stack, task_usermode, info);
     scheduler_add(&__scheduler, task);
     return task->pid;
 }
@@ -206,36 +206,39 @@ size_t task_start(const char *name, void *func, void *arg)
     task_t *parent = __current;
     task_t *task = task_create(sch, parent, name, 0);
 
-    cpu_prepare(task, func, arg);
+    cpu_prepare(&task->jmpbuf, task->stack, func, arg);
     scheduler_add(sch, task);
     return task->pid;
 }
 EXPORT_SYMBOL(task_start, 0);
 
-void task_stop(task_t * task, int code)
+void task_stop(int code)
 {
-    splock_lock(&__scheduler.lock);
+    // splock_lock(&__scheduler.lock);
+    task_t *task = __current;
     task->ret_code = code;
-    if (task->status >= TS_RUNNING)
-        task->status = TS_ABORTED;
-    else {
-        if (task->status == TS_READY)
-            ll_remove(&__scheduler.sch_queue, &task->sch_node);
-        if (task->status != TS_ZOMBIE) {
-            task->status = TS_ZOMBIE;
-            ll_append(&__scheduler.sch_queue, &task->sch_node);
-            while (task->advent_list.count_ > 0) {
-                advent_t *adv = ll_dequeue(&task->advent_list, advent_t, node);
-                adv->dtor(&__clock, adv);
-            }
-        }
-    }
+    //if (task->status >= TS_RUNNING)
+    //    task->status = TS_ABORTED;
+    //else {
+    //    if (task->status == TS_READY)
+    //        ll_remove(&__scheduler.sch_queue, &task->sch_node);
+    //    if (task->status != TS_ZOMBIE) {
+    //        task->status = TS_ZOMBIE;
+    //        ll_append(&__scheduler.sch_queue, &task->sch_node);
+    //        while (task->advent_list.count_ > 0) {
+    //            advent_t *adv = ll_dequeue(&task->advent_list, advent_t, node);
+    //            adv->dtor(&__clock, adv);
+    //        }
+    //    }
+    //}
 
-    splock_unlock(&__scheduler.lock);
+    //splock_unlock(&__scheduler.lock);
+    scheduler_switch(TS_ZOMBIE);
 }
 
-void task_raise(scheduler_t *sch, task_t *task, unsigned signum)
+void task_raise(task_t *task, unsigned signum)
 {
+    scheduler_t *sch = &__scheduler;
     assert(signum > 0 && signum < 31);
     if (task == NULL)
         return;

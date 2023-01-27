@@ -23,6 +23,8 @@
 #define IA32_APIC_BASE_MSR 0x1B
 #define IA32_APIC_BASE_MSR_ENABLE 0x800
 
+void x86_cpuid(int, int, int*);
+int cpu_no();
 
 const char *x86_features[] = {
     "FPU", "VME", "PE", "PSE", "TSC", "MSR", "PAE", "MCE",
@@ -54,7 +56,6 @@ int cpu_feature(x86_cpu_t *cpu, const char *feature, int n)
     return 0;
 }
 
-void x86_cpuid(int, int, int*);
 
 void cpuid_setup(sys_info_t *sysinfo)
 {

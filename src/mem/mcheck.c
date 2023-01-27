@@ -20,8 +20,7 @@
 #include <kernel/memory.h>
 #include <errno.h>
 
-/* - */
-int mspace_check(mspace_t *mspace, const void *ptr, size_t len, int flags)
+static size_t mspace_find_max_length(mspace_t *mspace, const void *ptr, vma_t **pvma)
 {
     vma_t *vma = mspace_search_vma(mspace, (size_t)ptr);
     if (vma == NULL) {
@@ -29,13 +28,22 @@ int mspace_check(mspace_t *mspace, const void *ptr, size_t len, int flags)
         return -1;
     }
 
-    if (vma->mspace == kMMU.kspace) {
+    if (vma->mspace == __mmu.kspace) {
         splock_unlock(&vma->mspace->lock);
         errno = EINVAL;
         return -1;
     }
 
-    if (vma->node.value_ + vma->length <= (size_t)ptr + len) {
+    size_t max = vma->node.value_ + vma->length - (size_t)ptr;
+    return max;
+}
+
+/* - */
+int mspace_check(mspace_t *mspace, const void *ptr, size_t len, int flags)
+{
+    vma_t *vma;
+    size_t max = mspace_find_max_length(mspace, ptr, &vma);
+    if (max < len) {
         splock_unlock(&vma->mspace->lock);
         errno = EINVAL;
         return -1;
@@ -54,26 +62,31 @@ int mspace_check(mspace_t *mspace, const void *ptr, size_t len, int flags)
 /* - */
 int mspace_check_str(mspace_t *mspace, const char *str, size_t max)
 {
-    vma_t *vma = mspace_search_vma(mspace, (size_t)str);
-    if (vma == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    if (vma->mspace == kMMU.kspace) {
-        splock_unlock(&vma->mspace->lock);
-        errno = EINVAL;
-        return -1;
-    }
-
-    max = MIN(max, vma->node.value_ + vma->length - (size_t)str);
-    if (strnlen(str, max) >= max) {
-        splock_unlock(&vma->mspace->lock);
-        errno = EINVAL;
-        return -1;
-    }
-
+    vma_t *vma;
+    max = MIN(max, mspace_find_max_length(mspace, str, &vma));
     splock_unlock(&vma->mspace->lock);
+    if (strnlen(str, max) >= max) {
+        errno = EINVAL;
+        return -1;
+    }
+
     return 0;
 }
 
+/* - */
+int mspace_check_strarray(mspace_t *mspace, const char **str)
+{
+    vma_t *vma;
+    size_t max = mspace_find_max_length(mspace, str, &vma);
+    splock_unlock(&vma->mspace->lock);
+
+    size_t len = sizeof(char *);
+    for (int i = 0; len < max; ++i, len += sizeof(char*)) {
+        if (*str == NULL)
+            break;
+        if (mspace_check_str(mspace, *str, 4096) != 0)
+            return -1;
+    }
+
+    return len < max ? 0 : -1;
+}

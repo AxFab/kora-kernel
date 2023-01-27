@@ -24,7 +24,7 @@
 #include <assert.h>
 #include <errno.h>
 
-#define VMS_NAME(m) ((m) == kMMU.kspace ? "Krn" : "Usr")
+#define VMS_NAME(m) ((m) == __mmu.kspace ? "Krn" : "Usr")
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -63,7 +63,7 @@ int vma_anon_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 
 int vma_anon_resolve(vma_t *vma, size_t address)
 {
-    mmu_resolve(vma->mspace, address, 0, vma->flags);
+    mmu_resolve(address, 0, vma->flags);
     // TODO -- memset((void *)address, 0, PAGE_SIZE);
     return 0;
 }
@@ -78,9 +78,9 @@ void vma_anon_close(vma_t *vma)
     size_t length = vma->length;
     size_t address = vma->node.value_;
     while (length) {
-        if (vma->flags & VMA_CLEAN && mmu_read(vma->mspace, address) != 0)
+        if (vma->flags & VMA_CLEAN && mmu_read(address) != 0)
             memset((void *)address, 0, PAGE_SIZE);
-        size_t pg = mmu_drop(vma->mspace, address);
+        size_t pg = mmu_drop(address);
         if (pg != 0) {
             vma->mspace->p_size--;
             page_release(pg);
@@ -129,12 +129,12 @@ int vma_heap_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 //        int idx = (address - vma->node.value_ + vma->offset) / PAGE_SIZE;
 //        size_t page = vma->cow_reg->pages[idx];
 //        if (page != 0) {
-//            mmu_resolve(vma->mspace, address, page, vma->flags & ~VM_WR);
+//            mmu_resolve(address, page, vma->flags & ~VM_WR);
 //            return 0;
 //        }
 //    }
 //
-//    mmu_resolve(vma->mspace, address, 0, vma->flags);
+//    mmu_resolve(address, 0, vma->flags);
 //    // TODO -- memset((void *)address, 0, PAGE_SIZE);
 //    return 0;
 //}
@@ -142,7 +142,7 @@ int vma_heap_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 int vma_heap_cow(vma_t *vma, size_t address)
 {
     // Check we are using the common page
-    size_t page = mmu_read(vma->mspace, address);
+    size_t page = mmu_read(address);
     int idx = (address - vma->node.value_ + vma->offset) / PAGE_SIZE;
     if (page != vma->cow_reg->pages[idx])
         return -1;
@@ -150,12 +150,12 @@ int vma_heap_cow(vma_t *vma, size_t address)
     // Copy the page
     void *des = kmap(PAGE_SIZE, NULL, 0, VMA_PHYS | VM_RW);
     void *src = kmap(PAGE_SIZE, NULL, page, VMA_PHYS | VM_RW);
-    page = mmu_read(vma->mspace, (size_t)des);
+    page = mmu_read((size_t)des);
     memcpy(des, src, PAGE_SIZE);
     kunmap(des, PAGE_SIZE);
 
     // Map the new private page
-    mmu_resolve(vma->mspace, address, page, vma->flags);
+    mmu_resolve(address, page, vma->flags);
     return 0;
 }
 
@@ -175,9 +175,9 @@ void vma_heap_cow_destroy(vma_cow_reg_t *reg)
 //    size_t length = vma->length;
 //    size_t address = vma->node.value_;
 //    while (length) {
-//        if (vma->flags & VMA_CLEAN && mmu_read(vma->mspace, address) != 0)
+//        if (vma->flags & VMA_CLEAN && mmu_read(address) != 0)
 //            memset((void *)address, 0, PAGE_SIZE);
-//        size_t pg = mmu_drop(vma->mspace, address);
+//        size_t pg = mmu_drop(address);
 //        if (pg != 0) {
 //            page_release(pg);
 //        }
@@ -208,12 +208,12 @@ int vma_heap_clone(vma_t *vma, vma_t *model)
     size_t idx = model->offset / PAGE_SIZE;
 
     for (size_t off = 0; off < length; off += PAGE_SIZE) {
-        size_t page = mmu_read(vma->mspace, address + off);
+        size_t page = mmu_read(address + off);
         if (page == 0 && model->cow_reg)
             page = model->cow_reg->pages[idx];
         reg->pages[idx] = page;
         if (page != 0) {
-            mmu_protect(vma->mspace, address, VMA_COW | VM_RD);
+            mmu_protect(address, VMA_COW | VM_RD);
             // Page info should be already set
         }
     }
@@ -250,7 +250,7 @@ vma_ops_t vma_heap_ops = {
 
 int vma_pipe_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 {
-    if (vma->mspace != kMMU.kspace) {
+    if (vma->mspace != __mmu.kspace) {
         errno = EPERM;
         return -1;
     }
@@ -280,7 +280,7 @@ vma_ops_t vma_pipe_ops = {
 
 int vma_phys_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 {
-    if (vma->mspace != kMMU.kspace || access & VM_SHARED) {
+    if (vma->mspace != __mmu.kspace || access & VM_SHARED) {
         errno = EPERM;
         return -1;
     }
@@ -292,7 +292,7 @@ int vma_phys_open(vma_t *vma, int access, inode_t *ino, xoff_t offset)
 int vma_phys_resolve(vma_t *vma, size_t address)
 {
     xoff_t offset = vma->offset != 0 ? vma->offset + (address - vma->node.value_) : 0;
-    mmu_resolve(vma->mspace, address, (page_t)offset, vma->flags);
+    mmu_resolve(address, (page_t)offset, vma->flags);
     if (offset == 0)
         vma->mspace->a_size++;
     return 0;
@@ -303,7 +303,7 @@ void vma_phys_close(vma_t *vma)
     size_t length = vma->length;
     size_t address = vma->node.value_;
     while (length) {
-        size_t pg = mmu_drop(vma->mspace, address);
+        size_t pg = mmu_drop(address);
         if (pg && vma->offset == 0)
             vma->mspace->a_size--;
         address += PAGE_SIZE;
@@ -313,7 +313,7 @@ void vma_phys_close(vma_t *vma)
 
 char *vma_phys_print(vma_t *vma, char *buf, int len)
 {
-    snprintf(buf, len, "PHYS=%p", (void *)vma->offset);
+    snprintf(buf, len, "PHYS=%p", (void *)((size_t)vma->offset));
     return buf;
 }
 
@@ -354,7 +354,7 @@ int vma_file_resolve(vma_t *vma, size_t address)
     size_t pg = vfs_fetch_page(vma->ino, offset);
     if (pg == 0)
         return -1;
-    mmu_resolve(vma->mspace, address, pg, vma->flags);
+    mmu_resolve(address, pg, vma->flags);
     return 0;
 }
 
@@ -369,8 +369,8 @@ void vma_file_close(vma_t *vma)
     size_t address = vma->node.value_;
     xoff_t offset = vma->offset;
     while (length) {
-        bool isdirty = mmu_dirty(vma->mspace, address);
-        size_t pg = mmu_drop(vma->mspace, address);
+        bool isdirty = mmu_dirty(address);
+        size_t pg = mmu_drop(address);
         if (pg != 0) {
             vfs_release_page(vma->ino, offset, pg, isdirty);
         }
@@ -428,18 +428,18 @@ int vma_exec_resolve(vma_t *vma, size_t address)
     size_t pg = dlib_fetch_page((dlib_t *)vma->ino, offset);
     if (pg == 0)
         return -1;
-    mmu_resolve(vma->mspace, address, pg, vma->flags & ~VM_WR);
+    mmu_resolve(address, pg, vma->flags & ~VM_RX);
     return 0;
 }
 
 int vma_exec_cow(vma_t *vma, size_t address)
 {
-    page_t pg_shared = mmu_read(vma->mspace, address);
+    page_t pg_shared = mmu_read(address);
     void *src = kmap(PAGE_SIZE, NULL, pg_shared, VMA_PHYS | VM_RW);
     void *trg = kmap(PAGE_SIZE, NULL, 0, VMA_PHYS | VM_RW);
     memcpy(trg, src, PAGE_SIZE);
-    page_t pg_priv = mmu_read(vma->mspace, (size_t)trg);
-    mmu_resolve(vma->mspace, address, pg_priv, vma->flags);
+    page_t pg_priv = mmu_read((size_t)trg);
+    mmu_resolve(address, pg_priv, vma->flags);
     return 0;
 }
 
@@ -449,7 +449,7 @@ void vma_exec_close(vma_t *vma)
     size_t address = vma->node.value_;
     xoff_t offset = vma->offset;
     while (length) {
-        size_t pg = mmu_drop(vma->mspace, address);
+        size_t pg = mmu_drop(address);
         if (pg != 0) {
             size_t ac = dlib_fetch_page((dlib_t *)vma->ino, offset);
             if (pg == ac) {
@@ -547,8 +547,6 @@ vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
 
     int type = flags & VMA_TYPE;
     int access = flags & (VM_RW | VM_EX | VM_RESOLVE | VM_SHARED | VM_UNCACHABLE);
-    if (type == 0)
-        return NULL;
 
     vma_t *vma = (vma_t *)kalloc(sizeof(vma_t));
     vma->mspace = mspace;
@@ -561,7 +559,7 @@ vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
         vma->ops = &vma_anon_ops;
         break;
     case VMA_STACK:
-        if (mspace == kMMU.kspace)
+        if (mspace == __mmu.kspace)
             access |= VM_RESOLVE;
         // fall through
     case VMA_HEAP:
@@ -581,6 +579,7 @@ vma_t *vma_create(mspace_t *mspace, size_t address, size_t length, inode_t *ino,
         vma->ops = &vma_exec_ops;
         break;
     default:
+        errno = EINVAL;
         kfree(vma);
         return NULL;
     }
@@ -632,8 +631,6 @@ vma_t *vma_split(mspace_t *mspace, vma_t *area, size_t length)
     char tmp[32];
     assert((length & (PAGE_SIZE - 1)) == 0);
     assert(splock_locked(&mspace->lock));
-    if (area->length < length)
-        return NULL;
     assert(area->length > length);
     kprintf(KL_VMA, "On %s%p, split vma %s\n", VMS_NAME(mspace), mspace, area->ops->print(area, tmp, 32));
 
@@ -681,7 +678,7 @@ int vma_protect(mspace_t *mspace, vma_t *vma, int flags)
     // Change access flags
     size_t off;
     for (off = 0; off < vma->length; off += PAGE_SIZE)
-        mmu_protect(vma->mspace, vma->node.value_ + off, vma->flags);
+        mmu_protect(vma->node.value_ + off, vma->flags);
 
     kprintf(KL_VMA, "On %s%p, change protect vma %s\n", VMS_NAME(mspace), mspace, vma->ops->print(vma, tmp, 32));
     return 0;
@@ -740,8 +737,8 @@ void vma_debug(vma_t *vma)
     for (int i = 0; i < sz; ++i) {
         if ((i % 8) == 0)
             kprintf(-1, "\n  ");
-        size_t pg = mmu_read(vma->mspace, address + i * PAGE_SIZE);
-        int flg = mmu_read_flags(vma->mspace, address + i * PAGE_SIZE);
+        size_t pg = mmu_read(address + i * PAGE_SIZE);
+        int flg = mmu_read_flags(address + i * PAGE_SIZE);
         rgs[0] = (flg & VM_RD ? 'r' : '-');
         rgs[1] = (flg & VM_WR ? 'w' : '-');
         rgs[2] = (flg & VM_EX ? 'x' : '-');

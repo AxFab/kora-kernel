@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <kernel/core.h>
 
+int cpu_no();
+
 typedef struct x86_tss x86_tss_t;
 struct x86_tss {
     uint16_t    previous_task, __previous_task_unused;
@@ -34,10 +36,10 @@ void tss_setup(sys_info_t *sysinfo)
 
     tss[no].debug_flag = 0;
     tss[no].io_map = 0x68;
-    tss[no].esp0 = cpu->stack + 0xFFC;
+    tss[no].esp0 = (size_t)cpu->stack + 0xFFC;
     tss[no].ss0 = 0x18;
 
-    x86_write_gdesc(no + 7, &tss[no], 0x68, 0x89, 4);
+    x86_write_gdesc(no + 7, (uint32_t)&tss[no], 0x68, 0x89, 4);
     x86_set_tss(no + 7);
     kprintf(-1, "CPU.%d TSS using stack %x\n", no, cpu->stack);
 }

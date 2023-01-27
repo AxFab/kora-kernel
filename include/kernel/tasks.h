@@ -159,12 +159,12 @@ extern task_t *__current; // TODO - Per CPU
 extern masterclock_t __clock;
 
 // void cpu_setjmp(cpu_state_t *buf, void *stack, void *func, void *arg);
-// void cpu_prepare(cpu_state_t *buf, void *stack, void *func, void *arg);
-void cpu_prepare(task_t *task, void *func, void *arg);
-//int cpu_save(cpu_state_t *buf);
-//_Noreturn void cpu_restore(cpu_state_t *buf);
-int cpu_save(task_t *task);
-_Noreturn void cpu_restore(task_t *task);
+void cpu_prepare(cpu_state_t *buf, void *stack, void *func, void *arg);
+int cpu_save(cpu_state_t *buf);
+_Noreturn void cpu_restore(cpu_state_t *buf);
+// void cpu_prepare(task_t *task, void *func, void *arg);
+// int cpu_save(task_t *task);
+// _Noreturn void cpu_restore(task_t *task);
 _Noreturn void cpu_halt();
 _Noreturn void cpu_usermode(void *start, void *stack);
 int cpu_no();
@@ -174,8 +174,8 @@ int cpu_no();
 task_t *task_search(size_t pid);
 task_t *task_next(size_t pid);
 size_t task_start(const char *name, void *func, void *arg);
-void task_raise(scheduler_t *sch, task_t *task, unsigned signum);
-void task_stop(task_t *task, int code);
+void task_raise(task_t *task, unsigned signum);
+void task_stop(int code);
 // void task_fatal(const char *msg, unsigned signum);
 
 size_t task_spawn(const char *program, const char **args, inode_t **nodes);
@@ -218,6 +218,13 @@ void clock_ticks(masterclock_t *clock, unsigned elapsed);
 
 
 typedef struct file file_t;
+struct file
+{
+    inode_t *ino;
+    xoff_t off;
+    int oflags;
+};
+
 file_t *file_from_inode(inode_t *ino, int flags);
 void file_close(file_t *);
 

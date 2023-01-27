@@ -152,6 +152,7 @@ KMAPX PHYS 12K rw - 0
 TOUCH 0x0102B000 rw
 TOUCH 0x0102C000 r
 TOUCH 0x0102D000 rw
+MMU_READ 0x0102B000 3 @pag1
 # Check dirty !!?
 KPROTECT 0x0102D000 4k r
 KUNMAP 0x0102D000 4K
@@ -160,6 +161,8 @@ KUNMAP 0x0102B000 8K
 ERROR EPERM
 MMAPX PHYS 12K rw - 0
 ERROR ON
+
+MMU_RELEASE @pag1
 
 SHOW
 # ----------------------------------------------------------------------------
@@ -180,7 +183,10 @@ MMAPX FILE 8k rws lorem_sm.txt 12k
 SHOW
 # ----------------------------------------------------------------------------
 # Library on Kernel
-KDLIB bootrd/ata.ko
+KDLIB bootrd/ata.ko 
+
+SEARCH bootrd/ata.ko,r-x @ak1
+
 
 MDLIB cal
 
@@ -257,12 +263,14 @@ SHOW
 # ----------------------------------------------------------------------------
 # Bad page-faults
 ERROR ENOMEM
-TOUCH 0xE000000 r
-TOUCH 0x102c000 r
+TOUCH 0xE0000000 r
+TOUCH 0x0102c000 r
 ERROR ON
 
 SHOW
 
+
+USPACE_CLOSE @Usr_3
 ERROR OFF
 QUIT
 EXIT

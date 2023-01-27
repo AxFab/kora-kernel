@@ -215,12 +215,8 @@ struct fl_ops {
     int (*read)(inode_t *ino, char *buf, size_t len, xoff_t, int flags);
     int (*write)(inode_t *dir, const char *buf, size_t len, xoff_t, int flags);
 
-    // page_t(*fetch)(inode_t *ino, xoff_t off);
-    // int(*release)(inode_t *ino, xoff_t off, page_t pg, bool dirty);
-    // int (*seek)(inode_t *ino, xoff_t off);
-
     void(*usage)(inode_t *ino, int flgas, int use);
-    // int (*fcntl)(inode_t *ino, int cmd, void **params);
+    // int (*fcntl)(inode_t *ino, int cmd, void **args);
     void(*destroy)(inode_t *ino);
 };
 

@@ -57,57 +57,74 @@ int dlib_open(mspace_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *nam
     dlproc_t *proc = mm->proc;
 
     // Open executable
-    proc->exec = dlib_create(name);
     const char *path = NULL; // proc_getenv(proc, "PATH");
     const char *lpath = NULL; // proc_getenv(proc, "LD_LIBRARY_PATH");
     inode_t *ino = dlib_lookfor(fsanchor, user, name, path, NULL, "/usr/bin:/bin", false);
-    // proc->exec = dlib_create(name, ino);
-    if (ino == NULL || dlib_parse(proc->exec, ino) != 0)
-        return -1; // TODO -- proc->exec won't be clean by destroy!
-    hmp_put(&proc->libs_map, proc->exec->name, strlen(proc->exec->name), proc->exec);
+    if (ino == NULL)
+        return -1;
+    proc->exec = dlib_create(name, ino);
+    vfs_close_inode(ino);
+    if (dlib_parse(proc, proc->exec) != 0) {
+        dlib_clean(proc, proc->exec);
+        return -1;
+    }
 
     // Open shared libraries
     bool req_uid = false;
     llhead_t queue = INIT_LLHEAD;
+    llhead_t ready = INIT_LLHEAD;
     ll_enqueue(&queue, &proc->exec->node);
     while (queue.count_ > 0) {
         lib = ll_dequeue(&queue, dlib_t, node);
-        ll_append(&proc->libs, &lib->node);
+        ll_append(&ready, &lib->node);
         dlname_t *dep;
         for ll_each(&lib->depends, dep, dlname_t, node)
         {
             dlib_t *sl = hmp_get(&proc->libs_map, dep->name, strlen(dep->name));
             if (sl == NULL) {
-                sl = dlib_create(dep->name);
                 ino = dlib_lookfor(fsanchor, user, dep->name, lpath, proc->exec->rpath, "/usr/lib:/lib", req_uid);
-                // sl = dlib_create(dep->name, ino);
-                if (ino == NULL || dlib_parse(sl, ino) != 0) {
-                    dlib_clean(NULL, sl);
-                    // Missing library
-                    return -1; // TODO -- Clean data on queue!
+                if (ino == NULL)
+                    return -1;
+                sl = dlib_create(dep->name, ino);
+                vfs_close_inode(ino);
+                if (dlib_parse(proc, sl) != 0) {
+                    dlib_clean(proc, proc->exec);
+                    return -1;
                 }
-                hmp_put(&proc->libs_map, dep->name, strlen(dep->name), sl);
                 ll_enqueue(&queue, &sl->node);
             }
         }
     }
 
+    // Add to the processus
+    while (ready.count_ > 0) {
+        lib = ll_dequeue(&ready, dlib_t, node);
+        ll_append(&proc->libs, &lib->node);
+    }
+    
+
     // Resolve symbols
     for ll_each(&proc->libs, lib, dlib_t, node)
     {
+        if (lib->resolved == true)
+            continue;
         if (dlib_resolve(&proc->symbols_map, lib) != 0) {
             // Missing symbols
             return -1;
         }
+        lib->resolved = true;
     }
 
     // Map all libraries
     for ll_each_reverse(&proc->libs, lib, dlib_t, node)
     {
+        if (lib->mapped == true || lib->resolved == false)
+            continue;
         if (dlib_rebase(mm, &proc->symbols_map, lib) != 0) {
             // Missing memory space
             return -1;
         }
+        lib->resolved = false;
     }
 
     //for ll_each(&proc->libs, lib, dlib_t, node) {
@@ -147,15 +164,26 @@ int dlib_destroy(dlproc_t *proc)
     return ret;
 }
 
-dlib_t *dlib_create(const char *name)
+dlib_t *dlib_create(const char *name, inode_t *ino)
 {
     dlib_t *lib = kalloc(sizeof(dlib_t));
     lib->name = kstrdup(name);
+    if (ino != NULL)
+        lib->ino = vfs_open_inode(ino);
     return lib;
 }
 
+extern void page_release_kmap_stub(page_t page);
+
 void dlib_clean(dlproc_t *proc, dlib_t *lib)
 {
+    hmp_remove(&proc->libs_map, lib->name, strlen(lib->name));
+
+    while (lib->relocations.count_ > 0) {
+        dlreloc_t *rel = ll_dequeue(&lib->relocations, dlreloc_t, node);
+        kfree(rel);
+    }
+
     while (lib->intern_symbols.count_ > 0) {
         dlsym_t *symb = ll_dequeue(&lib->intern_symbols, dlsym_t, node);
         if (proc != NULL)
@@ -163,15 +191,51 @@ void dlib_clean(dlproc_t *proc, dlib_t *lib)
         kfree(symb->name);
         kfree(symb);
     }
-    // TODO -- Symbols / Section / Depends / Reloc...
+
+    while (lib->extern_symbols.count_ > 0) {
+        dlsym_t *symb = ll_dequeue(&lib->extern_symbols, dlsym_t, node);
+        kfree(symb->name);
+        kfree(symb);
+    }
+
+    while (lib->sections.count_ > 0) {
+        dlsection_t *sec = ll_dequeue(&lib->sections, dlsection_t, node);
+        kfree(sec);
+    }
+
+    while (lib->depends.count_ > 0) {
+        dlname_t *dep = ll_dequeue(&lib->depends, dlname_t, node);
+        kfree(dep->name);
+        kfree(dep);
+    }
+
+    if (lib->ino != NULL)
+        vfs_close_inode(lib->ino);
+
+
+    if (lib->pages != NULL) {
+        int size = ALIGN_UP(lib->length, PAGE_SIZE) / PAGE_SIZE;
+        for (int i = 0; i < size; ++i) {
+            if (lib->pages[i] != 0)
+#ifdef KORA_KRN
+                page_release(lib->pages[i]);
+#else
+                page_release_kmap_stub(lib->pages[i]);
+#endif
+        }
+        kfree(lib->pages);
+    }
+
     kfree(lib->name);
     kfree(lib);
 }
 
-int dlib_parse(dlib_t *lib, inode_t *ino)
+int dlib_parse(dlproc_t *proc, dlib_t *lib)
 {
-    blkmap_t *blkmap = blk_open(ino, PAGE_SIZE);
+    blkmap_t *blkmap = blk_open(lib->ino, PAGE_SIZE);
     int ret = elf_parse(lib, blkmap);
+    if (ret == 0)
+        hmp_put(&proc->libs_map, lib->name, strlen(lib->name), lib);
     return ret;
 }
 
@@ -266,8 +330,45 @@ int dlib_resolve(hmap_t *symbols_map, dlib_t *lib)
     return missing == 0 ? 0 : -1;
 }
 
+int dlib_relloc_page(dlib_t *lib, char *ptr, xoff_t off)
+{
+    // Assert lib is locked
+    dlreloc_t *reloc;
+    for ll_each(&lib->relocations, reloc, dlreloc_t, node)
+    {
+        if ((xoff_t)reloc->offset < off || (xoff_t)reloc->offset >= off + PAGE_SIZE)
+            continue;
+        if ((xoff_t)reloc->offset >= off + PAGE_SIZE - (xoff_t)sizeof(size_t)) {
+            kprintf(-1, "Hope I don't have to support this !\n");
+            continue;
+        }
+
+        size_t *place = ADDR_OFF(ptr, reloc->offset);
+        switch (reloc->type) {
+        case R_386_32:
+            *place += reloc->symbol->address;
+            break;
+        case R_386_PC32:
+            *place += reloc->symbol->address - (size_t)place;
+            break;
+        case R_386_GLOB_DAT:
+        case R_386_JUMP_SLOT:
+            *place = reloc->symbol->address;
+            break;
+        case R_386_RELATIVE:
+            *place += lib->base;
+            break;
+        default:
+            kprintf(-1, "REL:%d\n", reloc->type);
+            break;
+        }
+    }
+    return 0;
+}
+
 int dlib_relloc(mspace_t *mm, dlib_t *lib)
 {
+    // TODO -- Assert mm is currently used!
     int pages = lib->length / PAGE_SIZE;
     lib->pages = kalloc(sizeof(size_t) * pages);
     void *ptr = kmap(lib->length, NULL, 0, VMA_PHYS | VM_RW);
@@ -280,7 +381,7 @@ int dlib_relloc(mspace_t *mm, dlib_t *lib)
     }
 
     for (int i = 0; i < pages; ++i) {
-        lib->pages[i] = mmu_read(mm, (size_t)ptr + i * PAGE_SIZE);
+        lib->pages[i] = mmu_read((size_t)ptr + i * PAGE_SIZE);
     }
 
     dlreloc_t *reloc;
@@ -313,6 +414,52 @@ int dlib_relloc(mspace_t *mm, dlib_t *lib)
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+void dlib_add_symbol(dlproc_t *proc, dlib_t *lib, const char *name, size_t value)
+{
+    dlsym_t *symbol = kalloc(sizeof(dlsym_t));
+    symbol->name = kstrdup(name);
+    symbol->address = value;
+    splock_lock(&proc->lock);
+    if (lib != NULL)
+        ll_append(&lib->intern_symbols, &symbol->node);
+    hmp_put(&proc->symbols_map, name, strlen(name), symbol);
+    splock_unlock(&proc->lock);
+}
+
+
+const char *dlib_rev_ksymbol(dlproc_t *proc, size_t ip, char *buf, int lg)
+{
+    dlib_t *lib;
+    dlsym_t *sym;
+    dlsym_t *best = NULL;
+    for ll_each(&proc->libs, lib, dlib_t, node) {
+        if (ip < lib->base || ip > lib->base + lib->length)
+            continue;
+        for ll_each(&lib->intern_symbols, sym, dlsym_t, node) {
+            if (ip < sym->address)
+                continue;
+            if (sym->size != 0 && ip < sym->address + sym->size) {
+                best = sym;
+                break;
+            }
+            if (best == NULL || best->address < sym->address)
+                best = sym;
+        }
+        if (best != NULL) {
+            if (best->address == ip)
+                snprintf(buf, lg, "%s", best->name);
+            else if (best->size != 0 && ip < best->address + best->size)
+                snprintf(buf, lg, "%s (+%ld)", best->name, best->address - ip);
+            else
+                snprintf(buf, lg, "> %s (+%ld)", best->name, best->address - ip);
+            return buf;
+        }
+    }
+    snprintf(buf, lg, "%p", (void*)ip);
+    return buf;
+}
+
+
 void *dlib_sym(dlproc_t *proc, const char *symbol)
 {
     if (proc == NULL)
@@ -326,19 +473,33 @@ void *dlib_sym(dlproc_t *proc, const char *symbol)
 
 size_t dlib_fetch_page(dlib_t *lib, size_t off)
 {
+    splock_lock(&lib->lock);
     lib->page_rcu++;
     int idx = off / PAGE_SIZE;
+    if (lib->pages == NULL) {
+        int size = ALIGN_UP(lib->length, PAGE_SIZE) / PAGE_SIZE;
+        lib->pages = kalloc(size * sizeof(size_t));
+    }
     size_t pg = lib->pages[idx];
     if (pg == 0) {
-        // TODO -- !?
+        void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VMA_PHYS);
+        pg = mmu_read((size_t)ptr);
+        lib->pages[idx] = pg;
+        vfs_read(lib->ino, ptr, PAGE_SIZE, off, 0);
+        dlib_relloc_page(lib, ptr, off);
+        kunmap(ptr, PAGE_SIZE);
     }
+    splock_unlock(&lib->lock);
     return pg;
 }
 
 void dlib_release_page(dlib_t *lib, size_t off, size_t pg)
 {
-
-    lib->page_rcu--;
+    // splock_lock(&lib->lock);
+    // lib->page_rcu--;
+    // int idx = off / PAGE_SIZE;
+    // lib->pages[idx]
+    // splock_unlock(&lib->lock);
 }
 
 char *dlib_name(dlib_t *lib, char *buf, int len)

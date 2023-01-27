@@ -23,11 +23,13 @@ srcdir = $(topdir)/src
 arcdir = $(topdir)/arch/$(target_arch)
 kname = kora-$(target_arch).krn
 
-all: kernel drivers libs bins
+all: kernel drivers #libs bins
 
 kernel: $(bindir)/$(kname)
 
 initrd: $(prefix)/boot/bootrd.tar
+
+bootstrap:$(bindir)/bootstrap
 
 include $(topdir)/make/build.mk
 include $(topdir)/make/drivers.mk
@@ -69,12 +71,19 @@ SRCS_kr += $(wildcard $(srcdir)/core/*.c)
 SRCS_kr += $(wildcard $(srcdir)/net/*.c)
 # SRCS_kr += $(wildcard $(srcdir)/snd/*.c)
 # SRCS_kr += $(wildcard $(srcdir)/net/ip4/*.c)
+SRCS_kr += $(wildcard $(arcdir)/boot/*.$(ASM_EXT))
+SRCS_kr += $(wildcard $(arcdir)/boot/*.c)
 SRCS_kr += $(wildcard $(arcdir)/*.$(ASM_EXT))
 SRCS_kr += $(wildcard $(arcdir)/*.c)
 
-SRCS_bs += $(wildcard $(arcdir)/*.$(ASM_EXT))
-SRCS_bs += $(wildcard $(arcdir)/*.c)
-SRCS_bs += $(srcdir)/tests/bootstrap.c
+SRCS_bs += $(srcdir)/stdc/string.c
+# SRCS_bs += $(srcdir)/stdc/string.c
+# SRCS_bs += $(srcdir)/core/common.c
+SRCS_bs += $(srcdir)/core/irq.c
+# SRCS_bs += $(srcdir)/mem/pages.c -- Not page-fault!?
+SRCS_bs += $(wildcard $(arcdir)/boot/*.$(ASM_EXT))
+SRCS_bs += $(wildcard $(arcdir)/boot/*.c)
+SRCS_bs += $(topdir)/tests/bootstrap.c
 
 include $(topdir)/arch/$(target_arch)/make.mk
 
@@ -139,24 +148,27 @@ SRC_kcore += $(topdir)/src/stdc/hmap.c
 SRC_kcore += $(topdir)/src/stdc/sem.c
 SRC_kcore += $(topdir)/src/stdc/bits.c
 SRC_kcore += $(topdir)/tests/cli.c
-SRC_kcore += $(topdir)/tests/stub.c
 SRC_kcore += $(topdir)/tests/threads.c
+SRC_kcore += $(topdir)/tests/stub/stub_common.c
+SRC_kcore += $(topdir)/tests/stub/stub_irq.c
 
 CFLAGS_cli += -D_EMBEDED_FS
 
 SRC_climem += $(wildcard $(topdir)/src/mem/*.c)
 SRC_climem += $(wildcard $(topdir)/tests/mem/*.c)
-SRC_climem += $(topdir)/tests/localfiles.c
+SRC_climem += $(topdir)/tests/stub/stub_kmap.c
+SRC_climem += $(topdir)/tests/stub/stub_localfiles.c
 SRC_climem += $(SRC_kcore)
 
 SRC_clinet += $(wildcard $(topdir)/drivers/net/ip4/*.c)
 SRC_clinet += $(wildcard $(topdir)/src/net/*.c)
 SRC_clinet += $(wildcard $(topdir)/tests/net/*.c)
-SRC_clinet += $(topdir)/tests/task.c
+SRC_clinet += $(topdir)/tests/stub/stub_task.c
 SRC_clinet += $(SRC_kcore)
 
 SRC_clisnd += $(wildcard $(topdir)/src/snd/*.c)
 SRC_clisnd += $(wildcard $(topdir)/tests/snd/*.c)
+SRC_clisnd += $(topdir)/tests/stub/stub_kmap.c
 SRC_clisnd += $(SRC_kcore)
 
 SRC_clitsk += $(wildcard $(topdir)/src/tasks/*.c)
@@ -168,6 +180,7 @@ SRC_clivfs += $(wildcard $(topdir)/drivers/fs/vfat/*.c)
 SRC_clivfs += $(wildcard $(topdir)/drivers/fs/isofs/*.c)
 SRC_clivfs += $(wildcard $(topdir)/src/vfs/*.c)
 SRC_clivfs += $(wildcard $(topdir)/tests/vfs/*.c)
+SRC_clivfs += $(topdir)/tests/stub/stub_kmap.c
 SRC_clivfs += $(SRC_kcore)
 
 

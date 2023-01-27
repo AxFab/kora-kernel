@@ -24,46 +24,48 @@
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
+#include <kernel/dlib.h>
 
 
 mspace_t kernel_space;
-struct kMmu kMMU;
+struct kMmu __mmu;
 
 void memory_initialize()
 {
-    kMMU.max_vma_size = _Gib_;
-    kMMU.upper_physical_page = 0;
-    kMMU.pages_amount = 0;
-    kMMU.free_pages = 0;
-    kMMU.page_size = PAGE_SIZE;
+    __mmu.max_vma_size = _Gib_;
+    __mmu.upper_physical_page = 0;
+    __mmu.pages_amount = 0;
+    __mmu.free_pages = 0;
+    __mmu.page_size = PAGE_SIZE;
 
     /* Init Kernel memory space structure */
     memset(&kernel_space, 0, sizeof(kernel_space));
     bbtree_init(&kernel_space.tree);
     splock_init(&kernel_space.lock);
-    kMMU.kspace = &kernel_space;
+    __mmu.kspace = &kernel_space;
 
     /* Enable MMU */
     mmu_enable();
 
     char tmp[20];
-    kprintf(KL_MSG, "Memory available %s\n", sztoa_r(kMMU.pages_amount * PAGE_SIZE, tmp));
+    kprintf(KL_MSG, "Memory available %s\n", sztoa_r(__mmu.pages_amount * PAGE_SIZE, tmp));
 }
 
 void memory_sweep()
 {
-    mspace_sweep(kMMU.kspace);
+    mspace_sweep(__mmu.kspace);
     mmu_leave();
     page_teardown();
+
 }
 
 void memory_info()
 {
-    kprintf(KL_DBG, "MemTotal:      %9s\n", sztoa(kMMU.upper_physical_page * PAGE_SIZE));
-    kprintf(KL_DBG, "MemFree:       %9s\n", sztoa(kMMU.free_pages * PAGE_SIZE));
-    kprintf(KL_DBG, "MemAvailable:  %9s\n", sztoa(kMMU.pages_amount * PAGE_SIZE));
-    kprintf(KL_DBG, "MemDetected:   %9s\n", sztoa(kMMU.upper_physical_page * PAGE_SIZE));
-    kprintf(KL_DBG, "MemUsed:       %9s\n", sztoa((kMMU.pages_amount - kMMU.free_pages) * PAGE_SIZE));
+    kprintf(KL_DBG, "MemTotal:      %9s (%dK)\n", sztoa(__mmu.upper_physical_page * PAGE_SIZE), __mmu.upper_physical_page * 4);
+    kprintf(KL_DBG, "MemFree:       %9s (%dK)\n", sztoa(__mmu.free_pages * PAGE_SIZE), __mmu.free_pages * 4);
+    kprintf(KL_DBG, "MemAvailable:  %9s (%dK)\n", sztoa(__mmu.pages_amount * PAGE_SIZE), __mmu.pages_amount * 4);
+    kprintf(KL_DBG, "MemDetected:   %9s (%dK)\n", sztoa(__mmu.upper_physical_page * PAGE_SIZE), __mmu.upper_physical_page * 4);
+    kprintf(KL_DBG, "MemUsed:       %9s (%dK)\n", sztoa((__mmu.pages_amount - __mmu.free_pages) * PAGE_SIZE), (__mmu.pages_amount - __mmu.free_pages) * 4);
 }
 
 // Buffers:           53664 kB

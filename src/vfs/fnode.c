@@ -607,7 +607,6 @@ int vfs_mount_at(fnode_t *node, inode_t *ino)
 
     vfs_resolve(node, ino);
     node->is_mount = true;
-    // mtx_unlock(&node->mtx);
     errno = 0;
     splock_lock(&__vfs_share->lock);
     ll_append(&__vfs_share->mnt_list, &node->nlru);

@@ -43,7 +43,7 @@
 #define APIC_TM_CUC (0x390 / 4) // Timer current counter
 #define APIC_TM_DIV (0x3E0 / 4) // Timer divide
 
-
+void x86_delay(int);
 
 typedef struct acpi_head acpi_head_t;
 typedef struct acpi_rsdp acpi_rsdp_t;
@@ -379,8 +379,8 @@ void acpi_setup(sys_info_t *sysinfo)
         sysinfo->cpu_table = kalloc(sizeof(cpu_info_t));
         sysinfo->cpu_table->arch = kalloc(sizeof(x86_cpu_t));
         cpu_kstacks = kalloc(sizeof(size_t));
-        sysinfo->cpu_table->stack = 0x4000;
-        cpu_kstacks = 0x4000;
+        sysinfo->cpu_table->stack = (void *)0x4000;
+        cpu_kstacks = (void *)0x4000;
         return;
     }
 

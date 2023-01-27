@@ -120,7 +120,7 @@ netstack_t *lan_init(const char *name, int cards)
 int lan_connect(subnet_t *subnet, ifnet_t *ifnet)
 {
     if (ifnet->drv_data != NULL) {
-        fprintf(stderr, "Error, this device %s:%s:%d is already connected somewhere else\n",
+        printf("Error, this device %s:%s:%d is already connected somewhere else\n",
             ifnet->stack->hostname, ifnet->proto->name, ifnet->idx);
         return -1;
     }
@@ -133,7 +133,7 @@ int lan_connect(subnet_t *subnet, ifnet_t *ifnet)
         }
     }
     ifnet->drv_data = NULL;
-    fprintf(stderr, "Error, no place for the device %s:%s:%d on this subnet\n",
+    printf("Error, no place for the device %s:%s:%d on this subnet\n",
         ifnet->stack->hostname, ifnet->proto->name, ifnet->idx);
     return -1;
 }
@@ -141,7 +141,7 @@ int lan_connect(subnet_t *subnet, ifnet_t *ifnet)
 int lan_disconnect(subnet_t *subnet, ifnet_t *ifnet)
 {
     if (ifnet->drv_data != subnet) {
-        fprintf(stderr, "Error, this device %s:%s:%d is not connected to this subnet\n",
+        printf("Error, this device %s:%s:%d is not connected to this subnet\n",
             ifnet->stack->hostname, ifnet->proto->name, ifnet->idx);
         return -1;
     }

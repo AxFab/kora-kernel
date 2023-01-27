@@ -21,7 +21,7 @@
 #include <kernel/mods.h>
 #include <ctype.h>
 
-void *malloc(size_t);
+void *kalloc(size_t);
 // #include <stdlib.h>
 
 /* Scans s1 for the first token not contained in s2. */
@@ -158,7 +158,7 @@ void *memset(void *buffer, int c, size_t num)
 
 void *memdup(const void *buf, size_t lg)
 {
-    void *ptr = malloc(lg);
+    void *ptr = kalloc(lg);
     memcpy(ptr, buf, lg);
     return ptr;
 }
@@ -312,7 +312,7 @@ char *strtok(char *s1, const char *s2)
 char *strdup(const char *str)
 {
     size_t lg = strlen(str);
-    char *ptr = (char *)malloc(lg + 1);
+    char *ptr = (char *)kalloc(lg + 1);
     memcpy(ptr, str, lg);
     ptr[lg] = '\0';
     return ptr;
@@ -322,7 +322,7 @@ char *strdup(const char *str)
 char *strndup(const char *str, size_t maxlen)
 {
     size_t lg = strnlen(str, maxlen);
-    char *ptr = (char *)malloc(lg + 1);
+    char *ptr = (char *)kalloc(lg + 1);
     memcpy(ptr, str, lg);
     ptr[lg] = '\0';
     return ptr;

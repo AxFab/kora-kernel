@@ -456,7 +456,7 @@ static int ATAPI_Read(struct ATA_Drive *dr, uint32_t lba,  uint8_t sects,
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-int ata_read(inode_t *ino, void *data, size_t size, xoff_t off, int flags)
+int ata_read(inode_t *ino, char *data, size_t size, xoff_t off, int flags)
 {
     struct ATA_Drive *dr = &sdx[ino->lba];
     uint32_t lba = off / ino->dev->block;
@@ -473,7 +473,7 @@ int ata_read(inode_t *ino, void *data, size_t size, xoff_t off, int flags)
     return errno == 0 ? 0 : -1;
 }
 
-int ata_write(inode_t *ino, const void *data, size_t size, xoff_t off, int flags)
+int ata_write(inode_t *ino, const char *data, size_t size, xoff_t off, int flags)
 {
     struct ATA_Drive *dr = &sdx[ino->lba];
     uint32_t lba = off / ino->dev->block;
