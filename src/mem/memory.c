@@ -27,7 +27,7 @@
 #include <kernel/dlib.h>
 
 
-mspace_t kernel_space;
+vmsp_t kernel_space;
 struct kMmu __mmu;
 
 void memory_initialize()
@@ -42,6 +42,7 @@ void memory_initialize()
     memset(&kernel_space, 0, sizeof(kernel_space));
     bbtree_init(&kernel_space.tree);
     splock_init(&kernel_space.lock);
+    kernel_space.max_size = VMSP_MAX_SIZE;
     __mmu.kspace = &kernel_space;
 
     /* Enable MMU */
@@ -53,10 +54,21 @@ void memory_initialize()
 
 void memory_sweep()
 {
-    mspace_sweep(__mmu.kspace);
+    vmsp_sweep(__mmu.kspace);
     mmu_leave();
     page_teardown();
 
+}
+
+vmsp_t *memory_space_at(size_t address)
+{
+    if (address >= __mmu.kspace->lower_bound && address < __mmu.kspace->upper_bound)
+        return __mmu.kspace;
+    if (__mmu.uspace == NULL)
+        return NULL;
+    if (address >= __mmu.uspace->lower_bound && address < __mmu.uspace->upper_bound)
+        return __mmu.uspace;
+    return NULL;
 }
 
 void memory_info()

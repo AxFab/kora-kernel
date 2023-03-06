@@ -126,7 +126,7 @@ void *kmap(size_t len, void *obj, xoff_t off, int flags)
     case VMA_FILE:
         getter = 1;
         break;
-    case VMA_CODE:
+    case VMA_DLTEXT:
         access = VM_RD | VM_EX;
         getter = 2;
         break;
@@ -152,7 +152,7 @@ void *kmap(size_t len, void *obj, xoff_t off, int flags)
         inode_t *ino = obj;
         assert(len == PAGE_SIZE);
         assert(ino != NULL);
-        mp->ptr = (void *)vfs_fetch_page(ino, off);
+        mp->ptr = (void *)vfs_fetch_page(ino, off, true);
         if (mp->ptr == NULL) {
             printf("Error on fetching page of %s\n", vfs_inokey(ino, tmp));
             return NULL;
@@ -191,7 +191,7 @@ void kunmap(void *addr, size_t len)
     case VMA_FILE:
         getter = 1;
         break;
-    case VMA_CODE:
+    case VMA_DLTEXT:
         getter = 2;
         break;
     case VMA_PHYS:

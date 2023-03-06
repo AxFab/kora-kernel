@@ -119,7 +119,7 @@ struct task {
 
     llnode_t sch_node;
 
-    mspace_t *vm;
+    vmsp_t *vmsp;
     fs_anchor_t *fsa;
     streamset_t *fset;
     void *net;

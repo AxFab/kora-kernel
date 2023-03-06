@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define ARGS_MAX 5
+#define ARGS_MAX 6
 
 typedef struct cli_cmd cli_cmd_t;
 typedef struct cli_cfg cli_cfg_t;
@@ -43,7 +43,7 @@ struct cli_cfg
     bool is_interactive;
 };
 
-#define CLI_END_OF_COMMANDS { NULL, NULL, { 0, 0, 0, 0, 0 }, NULL, 0 }
+#define CLI_END_OF_COMMANDS { NULL, NULL, { 0, 0, 0, 0, 0, 0 }, NULL, 0 }
 
 #define ARG_STR 1
 #define ARG_INT 2

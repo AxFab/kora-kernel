@@ -186,13 +186,13 @@ void elf_relocation(dlreloc_t *reloc, elf_reloc32_t *rel, llhead_t *symbols)
 {
     int sym_idx = rel->symbol;
     reloc->offset = rel->offset;
-    reloc->type = rel[1].type;// &0xF;
+    reloc->type = rel->type;// &0xF;
     if (sym_idx != 0 && sym_idx < 0x10000) {
         reloc->symbol = ll_index(symbols, sym_idx - 1, dlsym_t, node);
         if (reloc->symbol == NULL)
             kprintf(-1, "Missing RelSym: %06x  %x  (%d) \n", reloc->offset, reloc->type, sym_idx);
     }
-    // kprintf(-1, "R efl: %06x  %x  %s \n", reloc->address, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
+    kprintf(-1, "R efl: %06x  %x  %s \n", reloc->offset, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
 }
 
 

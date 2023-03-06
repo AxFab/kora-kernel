@@ -29,6 +29,7 @@
 void bitsset(uint8_t *ptr, int start, int count);
 int bitschrz(uint8_t *ptr, int len);
 void bitsclr(uint8_t *ptr, int start, int count);
+bool bitstest(uint8_t *ptr, int start, int count);
 
 typedef struct mzone mzone_t;
 struct mzone
@@ -128,7 +129,7 @@ size_t page_new()
 		bitsset(mz->ptr, idx, 1);
 		idx += mz->offset;
 		splock_unlock(&mz->lock);
-		// kprintf(-1, "===> %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
+		kprintf(-1, "===> %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
 		return idx * PAGE_SIZE;
 	}
 
@@ -150,17 +151,60 @@ void page_release(size_t paddress)
 			splock_unlock(&mz->lock);
 			continue;
 		}
+		assert(mz->ptr != NULL);
+		assert(bitstest(mz->ptr, idx - mz->offset, 1));
 		/* Release page */
 		bitsclr(mz->ptr, idx - mz->offset, 1);
 		mz->free++;
 		atomic_inc(&__mmu.free_pages);
 		splock_unlock(&mz->lock);
-		// kprintf(-1, "<=== %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
+		kprintf(-1, "<=== %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
 		return;
 	}
 	kprintf(KL_ERR, "Page '%p' provided to page_release is not referenced.\n", paddress);
 }
 
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+typedef struct page_sharing_entry
+{
+	size_t page;
+	int count;
+} page_sharing_entry_t;
+
+
+bool page_shared(page_sharing_t *share, size_t page, int count)
+{
+	if (share == NULL) {
+		assert(count == 0);
+		return true;
+	}
+	bool last = false;
+	splock_lock(&share->lock);
+	page_sharing_entry_t *ps = hmp_get(&share->map, (char *)&page, sizeof(size_t));
+	if (ps == NULL) {
+		if (count == 0) {
+			splock_unlock(&share->lock);
+			return true;
+		}
+		assert(count > 0);
+		ps = kalloc(sizeof(page_sharing_entry_t));
+		ps->page = page;
+		ps->count = count;
+		hmp_put(&share->map, (char *)&page, sizeof(size_t), ps);
+	} else {
+		ps->count += count;
+		if (ps->count <= 0) {
+			hmp_remove(&share->map, (char *)&page, sizeof(size_t));
+			last = true;
+			kfree(ps);
+		}
+	}
+	kprintf(-1, "- shared page %p (%d)\n", (void *)page, last ? 0 : ps->count);
+	splock_unlock(&share->lock);
+	return last;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -181,57 +225,11 @@ void page_release(size_t paddress)
 //        length -= PAGE_SIZE;
 //    }
 //}
-
-#define PF_ERR "\033[91mSIGSEGV\033[0m "
-
-/* Resolve a page fault */
-int page_fault(size_t address, int reason)
-{
-	int ret = 0;
-	mspace_t *mspace = mspace_from(address);
-	if (mspace == NULL) {
-		kprintf(KL_PF, PF_ERR"Address is outside of addressable space '%p'\n", (void *)address);
-		return -1;
-	}
-
-	// assert(kCPU.irq_semaphore == 0); //But IRQ must still be disabld!
-	// kprintf(KLOG_PF, "\033[91m#PF\033[31m %p\033[0m\n", address);
-	vma_t *vma = mspace_search_vma(mspace, address);
-	if (vma == NULL) {
-		kprintf(KL_PF, PF_ERR"No mapping at this address '%p'\n", (void *)address);
-		return -1;
-	}
-
-	if (reason & PGFLT_WRITE && !(vma->flags & VM_WR) && !(vma->flags & VMA_COW)) {
-		splock_unlock(&mspace->lock);
-		kprintf(KL_PF, PF_ERR"Can't write on read-only memory at '%p'\n", (void *)address);
-		return -1;
-	}
-
-	size_t vaddr = ALIGN_DW(address, PAGE_SIZE);
-	if (reason & PGFLT_MISSING) {
-		++__mmu.soft_page_fault;
-		// size_t pg = vma_readpage(vma, vaddr);
-		// if (pg == 0) {
-		//    splock_unlock(&mspace->lock);
-		//    page = look_for_page();
-		//    -- redo find and check we don't already have the page !?
-		// }
-		ret = vma_resolve(vma, vaddr, PAGE_SIZE);
-		if (ret != 0) {
-			splock_unlock(&mspace->lock);
-			kprintf(KL_PF, PF_ERR"Unable to resolve page at '%p'\n", (void *)address);
-			return -1;
-		}
-	}
-
-	if (reason & PGFLT_WRITE && (vma->flags & VMA_COW)) {
-		ret = vma_copy_on_write(vma, vaddr, PAGE_SIZE);
-		if (ret != 0) {
-			kprintf(KL_PF, PF_ERR"Error on copy and write at %p!\n", (void *)address);
-			return -1;
-		}
-	}
-	splock_unlock(&mspace->lock);
-	return 0;
-}
+//
+//#define PF_ERR "\033[91mSIGSEGV\033[0m "
+//
+///* Resolve a page fault */
+// int page_fault(size_t address, int reason)
+// {
+// 	return vmsp_resolve(memory_space_at(address), address, reason & PGFLT_MISSING, reason & PGFLT_WRITE);
+// }

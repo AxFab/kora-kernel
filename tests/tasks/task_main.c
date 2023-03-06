@@ -63,24 +63,24 @@ int vfs_release_page(inode_t *ino, xoff_t off, size_t pg, bool dirty)
 }
 
 /* Create a memory space for a user application */
-mspace_t *mspace_create() { return NULL; }
+vmsp_t *mspace_create() { return NULL; }
 /* Increment memory space RCU */
-mspace_t *mspace_open(mspace_t *mspace) { return NULL; }
+vmsp_t *mspace_open(vmsp_t *mspace) { return NULL; }
 /* Decrement memory space RCU */
-void mspace_close(mspace_t *mspace) { }
+void mspace_close(vmsp_t *mspace) { }
 /* Copy all VMA and associated pages */
-mspace_t *mspace_clone(mspace_t *model) { return NULL; }
+vmsp_t *mspace_clone(vmsp_t *model) { return NULL; }
 
 void *kmap(size_t len, void *ino, xoff_t off, int access) { return NULL; }
 
 const char *ksymbol(size_t ptr, char *buf, size_t len) { return buf; }
 
-void *mspace_map(mspace_t *mspace, size_t address, size_t length, inode_t *ino, xoff_t offset, int flags) { return NULL; }
+void *mspace_map(vmsp_t *mspace, size_t address, size_t length, inode_t *ino, xoff_t offset, int flags) { return NULL; }
 
-void mmu_context(mspace_t *mspace) {}
+void mmu_context(vmsp_t *mspace) {}
 // void mmu_context() {}
 
-int dlib_open(mspace_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *name)
+int dlib_open(vmsp_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *name)
 {
     return 0;
 }
@@ -99,7 +99,7 @@ _Noreturn void task_usermode(task_params_t *info);
 
 void cpu_prepare(cpu_state_t *jbuf, void *stack, void *func, void *arg)
 {
-    // cpu_state_t *buf, void *stack
+    task_t *task = itemof(jbuf, task_t, jmpbuf);
     if (func == &task_usermode) {
         task_params_t *info = arg;
         kfree(info->params);

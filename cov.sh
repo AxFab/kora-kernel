@@ -11,7 +11,7 @@ make cli-snd
 make cli-vfs
 
 cd tests
-../bin/cli-mem mm_start.sh
+ ../bin/cli-mem mm_start.sh
 ../bin/cli-net net_ping0.sh
 ../bin/cli-net net_ip0.sh
 # # ../bin/cli-net net_udp0.sh

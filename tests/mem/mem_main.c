@@ -48,7 +48,7 @@ struct
     size_t usp_upper;
 
     //int page_used;
-    //mspace_t *mm;
+    //vmsp_t *mm;
     //size_t *pages;
 
     //// Page bitmap
@@ -65,15 +65,15 @@ typedef struct mmu_dir
     size_t pages[0];
 } mmu_dir_t;
 
-void __create_mmu_dir(mspace_t *mspace)
+void __create_mmu_dir(vmsp_t *vmsp)
 {
-    size_t len = (mspace->upper_bound - mspace->lower_bound) / PAGE_SIZE;
+    size_t len = (vmsp->upper_bound - vmsp->lower_bound) / PAGE_SIZE;
     mmu_dir_t *dir = malloc(sizeof(mmu_dir_t) + sizeof(size_t) * len);
     memset(dir->pages, 0, sizeof(size_t) * len);
     dir->len = len;
     dir->dir = page_new();
-    mspace->t_size++;
-    mspace->directory = (size_t)dir;
+    vmsp->t_size++;
+    vmsp->directory = (size_t)dir;
 }
 
 void mmu_enable() 
@@ -118,21 +118,24 @@ void mmu_leave()
     mmu_destroy_uspace(__mmu.kspace);
 }
 
-//void mmu_context(mspace_t *mm)
+//void mmu_context(vmsp_t *mm)
 //{
 //    //_.pages = (size_t *)mm->directory;
 //}
 
-void mmu_create_uspace(mspace_t *mspace)
+vmsp_t *__mmu_set_vmsp = NULL;
+void mmu_create_uspace(vmsp_t *vmsp)
 {
-    mspace->lower_bound = _.usp_lower;
-    mspace->upper_bound = _.usp_upper;
-    __create_mmu_dir(mspace);
+    vmsp->lower_bound = _.usp_lower;
+    vmsp->upper_bound = _.usp_upper;
+    __create_mmu_dir(vmsp);
+    __mmu_set_vmsp = vmsp;
+    // TODO -- Prepare for mmu_set() !
 }
 
-void mmu_destroy_uspace(mspace_t *mspace)
+void mmu_destroy_uspace(vmsp_t *vmsp)
 {
-    mmu_dir_t *dir = (void *)mspace->directory;
+    mmu_dir_t *dir = (void *)vmsp->directory;
     int leak = 0;
     for (unsigned i = 0; i < dir->len; ++i) {
         if (dir->pages[i] != 0)
@@ -143,7 +146,7 @@ void mmu_destroy_uspace(mspace_t *mspace)
         cli_warn("Leaking %d page(s) on closing memory space", leak);
     page_release(dir->dir);
     free(dir);
-    mspace->t_size--;
+    vmsp->t_size--;
 }
 
 
@@ -151,26 +154,34 @@ void mmu_destroy_uspace(mspace_t *mspace)
 void page_release_kmap_stub(size_t page);
 size_t mmu_read_kmap_stub(size_t address);
 
+static size_t __mmu_set(mmu_dir_t *dir, size_t idx, size_t phys, int flags)
+{
+    assert(idx < dir->len);
+    dir->pages[idx] = phys | 8 | (flags & (VM_RWX | VM_UNCACHABLE));
+    return phys;
+}
+
+size_t mmu_set(size_t directory, size_t vaddr, size_t phys, int flags)
+{
+    assert(__mmu.uspace);
+    assert(__mmu_set_vmsp && __mmu_set_vmsp->directory == directory);
+    mmu_dir_t *dir = (void *)directory;
+    size_t idx = (vaddr - __mmu.uspace->lower_bound) / PAGE_SIZE;
+    return __mmu_set(dir, idx, phys, flags);
+}
 
 /* - */
 size_t mmu_resolve(size_t vaddr, size_t phys, int flags)
 {
-    mspace_t *mspace = mspace_from(vaddr);
-    assert(vaddr >= mspace->lower_bound && vaddr < mspace->upper_bound);
-    assert(mspace == __mmu.kspace || mspace == __mmu.uspace);
+    vmsp_t *vmsp = memory_space_at(vaddr);
+    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
+    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
     if (phys == 0)
         phys = page_new();
 
-    mmu_dir_t *dir = (void *)mspace->directory;
-    size_t idx = (vaddr - mspace->lower_bound) / PAGE_SIZE;
-    assert(idx < dir->len);
-    if (dir->pages[idx] != 0)
-        cli_warn("Try to overwrite a resolved page");
-    dir->pages[idx] = phys | 8 | (flags & (VM_RWX | VM_UNCACHABLE));
-    mspace->p_size++;
-    if (flags & VM_SHARED)
-        mspace->s_size++;
-    return phys;
+    mmu_dir_t *dir = (void *)vmsp->directory;
+    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
+    return __mmu_set(dir, idx, phys, flags);
 }
 
 /* - */
@@ -180,24 +191,24 @@ size_t mmu_read(size_t vaddr)
     if (pg != 0)
         return pg;
 
-    mspace_t *mspace = mspace_from(vaddr);
-    assert(vaddr >= mspace->lower_bound && vaddr < mspace->upper_bound);
-    assert(mspace == __mmu.kspace || mspace == __mmu.uspace);
+    vmsp_t *vmsp = memory_space_at(vaddr);
+    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
+    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
 
-    mmu_dir_t *dir = (void *)mspace->directory;
-    size_t idx = (vaddr - mspace->lower_bound) / PAGE_SIZE;
+    mmu_dir_t *dir = (void *)vmsp->directory;
+    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
     assert(idx < dir->len);
     return dir->pages[idx] & ~(PAGE_SIZE-1);
 }
 
 int mmu_read_flags(size_t vaddr)
 {
-    mspace_t *mspace = mspace_from(vaddr);
-    assert(vaddr >= mspace->lower_bound && vaddr < mspace->upper_bound);
-    assert(mspace == __mmu.kspace || mspace == __mmu.uspace);
+    vmsp_t *vmsp = memory_space_at(vaddr);
+    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
+    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
 
-    mmu_dir_t *dir = (void *)mspace->directory;
-    size_t idx = (vaddr - mspace->lower_bound) / PAGE_SIZE;
+    mmu_dir_t *dir = (void *)vmsp->directory;
+    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
     assert(idx < dir->len);
     return dir->pages[idx] & (VM_RWX | VM_UNCACHABLE);
 }
@@ -205,12 +216,12 @@ int mmu_read_flags(size_t vaddr)
 /* - */
 size_t mmu_drop(size_t vaddr)
 {
-    mspace_t *mspace = mspace_from(vaddr);
-    assert(vaddr >= mspace->lower_bound && vaddr < mspace->upper_bound);
-    assert(mspace == __mmu.kspace || mspace == __mmu.uspace);
+    vmsp_t *vmsp = memory_space_at(vaddr);
+    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
+    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
 
-    mmu_dir_t *dir = (void *)mspace->directory;
-    size_t idx = (vaddr - mspace->lower_bound) / PAGE_SIZE;
+    mmu_dir_t *dir = (void *)vmsp->directory;
+    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
     assert(idx < dir->len);
     size_t phys = dir->pages[idx] & ~(PAGE_SIZE - 1);
     dir->pages[idx] = 0;
@@ -220,12 +231,12 @@ size_t mmu_drop(size_t vaddr)
 /* - */
 size_t mmu_protect(size_t vaddr, int flags)
 {
-    mspace_t *mspace = mspace_from(vaddr);
-    assert(vaddr >= mspace->lower_bound && vaddr < mspace->upper_bound);
-    assert(mspace == __mmu.kspace || mspace == __mmu.uspace);
+    vmsp_t *vmsp = memory_space_at(vaddr);
+    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
+    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
 
-    mmu_dir_t *dir = (void *)mspace->directory;
-    size_t idx = (vaddr - mspace->lower_bound) / PAGE_SIZE;
+    mmu_dir_t *dir = (void *)vmsp->directory;
+    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
     assert(idx < dir->len);
     size_t phys = 0;
     if (dir->pages[idx] != 0) {
@@ -238,12 +249,12 @@ size_t mmu_protect(size_t vaddr, int flags)
 /* - */
 bool mmu_dirty(size_t vaddr)
 {
-    mspace_t *mspace = mspace_from(vaddr);
-    assert(vaddr >= mspace->lower_bound && vaddr < mspace->upper_bound);
-    assert(mspace == __mmu.kspace || mspace == __mmu.uspace);
+    vmsp_t *vmsp = memory_space_at(vaddr);
+    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
+    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
 
-    mmu_dir_t *dir = (void *)mspace->directory;
-    size_t idx = (vaddr - mspace->lower_bound) / PAGE_SIZE;
+    mmu_dir_t *dir = (void *)vmsp->directory;
+    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
     assert(idx < dir->len);
     return dir->pages[idx] & 0x200;
 }
@@ -274,8 +285,8 @@ static int __parse_typex(const char *type)
         flags = VMA_PHYS;
     } else if (strcmp(type, "FILE") == 0) {
         flags = VMA_FILE;
-    //} else if (strcmp(type, "EXEC") == 0) {
-    //    flags = VMA_CODE;
+    } else if (strcmp(type, "FILECPY") == 0) {
+        flags = VMA_FILECPY;
     } else {
         return cli_error("Unsupported type %s", type);
     }
@@ -362,9 +373,9 @@ int do_show(void *ctx, size_t *params)
 {
     // char *checks = (char *)params[0];
 
-    mspace_display(__mmu.kspace);
+    vmsp_display(__mmu.kspace);
     if (__mmu.uspace)
-        mspace_display(__mmu.uspace);
+        vmsp_display(__mmu.uspace);
 
     //if (checks == NULL)
     //    return 0;
@@ -406,44 +417,55 @@ int do_show(void *ctx, size_t *params)
     return 0;
 }
 
+size_t read_address2(char *address)
+{
+    if (*address != '@')
+        return cli_read_size(address);
+    char buf[32];
+    strncpy(buf, address, 32);
+    char *p = strchr(buf, '+');
+    char *n = strchr(buf, '-');
+    if (p != NULL) {
+        *p = '\0';
+        return (size_t)cli_fetch(buf, ST_ADDRESS) + cli_read_size(&p[1]);
+    }
+    if (n != NULL) {
+        *n = '\0';
+        return (size_t)cli_fetch(buf, ST_ADDRESS) - cli_read_size(&n[1]);
+    }
+    return (size_t)cli_fetch(buf, ST_ADDRESS);
+}
+
 int do_touch(void *ctx, size_t *params)
 {
     const char *rigths[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx" };
     char *address = (char *)params[0];
     char *mode = (char *)params[1];
 
-    size_t vaddr = cli_read_size(address);
-    int access = __parse_flags(mode) & VM_RWX;
+    size_t vaddr = read_address2(address);// == '@' ? (size_t)cli_fetch(address, ST_ADDRESS) : cli_read_size(address);
+    int access = (__parse_flags(mode) & VM_RWX) | VM_RD;
 
     int pg = 0;
     mmu_dir_t *dir = NULL;
     size_t idx = 0;
 
-    mspace_t *mspace = NULL;
-    if (vaddr >= __mmu.kspace->lower_bound && vaddr < __mmu.kspace->upper_bound)
-        mspace = __mmu.kspace;
-    else if (vaddr >= __mmu.uspace->lower_bound && vaddr < __mmu.uspace->upper_bound)
-        mspace = __mmu.uspace;
-
-    if (mspace != NULL) {
-        dir = (void *)mspace->directory;
-        idx = (vaddr - mspace->lower_bound) / PAGE_SIZE;
+    vmsp_t *vmsp = memory_space_at(vaddr);
+    if (vmsp != NULL) {
+        dir = (void *)vmsp->directory;
+        idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
         pg = dir->pages[idx] & (VM_RWX | 8);
     }
 
     if ((int)(pg & access) != access) {
-        int flt = 0;
-        if ((pg & 8) == 0)
-            flt |= PGFLT_MISSING;
-        if (access & VM_WR)
-            flt |= PGFLT_WRITE;
-
         printf("#PF at %p %s\n", (void *)vaddr, rigths[access]);
-         if (page_fault(vaddr, flt) != 0) {
+        bool missing = (pg & 8) == 0;
+        bool writing = access & VM_WR;
+        int ret = vmsp_resolve(vmsp, vaddr, missing, writing);
+        if (ret != 0) {
             errno = ENOMEM;
             return -1;
         }
-        if (mspace != NULL)
+        if (vmsp != NULL)
             pg = dir->pages[idx] & (VM_RWX | 8);
     }
 
@@ -452,7 +474,7 @@ int do_touch(void *ctx, size_t *params)
         return -1;
     }
 
-    if (access & VM_WR && mspace != NULL)
+    if (access & VM_WR && vmsp != NULL)
         dir->pages[idx] |= 0x200;
     return 0;
 }
@@ -462,7 +484,7 @@ int do_touch(void *ctx, size_t *params)
 
 //int do_exec(void *ctx, size_t *params)
 //{
-//    mspace_t *mm = __mmu.uspace;
+//    vmsp_t *mm = __mmu.uspace;
 //    char *name = (char *)params[0];
 //    size_t cd = cli_read_size((char *)params[1]);
 //    size_t dt = cli_read_size((char *)params[2]);
@@ -552,13 +574,14 @@ int do_quit()
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-int __mmap(mspace_t *msp, size_t *params)
+int __mmap(vmsp_t *vmsp, size_t *params)
 {
     char *type = (char *)params[0];
     size_t length = cli_read_size((char *)params[1]);
     char *arg = (char *)params[2];
+    char *name = (char *)params[3];
 
-    if (msp == NULL)
+    if (vmsp == NULL)
         return cli_error("No user-space selected");
 
     int flags = __parse_type(type);
@@ -567,19 +590,22 @@ int __mmap(mspace_t *msp, size_t *params)
 
     flags |= __parse_flags(arg);
 
-    void *ptr = mspace_map(msp, 0, length, NULL, 0, flags);
-    return ptr == NULL ? -1 : 0;
+    size_t ptr = vmsp_map(vmsp, 0, length, NULL, 0, flags);
+    if (name != NULL)
+        cli_store(name, (void *)ptr, ST_ADDRESS);
+    return ptr == 0 ? -1 : 0;
 }
 
-int __mmapx(mspace_t *msp, size_t *params)
+int __mmapx(vmsp_t *vmsp, size_t *params)
 {
     char *type = (char *)params[0];
     size_t length = cli_read_size((char *)params[1]);
     char *arg = (char *)params[2];
-    char *name = (char *)params[3];
+    char *iname = (char *)params[3];
     size_t off = cli_read_size((char *)params[4]);
+    char *name = (char *)params[5];
 
-    if (msp == NULL)
+    if (vmsp == NULL)
         return cli_error("No user-space selected");
 
     int flags = __parse_typex(type);
@@ -591,49 +617,70 @@ int __mmapx(mspace_t *msp, size_t *params)
     flags |= __parse_flags(arg);
 
     void *ino = NULL;
-    if (name != NULL && *name != '-') {
-        ino = vfs_search_ino(NULL, name, NULL, true);
+    if (iname != NULL && *iname != '-') {
+        ino = vfs_search_ino(NULL, iname, NULL, true);
         if (ino == NULL)
-            return cli_error("Can't open file '%s'", name);
+            return cli_error("Can't open file '%s'", iname);
     }
 
-    void *ptr = mspace_map(msp, 0, length, ino, off, flags);
+    size_t ptr = vmsp_map(vmsp, 0, length, ino, off, flags);
     if (ino != NULL)
         vfs_close_inode(ino);
-    return ptr == NULL ? -1 : 0;
+    if (name && ptr != 0)
+        cli_store(name, (void *)ptr, ST_ADDRESS);
+    return ptr == 0 ? -1 : 0;
 }
 
-int __munmap(mspace_t *msp, size_t *params)
+int __munmap(vmsp_t *vmsp, size_t *params)
 {
-    size_t base = cli_read_size((char *)params[0]);
+    char *bname = (char *)params[0];
+    size_t base = read_address2(bname);
     size_t length = cli_read_size((char *)params[1]);
 
-    if (msp == NULL)
+    if (vmsp == NULL)
         return cli_error("No user-space selected");
 
-    return mspace_unmap(msp, base, length);
+    return vmsp_unmap(vmsp, base, length);
 }
 
-int __mprotect(mspace_t *msp, size_t *params)
+int __mprotect(vmsp_t *vmsp, size_t *params)
 {
-    size_t base = cli_read_size((char *)params[0]);
+    char *bname = (char *)params[0];
+    size_t base = read_address2(bname);
     size_t length = cli_read_size((char *)params[1]);
     char *arg = (char *)params[2];
 
-    if (msp == NULL)
+    if (vmsp == NULL)
         return cli_error("No user-space selected");
 
     int flags = __parse_flags(arg);
-    return mspace_protect(msp, base, length, flags);
+    return vmsp_protect(vmsp, base, length, flags); // !?
 }
 
-int __dlib(mspace_t *msp, size_t *params)
+int __dlib(vmsp_t *vmsp, size_t *params)
 {
     char *name = (char *)params[0];
-    int ret = dlib_open(msp, NULL, NULL, name);
+    int ret = dlib_open(vmsp, NULL, NULL, name);
     if (ret != 0)
         cli_error("Error on loading library %s", name);
     return ret;
+}
+
+int __sym(vmsp_t *vmsp, size_t *params)
+{
+    char *symbol = (char *)params[0];
+    char *name = (char *)params[1];
+
+    void *ptr = dlib_sym(vmsp->proc, symbol);
+    if (ptr)
+        kprintf(-1, "Find symbol '%s' at %p\n", symbol, ptr);
+    else 
+        kprintf(-1, "Unable to find symbol '%s'\n", symbol);
+    if (name)
+        cli_store(name, ptr, ST_ADDRESS);
+    //int ret = vmsp_resolve(__mmu.kspace, (size_t)ptr, true, false);
+    //ret = vmsp_resolve(__mmu.kspace, (size_t)ptr, false, true);
+    return ptr ? 0 : -1;
 }
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -663,6 +710,11 @@ int do_kdlib(void *ctx, size_t *params)
     return __dlib(__mmu.kspace, params);
 }
 
+int do_ksym(void *ctx, size_t *params)
+{
+    return __sym(__mmu.kspace, params);
+}
+
 int do_mmap(void *ctx, size_t *params)
 {
     return __mmap(__mmu.uspace, params);
@@ -688,12 +740,17 @@ int do_mdlib(void *ctx, size_t *params)
     return __dlib(__mmu.uspace, params);
 }
 
+int do_msym(void *ctx, size_t *params)
+{
+    return __sym(__mmu.uspace, params);
+}
+
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 int do_uspace_create(void *ctx, size_t *params)
 {
     char *store = (char *)params[0];
-    mspace_t *usp = mspace_create();
+    vmsp_t *usp = vmsp_create();
     cli_store(store, usp, ST_MSPACE);
     __mmu.uspace = usp;
     return 0;
@@ -704,7 +761,7 @@ int do_uspace_open(void *ctx, size_t *params)
     char *store = (char *)params[0];
     if (__mmu.uspace == NULL)
         return cli_error("No user-space selected");
-    mspace_t *usp = mspace_open(__mmu.uspace);
+    vmsp_t *usp = vmsp_open(__mmu.uspace);
     cli_store(store, usp, ST_MSPACE);
     __mmu.uspace = usp;
     return 0;
@@ -713,7 +770,7 @@ int do_uspace_open(void *ctx, size_t *params)
 int do_uspace_select(void *ctx, size_t *params)
 {
     char *store = (char *)params[0];
-    mspace_t *usp = cli_fetch(store, ST_MSPACE);
+    vmsp_t *usp = cli_fetch(store, ST_MSPACE);
     if (usp == NULL)
         return cli_error("No user-space selected");
     __mmu.uspace = usp;
@@ -725,7 +782,7 @@ int do_uspace_clone(void *ctx, size_t *params)
     char *store = (char *)params[0];
     if (__mmu.uspace == NULL)
         return cli_error("No user-space selected");
-    mspace_t *usp = mspace_clone(__mmu.uspace);
+    vmsp_t *usp = vmsp_clone(__mmu.uspace);
     cli_store(store, usp, ST_MSPACE);
     __mmu.uspace = usp;
     return 0;
@@ -734,12 +791,12 @@ int do_uspace_clone(void *ctx, size_t *params)
 int do_uspace_close(void *ctx, size_t * params)
 {
     char *store = (char *)params[0];
-    mspace_t *usp = cli_fetch(store, ST_MSPACE);
+    vmsp_t *usp = cli_fetch(store, ST_MSPACE);
     if (usp == NULL)
         return cli_error("No user-space selected");
     if (usp != __mmu.uspace)
         return cli_error("Wromg user-space selected");
-    mspace_close(usp);
+    vmsp_close(usp);
     __mmu.uspace = NULL;
     cli_remove(store, ST_MSPACE);
     return 0;
@@ -782,19 +839,18 @@ int do_mmu_release(void *ctx, size_t *params)
     return 0;
 }
 
-int do_search(void *ctx, size_t *params)
-{
-    char *pe = (char *)params[0];
-    char *pa = (char *)params[1];
-    char *po = (char *)params[2];
-
-    void *ptr = dlib_sym(__mmu.kspace->proc, "ata_setup");
-    int ret = page_fault((size_t)ptr, PGFLT_MISSING);
-    ret = page_fault((size_t)ptr, PGFLT_WRITE);
-    return ret;
-}
-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+int do_del(void *cfg, size_t *params)
+{
+    char *name = (char *)params[0];
+    void *address = cli_fetch(name, ST_ADDRESS);
+    if (address == NULL)
+        return cli_error("Unknwon address");
+    cli_remove(name, ST_ADDRESS);
+    return 0;
+}
 
 void initialize()
 {
@@ -807,33 +863,35 @@ void teardown()
 
 
 cli_cmd_t __commands[] = {
-    { "START", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_start, 3 },
-    { "QUIT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_quit, 0 },
+    { "START", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_start, 3 },
+    { "QUIT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_quit, 0 },
 
-    { "KMAP", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_kmap, 2 },
-    { "KMAPX", "", { ARG_STR, ARG_STR, ARG_STR, ARG_STR, ARG_STR }, (void *)do_kmapx, 5 },
-    { "KUNMAP", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_kunmap, 2 },
-    { "KPROTECT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_kprotect, 3 },
-    { "KDLIB", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_kdlib, 1 },
+    { "KMAP", "", { ARG_STR, ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_kmap, 2 },
+    { "KMAPX", "", { ARG_STR, ARG_STR, ARG_STR, ARG_STR, ARG_STR, ARG_STR }, (void *)do_kmapx, 5 },
+    { "KUNMAP", "", { ARG_STR, ARG_STR, 0, 0, 0, 0 }, (void *)do_kunmap, 2 },
+    { "KPROTECT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_kprotect, 3 },
+    { "KDLIB", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_kdlib, 1 },
+    { "KSYM", "", { ARG_STR, ARG_STR, 0, 0, 0, 0 }, (void *)do_ksym, 1 },
 
-    { "MMAP", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_mmap, 2 },
-    { "MMAPX", "", { ARG_STR, ARG_STR, ARG_STR, ARG_STR, ARG_STR }, (void *)do_mmapx, 5 },
-    { "MUNMAP", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_munmap, 2 },
-    { "MPROTECT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_mprotect, 3 },
-    { "MDLIB", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_mdlib, 1 },
+    { "MMAP", "", { ARG_STR, ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_mmap, 2 },
+    { "MMAPX", "", { ARG_STR, ARG_STR, ARG_STR, ARG_STR, ARG_STR, ARG_STR }, (void *)do_mmapx, 5 },
+    { "MUNMAP", "", { ARG_STR, ARG_STR, 0, 0, 0, 0 }, (void *)do_munmap, 2 },
+    { "MPROTECT", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_mprotect, 3 },
+    { "MDLIB", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_mdlib, 1 },
+    { "MSYM", "", { ARG_STR, ARG_STR, 0, 0, 0, 0 }, (void *)do_msym, 1 },
 
-    { "USPACE_CREATE", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_uspace_create, 1 },
-    { "USPACE_OPEN", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_uspace_open, 1 },
-    { "USPACE_SELECT", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_uspace_select, 1 },
-    { "USPACE_CLONE", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_uspace_clone, 1 },
-    { "USPACE_CLOSE", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_uspace_close, 1 },
+    { "USPACE_CREATE", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_uspace_create, 1 },
+    { "USPACE_OPEN", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_uspace_open, 1 },
+    { "USPACE_SELECT", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_uspace_select, 1 },
+    { "USPACE_CLONE", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_uspace_clone, 1 },
+    { "USPACE_CLOSE", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_uspace_close, 1 },
     
-    { "SHOW", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_show, 0 },
-    { "SEARCH", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_search, 1 },
+    { "SHOW", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_show, 0 },
+    { "TOUCH", "", { ARG_STR, ARG_STR, 0, 0, 0, 0 }, (void *)do_touch, 2 },
 
-
-    { "MMU_READ", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0 }, (void *)do_mmu_read, 0 },
-    { "MMU_RELEASE", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_mmu_release, 0 },
+    // !?
+    { "MMU_READ", "", { ARG_STR, ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_mmu_read, 0 },
+    { "MMU_RELEASE", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_mmu_release, 0 },
 
     //{ "CREATE", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_create, 0 },
     //{ "OPEN", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_open, 0 },
@@ -845,9 +903,10 @@ cli_cmd_t __commands[] = {
     //{ "STACK", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_stack, 2 },
     //{ "HEAP", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void *)do_heap, 2 },
     //{ "EXEC", "", { ARG_STR, ARG_STR, ARG_STR, ARG_STR, 0 }, (void *)do_exec, 2 },
-    { "TOUCH", "", { ARG_STR, ARG_STR, 0, 0, 0 }, (void*)do_touch, 2 },
- 
+
+
     //{ "ELF", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_elf, 1 },
+    { "DEL", "", { ARG_STR, 0, 0, 0, 0 }, (void *)do_del, 1 },
     CLI_END_OF_COMMANDS,
 };
 

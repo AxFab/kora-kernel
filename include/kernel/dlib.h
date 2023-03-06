@@ -95,6 +95,7 @@ typedef struct dlsection dlsection_t;
 typedef struct dlsym dlsym_t;
 typedef struct dlreloc dlreloc_t;
 typedef struct dlname dlname_t;
+typedef struct dlproc dlproc_t;
 
 struct dlname
 {
@@ -163,7 +164,6 @@ struct dlib
     bool mapped;
 };
 
-typedef struct dlproc dlproc_t;
 struct dlproc
 {
     dlib_t *exec;
@@ -173,7 +173,7 @@ struct dlproc
     splock_t lock;
 };
 
-int dlib_open(mspace_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *name);
+int dlib_open(vmsp_t *vmsp, fs_anchor_t *fsanchor, user_t *user, const char *name);
 
 dlproc_t *dlib_proc();
 int dlib_destroy(dlproc_t *proc);
@@ -181,12 +181,12 @@ dlib_t *dlib_create(const char *name, inode_t *ino);
 void dlib_clean(dlproc_t *proc, dlib_t *lib);
 int dlib_parse(dlproc_t *proc, dlib_t *lib);
 
-int dlib_rebase(mspace_t *mm, hmap_t *symbols_map, dlib_t *lib);
+int dlib_rebase(vmsp_t *vmsp, hmap_t *symbols_map, dlib_t *lib);
 int dlib_resolve(hmap_t *symbols_map, dlib_t *lib);
-int dlib_relloc(mspace_t *mm, dlib_t *lib);
+int dlib_relloc(vmsp_t *vmsp, dlib_t *lib);
 
 void *dlib_sym(dlproc_t *proc, const char *symbol);
-size_t dlib_fetch_page(dlib_t *lib, size_t off);
+size_t dlib_fetch_page(dlib_t *lib, size_t off, bool blocking);
 void dlib_release_page(dlib_t *lib, size_t off, size_t pg);
 char *dlib_name(dlib_t *lib, char *buf, int len);
 
