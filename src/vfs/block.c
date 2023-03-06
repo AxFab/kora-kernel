@@ -76,7 +76,7 @@ void block_scavenge(block_file_t *block, int max)
     splock_unlock(&block->lock);
 }
 
-page_t block_fetch(inode_t *ino, xoff_t off)
+page_t block_fetch(inode_t *ino, xoff_t off, bool blocking)
 {
     char tmp[20];
     block_file_t *block = ino->fl_data;
@@ -86,11 +86,16 @@ page_t block_fetch(inode_t *ino, xoff_t off)
     if (off < 0 || off / PAGE_SIZE >= (xoff_t)__SSIZE_MAX) {
         kprintf(-1, "\033[35mSettings %lld / %lld / ...\033[0m\n", (xoff_t)PAGE_SIZE, (xoff_t)__SSIZE_MAX);
         kprintf(-1, "\033[35mError while reading page: %s, pg:%d. bad offset\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
+        splock_unlock(&block->lock);
         return 0;
     }
     size_t lba = (size_t)(off / PAGE_SIZE);
     block_page_t *page = bbtree_search_eq(&block->tree, lba, block_page_t, node);
     if (page == NULL) {
+        if (!blocking) {
+            splock_unlock(&block->lock);
+            return 0;
+        }
         page = kalloc(sizeof(block_page_t));
         mtx_init(&page->mtx, mtx_plain);
         page->rcu = 0;
@@ -98,10 +103,15 @@ page_t block_fetch(inode_t *ino, xoff_t off)
         bbtree_insert(&block->tree, &page->node);
     } else if (ll_contains(&block->llru, &page->nlru))
         ll_remove(&block->llru, &page->nlru);
+
     atomic_inc(&page->rcu);
     splock_unlock(&block->lock);
 
     if (!page->ready) {
+        if (!blocking) {
+            block_close_page(block, page);
+            return 0;
+        }
         mtx_lock(&page->mtx);
         if (!page->ready) {
             void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VMA_PHYS);

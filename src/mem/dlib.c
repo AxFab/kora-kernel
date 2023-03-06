@@ -49,12 +49,12 @@ static inode_t *dlib_lookfor(fs_anchor_t *fsanchor, user_t *user, const char *na
     return  dlib_lookfor_at(fsanchor, user, name, sys);
 }
 
-int dlib_open(mspace_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *name)
+int dlib_open(vmsp_t *vmsp, fs_anchor_t *fsanchor, user_t *user, const char *name)
 {
     dlib_t *lib;
-    if (mm->proc == NULL)
-        mm->proc = dlib_proc();
-    dlproc_t *proc = mm->proc;
+    if (vmsp->proc == NULL)
+        vmsp->proc = dlib_proc();
+    dlproc_t *proc = vmsp->proc;
 
     // Open executable
     const char *path = NULL; // proc_getenv(proc, "PATH");
@@ -120,7 +120,7 @@ int dlib_open(mspace_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *nam
     {
         if (lib->mapped == true || lib->resolved == false)
             continue;
-        if (dlib_rebase(mm, &proc->symbols_map, lib) != 0) {
+        if (dlib_rebase(vmsp, &proc->symbols_map, lib) != 0) {
             // Missing memory space
             return -1;
         }
@@ -267,42 +267,42 @@ static size_t dlib_override_map(const char *name, size_t base)
 }
 #endif
 
-int dlib_rebase(mspace_t *mm, hmap_t *symbols_map, dlib_t *lib)
+int dlib_rebase(vmsp_t *vmsp, hmap_t *symbols_map, dlib_t *lib)
 {
     // Find map address
-    void *base = NULL;
+    size_t base = 0;
 
 #if !defined NDEBUG && defined KORA_KRN
     lib->base = dlib_override_map(lib->name, lib->base);
     if (lib->base)
-        base = mspace_map(mm, lib->base, lib->length, (void *)lib, 0, VMA_CODE | VMA_FIXED | VM_RWX);
+        base = vmsp_map(mm, lib->base, lib->length, (void *)lib, 0, VMA_CODE | VMA_FIXED | VM_RWX);
 #endif
 
     // Use ASRL
-    int max = (mm->upper_bound - lib->length - mm->lower_bound) / PAGE_SIZE;
-    while (base == NULL && true) { // TODO -- When to give up
-        size_t addr = mm->lower_bound + (rand32() % max) * PAGE_SIZE;
-        base = mspace_map(mm, addr, lib->length, (void *)lib, 0, VMA_CODE | VMA_FIXED | VM_RWX);
+    int max = (vmsp->upper_bound - lib->length - vmsp->lower_bound) / PAGE_SIZE;
+    while (base == 0 && true) { // TODO -- When to give up
+        size_t addr = vmsp->lower_bound + (rand32() % max) * PAGE_SIZE;
+        base = vmsp_map(vmsp, addr, lib->length, (void *)lib, 0, VMA_DLIB | VMA_FIXED | VM_RWX);
     }
 
-    if (base == NULL)
+    if (base == 0)
         return -1;
 
     kprintf(-1, "\033[94mRebase lib %s at %p (.text: %p)\033[0m\n", lib->name, base, (char *)base + lib->text_off);
-    lib->base = (size_t)base;
+    lib->base = base;
 
     // Splt map protection
     dlsection_t *sc;
     for ll_each(&lib->sections, sc, dlsection_t, node) {
         if (sc->length == 0)
             break;
-        mspace_protect(mm, lib->base + sc->offset, sc->length, sc->rights);
+        vmsp_protect(vmsp, lib->base + sc->offset, sc->length, sc->rights);
     }
 
     // List symbols
     dlsym_t *symbol;
     for ll_each(&lib->intern_symbols, symbol, dlsym_t, node) {
-        symbol->address += (size_t)base;
+        symbol->address += base;
         hmp_put(symbols_map, symbol->name, strlen(symbol->name), symbol);
     }
     return 0;
@@ -359,14 +359,15 @@ int dlib_relloc_page(dlib_t *lib, char *ptr, xoff_t off)
             *place += lib->base;
             break;
         default:
-            kprintf(-1, "REL:%d\n", reloc->type);
+            kprintf(-1, "REL:%d at %p\n", reloc->type, place);
             break;
         }
     }
     return 0;
 }
 
-int dlib_relloc(mspace_t *mm, dlib_t *lib)
+#if 0
+int dlib_relloc(vmsp_t *vmsp, dlib_t *lib)
 {
     // TODO -- Assert mm is currently used!
     int pages = lib->length / PAGE_SIZE;
@@ -400,6 +401,7 @@ int dlib_relloc(mspace_t *mm, dlib_t *lib)
             *place = reloc->symbol->address;
             break;
         case R_386_RELATIVE:
+        case 12:
             *place += lib->base;
             break;
         default:
@@ -411,6 +413,7 @@ int dlib_relloc(mspace_t *mm, dlib_t *lib)
     kunmap(ptr, lib->length);
     return 0;
 }
+#endif
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -471,17 +474,20 @@ void *dlib_sym(dlproc_t *proc, const char *symbol)
     return (void *)addr;
 }
 
-size_t dlib_fetch_page(dlib_t *lib, size_t off)
+size_t dlib_fetch_page(dlib_t *lib, size_t off, bool blocking)
 {
     splock_lock(&lib->lock);
-    lib->page_rcu++;
     int idx = off / PAGE_SIZE;
     if (lib->pages == NULL) {
+        if (!blocking) {
+            splock_unlock(&lib->lock);
+            return 0;
+        }
         int size = ALIGN_UP(lib->length, PAGE_SIZE) / PAGE_SIZE;
         lib->pages = kalloc(size * sizeof(size_t));
     }
     size_t pg = lib->pages[idx];
-    if (pg == 0) {
+    if (pg == 0 && blocking) {
         void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VMA_PHYS);
         pg = mmu_read((size_t)ptr);
         lib->pages[idx] = pg;
@@ -489,17 +495,33 @@ size_t dlib_fetch_page(dlib_t *lib, size_t off)
         dlib_relloc_page(lib, ptr, off);
         kunmap(ptr, PAGE_SIZE);
     }
+    if (pg != 0)
+        lib->page_rcu++;
     splock_unlock(&lib->lock);
     return pg;
 }
 
 void dlib_release_page(dlib_t *lib, size_t off, size_t pg)
 {
-    // splock_lock(&lib->lock);
-    // lib->page_rcu--;
+    splock_lock(&lib->lock);
+    lib->page_rcu--;
     // int idx = off / PAGE_SIZE;
-    // lib->pages[idx]
-    // splock_unlock(&lib->lock);
+    // 
+    if (lib->page_rcu == 0) {
+        int size = ALIGN_UP(lib->length, PAGE_SIZE) / PAGE_SIZE;
+        for (int i = 0; i < size; ++i) {
+            size_t page = lib->pages[i];
+            if (page != 0)
+#ifdef KORA_KRN
+                page_release(page);
+#else
+                page_release_kmap_stub(page);
+#endif
+        }
+        kfree(lib->pages);
+        lib->pages = NULL;
+    }
+    splock_unlock(&lib->lock);
 }
 
 char *dlib_name(dlib_t *lib, char *buf, int len)

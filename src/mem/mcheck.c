@@ -20,51 +20,48 @@
 #include <kernel/memory.h>
 #include <errno.h>
 
-static size_t mspace_find_max_length(mspace_t *mspace, const void *ptr, vma_t **pvma)
+/* - */
+int vmsp_check(vmsp_t *vmsp, const void *ptr, size_t len, int flags)
 {
-    vma_t *vma = mspace_search_vma(mspace, (size_t)ptr);
+    splock_lock(&vmsp->lock);
+    vma_t *vma = vmsp_find_area(vmsp, (size_t)ptr);
     if (vma == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    if (vma->mspace == __mmu.kspace) {
-        splock_unlock(&vma->mspace->lock);
+        splock_unlock(&vmsp->lock);
         errno = EINVAL;
         return -1;
     }
 
     size_t max = vma->node.value_ + vma->length - (size_t)ptr;
-    return max;
-}
-
-/* - */
-int mspace_check(mspace_t *mspace, const void *ptr, size_t len, int flags)
-{
-    vma_t *vma;
-    size_t max = mspace_find_max_length(mspace, ptr, &vma);
     if (max < len) {
-        splock_unlock(&vma->mspace->lock);
+        splock_unlock(&vmsp->lock);
         errno = EINVAL;
         return -1;
     }
 
     if ((flags & VM_WR) && !(vma->flags & VM_WR)) {
-        splock_unlock(&vma->mspace->lock);
-        errno = EINVAL;
+        splock_unlock(&vmsp->lock);
+        errno = EPERM;
         return -1;
     }
 
-    splock_unlock(&vma->mspace->lock);
+    splock_unlock(&vmsp->lock);
     return 0;
 }
 
 /* - */
-int mspace_check_str(mspace_t *mspace, const char *str, size_t max)
+int vmsp_check_str(vmsp_t *vmsp, const char *str, size_t max)
 {
-    vma_t *vma;
-    max = MIN(max, mspace_find_max_length(mspace, str, &vma));
-    splock_unlock(&vma->mspace->lock);
+    splock_lock(&vmsp->lock);
+    vma_t *vma = vmsp_find_area(vmsp, (size_t)str);
+    if (vma == NULL) {
+        splock_unlock(&vmsp->lock);
+        errno = EINVAL;
+        return -1;
+    }
+
+    max = MIN(max, vma->node.value_ + vma->length - (size_t)str);
+    splock_unlock(&vmsp->lock);
+
     if (strnlen(str, max) >= max) {
         errno = EINVAL;
         return -1;
@@ -74,17 +71,24 @@ int mspace_check_str(mspace_t *mspace, const char *str, size_t max)
 }
 
 /* - */
-int mspace_check_strarray(mspace_t *mspace, const char **str)
+int vmsp_check_strarray(vmsp_t *vmsp, const char **str)
 {
-    vma_t *vma;
-    size_t max = mspace_find_max_length(mspace, str, &vma);
-    splock_unlock(&vma->mspace->lock);
+    splock_lock(&vmsp->lock);
+    vma_t *vma = vmsp_find_area(vmsp, (size_t)str);
+    if (vma == NULL) {
+        splock_unlock(&vmsp->lock);
+        errno = EINVAL;
+        return -1;
+    }
+
+    size_t max = vma->node.value_ + vma->length - (size_t)str;
+    splock_unlock(&vmsp->lock);
 
     size_t len = sizeof(char *);
     for (int i = 0; len < max; ++i, len += sizeof(char*)) {
         if (*str == NULL)
             break;
-        if (mspace_check_str(mspace, *str, 4096) != 0)
+        if (vmsp_check_str(vmsp, *str, 4096) != 0)
             return -1;
     }
 

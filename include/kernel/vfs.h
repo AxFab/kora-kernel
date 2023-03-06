@@ -199,7 +199,7 @@ struct ino_ops {
 
     int(*truncate)(inode_t *ino, xoff_t length);
 
-    page_t (*fetch)(inode_t *ino, xoff_t off);
+    page_t (*fetch)(inode_t *ino, xoff_t off, bool blocking);
     int (*release)(inode_t *ino, xoff_t off, page_t pg, bool dirty);
 
     int (*ioctl)(inode_t *ino, int cmd, void **params);
@@ -323,7 +323,7 @@ struct fnode
 
 
 // For map/unmap
-size_t vfs_fetch_page(inode_t *ino, xoff_t off);
+size_t vfs_fetch_page(inode_t *ino, xoff_t off, bool blocking);
 int vfs_release_page(inode_t *ino, xoff_t off, size_t pg, bool dirty);
 
 
@@ -374,7 +374,7 @@ int vfs_early_mount(inode_t *ino, const char *name);
 
 inode_t *tar_mount(void *base, size_t length, const char *name);
 
-page_t block_fetch(inode_t *ino, xoff_t off);
+page_t block_fetch(inode_t *ino, xoff_t off, bool blocking);
 int block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty);
 
 

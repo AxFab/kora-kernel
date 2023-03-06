@@ -43,6 +43,7 @@ char *vfs_inokey(inode_t *ino, char *buf)
 
 inode_t *vfs_open_inode(inode_t *ino)
 {
+    assert(ino != NULL);
     atomic_inc(&ino->rcu);
     return ino;
 }
@@ -66,7 +67,7 @@ void vfs_close_inode(inode_t *ino)
 size_t page_new();
 void page_release(size_t);
 
-size_t vfs_fetch_page(inode_t *ino, xoff_t off)
+size_t vfs_fetch_page(inode_t *ino, xoff_t off, bool blocking)
 {
     file_t *file = ino->drv_data;
     size_t idx = (size_t)(off / PAGE_SIZE);
@@ -80,11 +81,15 @@ size_t vfs_fetch_page(inode_t *ino, xoff_t off)
     }
     
     if (file->pcache[idx] == 0) {
+        if (!blocking)
+            return 0;
+        // TODO -- What if blocking
         file->pcache[idx] = page_new();
         file->alloc++;
     }
     size_t pg = file->pcache[idx];
     file->prcu++;
+    // kprintf(-1, "FILE '%s' %d \n", file->name, file->prcu);
     file->rcus[idx]++;
     return pg;
 }
@@ -96,8 +101,9 @@ int vfs_release_page(inode_t *ino, xoff_t off, size_t pg, bool dirty)
     if (file->pages <= idx || file->pcache[idx] == 0)
         return -1;
     file->prcu--;
+    // kprintf(-1, "FILE '%s' %d \n", file->name, file->prcu);
     if (--file->rcus[idx] == 0) {
-        // TODO -- Simul write-back !
+        // TODO -- Simul write-back !?
         page_release(file->pcache[idx]);
         file->pcache[idx] = 0;
     }
