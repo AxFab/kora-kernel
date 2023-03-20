@@ -26,7 +26,7 @@
 _Noreturn void __assert_fail(const char *expr, const char *file, unsigned line, const char *func)
 {
     kprintf(KL_ERR, "Assertion failed CPU%d (%s) at %s:%d -- %s\n", cpu_no(), expr, file, line);
-    mspace_display(NULL);
+    vmsp_display(NULL);
     stackdump(12);
     for (;;);
 }
@@ -52,7 +52,7 @@ void *kmap(size_t length, void *ino, xoff_t offset, int flags)
     int type = flags & VMA_TYPE;
     if (type == 0)
         flags |= (ino != NULL ? VMA_FILE : VMA_ANON);
-    void *ptr = mspace_map(__mmu.kspace, 0, length, (inode_t *)ino, offset, flags);
+    void *ptr = (void *)vmsp_map(__mmu.kspace, 0, length, (inode_t *)ino, offset, flags);
     if (ptr == NULL) {
         kprintf(KL_ERR, "Unable to map memory on the kernel\n");
         for (;;);
@@ -62,7 +62,7 @@ void *kmap(size_t length, void *ino, xoff_t offset, int flags)
 
 void kunmap(void *address, size_t length)
 {
-    mspace_unmap(__mmu.kspace, (size_t)address, length);
+    vmsp_unmap(__mmu.kspace, (size_t)address, length);
 }
 
 EXPORT_SYMBOL(kmap, 0);

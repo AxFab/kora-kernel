@@ -30,7 +30,7 @@
 
 long sys_fstat(const char *path, struct filemeta *meta, int flags)
 {
-    if (mspace_check_str(__current->vm, path, 4096) != 0)
+    if (vmsp_check_str(__current->vmsp, path, 4096) != 0)
         return -1;
 
     fnode_t *node = vfs_search(__current->fsa, path, NULL, true, true);
@@ -72,13 +72,13 @@ long sys_pipe(int *fds, int flags)
 
 int sys_mount(const char *device, const char *dir, const char *fstype, const char *options, int flags)
 {
-    if (device && mspace_check_str(__current->vm, device, 4096) != 0)
+    if (device && vmsp_check_str(__current->vmsp, device, 4096) != 0)
         return -1;
-    if (dir && mspace_check_str(__current->vm, dir, 4096) != 0)
+    if (dir && vmsp_check_str(__current->vmsp, dir, 4096) != 0)
         return -1;
-    if (fstype && mspace_check_str(__current->vm, fstype, 4096) != 0)
+    if (fstype && vmsp_check_str(__current->vmsp, fstype, 4096) != 0)
         return -1;
-    if (options && mspace_check_str(__current->vm, options, 4096) != 0)
+    if (options && vmsp_check_str(__current->vmsp, options, 4096) != 0)
         return -1;
 
     int ret = vfs_mount(__current->fsa, device, fstype, dir, NULL, options ? options : "");
@@ -87,11 +87,11 @@ int sys_mount(const char *device, const char *dir, const char *fstype, const cha
 
 int sys_mkfs(const char *device, const char *fstype, const char *options, int flags)
 {
-    if (device && mspace_check_str(__current->vm, device, 4096) != 0)
+    if (device && vmsp_check_str(__current->vmsp, device, 4096) != 0)
         return -1;
-    if (fstype && mspace_check_str(__current->vm, fstype, 4096) != 0)
+    if (fstype && vmsp_check_str(__current->vmsp, fstype, 4096) != 0)
         return -1;
-    if (options && mspace_check_str(__current->vm, options, 4096) != 0)
+    if (options && vmsp_check_str(__current->vmsp, options, 4096) != 0)
         return -1;
 
     inode_t* blk = vfs_search_ino(__current->fsa, device, NULL, true);

@@ -181,8 +181,13 @@ uint32_t ext2_truncate_indirect(ext2_volume_t *vol, uint32_t block, int bcount, 
 {
 	depth--;
 	/* indirect block number */
-	if (block == 0 && offset < bcount)
+	if (block == 0 && offset < bcount) {
 		block = ext2_alloc_block(vol);
+		struct bkmap bk;
+		uint32_t *table = bkmap(&bk, block, vol->blocksize, 0, vol->blkdev, VM_RW);
+		memset(table, 0, vol->blocksize);
+		bkunmap(&bk);
+	}
 	if (block != 0) {
 		struct bkmap bk;
 		uint32_t *table = bkmap(&bk, block, vol->blocksize, 0, vol->blkdev, VM_RW);

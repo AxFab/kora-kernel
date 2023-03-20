@@ -40,13 +40,13 @@ CHROOT /mnt/ldk
 MOUNT - devfs /dev
 
 INCLUDE fs_persist_wr.sh # Create large files hierarchy
-# RESTART
+RESTART
 
-# # ---------------------------------------------------------------------------
-# IMG_OPEN hdd.img hdd
-# MOUNT /hdd ext2 /mnt/ldk
-# CHROOT /mnt/ldk
-# MOUNT - devfs /dev
+# ---------------------------------------------------------------------------
+IMG_OPEN hdd.img hdd
+MOUNT /hdd ext2 /mnt/ldk
+CHROOT /mnt/ldk
+MOUNT - devfs /dev
 
 # INCLUDE fs_persist_rd.sh
 

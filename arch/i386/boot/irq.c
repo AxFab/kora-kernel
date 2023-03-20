@@ -125,12 +125,11 @@ void x86_error(int no, int code, regs_t *regs)
 
 void x86_pgflt(size_t vaddr, int code, regs_t *regs)
 {
-    int reason = 0;
-    if ((code & x86_PFEC_PRST) == 0)
-        reason |= PGFLT_MISSING;
-    if (code & x86_PFEC_WR)
-        reason |= PGFLT_WRITE;
-    int ret = page_fault(vaddr, reason);
+    vmsp_t *vmsp = memory_space_at(vaddr);
+    bool missing = (code & x86_PFEC_PRST) == 0;
+    bool write = code & x86_PFEC_WR;
+
+    int ret = vmsp_resolve(vmsp, vaddr, missing, write);
     if (ret != 0) {
         task_raise(__current, SIGSEGV);
         scheduler_switch(TS_READY);

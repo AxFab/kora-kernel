@@ -51,7 +51,7 @@ void sys_exit(int code)
 
 long sys_sleep(xtime_t *timeout, xtime_t *remain)
 {
-    // TODO - Check mspace_check(__current->vm, remain, sizeof(long));
+    // TODO - Check vmsp_check(__current->vmsp, remain, sizeof(long));
     if (*timeout <= 0)
         scheduler_switch(TS_READY);
     else {
@@ -66,33 +66,33 @@ long sys_sleep(xtime_t *timeout, xtime_t *remain)
 
 long sys_futex_wait(int *addr, int val, xtime_t *timeout, int flags)
 {
-    // if (!mspace_check(__current->vm, addr, sizeof(int), VM_RW) return -1;
-    // TODO - Check mspace_check(__current->vm, addr, sizeof(int));
+    // if (!vmsp_check(__current->vmsp, addr, sizeof(int), VM_RW) return -1;
+    // TODO - Check vmsp_check(__current->vmsp, addr, sizeof(int));
     return futex_wait(addr, val, *timeout, flags);
 }
 
 long sys_futex_requeue(int *addr, int val, int val2, int *addr2, int flags)
 {
-    // TODO - Check mspace_check(__current->vm, addr, sizeof(int));
+    // TODO - Check vmsp_check(__current->vmsp, addr, sizeof(int));
     return futex_requeue(addr, val, val2, addr2, flags);
 }
 
 long sys_futex_wake(int *addr, int val)
 {
-    // TODO - Check mspace_check(__current->vm, addr, sizeof(int));
+    // TODO - Check vmsp_check(__current->vmsp, addr, sizeof(int));
     return futex_wake(addr, val, 0);
 }
 
 
 long sys_spawn(const char *program, const char **args, const char **envs, int *streams, int flags)
 {
-    if (mspace_check_str(__current->vm, program, 4096) != 0)
+    if (vmsp_check_str(__current->vmsp, program, 4096) != 0)
         return -1;
-    if (mspace_check_strarray(__current->vm, args) != 0)
+    if (vmsp_check_strarray(__current->vmsp, args) != 0)
         return -1;
-    if (mspace_check_strarray(__current->vm, envs) != 0)
+    if (vmsp_check_strarray(__current->vmsp, envs) != 0)
         return -1;
-    if (mspace_check(__current->vm, streams, 3 * sizeof(int), VM_RD) != 0)
+    if (vmsp_check(__current->vmsp, streams, 3 * sizeof(int), VM_RD) != 0)
         return -1;
 
     file_t *file;
@@ -116,9 +116,9 @@ long sys_spawn(const char *program, const char **args, const char **envs, int *s
 
 long sys_thread(const char *name, void *entry, void *params, size_t len, int flags)
 {
-    if (name != NULL && mspace_check_str(__current->vm, name, 4096) != 0)
+    if (name != NULL && vmsp_check_str(__current->vmsp, name, 4096) != 0)
         return -1;
-    if (mspace_check(__current->vm, params, len, VM_RD) != 0)
+    if (vmsp_check(__current->vmsp, params, len, VM_RD) != 0)
         return -1;
 
     return task_thread(name, entry, params, len, KEEP_FS | KEEP_FSET | KEEP_VM);

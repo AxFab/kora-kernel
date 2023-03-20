@@ -94,7 +94,7 @@ static vma_t *vma_create(vmsp_t *vmsp, size_t address, size_t length, void *ptr,
 
     bbtree_insert(&vmsp->tree, &vma->node);
     vmsp->v_size += length / PAGE_SIZE;
-    kprintf(KL_VMA, "On %s%p, add vma %s\n", VMS_NAME(vmsp), vmsp, vma->ops->print(vma, tmp, 32));
+    // kprintf(KL_VMA, "On %s%p, add vma %s\n", VMS_NAME(vmsp), vmsp, vma->ops->print(vma, tmp, 32));
 
     if (flags & VM_RESOLVE) {
         while (length > 0) {
@@ -185,7 +185,7 @@ void vma_unmap(vmsp_t *vmsp, vma_t *vma)
     assert(splock_locked(&vmsp->lock));
     if ((vma->flags & VM_UNMAPED) == 0) {
         bbtree_remove(&vmsp->tree, vma->node.value_);
-        kprintf(KL_VMA, "On %s%p, close vma %s\n", VMS_NAME(vmsp), vmsp, vma->ops->print(vma, tmp, 32));
+        // kprintf(KL_VMA, "On %s%p, close vma %s\n", VMS_NAME(vmsp), vmsp, vma->ops->print(vma, tmp, 32));
         // Unmap pages
         vmsp->v_size -= vma->length / PAGE_SIZE;
         size_t length = vma->length;
@@ -256,7 +256,7 @@ vma_t *vma_clone(vmsp_t *vmsp1, vmsp_t *vmsp2, vma_t *vma)
 
     bbtree_insert(&vmsp1->tree, &cpy->node);
     vmsp1->v_size += vma->length / PAGE_SIZE;
-    kprintf(KL_VMA, "On %s%p, clone vma %s from\n", VMS_NAME(vmsp1), vmsp1, cpy->ops->print(cpy, tmp, 32));
+    // kprintf(KL_VMA, "On %s%p, clone vma %s from\n", VMS_NAME(vmsp1), vmsp1, cpy->ops->print(cpy, tmp, 32));
     return vma;
 }
 
@@ -388,7 +388,7 @@ static vma_t *vma_check_range(vmsp_t *vmsp, vma_t *vma, size_t base, size_t leng
         vma->ops->split(vma, sec);
 
         bbtree_insert(&vmsp->tree, &sec->node);
-        kprintf(KL_VMA, "On %s%p, split vma %s/%s\n", VMS_NAME(vmsp), vmsp, vma->ops->print(vma, tmp1, 32), sec->ops->print(sec, tmp2, 32));
+        // kprintf(KL_VMA, "On %s%p, split vma %s/%s\n", VMS_NAME(vmsp), vmsp, vma->ops->print(vma, tmp1, 32), sec->ops->print(sec, tmp2, 32));
         vma = sec;
     }
 
@@ -416,7 +416,7 @@ static vma_t *vma_check_limit(vmsp_t *vmsp, vma_t *vma, size_t base, size_t leng
         vma->ops->split(vma, sec);
 
         bbtree_insert(&vmsp->tree, &sec->node);
-        kprintf(KL_VMA, "On %s%p, split vma %s/%s\n", VMS_NAME(vmsp), vmsp, vma->ops->print(vma, tmp1, 32), sec->ops->print(sec, tmp2, 32));
+        // kprintf(KL_VMA, "On %s%p, split vma %s/%s\n", VMS_NAME(vmsp), vmsp, vma->ops->print(vma, tmp1, 32), sec->ops->print(sec, tmp2, 32));
     }
 
     return vma;

@@ -150,7 +150,7 @@ struct dlib
     size_t base;
     size_t length;
     size_t text_off;
-    splock_t lock;
+    mtx_t mtx;
     llhead_t sections;
     llhead_t intern_symbols;
     llhead_t extern_symbols;

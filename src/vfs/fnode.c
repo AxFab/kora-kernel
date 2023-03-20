@@ -112,12 +112,13 @@ static int vfs_clear_fsnode(fnode_t *node, int mode)
     assert(mode != FN_OK);
     assert(node->parent);
 
-    mtx_lock(&node->mtx); // TODO -- Keep lock, destroy child later (move list)...
+    // Assertion mutex is locked !!?
+    // mtx_lock(&node->mtx); // TODO -- Keep lock, destroy child later (move list)...
     kprintf(KL_FSA, "Unlink fsnode `%s/%s`\n", vfs_inokey(node->parent->ino, tmp), node->name);
     vfs_close_inode(node->ino);
     node->ino = NULL;
     node->mode = mode;
-    mtx_unlock(&node->mtx);
+    // mtx_unlock(&node->mtx);
     return 0;
 }
 
