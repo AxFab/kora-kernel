@@ -669,6 +669,7 @@ int do_checksum(vfs_ctx_t *ctx, size_t *param)
 
         // Update checksum
         checksum = ~crc32_r(checksum, buffer, ret);
+        // printf("- %6d %08x\n", (int)(off + ret), checksum);
         off += ret;
     };
 

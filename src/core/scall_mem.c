@@ -55,7 +55,7 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, size_t off)
         vma |= VM_RESOLVE;
 
     // TODO - Transform flags !
-    void *ptr = mspace_map(__current->vm, (size_t)addr, length, ino, off, vma);
+    void *ptr = vmsp_map(__current->vmsp, (size_t)addr, length, ino, off, vma);
 
     if (ino != NULL)
         vfs_close_inode(ino);
@@ -64,7 +64,7 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, size_t off)
 
 long sys_munmap(void *addr, size_t length)
 {
-    return mspace_unmap(__current->vm, (size_t)addr, length);
+    return vmsp_unmap(__current->vmsp, (size_t)addr, length);
 }
 
 
@@ -72,5 +72,5 @@ long sys_mprotect(void *addr, size_t length, unsigned flags)
 {
     unsigned vma = flags & VM_RWX;
     // TODO - Transform flags !
-    return mspace_protect(__current->vm, (size_t)addr, length, vma);
+    return vmsp_protect(__current->vmsp, (size_t)addr, length, vma);
 }

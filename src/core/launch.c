@@ -115,6 +115,9 @@ static int kloader_open_module(const char *name, inode_t *ino)
         if (memcmp(symbol->name, "kmodule_", 8) == 0) {
             // TODO -- Check version
             kmodule_t *mod = (kmodule_t *)symbol->address;
+            const char *nm = mod->name;
+            char d = mod->name[0];
+            kprintf(-1, "Exec module '%s' at %p\n", nm, mod->setup);
             mod->setup();
             mods++;
             // splock_lock(&__kmodules_lock);

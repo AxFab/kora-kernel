@@ -91,7 +91,7 @@ int elf_section(elf_phead_t *ph, dlsection_t *section)
     //section->end = (ph->file_addr + ph->file_size) - section->lower;
 
     // section->offset = ph->virt_addr - ph->file_addr;
-    // kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->lower, section->upper, section->start, section->end, section->offset, rights[(int)section->rights]);
+    kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->offset, section->length, section->foff, section->csize, section->offset, rights[(int)section->rights]);
     return 0;
 }
 
@@ -192,7 +192,7 @@ void elf_relocation(dlreloc_t *reloc, elf_reloc32_t *rel, llhead_t *symbols)
         if (reloc->symbol == NULL)
             kprintf(-1, "Missing RelSym: %06x  %x  (%d) \n", reloc->offset, reloc->type, sym_idx);
     }
-    kprintf(-1, "R efl: %06x  %x  %s \n", reloc->offset, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
+    // kprintf(-1, "R efl: %06x  %x  %s \n", reloc->offset, reloc->type, sym_idx == 0 ? "ABS" : (reloc->symbol == NULL ? "?" : reloc->symbol->name));
 }
 
 

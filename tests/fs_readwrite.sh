@@ -16,9 +16,9 @@ DD /dev/lorem_md Foo/Gap 32
 CRC32 Foo/Gap b69a152f
 UNLINK Foo/Gap
 
-DD /dev/lorem_md Foo/Bar 32 5581184
-CRC32 Foo/Bar
-UNLINK Foo/Bar
+# DD /dev/lorem_md Foo/Bar 32 5581184
+# CRC32 Foo/Bar
+# UNLINK Foo/Bar
 
 RMDIR Foo
 

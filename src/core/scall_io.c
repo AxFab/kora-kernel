@@ -30,7 +30,7 @@
 
 long sys_open(const char *path, int flags, int mode)
 {
-    if (mspace_check_str(__current->vm, path, 4096) != 0)
+    if (vmsp_check_str(__current->vmsp, path, 4096) != 0)
         return -1;
 
     inode_t *ino = vfs_open(__current->fsa, path, __current->user, mode, flags);
@@ -57,7 +57,7 @@ long sys_close(int fd)
 
 long sys_opendir(const char *path)
 {
-    if (mspace_check_str(__current->vm, path, 4096) != 0)
+    if (vmsp_check_str(__current->vmsp, path, 4096) != 0)
         return -1;
 
     diterator_t *ctx = vfs_opendir(__current->fsa, path, __current->user);
@@ -69,7 +69,7 @@ long sys_opendir(const char *path)
 
 long sys_readdir(int fd, char *buf, size_t len)
 {
-    if (mspace_check(__current->vm, buf, len, VM_WR) != 0)
+    if (vmsp_check(__current->vmsp, buf, len, VM_WR) != 0)
         return -1;
 
     diterator_t *ctx = resx_get(__current->fset, RESX_DIR, fd);
@@ -99,7 +99,7 @@ long sys_readdir(int fd, char *buf, size_t len)
 
 long sys_seek(int fd, xoff_t *poffset, int whence)
 {
-    if (mspace_check(__current->vm, poffset, sizeof(xoff_t), VM_RW) != 0)
+    if (vmsp_check(__current->vmsp, poffset, sizeof(xoff_t), VM_RW) != 0)
         return -1;
 
     file_t *file = resx_get(__current->fset, RESX_FILE, fd);
@@ -124,7 +124,7 @@ long sys_seek(int fd, xoff_t *poffset, int whence)
 
 long sys_read(int fd, char *buf, int len)
 {
-    if (mspace_check(__current->vm, buf, len, VM_WR) != 0)
+    if (vmsp_check(__current->vmsp, buf, len, VM_WR) != 0)
         return -1;
 
     file_t *file = resx_get(__current->fset, RESX_FILE, fd);
@@ -143,7 +143,7 @@ long sys_read(int fd, char *buf, int len)
 
 long sys_write(int fd, const char *buf, int len)
 {
-    if (mspace_check(__current->vm, buf, len, VM_RD) != 0)
+    if (vmsp_check(__current->vmsp, buf, len, VM_RD) != 0)
         return -1;
 
     if (fd == 1 || fd == 2) {
@@ -165,7 +165,7 @@ long sys_write(int fd, const char *buf, int len)
 
 long sys_access(const char *path, int flags)
 {
-    if (mspace_check_str(__current->vm, path, 4096) != 0)
+    if (vmsp_check_str(__current->vmsp, path, 4096) != 0)
         return -1;
 
     inode_t *ino = vfs_search_ino(__current->fsa, path, __current->user, true);

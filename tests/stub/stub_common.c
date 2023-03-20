@@ -157,7 +157,7 @@ char kpbuf2[1024];
 
 // Change kernel log settings
 char *klog_lvl[KL_MAX] = {
-    // [KL_FSA] = KL_NONE,
+    //[KL_FSA] = KL_NONE,
     [KL_FSA] = "\033[35m%s\033[0m",
     [KL_VMA] = "\033[93m%s\033[0m",
     [KL_BIO] = KL_NONE,

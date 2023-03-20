@@ -38,7 +38,7 @@ static int copystr(bool access, const char *value, char *buf, size_t len)
 
 long sys_ginfo(unsigned info, char *buf, size_t len)
 {
-    if (mspace_check(__current->vm, buf, len, VM_WR) != 0)
+    if (vmsp_check(__current->vmsp, buf, len, VM_WR) != 0)
         return -1;
 
     switch (info) {
@@ -69,7 +69,7 @@ long sys_ginfo(unsigned info, char *buf, size_t len)
 
 long sys_sinfo(unsigned info, const char *buf, size_t len)
 {
-    if (mspace_check(__current->vm, buf, len, VM_RD) != 0)
+    if (vmsp_check(__current->vmsp, buf, len, VM_RD) != 0)
         return -1;
 
     switch (info) {

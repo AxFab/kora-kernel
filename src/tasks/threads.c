@@ -37,7 +37,7 @@ _Noreturn void task_usermode(task_params_t *info)
 
     // Prepare stack
     void *start = info->func;
-    void *stack = mspace_map(__current->vm, 0, _Mib_, NULL, 0, VMA_STACK | VM_RW);
+    void *stack = (void *)vmsp_map(__current->vmsp, 0, _Mib_, NULL, 0, VMA_STACK | VM_RW);
     stack = ADDR_OFF(stack, _Mib_ - sizeof(size_t));
     size_t *args = ADDR_PUSH(stack, ALIGN_UP(info->len, sizeof(void *)));
     memcpy(args, info->params, info->len);
@@ -54,7 +54,7 @@ _Noreturn void task_usermode(task_params_t *info)
     kfree(info);
 
     kprintf(-1, "Task.%d] Going usermode\n", __current->pid);
-    // mspace_display(NULL);
+    // vmsp_display(NULL);
     cpu_usermode(start, stack);
 }
 
@@ -79,12 +79,12 @@ static task_t *task_create(scheduler_t *sch, task_t *parent, const char *name, i
     if (parent == NULL) {
         task->fsa = NULL; // vfs_open_vfs(sch->vfs);
         task->fset = stream_create_set();
-        task->vm = mspace_create();
+        task->vmsp = vmsp_create();
         task->net = NULL; // sch->net;
     } else {
         task->fsa = flags & KEEP_FS ? vfs_open_vfs(parent->fsa) : vfs_clone_vfs(parent->fsa);
         task->fset = flags & KEEP_FSET ? stream_open_set(parent->fset) : stream_create_set();
-        task->vm = flags & KEEP_VM ? mspace_open(parent->vm) : mspace_create();
+        task->vmsp = flags & KEEP_VM ? vmsp_open(parent->vmsp) : vmsp_create();
         task->net = parent->net;
     }
 
@@ -134,7 +134,7 @@ size_t task_spawn(const char *program, const char **args, inode_t **nodes)
     resx_put(task->fset, RESX_FILE, file_from_inode(nodes[2], flags | VM_WR), (void *)file_close);
 
     // Load image
-    int ret = dlib_open(task->vm, task->fsa, task->user, program);
+    int ret = dlib_open(task->vmsp, task->fsa, task->user, program);
     if (ret != 0) {
         kprintf(-1, "Task.%d] Unable to open executable image %s \n", __current->pid, program);
         // TODO -- Task destroy !!

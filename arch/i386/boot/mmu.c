@@ -84,12 +84,12 @@ void mmu_leave()
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-void mmu_context(mspace_t *mspace)
+void mmu_context(vmsp_t *vmsp)
 {
     int i;
-    page_t dir_pg = mspace->directory;
+    page_t dir_pg = vmsp->directory;
     page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYS | VM_RW);
-    // unsigned table = ((unsigned)&mspace) >> 22;
+    // unsigned table = ((unsigned)&vmsp) >> 22;
     /* Check the current stack page is present  */
     page_t *krn = (page_t *)0xFFBFF000;
     for (i = 0; i < 1; ++i)
@@ -101,7 +101,7 @@ void mmu_context(mspace_t *mspace)
     x86_set_cr3(dir_pg);
 }
 
-void mmu_create_uspace(mspace_t *mspace)
+void mmu_create_uspace(vmsp_t *vmsp)
 {
     unsigned i;
     page_t dir_pg = page_new();
@@ -115,26 +115,26 @@ void mmu_create_uspace(mspace_t *mspace)
         dir[i] = ((page_t *)0xFFBFF000)[i];
     kunmap(dir, PAGE_SIZE);
 
-    mspace->p_size++; // TODO g_size
-    mspace->lower_bound = MMU_BOUND_ULOWER;
-    mspace->upper_bound = MMU_BOUND_UUPPER;
-    mspace->directory = dir_pg;
+    vmsp->p_size++; // TODO g_size
+    vmsp->lower_bound = MMU_BOUND_ULOWER;
+    vmsp->upper_bound = MMU_BOUND_UUPPER;
+    vmsp->directory = dir_pg;
 }
 
-void mmu_destroy_uspace(mspace_t *mspace)
+void mmu_destroy_uspace(vmsp_t *vmsp)
 {
     unsigned i;
-    page_t dir_pg = mspace->directory;
+    page_t dir_pg = vmsp->directory;
     page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYS | VM_RW);
 
     for (i = MMU_BOUND_ULOWER >> 22; i < MMU_BOUND_UUPPER >> 22; ++i) {
         if (dir[i]) {
-            mspace->p_size--;
+            vmsp->p_size--;
             page_release(dir[i] & (PAGE_SIZE - 1));
         }
     }
     kunmap(dir, PAGE_SIZE);
-    // TODO mspace->p_size--;
+    // TODO vmsp->p_size--;
     page_release(dir_pg);
 }
 
@@ -202,6 +202,11 @@ size_t mmu_drop(size_t vaddr)
     return pg;
 }
 
+
+size_t mmu_set(size_t directory, size_t vaddr, size_t phys, int flags)
+{
+    return 0;
+}
 
 /* Resolve a single missing virtual page */
 size_t mmu_resolve(size_t vaddr, size_t phys, int flags)

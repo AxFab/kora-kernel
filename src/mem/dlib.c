@@ -167,6 +167,7 @@ int dlib_destroy(dlproc_t *proc)
 dlib_t *dlib_create(const char *name, inode_t *ino)
 {
     dlib_t *lib = kalloc(sizeof(dlib_t));
+    mtx_init(&lib->mtx, mtx_plain);
     lib->name = kstrdup(name);
     if (ino != NULL)
         lib->ino = vfs_open_inode(ino);
@@ -275,9 +276,8 @@ int dlib_rebase(vmsp_t *vmsp, hmap_t *symbols_map, dlib_t *lib)
 #if !defined NDEBUG && defined KORA_KRN
     lib->base = dlib_override_map(lib->name, lib->base);
     if (lib->base)
-        base = vmsp_map(mm, lib->base, lib->length, (void *)lib, 0, VMA_CODE | VMA_FIXED | VM_RWX);
+        base = vmsp_map(vmsp, lib->base, lib->length, (void *)lib, 0, VMA_DLIB | VMA_FIXED | VM_RWX);
 #endif
-
     // Use ASRL
     int max = (vmsp->upper_bound - lib->length - vmsp->lower_bound) / PAGE_SIZE;
     while (base == 0 && true) { // TODO -- When to give up
@@ -343,7 +343,11 @@ int dlib_relloc_page(dlib_t *lib, char *ptr, xoff_t off)
             continue;
         }
 
-        size_t *place = ADDR_OFF(ptr, reloc->offset);
+        size_t *place = ADDR_OFF(ptr, reloc->offset - off);
+        if (reloc->symbol)
+            kprintf(-1, "REL:%d at %p (s:%s:%p)\n", reloc->type, place, reloc->symbol->name, reloc->symbol->address);
+        else
+           kprintf(-1, "REL:%d at %p\n", reloc->type, place);
         switch (reloc->type) {
         case R_386_32:
             *place += reloc->symbol->address;
@@ -476,11 +480,11 @@ void *dlib_sym(dlproc_t *proc, const char *symbol)
 
 size_t dlib_fetch_page(dlib_t *lib, size_t off, bool blocking)
 {
-    splock_lock(&lib->lock);
+    mtx_lock(&lib->mtx);
     int idx = off / PAGE_SIZE;
     if (lib->pages == NULL) {
         if (!blocking) {
-            splock_unlock(&lib->lock);
+            mtx_unlock(&lib->mtx);
             return 0;
         }
         int size = ALIGN_UP(lib->length, PAGE_SIZE) / PAGE_SIZE;
@@ -490,20 +494,22 @@ size_t dlib_fetch_page(dlib_t *lib, size_t off, bool blocking)
     if (pg == 0 && blocking) {
         void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VMA_PHYS);
         pg = mmu_read((size_t)ptr);
-        lib->pages[idx] = pg;
         vfs_read(lib->ino, ptr, PAGE_SIZE, off, 0);
         dlib_relloc_page(lib, ptr, off);
+        kprintf(-1, "New Dlib page, %d of %s\n", idx, lib->name);
+        kdump2(ptr, PAGE_SIZE);
+        lib->pages[idx] = pg;
         kunmap(ptr, PAGE_SIZE);
     }
     if (pg != 0)
         lib->page_rcu++;
-    splock_unlock(&lib->lock);
+    mtx_unlock(&lib->mtx);
     return pg;
 }
 
 void dlib_release_page(dlib_t *lib, size_t off, size_t pg)
 {
-    splock_lock(&lib->lock);
+    mtx_lock(&lib->mtx);
     lib->page_rcu--;
     // int idx = off / PAGE_SIZE;
     // 
@@ -521,7 +527,7 @@ void dlib_release_page(dlib_t *lib, size_t off, size_t pg)
         kfree(lib->pages);
         lib->pages = NULL;
     }
-    splock_unlock(&lib->lock);
+    mtx_unlock(&lib->mtx);
 }
 
 char *dlib_name(dlib_t *lib, char *buf, int len)

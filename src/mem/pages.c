@@ -129,7 +129,7 @@ size_t page_new()
 		bitsset(mz->ptr, idx, 1);
 		idx += mz->offset;
 		splock_unlock(&mz->lock);
-		kprintf(-1, "===> %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
+		// kprintf(-1, "===> %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
 		return idx * PAGE_SIZE;
 	}
 
@@ -158,7 +158,7 @@ void page_release(size_t paddress)
 		mz->free++;
 		atomic_inc(&__mmu.free_pages);
 		splock_unlock(&mz->lock);
-		kprintf(-1, "<=== %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
+		// kprintf(-1, "<=== %p (%d)\n", (size_t)(idx * PAGE_SIZE), __mmu.free_pages);
 		return;
 	}
 	kprintf(KL_ERR, "Page '%p' provided to page_release is not referenced.\n", paddress);
