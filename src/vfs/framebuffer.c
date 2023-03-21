@@ -34,54 +34,54 @@
 //
 ///* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 //
-//void *memcpy32(void *dest, void *src, size_t lg)
-//{
-//    assert(IS_ALIGNED(lg, 4));
-//    assert(IS_ALIGNED((size_t)dest, 4));
-//    assert(IS_ALIGNED((size_t)src, 4));
-//    register uint32_t *a = (uint32_t *)src;
-//    register uint32_t *b = (uint32_t *)dest;
-//    while (lg > 16) {
-//        b[0] = a[0];
-//        b[1] = a[1];
-//        b[2] = a[2];
-//        b[3] = a[3];
-//        lg -= 16;
-//        a += 4;
-//        b += 4;
-//    }
-//    while (lg > 0) {
-//        b[0] = a[0];
-//        lg -= 4;
-//        a++;
-//        b++;
-//    }
-//    return dest;
-//}
-//
-//void *memset32(void *dest, uint32_t val, size_t lg)
-//{
-//    assert(IS_ALIGNED(lg, 4));
-//    assert(IS_ALIGNED((size_t)dest, 4));
-//    register uint32_t *a = (uint32_t *)dest;
-//    while (lg > 16) {
-//        a[0] = val;
-//        a[1] = val;
-//        a[2] = val;
-//        a[3] = val;
-//        lg -= 16;
-//        a += 4;
-//    }
-//    while (lg > 0) {
-//        a[0] = val;
-//        lg -= 4;
-//        a++;
-//    }
-//    return dest;
-//}
-//
-//EXPORT_SYMBOL(memcpy32, 0);
-//EXPORT_SYMBOL(memset32, 0);
+void *memcpy32(void *dest, void *src, size_t lg)
+{
+   assert(IS_ALIGNED(lg, 4));
+   assert(IS_ALIGNED((size_t)dest, 4));
+   assert(IS_ALIGNED((size_t)src, 4));
+   register uint32_t *a = (uint32_t *)src;
+   register uint32_t *b = (uint32_t *)dest;
+   while (lg > 16) {
+       b[0] = a[0];
+       b[1] = a[1];
+       b[2] = a[2];
+       b[3] = a[3];
+       lg -= 16;
+       a += 4;
+       b += 4;
+   }
+   while (lg > 0) {
+       b[0] = a[0];
+       lg -= 4;
+       a++;
+       b++;
+   }
+   return dest;
+}
+
+void *memset32(void *dest, uint32_t val, size_t lg)
+{
+   assert(IS_ALIGNED(lg, 4));
+   assert(IS_ALIGNED((size_t)dest, 4));
+   register uint32_t *a = (uint32_t *)dest;
+   while (lg > 16) {
+       a[0] = val;
+       a[1] = val;
+       a[2] = val;
+       a[3] = val;
+       lg -= 16;
+       a += 4;
+   }
+   while (lg > 0) {
+       a[0] = val;
+       lg -= 4;
+       a++;
+   }
+   return dest;
+}
+
+EXPORT_SYMBOL(memcpy32, 0);
+EXPORT_SYMBOL(memset32, 0);
 //
 //
 ///* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

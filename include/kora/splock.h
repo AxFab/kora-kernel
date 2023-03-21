@@ -27,7 +27,6 @@
 extern void irq_reset(bool enable);
 extern bool irq_enable();
 extern void irq_disable();
-extern bool irq_ready();
 extern void irq_zero();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

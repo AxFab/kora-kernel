@@ -150,6 +150,7 @@ dlproc_t *dlib_proc()
 
 int dlib_destroy(dlproc_t *proc)
 {
+    might_sleep();
     while (proc->libs.count_ > 0) {
         dlib_t *lib = ll_dequeue(&proc->libs, dlib_t, node);
         hmp_remove(&proc->libs_map, lib->name, strlen(lib->name));
@@ -166,6 +167,7 @@ int dlib_destroy(dlproc_t *proc)
 
 dlib_t *dlib_create(const char *name, inode_t *ino)
 {
+    might_sleep();
     dlib_t *lib = kalloc(sizeof(dlib_t));
     mtx_init(&lib->mtx, mtx_plain);
     lib->name = kstrdup(name);
@@ -178,6 +180,7 @@ extern void page_release_kmap_stub(page_t page);
 
 void dlib_clean(dlproc_t *proc, dlib_t *lib)
 {
+    might_sleep();
     hmp_remove(&proc->libs_map, lib->name, strlen(lib->name));
 
     while (lib->relocations.count_ > 0) {
@@ -189,12 +192,14 @@ void dlib_clean(dlproc_t *proc, dlib_t *lib)
         dlsym_t *symb = ll_dequeue(&lib->intern_symbols, dlsym_t, node);
         if (proc != NULL)
             hmp_remove(&proc->symbols_map, symb->name, strlen(symb->name));
+        kprintf(-1, "del symb '%s' %p\n", symb->name, symb);
         kfree(symb->name);
         kfree(symb);
     }
 
     while (lib->extern_symbols.count_ > 0) {
         dlsym_t *symb = ll_dequeue(&lib->extern_symbols, dlsym_t, node);
+        kprintf(-1, "del symb '%s' %p\n", symb->name, symb);
         kfree(symb->name);
         kfree(symb);
     }
@@ -344,24 +349,31 @@ int dlib_relloc_page(dlib_t *lib, char *ptr, xoff_t off)
         }
 
         size_t *place = ADDR_OFF(ptr, reloc->offset - off);
-        if (reloc->symbol)
-            kprintf(-1, "REL:%d at %p (s:%s:%p)\n", reloc->type, place, reloc->symbol->name, reloc->symbol->address);
-        else
-           kprintf(-1, "REL:%d at %p\n", reloc->type, place);
+        //if (reloc->symbol)
+        //    kprintf(-1, "REL:%d at %p (s:%s:%p)\n", reloc->type, place, reloc->symbol->name, reloc->symbol->address);
+        //else
+        //   kprintf(-1, "REL:%d at %p\n", reloc->type, place);
         switch (reloc->type) {
-        case R_386_32:
+        case R_386_32: // S + A
             *place += reloc->symbol->address;
             break;
-        case R_386_PC32:
+        case R_386_PC32: // S + A - P
             *place += reloc->symbol->address - (size_t)place;
             break;
+            // 3: R_386_GOT32     :  G + A - P
+            // *place += G(GOT offset) - (size_t)place;
+            // 4: R_386_PLT32     :  L + A - P
+            // *place += L(PLT offset)  - (size_t)place;
+            // 5: R_386_COPY      : none
         case R_386_GLOB_DAT:
         case R_386_JUMP_SLOT:
             *place = reloc->symbol->address;
             break;
         case R_386_RELATIVE:
-            *place += lib->base;
+            *place += lib->base; // B + A
             break;
+            // 9: R_386_GOTOFF      : S + A - GOT    *place += reloc->symbol->address - GOT(address)
+            // 10: R_386_GOTPC      : GOT + A - P    *place += GOT(address) - (size_t)place;
         default:
             kprintf(-1, "REL:%d at %p\n", reloc->type, place);
             break;
@@ -478,6 +490,17 @@ void *dlib_sym(dlproc_t *proc, const char *symbol)
     return (void *)addr;
 }
 
+static dlsection_t *dlib_section_at(dlib_t *lib, size_t off)
+{
+    dlsection_t *sec;
+    for ll_each(&lib->sections, sec, dlsection_t, node)
+    {
+        if (sec->offset <= off && sec->offset + sec->length > off)
+            return sec;
+    }
+    return NULL;
+}
+
 size_t dlib_fetch_page(dlib_t *lib, size_t off, bool blocking)
 {
     mtx_lock(&lib->mtx);
@@ -492,12 +515,15 @@ size_t dlib_fetch_page(dlib_t *lib, size_t off, bool blocking)
     }
     size_t pg = lib->pages[idx];
     if (pg == 0 && blocking) {
+        dlsection_t *sec = dlib_section_at(lib, off);
+        assert(sec != NULL);
+        size_t foff = off + sec->foff - sec->offset;
         void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VMA_PHYS);
         pg = mmu_read((size_t)ptr);
-        vfs_read(lib->ino, ptr, PAGE_SIZE, off, 0);
+        vfs_read(lib->ino, ptr, PAGE_SIZE, foff, 0);
         dlib_relloc_page(lib, ptr, off);
-        kprintf(-1, "New Dlib page, %d of %s\n", idx, lib->name);
-        kdump2(ptr, PAGE_SIZE);
+        // kprintf(-1, "New Dlib page, %d of %s\n", idx, lib->name);
+        // kdump2(ptr, PAGE_SIZE);
         lib->pages[idx] = pg;
         kunmap(ptr, PAGE_SIZE);
     }

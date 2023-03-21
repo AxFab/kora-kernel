@@ -71,13 +71,15 @@ void irq_disable()
     }
 }
 
-bool irq_ready()
+
+void might_sleep(void)
 {
     cpu_info_t * pc = kcpu();
-    if (pc != NULL && sysinfo.is_ready)
-        return pc->irq_semaphore == 0;
-    return true;
+    if (pc != NULL && sysinfo.is_ready && pc->irq_semaphore == 0)
+        return;
+    assert("won't sleep");
 }
+
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -134,7 +136,7 @@ void irq_unregister(int no, irq_handler_t func, void *data)
 void irq_enter(int no)
 {
     assert(no >= 0 && no < IRQ_COUNT);
-    assert(irq_ready());
+    might_sleep();
     irq_disable();
     task_t *task = __current;
     // __current = NULL; // We need it on scheduler_switch!

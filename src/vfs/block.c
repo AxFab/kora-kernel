@@ -112,11 +112,12 @@ page_t block_fetch(inode_t *ino, xoff_t off, bool blocking)
             block_close_page(block, page);
             return 0;
         }
+        might_sleep();
         mtx_lock(&page->mtx);
         if (!page->ready) {
-            void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE | VMA_PHYS);
+            void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VMA_PHYS);
             assert(ptr != NULL);
-            assert(irq_ready());
+            might_sleep();
             page->phys = mmu_read((size_t)ptr);
             kprintf(KL_BIO, "Alloc page %p for inode %s, read at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
             int ret = ino->ops->read(ino, ptr, PAGE_SIZE, off, 0);
@@ -155,9 +156,9 @@ int block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty)
 
     if (dirty || page->dirty) { // TODO -- Check block is not RDONLY !?
         mtx_lock(&page->mtx);
-        void *ptr = kmap(PAGE_SIZE, NULL, (xoff_t)page->phys, VM_RW | VM_RESOLVE | VMA_PHYS);
+        void *ptr = kmap(PAGE_SIZE, NULL, (xoff_t)page->phys, VM_RW | VMA_PHYS);
         assert(ptr != NULL);
-        assert(irq_ready());
+        might_sleep();
         kprintf(KL_BIO, "Write back page %p for inode %s at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
 
         int len = PAGE_SIZE;
@@ -201,7 +202,7 @@ int block_read(inode_t *ino, char *buf, size_t len, xoff_t off, int flags)
             if (map != NULL)
                 kunmap(map, PAGE_SIZE);
             poff = po;
-            map = kmap(PAGE_SIZE, ino, poff, VM_RD | VM_RESOLVE);
+            map = kmap(PAGE_SIZE, ino, poff, VM_RD);
             if (map == NULL)
                 return -1;
         }
@@ -235,7 +236,7 @@ int block_write(inode_t *ino, const char *buf, size_t len, xoff_t off, int flags
             if (map != NULL)
                 kunmap(map, PAGE_SIZE);
             poff = po;
-            map = kmap(PAGE_SIZE, ino, poff, VM_RW | VM_RESOLVE);
+            map = kmap(PAGE_SIZE, ino, poff, VM_RW);
             if (map == NULL)
                 return -1;
         }

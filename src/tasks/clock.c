@@ -88,10 +88,10 @@ static void advent_unregister(masterclock_t *clock, advent_t *advent)
 
 void advent_pause_task(masterclock_t *clock, advent_t *advent, long timeout)
 {
-    assert(irq_ready());
+    might_sleep();
     advent_register(clock, advent, timeout, 0);
     scheduler_switch(TS_BLOCKED);
-    assert(irq_ready());
+    might_sleep();
 }
 
 void advent_resume_task(masterclock_t *clock, advent_t *advent)
@@ -361,7 +361,7 @@ void clock_state(int state)
             __current->elapsed_counters[__clock.last_state] += elapsed;
             kprintf(-1, "Last state was '%s on %d', elapsed %d us... going %s\n",
                 __state_names[__clock.last_state], __current->pid, (int)elapsed, __state_names[state]);
-        } else {
+        } else if (__clock.last_state != CKS_IDLE || state != CKS_IDLE) {
             kprintf(-1, "Last state was '%s', elapsed %d us... going %s\n",
                 __state_names[__clock.last_state], (int)elapsed, __state_names[state]);
         }

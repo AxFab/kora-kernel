@@ -143,7 +143,7 @@ void *kmap(size_t len, void *obj, xoff_t off, int flags)
     if (getter == 0) {
         mp = kmap_new(access | type, NULL, 0, len, _valloc(len));
     } else if (getter == 1) {
-        assert(irq_ready());
+        might_sleep();
         mp = kmap_search(obj, off, len, access & 7);
         if (mp != NULL)
             return mp->ptr;
@@ -178,7 +178,7 @@ void *kmap(size_t len, void *obj, xoff_t off, int flags)
 
 void kunmap(void *addr, size_t len)
 {
-    // assert(irq_ready());
+    // might_sleep();
     --kmapCount;
     map_page_t *mp = bbtree_search_eq(&map_tree, (size_t)addr, map_page_t, node);
     assert(mp != NULL);
@@ -218,7 +218,7 @@ void kunmap(void *addr, size_t len)
     }
 
     free(mp);
-    // assert(irq_ready());
+    // might_sleep();
 }
 
 void page_release_kmap_stub(page_t page)

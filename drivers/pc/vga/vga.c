@@ -55,6 +55,8 @@ struct device_id __vga_ids[] = {
 int vga_match_pci_device(uint16_t vendor, uint32_t class, uint16_t device)
 {
     unsigned i;
+    // if (class != 0x030000) // VGA_DEVICE
+    //     return -1;
     for (i = 0; i < sizeof(__vga_ids) / sizeof(struct device_id); ++i) {
         if (__vga_ids[i].id == device && __vga_ids[i].vendor == vendor)
             return i;

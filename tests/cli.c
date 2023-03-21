@@ -674,7 +674,7 @@ int cli_commands(FILE *fp, void *ctx, bool reecho)
         }
 
         // Run command
-        assert(irq_ready());
+        might_sleep();
         int retn = routine->call(ctx, &args[0]);
         for (i = 0; i < ARGS_MAX; ++i) {
             if (routine->params[i] == ARG_STR && args[i])
@@ -688,7 +688,7 @@ int cli_commands(FILE *fp, void *ctx, bool reecho)
             return -1;
         }
 
-        assert(irq_ready());
+        might_sleep();
         // printf(" Command '%s' (%x, %x, %x, %x, %x)\n", cmd, args[0], args[1], args[2], args[3], args[4]);
     }
     return 0;

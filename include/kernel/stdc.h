@@ -126,6 +126,6 @@ void *memcpy32(void *dest, void *src, size_t lg);
 void *memset32(void *dest, uint32_t val, size_t lg);
 
 void stackdump(size_t frame);
-
+void might_sleep(void);
 
 #endif /* _KERNEL_STDC_H */

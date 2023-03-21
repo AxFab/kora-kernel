@@ -558,6 +558,8 @@ int do_start(void *ctx, size_t *params)
     dlib_add_symbol(proc, lib, "irq_register", (no++ * 0x40));
     dlib_add_symbol(proc, lib, "irq_enable", (no++ * 0x40));
     dlib_add_symbol(proc, lib, "__divdi3", (no++ * 0x40));
+    dlib_add_symbol(proc, lib, "itimer_create", (no++ * 0x40));
+    dlib_add_symbol(proc, lib, "vfs_write", (no++ * 0x40));
     return 0;
 }
 

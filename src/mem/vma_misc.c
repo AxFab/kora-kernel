@@ -60,7 +60,7 @@ int vma_protect_phys(vmsp_t *vmsp, vma_t *vma, int flags)
 
 char *vma_print_phys(vma_t *vma, char *buf, size_t len)
 {
-    snprintf(buf, len, "phys=%p", (void *)vma->offset);
+    snprintf(buf, len, "phys=%p", (void *)(size_t)vma->offset);
     return buf;
 }
 
