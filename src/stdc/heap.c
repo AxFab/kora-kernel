@@ -149,6 +149,7 @@ void *_PRT(realloc)(void *ptr, size_t size)
 /* Release a block of memory previously allocated dynamicaly */
 void _PRT(free)(void *ptr)
 {
+    assert(ptr != NULL);
     heap_arena_t *arena = find_arena((size_t)ptr); /* TODO bbtree GET */
     assert(arena != NULL);
     if (arena->flags_ & HEAP_MAPPED) {

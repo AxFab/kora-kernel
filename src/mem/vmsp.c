@@ -24,7 +24,6 @@ extern vma_ops_t vma_ops_dlib;
 
 static vma_t *vma_create(vmsp_t *vmsp, size_t address, size_t length, void *ptr, xoff_t offset, int flags)
 {
-    char tmp[32];
     assert(splock_locked(&vmsp->lock));
     vma_t *vma = kalloc(sizeof(vma_t));
     vma->node.value_ = address;
@@ -114,6 +113,8 @@ static vma_t *vma_create(vmsp_t *vmsp, size_t address, size_t length, void *ptr,
 
 int vma_resolve(vmsp_t *vmsp, vma_t *vma, size_t vaddr, bool missing, bool write)
 {
+    // We should check vmsp is locked, but irq_semaphore == 1 !
+
     xoff_t offset = vma->offset + (xoff_t)(vaddr - vma->node.value_);
     if (missing) {
         // Look for page
@@ -146,7 +147,7 @@ int vma_resolve(vmsp_t *vmsp, vma_t *vma, size_t vaddr, bool missing, bool write
         size_t page = page_new();
         void *ptr = kmap(PAGE_SIZE, NULL, page, VMA_PHYS | VM_RW);
 #ifdef KORA_KRN
-        memcpy(ptr, vaddr, PAGE_SIZE);
+        memcpy(ptr, (void *)vaddr, PAGE_SIZE);
 #endif
         kunmap(ptr, PAGE_SIZE);
         splock_lock(&vmsp->lock);
@@ -181,7 +182,7 @@ int vma_resolve(vmsp_t *vmsp, vma_t *vma, size_t vaddr, bool missing, bool write
 
 void vma_unmap(vmsp_t *vmsp, vma_t *vma)
 {
-    char tmp[32];
+    // char tmp[32];
     assert(splock_locked(&vmsp->lock));
     if ((vma->flags & VM_UNMAPED) == 0) {
         bbtree_remove(&vmsp->tree, vma->node.value_);
@@ -212,7 +213,7 @@ void vma_unmap(vmsp_t *vmsp, vma_t *vma)
 
 vma_t *vma_clone(vmsp_t *vmsp1, vmsp_t *vmsp2, vma_t *vma)
 {
-    char tmp[32];
+    // char tmp[32];
     vma_t *cpy = kalloc(sizeof(vma_t));
     cpy->node.value_ = vma->node.value_;
     cpy->length = vma->length;
@@ -362,7 +363,7 @@ size_t vmsp_map(vmsp_t *vmsp, size_t address, size_t length, void *ptr, xoff_t o
 
 static vma_t *vma_check_range(vmsp_t *vmsp, vma_t *vma, size_t base, size_t length)
 {
-    char tmp1[32], tmp2[32];
+    // char tmp1[32], tmp2[32];
     assert(splock_locked(&vmsp->lock));
     if (vma->node.value_ > base || vma->ops->split == NULL)
         return NULL;
@@ -398,7 +399,7 @@ static vma_t *vma_check_range(vmsp_t *vmsp, vma_t *vma, size_t base, size_t leng
 
 static vma_t *vma_check_limit(vmsp_t *vmsp, vma_t *vma, size_t base, size_t length)
 {
-    char tmp1[32], tmp2[32];
+    // char tmp1[32], tmp2[32];
     size_t limit = base + length;
     assert(limit >= vma->node.value_);
     length = limit - vma->node.value_;
@@ -579,25 +580,27 @@ void vmsp_close(vmsp_t *vmsp)
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+int vmsp_fault(const char *message, size_t address)
+{
+    kprintf(KL_PF, message, (void *)address);
+    return -1;
+}
+
 int vmsp_resolve(vmsp_t *vmsp, size_t address, bool missing, bool write)
 {
-    if (vmsp == NULL) {
-        kprintf(KL_PF, PF_ERR"Address is outside of addressable space '%p'\n", (void *)address);
-        return -1;
-    }
+    if (vmsp == NULL)
+        return vmsp_fault(PF_ERR"Address is outside of addressable space '%p'\n", address);
 
     splock_lock(&vmsp->lock);
     vma_t *vma = vmsp_find_area(vmsp, address);
     if (vma == NULL) {
         splock_unlock(&vmsp->lock);
-        kprintf(KL_PF, PF_ERR"No mapping at this address '%p'\n", (void *)address);
-        return -1;
+        return vmsp_fault(PF_ERR"No mapping at this address '%p'\n", address);
     }
 
     if (write && !(vma->flags & VM_WR)) {
         splock_unlock(&vmsp->lock);
-        kprintf(KL_PF, PF_ERR"Can't write on read-only memory at '%p'\n", (void *)address);
-        return -1;
+        return vmsp_fault(PF_ERR"Can't write on read-only memory at '%p'\n", address);
     }
 
     errno = 0;

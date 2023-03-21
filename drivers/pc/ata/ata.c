@@ -17,63 +17,254 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <kernel/stdc.h>
+#include "ata.h"
 #include <kernel/irq.h>
 #include <kernel/mods.h>
-#include <kernel/vfs.h>
-#include <kernel/arch.h>
+#include <kernel/bus/pci.h>
 #include <string.h>
 #include <errno.h>
 
 
-#define ATA_SR_BSY     0x80
-#define ATA_SR_DRDY    0x40
-#define ATA_SR_DF      0x20
-#define ATA_SR_DSC     0x10
-#define ATA_SR_DRQ     0x08
-#define ATA_SR_CORR    0x04
-#define ATA_SR_IDX     0x02
-#define ATA_SR_ERR     0x01
-
-#define ATA_ER_BBK      0x80
-#define ATA_ER_UNC      0x40
-#define ATA_ER_MC       0x20
-#define ATA_ER_IDNF     0x10
-#define ATA_ER_MCR      0x08
-#define ATA_ER_ABRT     0x04
-#define ATA_ER_TK0NF    0x02
-#define ATA_ER_AMNF     0x01
+ata_drive_t drives[] = {
+    { .id = 0, .base = 0x1f0, .ctrl = 0x3f6, .name = "sda", .slave = false },
+    { .id = 1, .base = 0x1f0, .ctrl = 0x3f6, .name = "sdb", .slave = true },
+    { .id = 2, .base = 0x170, .ctrl = 0x376, .name = "sdc", .slave = false },
+    { .id = 3, .base = 0x170, .ctrl = 0x376, .name = "sdd", .slave = true },
+};
 
 
-#define ATA_CMD_READ_PIO          0x20
-#define ATA_CMD_READ_PIO_EXT      0x24
-#define ATA_CMD_READ_DMA          0xC8
-#define ATA_CMD_READ_DMA_EXT      0x25
-#define ATA_CMD_WRITE_PIO         0x30
-#define ATA_CMD_WRITE_PIO_EXT     0x34
-#define ATA_CMD_WRITE_DMA         0xCA
-#define ATA_CMD_WRITE_DMA_EXT     0x35
-#define ATA_CMD_CACHE_FLUSH       0xE7
-#define ATA_CMD_CACHE_FLUSH_EXT   0xEA
-#define ATA_CMD_PACKET            0xA0
-#define ATA_CMD_IDENTIFY_PACKET   0xA1
-#define ATA_CMD_IDENTIFY          0xEC
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-#define ATAPI_CMD_READ       0xA8
-#define ATAPI_CMD_EJECT      0x1B
+const char *ata_errors[] = {
+    "No address mark",
+    "Track 0 not found",
+    "Command aborted",
+    "Media change request",
+    "ID mark not found",
+    "Media changed",
+    "Uncorrectable data",
+    "Bad block"
+};
 
-#define ATA_IDENT_DEVICETYPE   0
-#define ATA_IDENT_CYLINDERS    2
-#define ATA_IDENT_HEADS        6
-#define ATA_IDENT_SECTORS      12
-#define ATA_IDENT_SERIAL       20
-#define ATA_IDENT_MODEL        54
-#define ATA_IDENT_CAPABILITIES 98
-#define ATA_IDENT_FIELDVALID   106
-#define ATA_IDENT_MAX_LBA      120
-#define ATA_IDENT_COMMANDSETS  164
-#define ATA_IDENT_MAX_LBA_EXT  200
+static const char *ata_error_string(uint8_t err)
+{
+    if (!POW2(err) || err == 0)
+        return "Unknown";
+    int bits = 0;
+    while ((err & 1) == 0) {
+        bits++;
+        err >>= 1;
+    }
+    return ata_errors[bits];
+}
+
+void ata_wait(ata_drive_t *drive);
+int ata_poll(ata_drive_t *drive, bool check);
+void ata_soft_reset(ata_drive_t *drive);
+void ata_probe();
+
+void ata_wait(ata_drive_t *drive)
+{
+    for (int i = 0; i < 4; ++i)
+        inb(drive->base + ATA_REG_ALTSTATUS);
+}
+
+int ata_poll(ata_drive_t *drive, bool check)
+{
+    // Delay 400 nanosecond for BSY to be set
+    ata_wait(drive);
+
+    // Wait for BSY to be cleared:
+    while (inb(drive->base + ATA_REG_STATUS) & ATA_STATUS_BSY);
+
+    if (!check)
+        return 0;
+
+    uint8_t state = inb(drive->base + ATA_REG_STATUS);
+    if (state & ATA_STATUS_ERR) {
+        ata_wait(drive);
+        uint8_t err = inb(drive->base + ATA_REG_ERROR);
+        kprintf(-1, "ata: drive error: %d:%s\n", err, ata_error_string(err));
+        return -err;
+    } else if (state & ATA_STATUS_DF) {
+        ata_wait(drive);
+        uint8_t err = inb(drive->base + ATA_REG_ERROR);
+        kprintf(-1, "ata: drive fault: %d:%s\n", err, ata_error_string(err));
+        return -err;
+    } else if (!(state & ATA_STATUS_DRQ)) {
+        kprintf(-1, "ata: drive error: DRQ not set\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+void ata_soft_reset(ata_drive_t *drive)
+{
+    outb(drive->ctrl, ATA_CMD_RESET);
+    ata_wait(drive);
+    outb(drive->ctrl, 0);
+}
+
+// static void ata_select_drive(ata_drive_t *drive)
+// {
+//     static struct ata_drive *last_drive = NULL;
+//     static int last_mode = -1;
+
+//     int mode = drive->slave ? 0xb0 : 0xa0;
+//     if (drive == last_drive && mode == last_mode)
+//         return;
+
+//     outb(drive->base + ATA_REG_HDDEVSEL, mode);
+//     ata_wait(drive);
+//     last_drive = drive;
+//     last_mode = mode;
+// }
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+extern ino_ops_t ata_ops_pata;
+extern ino_ops_t ata_ops_patapi;
+
+static void ata_detect_drive(ata_drive_t *drive)
+{
+    // if (!drive->slave) soft_reset + wait
+    outb(drive->base + ATA_REG_HDDEVSEL, drive->slave ? 0xb0 : 0xa0);
+    // ata_select_drive(drive);
+    ata_poll(drive, false);
+
+    int k, status = inb(drive->base + ATA_REG_STATUS);
+    if (status == 0)
+        return;
+
+    uint8_t mode_lo = inb(drive->base + ATA_REG_LBA1);
+    uint8_t mode_hi = inb(drive->base + ATA_REG_LBA2);
+    uint16_t mode = (mode_hi << 8) | mode_lo;
+
+    switch (mode) {
+    case ATADEV_PATA:
+        drive->id_command = ATA_CMD_IDENTIFY;
+        drive->block = 512;
+        drive->class = "IDE PATA";
+        drive->ops = &ata_ops_pata;
+        break;
+    case ATADEV_SATA:
+        drive->id_command = ATA_CMD_IDENTIFY;
+        drive->block = 512;
+        drive->class = "IDE SATA";
+        drive->ops = &ata_ops_pata; // TODO
+        break;
+    case ATADEV_PATAPI:
+        drive->id_command = ATA_CMD_IDENTIFY_PACKET;
+        drive->block = 512;
+        drive->class = "IDE PATAPI";
+        drive->ops = &ata_ops_patapi;
+        break;
+    case ATADEV_SATAPI:
+        drive->id_command = ATA_CMD_IDENTIFY_PACKET;
+        drive->block = 2048;
+        drive->class = "IDE SATAPI";
+        drive->ops = &ata_ops_patapi; // TODO
+        break;
+    default:
+        kprintf(-1, "ata: Unknown IDE drive type %4x\n", mode);
+        return;
+    }
+
+    outb(drive->base + ATA_REG_COMMAND, drive->id_command);
+    ata_poll(drive, true);
+
+    // Read Identification Space of the Device:
+    uint8_t ptr[512];
+    insl(drive->base + ATA_REG_DATA, (uint32_t *)ptr, 128);
+
+    // Read Device Parameters:
+    drive->signature = *((uint16_t *)(ptr + ATA_IDENT_DEVICETYPE));
+    drive->capabilities = *((uint16_t *)(ptr + ATA_IDENT_CAPABILITIES));
+    drive->command_sets = *((uint32_t *)(ptr + ATA_IDENT_COMMANDSETS));
+    if (drive->command_sets & ATA_CAP_LBA48) {
+        /* 48-bit LBA */
+        uint32_t high = *(uint32_t *) (ptr + ATA_IDENT_MAX_LBA);
+        uint32_t low = *(uint32_t *) (ptr + ATA_IDENT_MAX_LBA_EXT);
+        drive->max_lba = ((uint64_t) high << 32) | low;
+        drive->mode = ATA_MODE_LBA48;
+    } else if (drive->command_sets & ATA_CAP_LBA) {
+        /* 28-bit LBA */
+        drive->max_lba = *(uint32_t *) (ptr + ATA_IDENT_MAX_LBA);
+        drive->mode = ATA_MODE_LBA28;
+    } else {
+        // TODO -- find number of head !?
+        drive->max_lba = 0;
+        drive->mode = ATA_MODE_CHS;
+    }
+
+    // String indicates model of device (like Western Digital HDD and SONY DVD-RW...):
+    for (k = 0; k < 40; k += 2) {
+        drive->model[k] = ptr[ATA_IDENT_MODEL + k + 1];
+        drive->model[k + 1] = ptr[ATA_IDENT_MODEL + k];
+    }
+    k = 39;
+    while (drive->model[k] == ' ' || drive->model[k] == -1)
+        drive->model[k--] = '\0';
+    drive->model[40] = '\0';
+
+    ata_soft_reset(drive);
+    // printk("ata%d: signature: 0x%x\n", drive->id, drive->signature);
+    // printk("ata%d: capabilities: 0x%x\n", drive->id, drive->capabilities);
+    // printk("ata%d: command Sets: 0x%x\n", drive->id, drive->command_sets);
+    // printk("ata%d: max LBA: 0x%x\n", drive->id, drive->max_lba);
+    // printk("ata%d: model: %s\n", drive->id, drive->model);
+
+    // Create and register block inode
+    inode_t *blk = vfs_inode(drive->id, FL_BLK, NULL, drive->ops);
+    blk->length = (xoff_t)drive->max_lba * drive->block;
+    blk->lba = drive->id;
+    blk->dev->block = drive->block;
+    blk->dev->flags = FD_RDONLY;
+    blk->dev->model = strdup(drive->model);
+    blk->dev->devclass = strdup(drive->class);
+    blk->drv_data = drive;
+    vfs_mkdev(blk, drive->name);
+    vfs_close_inode(blk);
+}
+
+void ata_probe()
+{
+    // pci_scan_device(0x01, 0x01, &ide, 1);
+    // class_id >> 8 = 0x0101;
+    struct PCI_device *ide = NULL;
+    // pci_device_t *ide = NULL;
+    if (ide != NULL) {
+        if (ide->bar[0].base != 0 && ide->bar[0].base != 1) {
+            drives[0].base = ide->bar[0].base;
+            drives[1].base = ide->bar[0].base;
+        }
+        if (ide->bar[1].base != 0) {
+            drives[0].ctrl = ide->bar[1].base;
+            drives[1].ctrl = ide->bar[1].base;
+        }
+        if (ide->bar[2].base != 0) {
+            drives[2].base = ide->bar[2].base;
+            drives[3].base = ide->bar[2].base;
+        }
+        if (ide->bar[3].base != 0) {
+            drives[2].ctrl = ide->bar[3].base;
+            drives[3].ctrl = ide->bar[3].base;
+        }
+    }
+
+    for (int i = 0; i < 4; ++i)
+        ata_detect_drive(&drives[i]);
+}
+
+void ata_irq_handler(void *data)
+{
+    // TODO -- use parameter to know wich bus
+    // TODO -- Handle query
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 #define IDE_NODISC     0x00
 #define IDE_ATA        0x01
@@ -81,25 +272,6 @@
 
 #define ATA_MASTER     0x00
 #define ATA_SLAVE      0x01
-
-
-#define ATA_REG_DATA       0x00
-#define ATA_REG_ERROR      0x01
-#define ATA_REG_FEATURES   0x01
-#define ATA_REG_SECCOUNT0  0x02
-#define ATA_REG_LBA0       0x03
-#define ATA_REG_LBA1       0x04
-#define ATA_REG_LBA2       0x05
-#define ATA_REG_HDDEVSEL   0x06
-#define ATA_REG_COMMAND    0x07
-#define ATA_REG_STATUS     0x07
-#define ATA_REG_SECCOUNT1  0x08
-#define ATA_REG_LBA3       0x09
-#define ATA_REG_LBA4       0x0A
-#define ATA_REG_LBA5       0x0B
-#define ATA_REG_CONTROL    0x0C
-#define ATA_REG_ALTSTATUS  0x0C
-#define ATA_REG_DEVADDRESS 0x0D
 
 // Channels:
 #define      ATA_PRIMARY      0x00
@@ -137,16 +309,19 @@ struct ATA_Drive sdx[4];
 const char *sdNames[] = { "sda", "sdb", "sdc", "sdd" };
 
 
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
 static void ATAPI_Detect(struct ATA_Drive *dr)
 {
-    uint8_t cl = inb(dr->pbase_ + ATA_REG_LBA1);
-    uint8_t ch = inb(dr->pbase_ + ATA_REG_LBA2);
+    uint8_t type_lo = inb(dr->pbase_ + ATA_REG_LBA1);
+    uint8_t type_hi = inb(dr->pbase_ + ATA_REG_LBA2);
+    uint16_t type    = (type_hi << 8) | type_lo;
 
-    if (!((cl == 0x14 && ch == 0xEB) || (cl == 0x69 && ch == 0x96)))
+    if (type != ATADEV_PATAPI && type != ATADEV_SATAPI)
         return;
 
-    // kprintf ("ATAPI ");
     dr->type_ = IDE_ATAPI;
     outb(dr->pbase_ + ATA_REG_COMMAND, (uint8_t)ATA_CMD_IDENTIFY_PACKET);
     ATA_DELAY;
@@ -175,7 +350,7 @@ static int ATA_Detect(struct ATA_Drive *dr)
     for (;;) {
         res = inb(dr->pbase_ + ATA_REG_STATUS);
 
-        if ((res & ATA_SR_ERR)) {
+        if ((res & ATA_STATUS_ERR)) {
             // Probe for ATAPI Devices:
             dr->type_ = IDE_NODISC;
             ATAPI_Detect(dr);
@@ -187,7 +362,7 @@ static int ATA_Detect(struct ATA_Drive *dr)
 
             break;
 
-        } // else if (!(res & ATA_SR_BSY) && (res & ATA_SR_DRQ)) {
+        } // else if (!(res & ATA_STATUS_BSY) && (res & ATA_STATUS_DRQ)) {
 
         // kprintf ("ATA ");
         dr->type_ = IDE_ATA;
@@ -230,18 +405,18 @@ static int ATA_Polling(struct ATA_Drive *dr)
 
     // (II) Wait for BSY to be cleared:
     while (inb(dr->pbase_ + ATA_REG_STATUS) &
-           ATA_SR_BSY); // Wait for BSY to be zero.
+           ATA_STATUS_BSY); // Wait for BSY to be zero.
 
     uint8_t state = inb(dr->pbase_ + ATA_REG_STATUS); // Read Status Register.
 
     // (III) Check For Errors:
-    if (state & ATA_SR_ERR) {
+    if (state & ATA_STATUS_ERR) {
         kprintf(KL_ERR, "ATA] device on error\n");
         return 2; // Error.
     }
 
     // (IV) Check If Device fault:
-    if (state & ATA_SR_DF) {
+    if (state & ATA_STATUS_DF) {
         kprintf(KL_ERR, "ATA] device fault\n");
         return 1; // Device Fault.
     }
@@ -249,7 +424,7 @@ static int ATA_Polling(struct ATA_Drive *dr)
     // (V) Check DRQ:
     // -------------------------------------------------
     // BSY = 0; DF = 0; ERR = 0 so we should check for DRQ now.
-    if ((state & ATA_SR_DRQ) == 0) {
+    if ((state & ATA_STATUS_DRQ) == 0) {
         kprintf(KL_ERR, "ATA] DRQ should be set\n");
         return 3; // DRQ should be set
     }
@@ -289,15 +464,14 @@ static int ATA_Data(int dir, struct ATA_Drive *dr, uint32_t lba,
         mode = 0;
         sect      = (lba % 63) + 1;
         cyl       = (lba + 1  - sect) / (16 * 63);
-        head      = (lba + 1  - sect) % (16 * 63) /
-                    (63); // Head number is written to HDDEVSEL lower 4-bits.
+        head      = (lba + 1  - sect) % (16 * 63) / (63); // Head number is written to HDDEVSEL lower 4-bits.
         lbaIO[0] = sect;
         lbaIO[1] = (cyl >> 0) & 0xFF;
         lbaIO[2] = (cyl >> 8) & 0xFF;
     }
 
     // Wait the device
-    while (inb(dr->pbase_ + ATA_REG_STATUS) & ATA_SR_BSY);
+    while (inb(dr->pbase_ + ATA_REG_STATUS) & ATA_STATUS_BSY);
 
     // Select Drive from the controller;
     if (mode == 0) {
@@ -448,7 +622,7 @@ static int ATAPI_Read(struct ATA_Drive *dr, uint32_t lba,  uint8_t sects,
     // kIrq_Wait(0);
 
     // Waiting for BSY & DRQ to clear
-    while (inb(dr->pbase_ + ATA_REG_STATUS) & (ATA_SR_BSY | ATA_SR_DRQ));
+    while (inb(dr->pbase_ + ATA_REG_STATUS) & (ATA_STATUS_BSY | ATA_STATUS_DRQ));
 
     irq_enable();
     return 0;
@@ -492,11 +666,6 @@ int ata_write(inode_t *ino, const char *data, size_t size, xoff_t off, int flags
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-
-void ata_irqhandler(void *data)
-{
-}
-
 ino_ops_t ata_ino_ops = {
     .read = ata_read,
     .write = ata_write,
@@ -527,8 +696,8 @@ void ata_setup()
 
     // outb(0x3f6 + ATA_REG_CONTROL - 0x0A, 2);
     // outb(0x376 + ATA_REG_CONTROL - 0x0A, 2);
-    irq_register(14, ata_irqhandler, NULL);
-    irq_register(15, ata_irqhandler, NULL);
+    irq_register(14, ata_irq_handler, NULL);
+    irq_register(15, ata_irq_handler, NULL);
 
 
     for (i = 0; i < 4; ++i) {

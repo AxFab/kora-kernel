@@ -172,6 +172,7 @@ static int vfs_check_dir_inode(path_t *path, user_t *user, int *links, char **ln
 fnode_t *vfs_search(fs_anchor_t *fsanchor, const char *pathname, user_t *user, bool resolve, bool follow)
 {
     char *lnk_buf = NULL;
+    might_sleep();
     path_t *path = vfs_breakup_path(fsanchor, pathname);
     if (path == NULL)
         return NULL;

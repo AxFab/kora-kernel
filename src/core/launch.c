@@ -88,9 +88,6 @@ static int kloader_open_module(const char *name, inode_t *ino)
 
     // mlib->depends; // TODO -- CHECK THEY ARE ALREADY LOADED !!
 
-
-    ll_append(&proc->libs, &mlib->node);
-
     // Resolve symbols
     if (dlib_resolve(&proc->symbols_map, mlib) != 0) {
         // Missing symbols
@@ -109,32 +106,24 @@ static int kloader_open_module(const char *name, inode_t *ino)
 
     // Look for kernel module references
     dlsym_t *symbol;
-    int mods = 0;
+    kmodule_t *module = NULL;
     for ll_each(&mlib->intern_symbols, symbol, dlsym_t, node)
     {
         if (memcmp(symbol->name, "kmodule_", 8) == 0) {
             // TODO -- Check version
-            kmodule_t *mod = (kmodule_t *)symbol->address;
-            const char *nm = mod->name;
-            char d = mod->name[0];
-            kprintf(-1, "Exec module '%s' at %p\n", nm, mod->setup);
-            mod->setup();
-            mods++;
-            // splock_lock(&__kmodules_lock);
-            // mod->dlib = dlib;
-            // ll_enqueue(&__kmodules_list, &mod->node);
-            // splock_unlock(&__kmodules_lock);
+            module = (kmodule_t *)symbol->address;
+            break;
         }
     }
-    if (mods == 0) {
+    if (module == NULL) {
         dlib_clean(proc, mlib);
         return -1;
     }
 
-    kprintf(KL_MSG, "Loading driver \033[90m%s\033[0m\n", name);
-    // Call start !
-    dlib_clean(proc, mlib);
-    return -1;
+    ll_append(&proc->libs, &mlib->node);
+    kprintf(KL_MSG, "Loading driver \033[96m%s\033[0m\n", module->name);
+    module->setup(); // TODO -- Start a new task to isolate issue !?
+    return 0;
 }
 
 

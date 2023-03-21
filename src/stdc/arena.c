@@ -127,6 +127,28 @@ static heap_chunk_t *arena_collapse(heap_arena_t *arena, heap_chunk_t *c1,
 static int arena_check(heap_arena_t *arena)
 {
     assert(splock_locked(&arena->lock_));
+
+    // Check chunks size
+    heap_chunk_t *first = (void *)arena->address_;
+    heap_chunk_t *chunk = first;
+    size_t limit = arena->address_ + arena->length_;
+    while ((size_t)chunk < limit) {
+        assert(chunk->size_ <= arena->length_);
+        heap_chunk_t *next = arena_next_chunk(chunk);
+        if ((size_t)next < limit) {
+            assert(next->prsz_ == chunk->size_);
+            if (chunk != first) {
+                heap_chunk_t *prev = arena_prev_chunk(next);
+                assert(prev == chunk);
+            }
+        }
+        else
+            assert((size_t)next == limit);
+        chunk = next;
+    }
+
+    // Check free list...
+
     return 0;
 }
 
@@ -138,7 +160,7 @@ void setup_arena(heap_arena_t *arena, size_t address, size_t length,
     memset(arena, 0, sizeof(heap_arena_t));
     arena->address_ = address;
     arena->length_ = length;
-    arena->flags_ = (option & HEAP_OPTIONS) | HEAP_ARENA;
+    arena->flags_ = (option & HEAP_OPTIONS) | HEAP_ARENA | HEAP_PARANO;
     arena->max_chunk = max;
     first->size_ = length;
     first->prsz_ = 0;

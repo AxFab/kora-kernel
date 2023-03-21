@@ -40,7 +40,7 @@ void irq_disable()
     ++__irq_semaphore;
 }
 
-bool irq_ready()
+void might_sleep(void)
 {
-    return __irq_semaphore == 0;
+    assert(__irq_semaphore == 0);
 }

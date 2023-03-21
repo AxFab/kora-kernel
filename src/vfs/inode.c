@@ -127,9 +127,9 @@ int vfs_chmod(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode)
         goto err2;
     }
 
-    assert(irq_ready());
+    might_sleep();
     ret = dir->ops->chmod(ino, mode);
-    assert(irq_ready());
+    might_sleep();
     vfs_close_inode(ino);
 err2:
     vfs_close_inode(dir);
@@ -161,9 +161,9 @@ int vfs_chown(fs_anchor_t *fsanchor, const char *name, user_t *user, user_t *nac
         goto err2;
     }
 
-    assert(irq_ready());
+    might_sleep();
     ret = dir->ops->chown(ino, nacl);
-    assert(irq_ready());
+    might_sleep();
     vfs_close_inode(ino);
 err2:
     vfs_close_inode(dir);
@@ -195,9 +195,9 @@ int vfs_utimes(fs_anchor_t *fsanchor, const char *name, user_t *user, xtime_t ti
         goto err2;
     }
 
-    assert(irq_ready());
+    might_sleep();
     ret = dir->ops->utimes(ino, time, flags);
-    assert(irq_ready());
+    might_sleep();
     vfs_close_inode(ino);
 err2:
     vfs_close_inode(dir);

@@ -47,7 +47,8 @@ int elf_check_header(elf_header_t *head)
         return -1;
     if (head->ph_off + head->ph_size > PAGE_SIZE)
         return -1;
-    kprintf(-1, "\nFile format elf32-i386\n");
+    if (elf_trace)
+        kprintf(-1, "\nFile format elf32-i386\n");
     return 0;
 }
 
@@ -91,7 +92,8 @@ int elf_section(elf_phead_t *ph, dlsection_t *section)
     //section->end = (ph->file_addr + ph->file_size) - section->lower;
 
     // section->offset = ph->virt_addr - ph->file_addr;
-    kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->offset, section->length, section->foff, section->csize, section->offset, rights[(int)section->rights]);
+    if (elf_trace)
+        kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->offset, section->length, section->foff, section->csize, section->offset, rights[(int)section->rights]);
     return 0;
 }
 
@@ -212,9 +214,10 @@ static void elf_read_cross_page(blkmap_t *bkm, char *buf, size_t len, xoff_t off
 
 int elf_parse(dlib_t *lib, blkmap_t *bkm)
 {
-    unsigned i;
+    unsigned i, j;
     int dyn_idx;
     elf_dynamic_t dynamic;
+    might_sleep();
     memset(&dynamic, 0, sizeof(dynamic));
 
     // Open header
@@ -354,9 +357,40 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
     }
 
 
+#ifdef WIN32
+    for (i = 1; i < head->sh_count; ++i) {
+        sh_off = head->sh_off + i * sizeof(elf_shead_t);
+        sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
+        kprintf(-1, "Section table %d - %d - %p, %p\n", i, sh_tbl->type, sh_tbl->offset, sh_tbl->size);
+    }
+#endif
+
+
     unsigned sym_count = hash[1];
     if (elf_trace)
-        kprintf(-1, "Symbols table:\n");
+        kprintf(-1, "Symbols table:\n"); // TODO -- Dynamic table !?
+#if 1
+    elf_string_helper_t str_strings;
+    str_strings.bkm = blk_clone(bkm);
+    str_strings.offset = dynamic.str_tab;
+
+    elf_sym32_t sym_tbl;
+    // = ADDR_OFF(dlib->iomap, dynamic.sym_tab);
+    // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
+    for (i = 1; i < sym_count; ++i) {
+        size_t off = dynamic.sym_tab + i * dynamic.sym_ent;
+        elf_read_cross_page(bkm_sym, (char *)&sym_tbl, sizeof(elf_sym32_t), off, VM_RD);
+
+        dlsym_t *sym = kalloc(sizeof(dlsym_t));
+        ll_append(&symbols, &sym->node);
+        elf_symbol(sym, &sym_tbl, lib, &dynamic, &str_strings);
+#ifdef WIN32
+        kprintf(-1, "Symbol %p, %s\n", sym->address, sym->name);
+#endif
+    }
+
+    blk_close(str_strings.bkm);
+#else
     for (i = 1; i < head->sh_count; ++i) {
         sh_off = head->sh_off + i * sizeof(elf_shead_t);
         sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
@@ -380,18 +414,53 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
             dlsym_t *sym = kalloc(sizeof(dlsym_t));
             ll_append(&symbols, &sym->node);
             elf_symbol(sym, &sym_tbl, lib, &dynamic, &str_strings);
+#ifdef WIN32
+            kprintf(-1, "Symbol %p, %s\n", sym->address, sym->name);
+#endif
         }
 
         blk_close(str_strings.bkm);
     }
+#endif
 
     // blk_close(bkm_sym);
     /* Read relocation table */
     elf_reloc32_t reloc;
-    for (i = 0; i < rel_sz; ++i) {
+#if 1
+    for (i = 1; i < head->sh_count; ++i) {
+        sh_off = head->sh_off + i * sizeof(elf_shead_t);
+        sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
+        if (sh_tbl->type != SHT_REL)
+            continue;
+        size_t sz = sh_tbl->size / sizeof(elf_reloc32_t);
+        for (j = 0; j < sz; ++j) {
+            size_t roff = sh_tbl->offset + j * sizeof(elf_reloc32_t);
+            elf_read_cross_page(bkm_sym, (char *)&reloc, sizeof(elf_reloc32_t), roff, VM_RD);
+            if (reloc.type == 0)
+                continue;
+
+            dlreloc_t *rel = kalloc(sizeof(dlreloc_t));
+            elf_relocation(rel, &reloc, &symbols);
+            if (rel->offset == 0) {
+                kfree(rel);
+                break;
+            }
+            rel->offset -= lib->base;
+#ifdef WIN32
+            if (rel->symbol)
+                kprintf(-1, "REL:%d at %p (s:%s:%p)\n", rel->type, rel->offset, rel->symbol->name, rel->symbol->address);
+            else
+                kprintf(-1, "REL:%d at %p\n", rel->type, rel->offset);
+#endif
+
+            ll_append(&lib->relocations, &rel->node);
+        }
+    }
+#else
+    for (i = 0; ; ++i) {
         size_t roff = dynamic.rel + i * dynamic.rel_ent;
         elf_read_cross_page(bkm_sym, (char *)&reloc, sizeof(elf_reloc32_t), roff, VM_RD);
-        if (reloc.type == 0)
+        if (reloc.type == 0 || reloc.type >= 15)
             break;
         dlreloc_t *rel = kalloc(sizeof(dlreloc_t));
         elf_relocation(rel, &reloc, &symbols);
@@ -400,8 +469,16 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
             break;
         }
         rel->offset -= lib->base;
+#ifdef WIN32
+        if (rel->symbol)
+            kprintf(-1, "REL:%d at %p (s:%s:%p)\n", rel->type, rel->offset, rel->symbol->name, rel->symbol->address);
+        else
+           kprintf(-1, "REL:%d at %p\n", rel->type, rel->offset);
+#endif
+
         ll_append(&lib->relocations, &rel->node);
     }
+#endif
 
     /* Organize symbols */
     while (symbols.count_ > 0) {
@@ -418,5 +495,6 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
     blk_close(bkm_sym);
     blk_close(bkm_sec);
     blk_close(bkm);
+    might_sleep();
     return 0;
 }

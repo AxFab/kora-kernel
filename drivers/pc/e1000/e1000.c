@@ -80,15 +80,15 @@ typedef struct e1000_device {
 
 } e1000_device_t;
 
-void e1000_init_hw(ifnet_t *net);
+void e1000_init_hw(e1000_device_t *ifnet);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-void e1000_link(ifnet_t *net)
-{
-    e1000_device_t *ifnet = net->drv_data;
-    e1000_init_hw(ifnet);
-}
+//void e1000_link(ifnet_t *net)
+//{
+//    e1000_device_t *ifnet = net->drv_data;
+//    e1000_init_hw(ifnet);
+//}
 
 int e1000_send(ifnet_t *net, skb_t *skb)
 {
@@ -186,7 +186,7 @@ int e1000_irq_handler(e1000_device_t *ifnet)
 
     kprintf(KL_DBG, "[e1000] IRQ %s status %x\n", ifnet->name, status);
     if (status == 0) {
-        mtx_unlock(&pci->mtx);
+        // mtx_unlock(&pci->mtx);
         return -1;
     }
 
@@ -261,10 +261,9 @@ static int e1000_read_mac(struct PCI_device *pci, uint8_t *mac)
     return 0;
 }
 
-void e1000_init_hw(ifnet_t *net)
+void e1000_init_hw(e1000_device_t *ifnet)
 {
     int i;
-    e1000_device_t *ifnet = net->drv_data;
     struct PCI_device *pci = ifnet->pci;
 
     // Reset

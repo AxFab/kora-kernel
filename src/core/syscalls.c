@@ -105,7 +105,7 @@ static void scall_log_arg(task_t *task, char type, long arg)
 long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5)
 {
     int i;
-    assert(irq_ready());
+    might_sleep();
 
     task_t *task = __current;
     syscall_info_t *info = NULL;
@@ -145,9 +145,9 @@ long irq_syscall(unsigned no, long a1, long a2, long a3, long a4, long a5)
     }
 #endif
 
-    assert(irq_ready());
+    might_sleep();
     long ret = info->scall(a1, a2, a3, a4, a5);
-    assert(irq_ready());
+    might_sleep();
 
 #ifndef NDEBUG
     // Complete strace log

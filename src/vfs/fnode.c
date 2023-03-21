@@ -219,7 +219,7 @@ int vfs_mkdir(fs_anchor_t *fsanchor, const char *name, user_t *user, int mode)
         goto err3;
     }
 
-    assert(irq_ready());
+    might_sleep();
     inode_t *ino = dir->ops->mkdir(dir, node->name, mode & (~fsanchor->umask & 07777), user);
     if (ino != NULL) {
         ret = 0;
@@ -454,9 +454,9 @@ int vfs_link(fs_anchor_t *fsanchor, const char *name, user_t *user, const char *
         goto err4;
     }
 
-    assert(irq_ready());
+    might_sleep();
     ret = dir->ops->link(dir, node->name, ino);
-    assert(irq_ready());
+    might_sleep();
     if (ret == 0)
         vfs_resolve(node, ino);
 err4:
@@ -498,7 +498,7 @@ int vfs_symlink(fs_anchor_t *fsanchor, const char *name, user_t *user, const cha
         goto err3;
     }
 
-    assert(irq_ready());
+    might_sleep();
     inode_t *ino = dir->ops->symlink(dir, node->name, user, path);
     if (ino != NULL) {
         ret = 0;
@@ -556,9 +556,9 @@ int vfs_rename(fs_anchor_t *fsanchor, const char *src, const char *dest, user_t 
     mtx_lock(&dir_s->dev->dual_lock);
     mtx_lock(&fdst->mtx);
     mtx_lock(&fsrc->mtx);
-    assert(irq_ready());
+    might_sleep();
     ret = dir_d->ops->rename(dir_s, fsrc->name, dir_d, fdst->name);
-    assert(irq_ready());
+    might_sleep();
     if (ret == 0) {
         vfs_resolve(fdst, ino);
         vfs_clear_fsnode(fsrc, FN_NOENTRY);

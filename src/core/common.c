@@ -91,6 +91,7 @@ void *kalloc(size_t size)
 
 void kfree(void *ptr)
 {
+    assert(ptr != NULL);
     size_t size = 8; // TODO szofalloc(ptr);
     memset(ptr, 0, size);
     free(ptr);
