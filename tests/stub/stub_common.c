@@ -44,16 +44,16 @@
 
 int kallocCount = 0;
 int kmapCount = 0;
-bool ktrack_init = false;
-bbtree_t ktrack_tree;
-splock_t ktrack_lock;
-struct ktrack
-{
-    void *ptr;
-    size_t len;
-    const char *msg;
-    bbnode_t bnode;
-};
+//bool ktrack_init = false;
+//bbtree_t ktrack_tree;
+//splock_t ktrack_lock;
+//struct ktrack
+//{
+//    void *ptr;
+//    size_t len;
+//    const char *msg;
+//    bbnode_t bnode;
+//};
 
 // int kalloc_count()
 // {
@@ -67,22 +67,22 @@ struct ktrack
 
 void *kalloc_(size_t len, const char *msg)
 {
-    if (!ktrack_init) {
-        bbtree_init(&ktrack_tree);
-        splock_init(&ktrack_lock);
-        ktrack_init = true;
-    }
+    //if (!ktrack_init) {
+    //    bbtree_init(&ktrack_tree);
+    //    splock_init(&ktrack_lock);
+    //    ktrack_init = true;
+    //}
     kallocCount++;
     void *ptr = calloc(len, 1);
-    splock_lock(&ktrack_lock);
-    struct ktrack *tr = malloc(sizeof(struct ktrack));
-    assert(tr != NULL);
-    tr->ptr = ptr;
-    tr->len = len;
-    tr->msg = msg;
-    tr->bnode.value_ = (size_t)ptr;
-    bbtree_insert(&ktrack_tree, &tr->bnode);
-    splock_unlock(&ktrack_lock);
+    //splock_lock(&ktrack_lock);
+    //struct ktrack *tr = malloc(sizeof(struct ktrack));
+    //assert(tr != NULL);
+    //tr->ptr = ptr;
+    //tr->len = len;
+    //tr->msg = msg;
+    //tr->bnode.value_ = (size_t)ptr;
+    //bbtree_insert(&ktrack_tree, &tr->bnode);
+    //splock_unlock(&ktrack_lock);
     // kprintf(-1, "\033[96m+ alloc (%p, %d) %s\033[0m\n", ptr, len, msg);
     return ptr;
 }
@@ -90,14 +90,14 @@ void *kalloc_(size_t len, const char *msg)
 void kfree(void *ptr)
 {
     kallocCount--;
-    splock_lock(&ktrack_lock);
-    struct ktrack *tr = bbtree_search_eq(&ktrack_tree, (size_t)ptr, struct ktrack, bnode);
-    assert(tr != NULL);
-    bbtree_remove(&ktrack_tree, (size_t)ptr);
-    splock_unlock(&ktrack_lock);
-    // kprintf(-1, "\033[96m- free (%p)\033[0m\n", ptr);
+    //splock_lock(&ktrack_lock);
+    //struct ktrack *tr = bbtree_search_eq(&ktrack_tree, (size_t)ptr, struct ktrack, bnode);
+    //assert(tr != NULL);
+    //bbtree_remove(&ktrack_tree, (size_t)ptr);
+    //splock_unlock(&ktrack_lock);
+    //// kprintf(-1, "\033[96m- free (%p)\033[0m\n", ptr);
     free(ptr);
-    free(tr);
+    //free(tr);
 }
 
 // void kalloc_check()

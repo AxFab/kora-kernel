@@ -290,7 +290,7 @@ int do_open(vfs_ctx_t *ctx, size_t *param)
 
     inode_t *ino = vfs_open(ctx->fsa, path, ctx->user, mode, opt);
     if (save != NULL && ino != NULL) {
-        file_t *fp = malloc(sizeof(fp));
+        file_t *fp = malloc(sizeof(file_t));
         fp->ino = ino;
         fp->rights = ((opt & (O_RDONLY | O_RDWR)) ? VM_RD : 0) | ((opt & (O_WRONLY | O_RDWR)) ? VM_WR : 0);
         if (fp->rights == 0)

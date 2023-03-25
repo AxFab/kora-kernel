@@ -91,8 +91,7 @@ int teardown()
 	vfs_sweep(ctx.fsa);
 	// usr_sweep();
 
-	alloc_check();
-	return 0;
+	return alloc_check();
 }
 
 int do_restart(fs_anchor_t *fsa, size_t *param)

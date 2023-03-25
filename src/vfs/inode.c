@@ -63,6 +63,8 @@ void vfs_close_inode(inode_t *ino)
     char tmp[16];
     if (ino == NULL)
         return;
+
+    might_sleep();
     device_t *device = ino->dev;
     splock_lock(&device->lock);
     // if (ino->type == FL_BLK || ino->type == FL_CHR || ino->dev->no == 1)

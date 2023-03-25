@@ -50,28 +50,6 @@ static void vfs_close_fnode_unlocked(fnode_t *node)
     ll_enqueue(&__vfs_share->fnode_llru, &node->nlru);
 }
 
-// /!\ We must have spinlock on __vfs_share
-static void vfs_destroy_fsnode(fnode_t *node)
-{
-    char tmp[16];
-
-    fnode_t *parent = node->parent;
-    int len = strnlen(node->name, 256);
-    assert(len < 256);
-    hmp_remove(&parent->map, node->name, len);
-
-    // mtx_lock(&node->parent->mtx);
-    if (node->is_mount)
-        ll_remove(&node->parent->mnt, &node->nmt);
-
-    ll_remove(&node->parent->clist, &node->cnode); // TODO -- IS clist usefull !!?
-    kprintf(KL_FSA, "Release fsnode `%s/%s`\n", vfs_inokey(parent->ino, tmp), node->name);
-    mtx_destroy(&node->mtx);
-    vfs_close_fnode_unlocked(node->parent);
-    vfs_close_inode(node->ino);
-    kfree(node);
-}
-
 void vfs_close_fnode(fnode_t *node)
 {
     assert(node);
@@ -86,14 +64,40 @@ void vfs_close_fnode(fnode_t *node)
 
 void vfs_scavenge(int max)
 {
+    char tmp[16];
     if (max <= 0)
-        max = __vfs_share->fnode_llru.count_;
+        max = INT_MAX;
+    might_sleep();
     splock_lock(&__vfs_share->fnode_lock);
-    while (max-- > 0) {
+    while (max-- > 0 && __vfs_share->fnode_llru.count_ > 0) {
         fnode_t *node = ll_dequeue(&__vfs_share->fnode_llru, fnode_t, nlru);
         if (node == NULL)
             break;
-        vfs_destroy_fsnode(node);
+
+        // Destroy fnode !!
+        fnode_t *parent = node->parent;
+        int len = strnlen(node->name, 256);
+        assert(len < 256);
+        hmp_remove(&parent->map, node->name, len);
+
+        if (node->is_mount)
+            ll_remove(&node->parent->mnt, &node->nmt);
+
+        ll_remove(&node->parent->clist, &node->cnode); // TODO -- IS clist usefull !!?
+        kprintf(KL_FSA, "Release fsnode `%s/%s`\n", vfs_inokey(parent->ino, tmp), node->name);
+        mtx_destroy(&node->mtx);
+        hmp_destroy(&node->map);
+        vfs_close_fnode_unlocked(node->parent);
+        inode_t *ino = node->ino;
+        kfree(node);
+
+        splock_unlock(&__vfs_share->fnode_lock);
+    
+        // Close ino in safe manner
+        vfs_close_inode(ino);
+
+
+        splock_lock(&__vfs_share->fnode_lock);
     }
     splock_unlock(&__vfs_share->fnode_lock);
 }
@@ -694,6 +698,7 @@ int vfs_umount_at(fnode_t *node, user_t *user, int flags)
         return -1;
     }
 
+    // TODO -- Unlink node != ino first!!
     vfs_close_inode(dir);
     splock_lock(&__vfs_share->lock);
     ll_remove(&__vfs_share->mnt_list, &node->nlru);

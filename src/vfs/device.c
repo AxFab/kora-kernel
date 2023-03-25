@@ -46,9 +46,10 @@ fs_anchor_t *vfs_init()
     fnode_t *node = kalloc(sizeof(fnode_t));
     mtx_init(&node->mtx, mtx_plain);
     hmp_init(&node->map, 8);
+    __vfs_share->root = node;
     node->parent = NULL;
     node->ino = ino;
-    node->rcu = 2;
+    node->rcu = 3;
     node->mode = FN_OK;
 
     __vfs_share->fsanchor = fsanchor;
@@ -109,6 +110,12 @@ int vfs_sweep(fs_anchor_t *fsanchor)
     // Scavenge all
     // vfs_scavenge(INT_MAX);
     devfs_sweep();
+
+    assert(__vfs_share->root->rcu == 1);
+    fnode_t *root = __vfs_share->root;
+    hmp_destroy(&root->map);
+    vfs_close_inode(root->ino);
+    kfree(root);
 
     if (__vfs_share->fs_hmap.count != 0)
         return -1;

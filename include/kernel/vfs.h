@@ -149,6 +149,7 @@ struct vfs_share
 
     splock_t fnode_lock;
     llhead_t fnode_llru;
+    fnode_t *root;
 };
 
 struct fs_anchor {

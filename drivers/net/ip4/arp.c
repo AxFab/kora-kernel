@@ -148,6 +148,8 @@ int arp_receive(skb_t *skb)
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+const uint8_t mac_broadcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
 /* Send an ARP request to look for harware address of the following ip */
 int arp_whois(ifnet_t *net, const uint8_t *ip, net_qry_t *qry)
 {
@@ -166,7 +168,7 @@ int arp_whois(ifnet_t *net, const uint8_t *ip, net_qry_t *qry)
         splock_unlock(&info->qry_lock);
     }
 
-    int ret = arp_packet(net, eth_broadcast, ip, ARP_REQUEST);
+    int ret = arp_packet(net, mac_broadcast, ip, ARP_REQUEST);
     if (ret == 0)
         return ret;
 

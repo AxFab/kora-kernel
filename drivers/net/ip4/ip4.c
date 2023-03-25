@@ -36,7 +36,6 @@ PACK(struct ip4_header {
     uint8_t target[IP4_ALEN];
 });
 
-const uint8_t eth_broadcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 /* Compute the checksum of a IP4 header */
 uint16_t ip4_checksum(uint16_t *ptr, unsigned len)
