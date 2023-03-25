@@ -35,7 +35,6 @@
 #define ETH_IP4 htons(0x0800)
 #define ETH_IP6 htons(0x86DD)
 #define ETH_ARP htons(0x0806)
-extern const uint8_t eth_broadcast[6];
 /* Print as a readable string a MAC address */
 char *eth_writemac(const uint8_t *mac, char *buf, int len);
 /* Registers a new protocol capable of using Ethernet */
@@ -57,6 +56,8 @@ int eth_header(skb_t *skb, const uint8_t *addr, uint16_t protocol);
 
 #define IP4_PORT_DHCP 67
 #define IP4_PORT_DHCP_SRV 68
+
+extern const uint8_t mac_broadcast[6];
 
 typedef struct ip4_master ip4_master_t;
 typedef struct ip4_info ip4_info_t;

@@ -20,7 +20,7 @@ SHOW
 TOUCH @a2 w
 SHOW
 
-KSYM inb @a3
+KSYM ata_teardown @a3
 TOUCH @a3 r
 SHOW
 

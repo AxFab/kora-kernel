@@ -138,7 +138,7 @@ int ip4_broadcast_route(netstack_t *stack, ip4_route_t *route, ifnet_t *ifnet)
     }
 
     if (route->net->protocol == NET_AF_ETH)
-        memcpy(route->addr, eth_broadcast, ETH_ALEN);
+        memcpy(route->addr, mac_broadcast, ETH_ALEN);
     else
         return -1;
 
