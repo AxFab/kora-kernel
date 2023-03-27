@@ -174,4 +174,4 @@ void vbox_teardown()
 }
 
 
-MODULE(vbox, vbox_setup, vbox_teardown);
+EXPORT_MODULE(vbox, vbox_setup, vbox_teardown);

@@ -98,6 +98,7 @@ int e1000_send(ifnet_t *net, skb_t *skb)
     kprintf(KL_DBG, "REQUEST SEND NETWORK %s (%d)\n", skb->log, skb->length);
     kdump2(skb->buf, skb->length);
     ifnet->tx_index = PCI_rd32(pci, 0, REG_TDT);
+    // TODO -- Use semaphore to wait on available sending buffer (Wait IRQ Status 3(ICR_TXDW))
 
     memcpy(ifnet->tx_virt[ifnet->tx_index], skb->buf, skb->length);
     ifnet->tx_base[ifnet->tx_index].length = skb->length;
@@ -120,22 +121,22 @@ int e1000_recv(struct PCI_device *pci, e1000_device_t *ifnet)
 
     for (;;) {
         int head = PCI_rd32(pci, 0, REG_RDH);
-        if (ifnet->rx_index == head)
-            break;
+        // if (ifnet->rx_index == head)
+        //     break;
 
         kprintf(-1, "[e1000] Recv [%d-%d/%d]\n", head, ifnet->rx_index, ifnet->rx_count);
         if ((ifnet->rx_base[ifnet->rx_index].status & 1) == 0) {
-            kprintf(-1, "[e1000] not ready - rx status:\n");
-            for (int i = 0; i < ifnet->rx_count; i += 8)
-                kprintf(-1, "[e1000] %04x - %04x - %04x - %04x - %04x - %04x - %04x - %04x\n",
-                    ifnet->rx_base[i + 0].status & 0xffff,
-                    ifnet->rx_base[i + 1].status & 0xffff,
-                    ifnet->rx_base[i + 2].status & 0xffff,
-                    ifnet->rx_base[i + 3].status & 0xffff,
-                    ifnet->rx_base[i + 4].status & 0xffff,
-                    ifnet->rx_base[i + 5].status & 0xffff,
-                    ifnet->rx_base[i + 6].status & 0xffff,
-                    ifnet->rx_base[i + 7].status & 0xffff);
+            // kprintf(-1, "[e1000] not ready - rx status:\n");
+            // for (int i = 0; i < ifnet->rx_count; i += 8)
+            //     kprintf(-1, "[e1000] %04x - %04x - %04x - %04x - %04x - %04x - %04x - %04x\n",
+            //         ifnet->rx_base[i + 0].status & 0xffff,
+            //         ifnet->rx_base[i + 1].status & 0xffff,
+            //         ifnet->rx_base[i + 2].status & 0xffff,
+            //         ifnet->rx_base[i + 3].status & 0xffff,
+            //         ifnet->rx_base[i + 4].status & 0xffff,
+            //         ifnet->rx_base[i + 5].status & 0xffff,
+            //         ifnet->rx_base[i + 6].status & 0xffff,
+            //         ifnet->rx_base[i + 7].status & 0xffff);
             break; // Error / Not ready !?
         }
 
@@ -164,7 +165,8 @@ int e1000_recv(struct PCI_device *pci, e1000_device_t *ifnet)
 int e1000_recv_task(e1000_device_t *ifnet)
 {
     struct PCI_device *pci = ifnet->pci;
-    xtime_t delay = 500000; // µs
+    xtime_t delay = 50000; // µs
+    sleep_timer(delay);
     for (;;) {
         mtx_lock(&pci->mtx);
         e1000_recv(pci, ifnet);
@@ -178,13 +180,13 @@ int e1000_recv_task(e1000_device_t *ifnet)
 
 int e1000_irq_handler(e1000_device_t *ifnet)
 {
-    kprintf(KL_DBG, "[e1000] IRQ %s\n", ifnet->name);
+    // kprintf(KL_DBG, "[e1000] IRQ %s\n", ifnet->name);
     struct PCI_device *pci = ifnet->pci;
     // mtx_lock(&pci->mtx);
     uint32_t status = PCI_rd32(pci, 0, REG_ICR);
     PCI_wr32(pci, 0, REG_ICR, status);
 
-    kprintf(KL_DBG, "[e1000] IRQ %s status %x\n", ifnet->name, status);
+    kprintf(KL_DBG, "[e1000] IRQ %s - status %x\n", ifnet->name, status);
     if (status == 0) {
         // mtx_unlock(&pci->mtx);
         return -1;
@@ -205,8 +207,9 @@ int e1000_irq_handler(e1000_device_t *ifnet)
     if (status & ICR_RXO)
         kprintf(KL_DBG, "[e1000] %s - Receive buffers overrun\n", ifnet->name);
 
-    // if (status & 0xC0) {
-    // }
+    if (status & ICR_RXT0) {
+        e1000_recv(pci, ifnet);
+    }
 
     // e1000_recv(pci, ifnet);
     // mtx_unlock(&pci->mtx);
@@ -367,6 +370,17 @@ void e1000_init_hw(e1000_device_t *ifnet)
     kprintf(0, "[e1000] %s, Speed: %s\n", ifnet->name, spd[sp]);
 }
 
+void e1000_init_hw_task(e1000_device_t *ifnet)
+{
+    struct PCI_device *pci = ifnet->pci;
+    mtx_lock(&pci->mtx);
+    xtime_t delay = 5000000; // µs
+    e1000_init_hw(ifnet);
+    mtx_unlock(&pci->mtx);
+    for (;;)
+        sleep_timer(delay);
+}
+
 
 net_ops_t e1000_ops = {
     .send = e1000_send,
@@ -440,11 +454,13 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     ifnet->dev = net;
     net->mtu = 1500; // Wild guess! TODO - Support for jumbo frames
     irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
-    e1000_init_hw(ifnet);
-    mtx_unlock(&pci->mtx);
     char tmp[32];
-    snprintf(tmp, 32, "e1000.eth%d.recv", net->idx);
-    task_start(tmp, e1000_recv_task, ifnet);
+    snprintf(tmp, 32, "e1000.eth%d.init", net->idx);
+    task_start(tmp, e1000_init_hw_task, ifnet);
+    mtx_unlock(&pci->mtx);
+    // snprintf(tmp, 32, "e1000.eth%d.recv", net->idx);
+    // task_start(tmp, e1000_recv_task, ifnet);
+
     // ifnet->dev->mtu = 1500;
     // ifnet->dev.send = (void *)e1000_send;
     // ifnet->dev.link = (void *)e1000_init_hw;

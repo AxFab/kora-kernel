@@ -4,6 +4,47 @@
 
 splock_t patapi_lock = INIT_SPLOCK;
 
+#define __swap16(s) ((uint16_t)((((s) & 0xFF00) >> 8) | (((s) & 0xFF) << 8)))
+#define __swap32(l) ((uint32_t)((((l) & 0xFF000000) >> 24) | (((l) & 0xFF0000) >> 8) | (((l) & 0xFF00) << 8) | (((l) & 0xFF) << 24)))
+
+static int ata_scsi_packet(ata_drive_t *drive, int command, char* buf, int size)
+{
+    outb(drive->base + ATA_REG_CONTROL, 0x0);
+
+    // Setup SCSI Packet:
+    uint8_t packet[12];
+    memset(packet, 0, sizeof(packet));
+    packet[0] = command;
+
+    // Select the drive
+    outb(drive->base + ATA_REG_HDDEVSEL, (drive->slave ? 0xb0 : 0xa0));
+    ata_wait(drive);
+
+    // Inform the Controller
+    outb(drive->base + ATA_REG_FEATURES, 0); // Use PIO mode
+    // Sector size
+    outb(drive->base + ATA_REG_LBA1, size & 0xFF);
+    outb(drive->base + ATA_REG_LBA2, (size >> 16) & 0xFF);
+    // Send command
+    outb(drive->base + ATA_REG_COMMAND, ATA_CMD_PACKET);
+
+    int err = ata_poll(drive, true);
+    if (err != 0)
+        return -1;
+
+    // Sending the packet data
+    outsw(drive->base + ATA_REG_DATA, (uint16_t *)packet, 6);
+
+    err = ata_poll(drive, true); // Or wait for an IRQ.
+    if (err != 0) {
+        // TODO -- If error, might be no medium present
+        return -1;
+    }
+
+    insw(drive->base + ATA_REG_DATA, buf, size / 2);
+    return 0;
+}
+
 static int ata_prepare_patapi_pio(ata_drive_t *drive, size_t lba, int count, int words, int cmd)
 {
     outb(drive->base + ATA_REG_CONTROL, 0x0);
@@ -42,6 +83,17 @@ static int ata_prepare_patapi_pio(ata_drive_t *drive, size_t lba, int count, int
     // Sending the packet data
     outsw(drive->base + ATA_REG_DATA, (uint16_t *)packet, 6);
     return 0;
+}
+
+void patapi_read_capacity(ata_drive_t *drive)
+{
+    uint32_t response[2];
+    if (ata_scsi_packet(drive, ATAPI_CMD_READ_CAPACITY, (void *)response, 8) != 0)
+        return -1;
+
+    drive->max_lba = __swap32(response[0]);
+    if (response[1] != 0)
+        drive->block = __swap32(response[1]);
 }
 
 int ata_read_patapi_pio(inode_t *ino, char *buf, size_t length, xoff_t offset, int flags)

@@ -88,7 +88,7 @@ static task_t *task_create(scheduler_t *sch, task_t *parent, const char *name, i
         task->net = parent->net;
     }
 
-    kprintf(-1, "Alloc task %d with stack %p\n", task->pid, (char *)task->stack + KSTACK_PAGES * PAGE_SIZE);
+    kprintf(-1, "Alloc task %d with stack %p - %s\n", task->pid, (char *)task->stack + KSTACK_PAGES * PAGE_SIZE, name);
     return task;
 }
 
@@ -128,7 +128,7 @@ size_t task_spawn(const char *program, const char **args, inode_t **nodes)
     // Init stream
     int flags = 0;
     if (nodes == NULL || nodes[0] == NULL || nodes[1] == NULL || nodes[2] == NULL)
-        return -1;
+        return 0;
     resx_put(task->fset, RESX_FILE, file_from_inode(nodes[0], flags | VM_RD), (void *)file_close);
     resx_put(task->fset, RESX_FILE, file_from_inode(nodes[1], flags | VM_WR), (void *)file_close);
     resx_put(task->fset, RESX_FILE, file_from_inode(nodes[2], flags | VM_WR), (void *)file_close);

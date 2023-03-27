@@ -116,7 +116,7 @@ void stream_close_set(streamset_t *strms)
 
 file_t *file_from_inode(inode_t *ino, int flags)
 {
-    file_t *file = kalloc(sizeof(file));
+    file_t *file = kalloc(sizeof(file_t));
     file->ino = vfs_open_inode(ino);
     file->off = 0;
     file->oflags = flags & (VM_RW);
@@ -126,7 +126,7 @@ file_t *file_from_inode(inode_t *ino, int flags)
 void file_close(file_t *file)
 {
     vfs_close_inode(file->ino);
-//     if (flags & O_CLOSE_EXEC)
+    // if (flags & O_CLOSE_EXEC)
     kfree(file);
 }
 

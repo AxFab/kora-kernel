@@ -345,5 +345,5 @@
 #define ICR_RXT0   (1 << 7)  /* Receive timer interrupt? */
 #define ICR_ACK    (1 << 17)
 #define ICR_SRPD   (1 << 16)
-#define ICR_UNKNWO (1 << 15) // ??
+#define ICR_UNKNWO (1 << 15) /* Unknown - present on virtual box !? */
 

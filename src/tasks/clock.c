@@ -346,8 +346,9 @@ void clock_ticks(masterclock_t *clock, unsigned elapsed)
 }
 
 
-void clock_state(int state)
+int clock_state(int state)
 {
+    int prev = __clock.last_state;
     assert(state >= CKS_NONE && state < CKS_MAX);
     static char *__state_names[] = { "none", "idle", "user", "system", "irq" };
     xtime_t now = xtime_read(XTIME_CLOCK);
@@ -359,15 +360,16 @@ void clock_state(int state)
             assert(__current != NULL);
             __current->elapsed_counters[0] += elapsed;
             __current->elapsed_counters[__clock.last_state] += elapsed;
-            kprintf(-1, "Last state was '%s on %d', elapsed %d us... going %s\n",
-                __state_names[__clock.last_state], __current->pid, (int)elapsed, __state_names[state]);
+            // kprintf(-1, "Last state was '%s on %d', elapsed %d us... going %s\n",
+            //     __state_names[__clock.last_state], __current->pid, (int)elapsed, __state_names[state]);
         } else if (__clock.last_state != CKS_IDLE || state != CKS_IDLE) {
-            kprintf(-1, "Last state was '%s', elapsed %d us... going %s\n",
-                __state_names[__clock.last_state], (int)elapsed, __state_names[state]);
+            // kprintf(-1, "Last state was '%s', elapsed %d us... going %s\n",
+            //     __state_names[__clock.last_state], (int)elapsed, __state_names[state]);
         }
     }
     __clock.last_time = now;
     __clock.last_state = state;
+    return prev;
 }
 
 

@@ -156,8 +156,44 @@ void kdump2(const void *buf, int len)
     }
 }
 
+void kdump3(const void *buf, int len, size_t addr)
+{
+    int i, j;
+    int zero = 0;
+    const uint8_t *ptr = (const uint8_t *)buf;
+
+    for (i = 0; i < len; i += 32) {
+        int n = MIN(32, len - i);
+        zero++;
+        for (j = 0; j < n; ++j) {
+            if (ptr[i + j] != 0) {
+                zero = 0;
+                break;
+            }
+        }
+        if (zero) {
+            if (zero == 1)
+                kprintf(KL_DBG, "%04x    *** \n", i + addr);
+            continue;
+        }
+        kprintf(KL_DBG, "%04x   ", i + addr);
+        for (j = 0; j < n; ++j)
+            kprintf(KL_DBG, "%02x", ptr[i + j]);
+        for (j = n; j < 32; ++j)
+            kprintf(KL_DBG, " ");
+        kprintf(KL_DBG, "  ");
+        for (j = 0; j < n; ++j)
+            kprintf(KL_DBG, "%c",
+                    ptr[i + j] >= 0x20 && ptr[i + j] < 0x7F ? ptr[i + j] : '.');
+        for (j = n; j < 32; ++j)
+            kprintf(KL_DBG, " ");
+        kprintf(KL_DBG, "\n");
+    }
+}
+
 EXPORT_SYMBOL(kdump, 0);
 EXPORT_SYMBOL(kdump2, 0);
+EXPORT_SYMBOL(kdump3, 0);
 
 /* Store in a temporary buffer a size in bytes in a human-friendly format. */
 char *sztoa_r(int64_t number, char *sz_format)
