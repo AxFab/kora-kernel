@@ -335,7 +335,7 @@ int dlib_resolve(hmap_t *symbols_map, dlib_t *lib)
     return missing == 0 ? 0 : -1;
 }
 
-int dlib_relloc_page(dlib_t *lib, char *ptr, xoff_t off)
+static int dlib_relloc_page(dlib_t *lib, char *ptr, xoff_t off)
 {
     // Assert lib is locked
     dlreloc_t *reloc;
@@ -379,6 +379,7 @@ int dlib_relloc_page(dlib_t *lib, char *ptr, xoff_t off)
             break;
         }
     }
+
     return 0;
 }
 
@@ -517,13 +518,23 @@ size_t dlib_fetch_page(dlib_t *lib, size_t off, bool blocking)
     if (pg == 0 && blocking) {
         dlsection_t *sec = dlib_section_at(lib, off);
         assert(sec != NULL);
-        size_t foff = off + sec->foff - sec->offset;
+        size_t foff = off + (sec->foff & ~(PAGE_SIZE-1)) - sec->offset;
         void *ptr = kmap(PAGE_SIZE, NULL, 0, VM_RW | VMA_PHYS);
         pg = mmu_read((size_t)ptr);
-        vfs_read(lib->ino, ptr, PAGE_SIZE, foff, 0);
+        memset(ptr, 0, PAGE_SIZE);
+
+        long poff = sec->moff - idx * PAGE_SIZE;
+        long psiz = (sec->moff + sec->fsize) - idx * PAGE_SIZE;
+
+        long offs = MAX(0, poff);
+        long len = (psiz < PAGE_SIZE ? psiz : PAGE_SIZE) - offs;
+        // kprintf(-1, "Build section %s.%d  <%p, %p | %p, %p | %p, %p> (%05x, %05x)\n", lib->name, idx,
+        //     sec->offset, sec->length, sec->foff, sec->fsize, sec->moff, sec->msize, offs, len);
+        assert(offs + len <= PAGE_SIZE);
+        if (len > 0)
+            vfs_read(lib->ino, &ptr[offs], len, foff + offs, 0);
+        // vfs_read(lib->ino, ptr, PAGE_SIZE, foff, 0);
         dlib_relloc_page(lib, ptr, off);
-        // kprintf(-1, "New Dlib page, %d of %s\n", idx, lib->name);
-        // kdump2(ptr, PAGE_SIZE);
         lib->pages[idx] = pg;
         kunmap(ptr, PAGE_SIZE);
     }

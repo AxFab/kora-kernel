@@ -229,7 +229,7 @@ file_t *file_from_inode(inode_t *ino, int flags);
 void file_close(file_t *);
 
 
-void clock_state(int state);
+int clock_state(int state);
 
 
 #endif  /* _KERNEL_TASKS_H */

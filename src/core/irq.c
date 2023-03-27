@@ -135,13 +135,13 @@ void irq_unregister(int no, irq_handler_t func, void *data)
 
 void irq_enter(int no)
 {
+    if (no != 0)
+        kprintf(-1, "irq.%d\n", no);
     assert(no >= 0 && no < IRQ_COUNT);
     might_sleep();
     irq_disable();
     task_t *task = __current;
-    // __current = NULL; // We need it on scheduler_switch!
-
-    // clock_elapsed(CPU_IRQ);
+    int pstatus = no != 0 ? clock_state(CKS_IRQ) : 0;
 
     irq_record_t *record;
     if (irqv[no].list.count_ == 0)
@@ -152,7 +152,8 @@ void irq_enter(int no)
     for ll_each(&irqv[no].list, record, irq_record_t, node)
         record->func(record->data);
 
-    //clock_elapsed(prev);
+    if (no != 0)
+        clock_state(pstatus);
     irq_zero();
     assert(__current == task);
     __current = task;

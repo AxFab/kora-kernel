@@ -52,7 +52,7 @@ char *vfs_inokey(inode_t *ino, char *buf)
 
 // inode_t *vfs_search_ino(fs_anchor_t *fsanchor, const char *pathname, user_t *user, bool follow)  { return NULL;}
 
-size_t vfs_fetch_page(inode_t *ino, xoff_t off)
+size_t vfs_fetch_page(inode_t *ino, xoff_t off, bool blocking)
 {
     return 0;
 }
@@ -63,19 +63,19 @@ int vfs_release_page(inode_t *ino, xoff_t off, size_t pg, bool dirty)
 }
 
 /* Create a memory space for a user application */
-vmsp_t *mspace_create() { return NULL; }
+vmsp_t *vmsp_create() { return NULL; }
 /* Increment memory space RCU */
-vmsp_t *mspace_open(vmsp_t *mspace) { return NULL; }
+vmsp_t *vmsp_open(vmsp_t *mspace) { return NULL; }
 /* Decrement memory space RCU */
-void mspace_close(vmsp_t *mspace) { }
+void vmsp_close(vmsp_t *mspace) { }
 /* Copy all VMA and associated pages */
-vmsp_t *mspace_clone(vmsp_t *model) { return NULL; }
+vmsp_t *vmsp_clone(vmsp_t *model) { return NULL; }
 
 void *kmap(size_t len, void *ino, xoff_t off, int access) { return NULL; }
 
 const char *ksymbol(size_t ptr, char *buf, size_t len) { return buf; }
 
-void *mspace_map(vmsp_t *mspace, size_t address, size_t length, inode_t *ino, xoff_t offset, int flags) { return NULL; }
+size_t vmsp_map(vmsp_t *vmsp, size_t address, size_t length, void *ptr, xoff_t offset, int flags) { return 0; }
 
 void mmu_context(vmsp_t *mspace) {}
 // void mmu_context() {}
@@ -88,7 +88,7 @@ int dlib_open(vmsp_t *mm, fs_anchor_t *fsanchor, user_t *user, const char *name)
 void irq_zero() {}
 
 
-int cpu_save(task_t *task) { return 0; }
+int cpu_save(cpu_state_t *jbuf) { return 0; }
 
 // _Noreturn void cpu_restore(task_t *task) { for (;;); }
 // _Noreturn void cpu_halt() { for (;;); }

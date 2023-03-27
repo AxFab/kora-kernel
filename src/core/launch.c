@@ -175,12 +175,14 @@ _Noreturn void kloader()
     const char *args[] = { NULL, };
     inode_t *pipe = vfs_pipe();
     inode_t *nodes[3] = { pipe, pipe, pipe };
-    task_spawn("launcher", args, nodes);
+    task_spawn("krish", args, nodes);
     vfs_close_inode(pipe);
 
+    for (;;) {
+        sleep_timer(SEC_TO_USEC(2));
+        // task_stop(-1);
+    }
 
-    for (;;)
-        task_stop(-1);
 }
 
 

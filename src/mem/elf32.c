@@ -72,28 +72,23 @@ char *elf_string(elf_string_helper_t *string_table, int idx)
 int elf_section(elf_phead_t *ph, dlsection_t *section)
 {
     section->foff = ph->file_addr;
+    section->moff = ph->virt_addr;
+    section->fsize = ph->file_size;
+    section->msize = ph->virt_size;
     section->offset = ph->virt_addr;
-    section->csize = ph->file_size;
     section->length = ALIGN_UP(ph->virt_size, PAGE_SIZE);
     section->rights = ph->flags & 7;
     if ((ph->virt_addr & (PAGE_SIZE - 1)) != 0) {
         size_t off = ph->virt_addr & (PAGE_SIZE - 1);
-        section->foff -= off;
         section->offset -= off;
-        section->csize = off;
         section->length = ALIGN_UP(ph->virt_size + off, PAGE_SIZE);
         return -1;
     }
     if (ph->align < PAGE_SIZE)
         return -1;
-    //section->lower = ALIGN_DW(ph->file_addr, PAGE_SIZE);
-    //section->upper = ALIGN_UP(ph->file_addr + ph->virt_size, PAGE_SIZE);
-    //section->start = ph->file_addr - section->lower;
-    //section->end = (ph->file_addr + ph->file_size) - section->lower;
 
-    // section->offset = ph->virt_addr - ph->file_addr;
     if (elf_trace)
-        kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->offset, section->length, section->foff, section->csize, section->offset, rights[(int)section->rights]);
+        kprintf(-1, "Section [%06x-%06x] <%04x-%04x> (+%5x)  %s \n", section->offset, section->length, section->foff, section->fsize, section->offset, rights[(int)section->rights]);
     return 0;
 }
 

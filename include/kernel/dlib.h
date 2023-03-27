@@ -124,10 +124,12 @@ struct dlreloc
 
 struct dlsection
 {
-    size_t offset;
     size_t length;
-    size_t csize;
+    size_t offset; // From
     size_t foff;
+    size_t moff;
+    size_t fsize;
+    size_t msize;
     llnode_t node;
     int rights;
 

@@ -20,6 +20,7 @@
 #include "ps2.h"
 #include <kernel/tasks.h>
 #include <kernel/mods.h>
+#include <kernel/vfs.h>
 
 inode_t *mouse_ino;
 inode_t *kdb_ino;
@@ -44,7 +45,6 @@ ino_ops_t ps2_ino_ops = {
     .read = NULL,
     // .read = ps2_read,
 };
-
 
 void PS2_setup()
 {

@@ -92,13 +92,67 @@ void arch_init()
 }
 
 
-int s = 4;
+uint16_t cls_pen = 0x700;
+uint16_t *cls = (void*)0xB8000;
+int cls_row = 0;
+int cls_col = 0;
+char cls_clr[] = { 0, 4, 2, 6, 1, 5, 3, 7};
+
+void cls_write(const char *buf)
+{
+    while (*buf) {
+        if (buf[0] == '\033' && buf[1] == '[') {
+            const char *rt;
+            int val = strtol(&buf[2], &rt, 10);
+            buf = rt;
+            if (*rt == 'm') {
+                if (val == 0)
+                    cls_pen = 0x700;
+                else if (val >= 31 && val <= 37)
+                    cls_pen = (cls_pen & 0xF000) | (cls_clr[val - 30] << 8);
+                else if (val >= 91 && val <= 97)
+                    cls_pen = (cls_pen & 0xF000) | (cls_clr[val - 90] << 8);
+                else if (val >= 40 && val <= 47)
+                    cls_pen = (cls_pen & 0x0F00) | (cls_clr[val - 40] << 12);
+                buf++;
+            }
+            continue;
+        } else if (buf[0] == '\n') {
+            for (; cls_col < 80; ++cls_col)
+                cls[cls_row * 80 + cls_col] = cls_pen;
+        } else if (buf[0] == '\t') {
+            for (int n = ALIGN_UP(cls_col + 1, 8); cls_col < n; ++cls_col)
+                cls[cls_row * 80 + cls_col] = cls_pen;
+        } else if (buf[0] < ' ') {
+            // ...
+        } else {
+            cls[cls_row * 80 + cls_col] = cls_pen | buf[0];
+            cls_col++;
+        }
+
+        if (cls_col >= 80) {
+            cls_col = 0;
+            cls_row++;
+            for (int i = 0; i < 80; ++i)
+                cls[cls_row * 80 + i] = cls_pen;
+            if (cls_row >= 24) {
+                cls_row--;
+                memcpy(cls, &cls[80], 80 * 24);
+                // cls_row = 0;
+            }
+        }
+        buf++;
+    }
+}
+
+
 void kwrite(const char *buf)
 {
+    // Console
+    cls_write(buf);
+    // Serial
     size_t len = strlen(buf);
-    clwrite((s % 25) * 80, buf);
     serial_send(0, buf, len);
-    s++;
 }
 
 

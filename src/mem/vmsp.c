@@ -615,6 +615,7 @@ char *vma_print(vma_t *vma, char *buf, int len)
     static char *rights[] = { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx" };
     char sh = vma->flags & VMA_COW ? (vma->flags & VM_SHARED ? 'W' : 'w')
         : (vma->flags & VM_SHARED ? 'S' : 'p');
+    // TODO -- Issue with xoff_t on print !
     int i = snprintf(buf, len, "%p-%p %s%c %012"XOFF_FX" {%04x} <%s>  ",
         (void *)vma->node.value_, (void *)(vma->node.value_ + vma->length),
         rights[vma->flags & 7], sh, vma->offset, vma->flags, sztoa(vma->length));
