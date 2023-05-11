@@ -132,13 +132,6 @@ struct dlsection
     size_t msize;
     llnode_t node;
     int rights;
-
-    //size_t lower;
-    //size_t upper;
-    //size_t start;
-    //size_t end;
-    //size_t offset;
-    //char rights;
 };
 
 struct dlib
@@ -162,8 +155,6 @@ struct dlib
     inode_t *ino;
     size_t *pages;
     char *rpath;
-    bool resolved;
-    bool mapped;
 };
 
 struct dlproc

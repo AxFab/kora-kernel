@@ -52,6 +52,8 @@ static inode_t *dlib_lookfor(fs_anchor_t *fsanchor, user_t *user, const char *na
 int dlib_open(vmsp_t *vmsp, fs_anchor_t *fsanchor, user_t *user, const char *name)
 {
     dlib_t *lib;
+    if (vmsp == NULL)
+        return -1;
     if (vmsp->proc == NULL)
         vmsp->proc = dlib_proc();
     dlproc_t *proc = vmsp->proc;
@@ -92,48 +94,28 @@ int dlib_open(vmsp_t *vmsp, fs_anchor_t *fsanchor, user_t *user, const char *nam
                     return -1;
                 }
                 ll_enqueue(&queue, &sl->node);
+            } else {
+                ll_remove(&queue, &sl->node);
+                ll_enqueue(&queue, &sl->node);
             }
         }
     }
 
-    // Add to the processus
+    // Resolve symbols and add to the processus
     while (ready.count_ > 0) {
         lib = ll_dequeue(&ready, dlib_t, node);
+        // Resolve symbols
+        if (dlib_resolve(&proc->symbols_map, lib) != 0) {
+            return -1; // Missing symbols // TODO - Clean rest of the queue
+        }
+        // Map library and add symbols to processus
+        if (dlib_rebase(vmsp, &proc->symbols_map, lib) != 0) {
+            return -1; // Missing memory space
+        }
+        // kprintf(-1, "Push on proc %s\n", lib->name);
         ll_append(&proc->libs, &lib->node);
     }
     
-
-    // Resolve symbols
-    for ll_each(&proc->libs, lib, dlib_t, node)
-    {
-        if (lib->resolved == true)
-            continue;
-        if (dlib_resolve(&proc->symbols_map, lib) != 0) {
-            // Missing symbols
-            return -1;
-        }
-        lib->resolved = true;
-    }
-
-    // Map all libraries
-    for ll_each_reverse(&proc->libs, lib, dlib_t, node)
-    {
-        if (lib->mapped == true || lib->resolved == false)
-            continue;
-        if (dlib_rebase(vmsp, &proc->symbols_map, lib) != 0) {
-            // Missing memory space
-            return -1;
-        }
-        lib->resolved = false;
-    }
-
-    //for ll_each(&proc->libs, lib, dlib_t, node) {
-    //    if (dlib_relloc(mm, lib) != 0) {
-    //        // Relloc error
-    //        return -1; // TODO -- Unmap !?
-    //    }
-    //}
-
     return 0;
 }
 
@@ -280,9 +262,9 @@ int dlib_rebase(vmsp_t *vmsp, hmap_t *symbols_map, dlib_t *lib)
 
 #if !defined NDEBUG && defined KORA_KRN
     lib->base = dlib_override_map(lib->name, lib->base);
+#endif
     if (lib->base)
         base = vmsp_map(vmsp, lib->base, lib->length, (void *)lib, 0, VMA_DLIB | VMA_FIXED | VM_RWX);
-#endif
     // Use ASRL
     int max = (vmsp->upper_bound - lib->length - vmsp->lower_bound) / PAGE_SIZE;
     while (base == 0 && true) { // TODO -- When to give up
@@ -307,9 +289,21 @@ int dlib_rebase(vmsp_t *vmsp, hmap_t *symbols_map, dlib_t *lib)
     // List symbols
     dlsym_t *symbol;
     for ll_each(&lib->intern_symbols, symbol, dlsym_t, node) {
+        size_t len = strlen(symbol->name);
         symbol->address += base;
-        hmp_put(symbols_map, symbol->name, strlen(symbol->name), symbol);
+        dlsym_t *symb = hmp_get(symbols_map, symbol->name, len);
+        if (symb == NULL)
+            hmp_put(symbols_map, symbol->name, len, symbol);
+        // else
+        //    kprintf(-1, "Symbol replace %s!?\n", symbol->name);        
     }
+
+    if (lib->entry != 0)
+        lib->entry += base;
+    if (lib->init != 0)
+        lib->init += base;
+    if (lib->fini != 0)
+        lib->fini += base;
     return 0;
 }
 
@@ -334,6 +328,7 @@ int dlib_resolve(hmap_t *symbols_map, dlib_t *lib)
     }
     return missing == 0 ? 0 : -1;
 }
+
 
 static int dlib_relloc_page(dlib_t *lib, char *ptr, xoff_t off)
 {
@@ -382,55 +377,6 @@ static int dlib_relloc_page(dlib_t *lib, char *ptr, xoff_t off)
 
     return 0;
 }
-
-#if 0
-int dlib_relloc(vmsp_t *vmsp, dlib_t *lib)
-{
-    // TODO -- Assert mm is currently used!
-    int pages = lib->length / PAGE_SIZE;
-    lib->pages = kalloc(sizeof(size_t) * pages);
-    void *ptr = kmap(lib->length, NULL, 0, VMA_PHYS | VM_RW);
-    dlsection_t *sc;
-    for ll_each(&lib->sections, sc, dlsection_t, node) {
-        if (sc->length == 0)
-            break;
-        memset(ADDR_OFF(ptr, sc->offset + sc->csize), 0, sc->length - sc->csize);
-        vfs_read(lib->ino, ADDR_OFF(ptr, sc->offset), sc->csize, sc->foff, 0);
-    }
-
-    for (int i = 0; i < pages; ++i) {
-        lib->pages[i] = mmu_read((size_t)ptr + i * PAGE_SIZE);
-    }
-
-    dlreloc_t *reloc;
-    for ll_each(&lib->relocations, reloc, dlreloc_t, node)
-    {
-        size_t *place = ADDR_OFF(ptr, reloc->offset);
-        switch (reloc->type) {
-        case R_386_32:
-            *place += reloc->symbol->address;
-            break;
-        case R_386_PC32:
-            *place += reloc->symbol->address - (size_t)place;
-            break;
-        case R_386_GLOB_DAT:
-        case R_386_JUMP_SLOT:
-            *place = reloc->symbol->address;
-            break;
-        case R_386_RELATIVE:
-        case 12:
-            *place += lib->base;
-            break;
-        default:
-            kprintf(-1, "REL:%d\n", reloc->type);
-            break;
-        }
-    }
-
-    kunmap(ptr, lib->length);
-    return 0;
-}
-#endif
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -532,7 +478,7 @@ size_t dlib_fetch_page(dlib_t *lib, size_t off, bool blocking)
         //     sec->offset, sec->length, sec->foff, sec->fsize, sec->moff, sec->msize, offs, len);
         assert(offs + len <= PAGE_SIZE);
         if (len > 0)
-            vfs_read(lib->ino, &ptr[offs], len, foff + offs, 0);
+            vfs_read(lib->ino, ADDR_OFF(ptr, offs), len, foff + offs, 0);
         // vfs_read(lib->ino, ptr, PAGE_SIZE, foff, 0);
         dlib_relloc_page(lib, ptr, off);
         lib->pages[idx] = pg;

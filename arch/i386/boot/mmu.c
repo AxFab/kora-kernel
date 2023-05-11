@@ -76,6 +76,8 @@ void mmu_enable()
     __mmu.kspace->lower_bound = MMU_BOUND_KLOWER;
     __mmu.kspace->upper_bound = MMU_BOUND_KUPPER;
     __mmu.kspace->directory = (size_t)0x2000;
+    __mmu.kspace->t_size = 2; // Directory + Table 0
+    __mmu.kspace->p_size = 1024; // First-4Mb (cf. x86_paging)
 }
 
 void mmu_leave()
@@ -88,17 +90,22 @@ void mmu_context(vmsp_t *vmsp)
 {
     int i;
     page_t dir_pg = vmsp->directory;
-    page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYS | VM_RW);
-    // unsigned table = ((unsigned)&vmsp) >> 22;
-    /* Check the current stack page is present  */
-    page_t *krn = (page_t *)0xFFBFF000;
-    for (i = 0; i < 1; ++i)
-        dir[i] = krn[i];
-    for (i = 768; i < 1020; ++i)
-        dir[i] = krn[i];
-    // dir[table] = ((page_t *)0xFFBFF000)[table];
-    kunmap(dir, PAGE_SIZE);
+    __mmu.uspace = vmsp;
     x86_set_cr3(dir_pg);
+}
+
+splock_t __ktbl_lock = INIT_SPLOCK;
+
+void mmu_ktables(size_t vaddr)
+{
+    assert(vaddr >= MMU_BOUND_KLOWER && vaddr < MMU_BOUND_KUPPER);
+    size_t i = vaddr >> 22;
+    splock_lock(&__ktbl_lock);
+    if (((page_t *)0xFFBFF000)[i] == 0)
+        ((page_t *)0xFFBFF000)[i] = page_new() | PG_PRESENT | PG_WRITABLE | PG_GLOBAL;
+    if (((page_t *)0xFFFFF000)[i] == 0)
+        ((page_t *)0xFFFFF000)[i] = ((page_t *)0xFFBFF000)[i];
+    splock_unlock(&__ktbl_lock);
 }
 
 void mmu_create_uspace(vmsp_t *vmsp)
@@ -107,15 +114,15 @@ void mmu_create_uspace(vmsp_t *vmsp)
     page_t dir_pg = page_new();
     page_t *dir = (page_t *)kmap(PAGE_SIZE, NULL, dir_pg, VMA_PHYS | VM_RW);
     memset(dir, 0,  PAGE_SIZE);
-    dir[1023] = dir_pg | (PG_PRESENT | PG_WRITABLE | PG_GLOBAL);;
-    dir[1022] = (page_t)MMU_KRN_DIR_PG | (PG_PRESENT | PG_WRITABLE | PG_GLOBAL);;
-    dir[0] = (page_t)MMU_KRN_TBL_PG | (PG_PRESENT | PG_WRITABLE | PG_GLOBAL);;
-    // TODO - COPY KERNEL HEAP TABLE PAGES
+    dir[1023] = dir_pg | (PG_PRESENT | PG_WRITABLE | PG_GLOBAL);
+    dir[1022] = (page_t)MMU_KRN_DIR_PG | (PG_PRESENT | PG_WRITABLE | PG_GLOBAL);
+    dir[0] = (page_t)MMU_KRN_TBL_PG | (PG_PRESENT | PG_WRITABLE | PG_GLOBAL);
+    // Copy kernel heap table pages
     for (i = MMU_BOUND_KLOWER >> 22; i < MMU_BOUND_KUPPER >> 22; ++i)
         dir[i] = ((page_t *)0xFFBFF000)[i];
     kunmap(dir, PAGE_SIZE);
 
-    vmsp->p_size++; // TODO g_size
+    vmsp->t_size++; // TODO g_size
     vmsp->lower_bound = MMU_BOUND_ULOWER;
     vmsp->upper_bound = MMU_BOUND_UUPPER;
     vmsp->directory = dir_pg;

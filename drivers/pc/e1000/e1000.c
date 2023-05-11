@@ -184,7 +184,7 @@ int e1000_irq_handler(e1000_device_t *ifnet)
     struct PCI_device *pci = ifnet->pci;
     // mtx_lock(&pci->mtx);
     uint32_t status = PCI_rd32(pci, 0, REG_ICR);
-    PCI_wr32(pci, 0, REG_ICR, status);
+    PCI_wr32(pci, 0, REG_ICR, 0);
 
     kprintf(KL_DBG, "[e1000] IRQ %s - status %x\n", ifnet->name, status);
     if (status == 0) {
@@ -233,6 +233,26 @@ int e1000_irq_handler(e1000_device_t *ifnet)
 //     PCI_rd32(pci, 0, REG_STATUS); /* Flush */
 // }
 
+static uint32_t e1000_eeprom_read(struct PCI_device *pci, uint8_t addr)
+{
+    bool has_eeprom = false;
+    uint16_t data = 0;
+    uint32_t tmp = 0;
+    if (has_eeprom)
+    {
+        PCI_wr32(pci, 0, REG_EERD, ((uint32_t)addr << 8) | 1);
+        while(!((tmp = PCI_rd32(pci, 0, REG_EERD)) & (1 << 4)));
+    }
+    else
+    {
+        PCI_wr32(pci, 0, REG_EERD, ((uint32_t)addr << 2) | 1);
+        while(!((tmp = PCI_rd32(pci, 0, REG_EERD)) & (1 << 1)));
+    }
+    data = (uint16_t)(tmp >> 16) & 0xFFFF;
+    return data;
+}
+
+
 static int e1000_read_mac(struct PCI_device *pci, uint8_t *mac)
 {
     int i;
@@ -268,6 +288,20 @@ void e1000_init_hw(e1000_device_t *ifnet)
 {
     int i;
     struct PCI_device *pci = ifnet->pci;
+
+    //
+    // Start link
+    // Clear Multicast table ...
+    // Register Interrupt
+    // Enable Interrupt
+    // Rx Init
+    // Tx Init
+
+    irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
+
+    e1000_rx_init(ifnet);
+    e1000_tx_init(ifnet);
+    ifnet->mx_count = ifnet->rx_count + ifnet->tx_count;
 
     // Reset
     PCI_wr32(pci, 0, REG_CTRL, (1 << 26));
@@ -350,11 +384,17 @@ void e1000_init_hw(e1000_device_t *ifnet)
     PCI_rd32(pci, 0, REG_STATUS);
 
     /* Twiddle interrupts */
+
     // PCI_wr32(pci, 0, REG_IMS, 0xFF);
     // PCI_wr32(pci, 0, REG_IMC, 0xFF);
-    int ints = ICR_LSC | ICR_RXO | ICR_RXT0 | ICR_TXQE | ICR_TXDW | ICR_ACK | ICR_RXDMT0 | ICR_SRPD;
+    // int ints = ICR_LSC | ICR_RXO | ICR_RXT0 | ICR_TXQE | ICR_TXDW | ICR_ACK | ICR_RXDMT0 | ICR_SRPD;
     // int ints = ICR_TXDW | ICR_TXQE | ICR_LSC | ICR_RXO | ICR_RXT0;
-    PCI_wr32(pci, 0, REG_IMS, ints);
+    // PCI_wr32(pci, 0, REG_IMS, ints);
+    // Enable Interrupt
+    PCI_wr32(pci, 0, REG_IMS, 0x1FFFF);
+    // PCI_wr32(pci, 0, REG_IMS, 0xFB); // 0xFF & ~4
+    PCI_rd32(pci, 0, REG_ICR);
+
 
     /* Wait */
     sleep_timer(SEC_TO_USEC(1)); // 1 sec
@@ -388,6 +428,44 @@ net_ops_t e1000_ops = {
 };
 
 
+/* Allocate buffer for receive descriptors. */
+void e1000_rx_init(e1000_device_t *ifnet)
+{
+    ifnet->rx_base = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE);
+    ifnet->rx_phys = mmu_read((size_t)ifnet->rx_base);
+    ifnet->rx_count = MIN(NUM_RX_DESC, PAGE_SIZE / sizeof(struct rx_desc));
+
+    uint8_t *map = kmap(PAGE_SIZE * ifnet->rx_count, NULL, 0, VM_RW | VM_RESOLVE);
+    for (int i = 0; i < ifnet->rx_count; ++i) {
+        ifnet->rx_virt[i] = &map[PAGE_SIZE * i];
+        ifnet->rx_base[i].addr = mmu_read((size_t)ifnet->rx_virt[i]);
+        // kprintf(0, "rx[%d] 0x%x -> 0x%x\n", i, ifnet->rx_virt[i], ifnet->rx_base[i].addr);
+        ifnet->rx_base[i].status = 0;
+    }
+
+    // Commands !?
+}
+
+/* Allocate buffer for transfert descriptors. */
+void e1000_tx_init(e1000_device_t *ifnet)
+{
+    ifnet->tx_base = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE);
+    ifnet->tx_phys = mmu_read((size_t)ifnet->tx_base);
+    ifnet->tx_count = MIN(NUM_TX_DESC, PAGE_SIZE / sizeof(struct tx_desc));
+
+    uint8_t *map = kmap(PAGE_SIZE * ifnet->tx_count, NULL, 0, VM_RW | VM_RESOLVE);
+    for (int i = 0; i < ifnet->tx_count; ++i) {
+        ifnet->tx_virt[i] = &map[PAGE_SIZE * i];
+        ifnet->tx_base[i].addr = mmu_read((size_t)ifnet->tx_virt[i]);
+        // kprintf(0, "tx[%d] 0x%x -> 0x%x\n", i, ifnet->tx_virt[i], ifnet->tx_base[i].addr);
+        ifnet->tx_base[i].status = 0;
+        ifnet->tx_base[i].cmd = (1 << 0);
+    }
+
+    // Commands !?
+}
+
+
 void e1000_startup(struct PCI_device *pci, const char *name)
 {
     int i;
@@ -398,36 +476,8 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     splock_init(&ifnet->lock);
     mtx_lock(&pci->mtx);
 
-
     pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VM_RW | VMA_PHYS | VM_UNCACHABLE);
     // kprintf(KL_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
-
-    ifnet->rx_base = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE);
-    ifnet->rx_phys = mmu_read((size_t)ifnet->rx_base);
-    ifnet->rx_count = MIN(NUM_RX_DESC, PAGE_SIZE / sizeof(struct rx_desc));
-
-    ifnet->tx_base = kmap(PAGE_SIZE, NULL, 0, VM_RW | VM_RESOLVE);
-    ifnet->tx_phys = mmu_read((size_t)ifnet->tx_base);
-    ifnet->tx_count = MIN(NUM_TX_DESC, PAGE_SIZE / sizeof(struct tx_desc));
-
-    ifnet->mx_count = ifnet->rx_count + ifnet->tx_count;
-    uint8_t *map = kmap(PAGE_SIZE * ifnet->mx_count, NULL, 0, VM_RW | VM_RESOLVE);
-
-    for (i = 0; i < ifnet->rx_count; ++i) {
-        ifnet->rx_virt[i] = &map[PAGE_SIZE * i];
-        ifnet->rx_base[i].addr = mmu_read((size_t)ifnet->rx_virt[i]);
-        // kprintf(0, "rx[%d] 0x%x -> 0x%x\n", i, ifnet->rx_virt[i], ifnet->rx_base[i].addr);
-        ifnet->rx_base[i].status = 0;
-    }
-
-    for (i = 0; i < ifnet->tx_count; ++i) {
-        ifnet->tx_virt[i] = &map[PAGE_SIZE * (i + ifnet->rx_count)];
-        ifnet->tx_base[i].addr = mmu_read((size_t)ifnet->tx_virt[i]);
-        // kprintf(0, "tx[%d] 0x%x -> 0x%x\n", i, ifnet->tx_virt[i], ifnet->tx_base[i].addr);
-        ifnet->tx_base[i].status = 0;
-        ifnet->tx_base[i].cmd = (1 << 0);
-    }
-
 
     /* PCI Init command */
     uint16_t cmd = PCI_cfg_rd16(pci, PCI_COMMAND);
@@ -437,9 +487,10 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     sleep_timer(MSEC_TO_USEC(500));
 
     /* Find MAC address */
-    uint8_t hwaddr;
+    uint8_t hwaddr[6];
     if (e1000_read_mac(pci, hwaddr) != 0) {
         mtx_unlock(&pci->mtx);
+        // TODO -- Clean
         return;
     }
 
@@ -451,20 +502,13 @@ void e1000_startup(struct PCI_device *pci, const char *name)
         mtx_unlock(&pci->mtx);
         return;
     }
+
     ifnet->dev = net;
     net->mtu = 1500; // Wild guess! TODO - Support for jumbo frames
-    irq_register(pci->irq, (irq_handler_t)e1000_irq_handler, ifnet);
     char tmp[32];
     snprintf(tmp, 32, "e1000.eth%d.init", net->idx);
     task_start(tmp, e1000_init_hw_task, ifnet);
     mtx_unlock(&pci->mtx);
-    // snprintf(tmp, 32, "e1000.eth%d.recv", net->idx);
-    // task_start(tmp, e1000_recv_task, ifnet);
-
-    // ifnet->dev->mtu = 1500;
-    // ifnet->dev.send = (void *)e1000_send;
-    // ifnet->dev.link = (void *)e1000_init_hw;
-    // net_device(&ifnet->dev);
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

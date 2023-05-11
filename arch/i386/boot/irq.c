@@ -123,12 +123,22 @@ void x86_error(int no, int code, regs_t *regs)
     irq_fault(fault->name, fault->raise);
 }
 
+void mmu_ktables(size_t vaddr);
+
 void x86_pgflt(size_t vaddr, int code, regs_t *regs)
 {
     might_sleep();
     vmsp_t *vmsp = memory_space_at(vaddr);
     bool missing = (code & x86_PFEC_PRST) == 0;
     bool write = code & x86_PFEC_WR;
+
+    // Check we don't have just a table copy to do
+    if (missing && vaddr >= __mmu.kspace->lower_bound && vaddr < __mmu.kspace->upper_bound) {
+        mmu_ktables(vaddr);
+        size_t page = mmu_read(vaddr);
+        if (page != 0)
+            return;
+    }
 
     int ret = vmsp_resolve(vmsp, vaddr, missing, write);
     if (ret != 0) {

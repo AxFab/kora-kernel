@@ -34,7 +34,8 @@ void vma_release_blank(vmsp_t *vmsp, vma_t *vma, xoff_t offset, size_t page)
 void vma_resolve_blank(vmsp_t *vmsp, vma_t *vma, size_t vaddr, size_t page)
 {
     vmsp->p_size++;
-    mmu_resolve(vaddr, page, vma->flags & VM_RW);
+    int t = mmu_resolve(vaddr, page, vma->flags & VM_RW);
+    vmsp->t_size += t;
 }
 
 void vma_unmap_blank(vmsp_t *vmsp, vma_t *vma, size_t address)

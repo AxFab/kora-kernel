@@ -188,7 +188,6 @@ static void ata_detect_drive(ata_drive_t *drive)
     // Read Identification Space of the Device:
     uint8_t ptr[512];
     insl(drive->base + ATA_REG_DATA, (uint32_t *)ptr, 128);
-    kdump2(ptr, 128 * 4);
 
     // Read Device Parameters:
     drive->signature = *((uint16_t *)(ptr + ATA_IDENT_DEVICETYPE));
@@ -199,8 +198,8 @@ static void ata_detect_drive(ata_drive_t *drive)
 
         if (drive->command_sets & ATA_CAP_LBA48) {
             /* 48-bit LBA */
-            uint32_t high = 0;//*(uint32_t *) (ptr + ATA_IDENT_MAX_LBA);
-            uint32_t low = *(uint32_t *) (ptr + ATA_IDENT_MAX_LBA_EXT);
+            uint32_t high = 0;//*(uint32_t *) (ptr + ATA_IDENT_MAX_LBA_EXT);
+            uint32_t low = *(uint32_t *) (ptr + ATA_IDENT_MAX_LBA);
             drive->max_lba = ((uint64_t) high << 32) | low;
             drive->mode = ATA_MODE_LBA48;
         } else if (drive->command_sets & ATA_CAP_LBA) {
@@ -229,11 +228,12 @@ static void ata_detect_drive(ata_drive_t *drive)
     drive->model[40] = '\0';
 
     ata_soft_reset(drive);
-    // printk("ata%d: signature: 0x%x\n", drive->id, drive->signature);
-    // printk("ata%d: capabilities: 0x%x\n", drive->id, drive->capabilities);
-    // printk("ata%d: command Sets: 0x%x\n", drive->id, drive->command_sets);
-    // printk("ata%d: max LBA: 0x%x\n", drive->id, drive->max_lba);
-    // printk("ata%d: model: %s\n", drive->id, drive->model);
+    // kdump2(ptr, 128 * 4);
+    // kprintf(-1, "ata%d: signature: 0x%x\n", drive->id, drive->signature);
+    // kprintf(-1, "ata%d: capabilities: 0x%x\n", drive->id, drive->capabilities);
+    // kprintf(-1, "ata%d: command Sets: 0x%x\n", drive->id, drive->command_sets);
+    // kprintf(-1, "ata%d: max LBA: 0x%x\n", drive->id, drive->max_lba);
+    // kprintf(-1, "ata%d: model: %s\n", drive->id, drive->model);
 
     // Create and register block inode
     inode_t *blk = vfs_inode(drive->id, FL_BLK, NULL, drive->ops);

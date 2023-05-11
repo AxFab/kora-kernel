@@ -23,17 +23,6 @@
 uint8_t elf_sign[16] = { 0x7F, 'E', 'L', 'F', 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 bool elf_trace = false;
-//unsigned long elf_hash(const uint8_t *name)
-//{
-//    unsigned long h = 0, g;
-//    while (*name) {
-//        h = (h << 4) + *name++;
-//        if ((g = h & 0xF0000000))
-//            h ^= g >> 24;
-//        h &= ~g;
-//    }
-//    return h;
-//}
 
 int elf_check_header(elf_header_t *head)
 {
@@ -61,11 +50,22 @@ char *elf_string(elf_string_helper_t *string_table, int idx)
     int max = PAGE_SIZE - off % PAGE_SIZE;
     char *str = ADDR_OFF(ptr, off % PAGE_SIZE);
     int lg = strnlen(str, max);
-    if (lg > max)
-        return NULL;
-    char *buf = kalloc(lg + 1);
-    memcpy(buf, str, lg);
-    buf[lg] = '\0';
+    //if (str[0] == 'f' && str[1] == 'l' && str[2] == 'o') {
+    char *buf;
+    if (lg == max) {
+        blkmap_t *bkm2 = blk_clone(string_table->bkm);
+        char *str2 = blk_map(bkm2, off / PAGE_SIZE + 1, VM_RD);
+        int ex = strnlen(str2, PAGE_SIZE);
+        buf = kalloc(lg + ex + 1);
+        memcpy(buf, str, lg);
+        buf[lg] = '\0';
+        strncat(buf, str2, ex + 1);
+        blk_close(bkm2);
+    } else {
+        buf = kalloc(lg + 1);
+        memcpy(buf, str, lg);
+        buf[lg] = '\0';
+    }
     return buf;
 }
 
@@ -176,7 +176,6 @@ void elf_symbol(dlsym_t *symbol, elf_sym32_t *sym, dlib_t *lib, elf_dynamic_t *d
     if (elf_trace)
         kprintf(-1, "%08x %s %08x %s \n", sym->value, type, sym->size, symbol->name);
 }
-
 
 
 void elf_relocation(dlreloc_t *reloc, elf_reloc32_t *rel, llhead_t *symbols)
@@ -297,13 +296,18 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
     lib->length -= lib->base;
     lib->entry -= lib->base;
     
-    uint32_t *hash = ADDR_OFF(head, dynamic.hash); // TODO -- Check is on first map!
+    uint32_t *hash = ADDR_OFF(head, dynamic.hash);
     // if (dynamic.hash > 0 && dynamic.hash < 4080) {
     // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);
     // }
-    dlsection_t *sec;
-    for ll_each(&lib->sections, sec, dlsection_t, node)
-        sec->offset -= lib->base;
+    if (lib->base != 0) {
+        dlsection_t *sec;
+        for ll_each(&lib->sections, sec, dlsection_t, node)
+        {
+            sec->offset -= lib->base;
+            sec->moff -= lib->base;
+        }
+    }
 
 
     lib->init = dynamic.init;
@@ -326,10 +330,11 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
     /* Browse sections */
     unsigned rel_sz = 0;
     size_t sh_off = head->sh_off + head->sh_str_ndx * sizeof(elf_shead_t);
-    elf_shead_t *sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
+    elf_shead_t sh_tbl;
+    elf_read_cross_page(bkm_sec, (char *)&sh_tbl, sizeof(elf_shead_t), sh_off, VM_RD);// = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
     elf_string_helper_t sh_strings;
     sh_strings.bkm = blk_clone(bkm);
-    sh_strings.offset = sh_tbl->offset;
+    sh_strings.offset = sh_tbl.offset;
 
     if (elf_trace) {
         kprintf(-1, "Sections:\n");
@@ -338,14 +343,15 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
 
     for (i = 1; i < head->sh_count; ++i) {
         sh_off = head->sh_off + i * sizeof(elf_shead_t);
-        sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
-        char *sh_name = elf_string(&sh_strings, sh_tbl->name_idx);
+        elf_read_cross_page(bkm_sec, (char *)&sh_tbl, sizeof(elf_shead_t), sh_off, VM_RD);
+        //sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
+        char *sh_name = elf_string(&sh_strings, sh_tbl.name_idx);
         if (elf_trace)
-            kprintf(-1, " %2d %-16s %08x  %08x  %08x  .\n", i - 1, sh_name, sh_tbl->size, sh_tbl->addr, sh_tbl->offset);
-        if (sh_tbl->type == 9)
-            rel_sz += sh_tbl[i].size / dynamic.rel_ent;
-        if (sh_tbl->type == 1 && strcmp(sh_name, ".text") == 0)
-            lib->text_off = sh_tbl->addr - lib->base;
+            kprintf(-1, " %2d %-16s %08x  %08x  %08x  .\n", i - 1, sh_name, sh_tbl.size, sh_tbl.addr, sh_tbl.offset);
+        if (sh_tbl.type == 9)
+            rel_sz += sh_tbl.size / dynamic.rel_ent;
+        if (sh_tbl.type == 1 && strcmp(sh_name, ".text") == 0)
+            lib->text_off = sh_tbl.addr - lib->base;
         if (sh_name != NULL)
             kfree(sh_name);
         // kprintf(-1, "Section %s - %p\n", &sh_strtab[sh_tbl[i].name_idx], sh_tbl[i].addr);
@@ -353,18 +359,16 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
 
 
 #ifdef WIN32
-    for (i = 1; i < head->sh_count; ++i) {
-        sh_off = head->sh_off + i * sizeof(elf_shead_t);
-        sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
-        kprintf(-1, "Section table %d - %d - %p, %p\n", i, sh_tbl->type, sh_tbl->offset, sh_tbl->size);
-    }
+    //for (i = 1; i < head->sh_count; ++i) {
+    //    sh_off = head->sh_off + i * sizeof(elf_shead_t);
+    //    elf_read_cross_page(bkm_sec, (char *)&sh_tbl, sizeof(elf_shead_t), sh_off, VM_RD);
+    //    kprintf(-1, "Section table %d - %d - %p, %p\n", i, sh_tbl.type, sh_tbl.offset, sh_tbl.size);
+    //}
 #endif
-
 
     unsigned sym_count = hash[1];
     if (elf_trace)
         kprintf(-1, "Symbols table:\n"); // TODO -- Dynamic table !?
-#if 1
     elf_string_helper_t str_strings;
     str_strings.bkm = blk_clone(bkm);
     str_strings.offset = dynamic.str_tab;
@@ -380,56 +384,24 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
         ll_append(&symbols, &sym->node);
         elf_symbol(sym, &sym_tbl, lib, &dynamic, &str_strings);
 #ifdef WIN32
-        kprintf(-1, "Symbol %p, %s\n", sym->address, sym->name);
+        //kprintf(-1, "Symbol %p, %s on %s\n", sym->address, sym->name, lib->name);
 #endif
     }
 
     blk_close(str_strings.bkm);
-#else
-    for (i = 1; i < head->sh_count; ++i) {
-        sh_off = head->sh_off + i * sizeof(elf_shead_t);
-        sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
-        if (sh_tbl->type != SHT_SYMTAB)
-            continue;
 
-        size_t str_of = head->sh_off + sh_tbl->link * sizeof(elf_shead_t);
-        elf_shead_t *sh_str = ADDR_OFF(blk_map(bkm_sec, str_of / PAGE_SIZE, VM_RD), str_of % PAGE_SIZE);
-        elf_string_helper_t str_strings;
-        str_strings.bkm = blk_clone(bkm);
-        str_strings.offset = sh_str->offset;
-
-        elf_sym32_t sym_tbl;
-        sym_count = sh_tbl->size / sizeof(elf_sym32_t);
-        for (unsigned j = 1; j < sym_count; ++j) {
-            size_t off = sh_tbl->offset + j * dynamic.sym_ent;
-            elf_read_cross_page(bkm_sym, (char *)&sym_tbl, sizeof(elf_sym32_t), off, VM_RD);
-            if (sym_tbl.name == 0)
-                continue;
-
-            dlsym_t *sym = kalloc(sizeof(dlsym_t));
-            ll_append(&symbols, &sym->node);
-            elf_symbol(sym, &sym_tbl, lib, &dynamic, &str_strings);
-#ifdef WIN32
-            kprintf(-1, "Symbol %p, %s\n", sym->address, sym->name);
-#endif
-        }
-
-        blk_close(str_strings.bkm);
-    }
-#endif
 
     // blk_close(bkm_sym);
     /* Read relocation table */
     elf_reloc32_t reloc;
-#if 1
     for (i = 1; i < head->sh_count; ++i) {
         sh_off = head->sh_off + i * sizeof(elf_shead_t);
-        sh_tbl = ADDR_OFF(blk_map(bkm_sec, sh_off / PAGE_SIZE, VM_RD), sh_off % PAGE_SIZE);
-        if (sh_tbl->type != SHT_REL)
+        elf_read_cross_page(bkm_sec, (char *)&sh_tbl, sizeof(elf_shead_t), sh_off, VM_RD);
+        if (sh_tbl.type != SHT_REL)
             continue;
-        size_t sz = sh_tbl->size / sizeof(elf_reloc32_t);
+        size_t sz = sh_tbl.size / sizeof(elf_reloc32_t);
         for (j = 0; j < sz; ++j) {
-            size_t roff = sh_tbl->offset + j * sizeof(elf_reloc32_t);
+            size_t roff = sh_tbl.offset + j * sizeof(elf_reloc32_t);
             elf_read_cross_page(bkm_sym, (char *)&reloc, sizeof(elf_reloc32_t), roff, VM_RD);
             if (reloc.type == 0)
                 continue;
@@ -442,46 +414,27 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
             }
             rel->offset -= lib->base;
 #ifdef WIN32
-            if (rel->symbol)
-                kprintf(-1, "REL:%d at %p (s:%s:%p)\n", rel->type, rel->offset, rel->symbol->name, rel->symbol->address);
-            else
-                kprintf(-1, "REL:%d at %p\n", rel->type, rel->offset);
+            //if (rel->symbol)
+            //    kprintf(-1, "REL:%d at %p (s:%s:%p)\n", rel->type, rel->offset, rel->symbol->name, rel->symbol->address);
+            //else
+            //    kprintf(-1, "REL:%d at %p\n", rel->type, rel->offset);
 #endif
 
             ll_append(&lib->relocations, &rel->node);
         }
     }
-#else
-    for (i = 0; ; ++i) {
-        size_t roff = dynamic.rel + i * dynamic.rel_ent;
-        elf_read_cross_page(bkm_sym, (char *)&reloc, sizeof(elf_reloc32_t), roff, VM_RD);
-        if (reloc.type == 0 || reloc.type >= 15)
-            break;
-        dlreloc_t *rel = kalloc(sizeof(dlreloc_t));
-        elf_relocation(rel, &reloc, &symbols);
-        if (rel->offset == 0) {
-            kfree(rel);
-            break;
-        }
-        rel->offset -= lib->base;
-#ifdef WIN32
-        if (rel->symbol)
-            kprintf(-1, "REL:%d at %p (s:%s:%p)\n", rel->type, rel->offset, rel->symbol->name, rel->symbol->address);
-        else
-           kprintf(-1, "REL:%d at %p\n", rel->type, rel->offset);
-#endif
-
-        ll_append(&lib->relocations, &rel->node);
-    }
-#endif
 
     /* Organize symbols */
     while (symbols.count_ > 0) {
         dlsym_t *sym = ll_dequeue(&symbols, dlsym_t, node);
-        if (sym->type != 0 || sym->address != 0)
+        if (/*sym->type != 0 || */sym->address != 0) {
+            // kprintf(-1, "Intern symbol %p, %s on %s\n", sym->address, sym->name, lib->name);
             ll_append(&lib->intern_symbols, &sym->node);
-        else
+        }
+        else {
+            // kprintf(-1, "Extern symbol %p, %s on %s\n", sym->address, sym->name, lib->name);
             ll_append(&lib->extern_symbols, &sym->node);
+        }
     }
 
 
