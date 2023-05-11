@@ -137,7 +137,8 @@ void cls_write(const char *buf)
                 cls[cls_row * 80 + i] = cls_pen;
             if (cls_row >= 24) {
                 cls_row--;
-                memcpy(cls, &cls[80], 80 * 24);
+                for (int i = 0; i < 24; ++i)
+                    memcpy(&cls[i*80], &cls[(i+1)*80], 80 * 2);
                 // cls_row = 0;
             }
         }

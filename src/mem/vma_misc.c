@@ -37,7 +37,8 @@ size_t vma_fetch_phys(vmsp_t *vmsp, vma_t *vma, xoff_t offset, bool blocking)
 
 void vma_resolve_phys(vmsp_t *vmsp, vma_t *vma, size_t vaddr, size_t page)
 {
-    mmu_resolve(vaddr, page, vma->flags & (VM_UNCACHABLE | VM_RW));
+    int t = mmu_resolve(vaddr, page, vma->flags & (VM_UNCACHABLE | VM_RW));
+    vmsp->t_size += t;
 }
 
 void vma_unmap_phys(vmsp_t *vmsp, vma_t *vma, size_t address)

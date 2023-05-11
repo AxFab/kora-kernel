@@ -243,6 +243,8 @@ size_t strnlen(const char *str, size_t maxlen)
     while (*end && --maxlen)
         ++end;
 
+    if (*end != '\0')
+        ++end;
     return end - str;
 }
 

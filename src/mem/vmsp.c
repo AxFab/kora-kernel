@@ -583,6 +583,10 @@ void vmsp_close(vmsp_t *vmsp)
 int vmsp_fault(const char *message, size_t address)
 {
     kprintf(KL_PF, message, (void *)address);
+    stackdump(15);
+    size_t sp = (size_t)&message - 8;
+    size_t len = PAGE_SIZE - (sp & (PAGE_SIZE-1));
+    kdump(sp, len);
     return -1;
 }
 

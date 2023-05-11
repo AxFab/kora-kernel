@@ -103,7 +103,7 @@ void scheduler_switch(int status)
     if (task == NULL) {
         cpu_halt();
     } else {
-        // mmu_context(task->vm);
+        mmu_context(task->vmsp);
         cpu_restore(&task->jmpbuf);
     }
 #endif

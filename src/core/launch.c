@@ -93,15 +93,12 @@ static int kloader_open_module(const char *name, inode_t *ino)
         // Missing symbols
         return -1;
     }
-    mlib->resolved = true;
 
     // Map section of library
     if (dlib_rebase(__mmu.kspace, &proc->symbols_map, mlib) != 0) {
         // Missing memory space
         return -1;
     }
-    mlib->resolved = false;
-
 
 
     // Look for kernel module references

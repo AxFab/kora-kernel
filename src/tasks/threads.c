@@ -19,6 +19,7 @@
  */
 #include <kernel/stdc.h>
 #include <kernel/memory.h>
+#include <kernel/dlib.h>
 #include <kernel/tasks.h>
 #include <kernel/vfs.h>
 #include <kora/bbtree.h>
@@ -144,6 +145,7 @@ size_t task_spawn(const char *program, const char **args, inode_t **nodes)
     // Save args
     task_params_t *info = kalloc(sizeof(task_params_t));
     info->start = true;
+    info->func = task->vmsp->proc->exec->entry; // TODO -- Create accessor
     int i, count = 1;
     int len = ALIGN_UP(strlen(program) + 1, 4);
     if (args) {

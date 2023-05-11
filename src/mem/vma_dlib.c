@@ -26,7 +26,8 @@ void vma_release_dlib(vmsp_t *vmsp, vma_t *vma, xoff_t offset, size_t page)
 void vma_resolve_dlib(vmsp_t *vmsp, vma_t *vma, size_t vaddr, size_t page)
 {
     vmsp->s_size++;
-    mmu_resolve(vaddr, page, VM_RD);
+    int t = mmu_resolve(vaddr, page, VM_RD);
+    vmsp->t_size += t;
 }
 
 int vma_shared_dlib(vmsp_t *vmsp, vma_t *vma, size_t address, size_t page)

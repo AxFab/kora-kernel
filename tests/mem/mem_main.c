@@ -542,8 +542,6 @@ int do_start(void *ctx, size_t *params)
     ll_append(&proc->libs, &lib->node);
     lib->base = 0; 
     lib->length = 4 * _Mib_;
-    lib->mapped = true;
-    lib->resolved = true;
     __mmu.kspace->proc = proc;
     size_t no = 0x1000 / 0x40;
     dlib_add_symbol(proc, lib, "__errno_location", (no++ * 0x40));

@@ -160,7 +160,7 @@ void setup_arena(heap_arena_t *arena, size_t address, size_t length,
     memset(arena, 0, sizeof(heap_arena_t));
     arena->address_ = address;
     arena->length_ = length;
-    arena->flags_ = (option & HEAP_OPTIONS) | HEAP_ARENA | HEAP_PARANO;
+    arena->flags_ = (option & HEAP_OPTIONS) | HEAP_ARENA;// | HEAP_PARANO;
     arena->max_chunk = max;
     first->size_ = length;
     first->prsz_ = 0;
