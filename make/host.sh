@@ -54,7 +54,7 @@ case "$arch" in
 esac
 
 # Check vendor
-if [ -n $1 ]; then
+if [ -n "$1" ]; then
     if [ "$vendor" != "$req_vendor" ] ; then
           os=`tr ' ' '-' <<< "${THST[@]:1:${#THST[@]}}" `
     fi

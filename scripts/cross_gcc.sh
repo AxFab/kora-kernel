@@ -15,8 +15,8 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
-SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
+SCRIPT_DIR=`dirname "$BASH_SOURCE{0}"`
+SCRIPT_HOME=`readlink -f "$SCRIPT_DIR/.."`
 
 export PREFIX="$SCRIPT_HOME/opt"
 export SOURCES="$PREFIX/src"
@@ -45,9 +45,9 @@ build_binutils()
 {
     cd "$SOURCES"
 
-    mkdir build-binutils-$TARGET
-    cd build-binutils-$TARGET
-    "../$BUTILS/configure" --target=$TARGET --prefix="$PREFIX" --with-sysroot --disable-nls --disable-werror
+    mkdir "build-binutils-$TARGET"
+    cd "build-binutils-$TARGET"
+    "../$BUTILS/configure" --target="$TARGET" --prefix="$PREFIX" --with-sysroot --disable-nls --disable-werror
     make
     make install
 }
@@ -56,11 +56,11 @@ build_gcc()
 {
     cd "$SOURCES"
     # The $PREFIX/bin dir _must_ be in the PATH. We did that above.
-    which -- $TARGET-as || echo $TARGET-as is not in the PATH
+    which -- "$TARGET"-as || echo "$TARGET"-as is not in the PATH
 
     mkdir build-gcc-$TARGET
     cd build-gcc-$TARGET
-    "../$GCC/configure" --target=$TARGET --prefix="$PREFIX" --disable-nls --enable-languages=c,c++ --without-headers
+    "../$GCC/configure" --target="$TARGET" --prefix="$PREFIX" --disable-nls --enable-languages=c,c++ --without-headers
     make all-gcc
     make all-target-libgcc
     make install-gcc
@@ -80,7 +80,7 @@ look_arch() {
 }
 
 look_arch $1
-mkdir -p $PREFIX/{bin,lib,src}
+mkdir -p "$PREFIX"/{bin,lib,src}
 
 download
 build_binutils

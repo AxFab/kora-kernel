@@ -15,8 +15,8 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
-SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
+SCRIPT_DIR=`dirname "$BASH_SOURCE{0}"`
+SCRIPT_HOME=`readlink -f "$SCRIPT_DIR/.."`
 set -x
 
 # ip link add br0 type bridge

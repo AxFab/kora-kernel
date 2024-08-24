@@ -163,7 +163,7 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *devinfo)
         return;
 
     outw(VGA_PORT_DATA, 0xB0C4);
-    i = inw(VGA_PORT_DATA);
+    inw(VGA_PORT_DATA);
 
     // kprintf(KL_MSG, "VGA, PCI device %02x.%02x.%x (%p)\n", pci->bus, pci->slot, pci->func, pci);
     outw(VGA_PORT_CMD, VGA_REG_MEMORY);
@@ -195,8 +195,8 @@ void vga_start_qemu(struct PCI_device *pci, struct device_id *devinfo)
     info->height = screen_size[i * 2 + 1];
     info->offset = 0;
     info->pitch = ALIGN_UP(info->width * 4, 4);
-    info->pixels0 = pixels0;
-    info->pixels1 = pixels0 + info->pitch * info->height;
+    info->pixels0 = (void*)pixels0;
+    info->pixels1 = (void*)(pixels0 + info->pitch * info->height);
 
     vga_change_offset(info->pitch * info->height);
     // vfs_fcntl(ino, FB_RESIZE, &screen_size[i * 2]);

@@ -12,8 +12,8 @@
 ## Do you request a new feature ?
 
 
-# More about Development
+## More about Development
 
-## Coding conventions
+### Coding conventions
 
-## Propose a contrubution
+### Propose a contrubution
