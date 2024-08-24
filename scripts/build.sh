@@ -81,7 +81,7 @@ build_x86 () {
     # mkdir -p iso/{dev,mnt,proc,sys,tmp}
 
 
-    $SCRIPT_HOME/scripts/drivers.sh
+    "$SCRIPT_HOME/scripts/drivers.sh"
 
     # Import files
     cp -v $SRC_KRN/bin/kora-x86.krn iso/boot/kora-x86.krn
@@ -90,7 +90,7 @@ build_x86 () {
 
     mkdir -p iso/boot/grub
 
-    if [ -z $isomode ]
+    if [ -z "$isomode" ]
     then
         # Create ISO (Option 1)
         echo "    ISO $iso_name (option 1)"
@@ -99,8 +99,8 @@ build_x86 () {
     else
         # Create ISO (Option 2)
         echo "    ISO $iso_name (option 2)"
-        cp $SRC_KRN/scripts/cfg/stage2_eltorito iso/boot/grub/
-        cp $SRC_KRN/scripts/cfg/menu.lst iso/boot/grub/
+        cp "$SRC_KRN/scripts/cfg/stage2_eltorito" iso/boot/grub/
+        cp "$SRC_KRN/scripts/cfg/menu.lst" iso/boot/grub/
         genisoimage -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o "$iso_name" iso
     fi
 
@@ -150,7 +150,7 @@ build_x86_64 () {
 }
 
 clean () {
-    make -f $SRC_KRN/Makefile distclean
+    make -f "$SRC_KRN/Makefile" distclean
 }
 
 all () {
@@ -175,7 +175,7 @@ look_arch() {
 
 
 ARCH=`uname -m`
-ARCH=`look_arch $ARCH`
+ARCH=`look_arch "$ARCH"`
 
 
 while (( $# > 0 ))

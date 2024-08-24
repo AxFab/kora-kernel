@@ -160,6 +160,17 @@ static size_t __mmu_set(mmu_dir_t *dir, size_t idx, size_t phys, int flags)
     dir->pages[idx] = phys | 8 | (flags & (VM_RWX | VM_UNCACHABLE));
     return phys;
 }
+static mmu_dir_t *__mmu_dir(size_t vaddr)
+{
+    vmsp_t *vmsp = memory_space_at(vaddr);
+    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
+    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
+
+    mmu_dir_t *dir = (void *)vmsp->directory;
+    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
+    assert(idx < dir->len);
+    return dir;
+}
 
 size_t mmu_set(size_t directory, size_t vaddr, size_t phys, int flags)
 {
@@ -184,45 +195,27 @@ size_t mmu_resolve(size_t vaddr, size_t phys, int flags)
     return __mmu_set(dir, idx, phys, flags);
 }
 
+
 /* - */
 size_t mmu_read(size_t vaddr)
 {
     size_t pg = mmu_read_kmap_stub(vaddr);
     if (pg != 0)
         return pg;
-
-    vmsp_t *vmsp = memory_space_at(vaddr);
-    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
-    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
-
-    mmu_dir_t *dir = (void *)vmsp->directory;
-    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
-    assert(idx < dir->len);
+    mmu_dir_t *dir = __mmu_dir(vaddr);
     return dir->pages[idx] & ~(PAGE_SIZE-1);
 }
 
 int mmu_read_flags(size_t vaddr)
 {
-    vmsp_t *vmsp = memory_space_at(vaddr);
-    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
-    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
-
-    mmu_dir_t *dir = (void *)vmsp->directory;
-    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
-    assert(idx < dir->len);
+    mmu_dir_t *dir = __mmu_dir(vaddr);
     return dir->pages[idx] & (VM_RWX | VM_UNCACHABLE);
 }
 
 /* - */
 size_t mmu_drop(size_t vaddr)
 {
-    vmsp_t *vmsp = memory_space_at(vaddr);
-    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
-    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
-
-    mmu_dir_t *dir = (void *)vmsp->directory;
-    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
-    assert(idx < dir->len);
+    mmu_dir_t *dir = __mmu_dir(vaddr);
     size_t phys = dir->pages[idx] & ~(PAGE_SIZE - 1);
     dir->pages[idx] = 0;
     return phys;
@@ -231,13 +224,7 @@ size_t mmu_drop(size_t vaddr)
 /* - */
 size_t mmu_protect(size_t vaddr, int flags)
 {
-    vmsp_t *vmsp = memory_space_at(vaddr);
-    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
-    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
-
-    mmu_dir_t *dir = (void *)vmsp->directory;
-    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
-    assert(idx < dir->len);
+    mmu_dir_t *dir = __mmu_dir(vaddr);
     size_t phys = 0;
     if (dir->pages[idx] != 0) {
         phys = dir->pages[idx] & ~(PAGE_SIZE - 1);
@@ -249,13 +236,7 @@ size_t mmu_protect(size_t vaddr, int flags)
 /* - */
 bool mmu_dirty(size_t vaddr)
 {
-    vmsp_t *vmsp = memory_space_at(vaddr);
-    assert(vaddr >= vmsp->lower_bound && vaddr < vmsp->upper_bound);
-    assert(vmsp == __mmu.kspace || vmsp == __mmu.uspace);
-
-    mmu_dir_t *dir = (void *)vmsp->directory;
-    size_t idx = (vaddr - vmsp->lower_bound) / PAGE_SIZE;
-    assert(idx < dir->len);
+    mmu_dir_t *dir = __mmu_dir(vaddr);
     return dir->pages[idx] & 0x200;
 }
 

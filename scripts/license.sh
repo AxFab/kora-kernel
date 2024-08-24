@@ -16,24 +16,24 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
-SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
+SCRIPT_DIR=`dirname "$BASH_SOURCE{0}"`
+SCRIPT_HOME=`readlink -f "$SCRIPT_DIR/.."`
 
-fixSrc_file=$SCRIPT_DIR/cfg/license.h
-fixSh_file=$SCRIPT_DIR/cfg/license.txt
+fixSrc_file="$SCRIPT_DIR/cfg/license.h"
+fixSh_file="$SCRIPT_DIR/cfg/license.txt"
 
 fixSrc() {
     TMP=`mktemp`
-    cat $1 > $TMP
-    cat $2 <(awk '/^#(include|ifndef)/ || c>0 {print;++c}' $TMP) > $1
-    rm $TMP
+    cat "$1" > "$TMP"
+    cat "$2" <(awk '/^#(include|ifndef)/ || c>0 {print;++c}' "$TMP") > "$1"
+    rm "$TMP"
 }
 
 fixSh() {
     TMP=`mktemp`
-    cat $1 > $TMP
-    cat $2 <(awk '/^SCRIPT_DIR/ || c>0 {print;++c}' $TMP) > $1
-    rm $TMP
+    cat "$1" > "$TMP"
+    cat $2 <(awk '/^SCRIPT_DIR/ || c>0 {print;++c}' "$TMP") > "$1"
+    rm "$TMP"
 }
 
 
@@ -51,7 +51,7 @@ checkDir () {
                 echo "Missing license: $src"
             else
                 echo "Editing license: $src"
-                $1 "$src" "$MODEL"
+                "$1" "$src" "$MODEL"
             fi
         else
              echo "License OK: $src"

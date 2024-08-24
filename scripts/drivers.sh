@@ -15,8 +15,8 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
-SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
+SCRIPT_DIR=`dirname "$BASH_SOURCE{0}"`
+SCRIPT_HOME=`readlink -f "$SCRIPT_DIR/.."`
 
 DIR="$SCRIPT_HOME/src/drivers"
 TMP="`readlink -f .`/drivers"
@@ -27,7 +27,7 @@ function parse_yaml {
     local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
     sed -ne "s|^\($s\):|\1|" \
         -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
-        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  "$1" |
     awk -F$fs '{
         indent = length($1)/2;
         vname[indent] = $2;
@@ -36,7 +36,7 @@ function parse_yaml {
             if (length($3) > 0) {
                 vn="";
                 for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-            printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+            printf("%s%s%s=\"%s\"\n", "'"$prefix"'",vn, $2, $3);
             }
         }'
 }
@@ -47,7 +47,7 @@ function make_driver {
 }
 
 
-. <(parse_yaml $SCRIPT_HOME/config.yml)
+. <(parse_yaml "$SCRIPT_HOME/config.yml")
 for d in `find $DIR/ -type d | sed "s%$DIR/%%"`
 do
     if [[ -z `echo $d | grep .git` ]]

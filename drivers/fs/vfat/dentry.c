@@ -113,8 +113,9 @@ inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, device_t *device, FAT
     return ino;
 }
 
-void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t type)
+static void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t type)
 {
+    assert(entry != NULL);
     memset(entry, 0, sizeof(*entry));
     if (type == FL_DIR)
         entry->DIR_Attr = ATTR_DIRECTORY;

@@ -15,26 +15,26 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-SCRIPT_DIR=`dirname $BASH_SOURCE{0}`
-SCRIPT_HOME=`readlink -f $SCRIPT_DIR/..`
+SCRIPT_DIR=`dirname "$BASH_SOURCE{0}"`
+SCRIPT_HOME=`readlink -f "$SCRIPT_DIR/.."`
 
 
 PACK='kora-toolchain-x86_64.tar.bz2'
 URL="https://www.dropbox.com/s/wzjsiqbabyj1t7g/$PACK"
 
 install () {
-    cd $SCRIPT_HOME
-    wget $URL -o wget.log
-    tar xjf $PACK
+    cd "$SCRIPT_HOME"
+    wget "$URL" -o wget.log
+    tar xjf "$PACK"
 }
 
 
 while (( $# > 0 ))
 do
-    case $1
+    case "$1"
     in
         install)
-            $1
+            "$1"
         ;;
     esac
     shift

@@ -51,7 +51,7 @@ int murmur3_32(const void *key, int bytes, uint32_t seed)
         k = (k << 15) | (k >> 17);
         k *= 0x1b873593;
         hash ^= k;
-        hash = (k << 13) | (k >> 19);
+        hash = (hash << 13) | (hash >> 19);
         hash = hash * 5 + 0xe6546b64;
         ++input;
     }

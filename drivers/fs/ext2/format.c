@@ -210,7 +210,7 @@ int ext2_format(inode_t* dev, const char* options)
         if (i == 0) {
             overhead += 1 + lost_and_found_block;
             gd[i].used_dirs_count = 2;
-            gd[i].free_inodes_count -= EXT2_GOOD_OLD_FIRST_INO;
+            // gd[i].free_inodes_count -= EXT2_GOOD_OLD_FIRST_INO;
             free_inodes -= EXT2_GOOD_OLD_FIRST_INO;
         }
         free_blocks = (n < blocks_per_group ? n : blocks_per_group) - overhead;

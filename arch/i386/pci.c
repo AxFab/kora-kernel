@@ -48,8 +48,7 @@
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-/* Read 8 bits from the PCI configuration */
-uint8_t pci_config_read8(uint8_t bus, uint8_t slot, uint8_t func,
+static uint32_t __pci_address(uint8_t bus, uint8_t slot, uint8_t func,
                          uint8_t offset)
 {
     uint32_t address = 0;
@@ -60,6 +59,13 @@ uint8_t pci_config_read8(uint8_t bus, uint8_t slot, uint8_t func,
     address |= (uint32_t)(func & 0x7) << 8;
     address |= (uint32_t)(offset & 0xfc);
     address |= 0x80000000;
+}
+
+/* Read 8 bits from the PCI configuration */
+uint8_t pci_config_read8(uint8_t bus, uint8_t slot, uint8_t func,
+                         uint8_t offset)
+{
+    uint32_t address = __pci_address(bus, slot, func, offset);
     outl(PCI_IO_CFG_ADDRESS, address);
 
     /* Read the data */
@@ -70,14 +76,7 @@ uint8_t pci_config_read8(uint8_t bus, uint8_t slot, uint8_t func,
 uint16_t pci_config_read16(uint8_t bus, uint8_t slot, uint8_t func,
                            uint8_t offset)
 {
-    uint32_t address = 0;
-
-    /* Create configuration address */
-    address |= (uint32_t)bus << 16;
-    address |= (uint32_t)(slot & 0x1f) << 11;
-    address |= (uint32_t)(func & 0x7) << 8;
-    address |= (uint32_t)(offset & 0xfc);
-    address |= 0x80000000;
+    uint32_t address = __pci_address(bus, slot, func, offset);
     outl(PCI_IO_CFG_ADDRESS, address);
 
     /* Read the data */
@@ -88,14 +87,7 @@ uint16_t pci_config_read16(uint8_t bus, uint8_t slot, uint8_t func,
 uint32_t pci_config_read32(uint8_t bus, uint8_t slot, uint8_t func,
                            uint8_t offset)
 {
-    uint32_t address = 0;
-
-    /* Create configuration address */
-    address |= (uint32_t)bus << 16;
-    address |= (uint32_t)(slot & 0x1f) << 11;
-    address |= (uint32_t)(func & 0x7) << 8;
-    address |= (uint32_t)(offset & 0xfc);
-    address |= 0x80000000;
+    uint32_t address = __pci_address(bus, slot, func, offset);
     outl(PCI_IO_CFG_ADDRESS, address);
 
     /* Read the data */
@@ -106,14 +98,7 @@ uint32_t pci_config_read32(uint8_t bus, uint8_t slot, uint8_t func,
 void pci_config_write32(uint8_t bus, uint8_t slot, uint8_t func,
                         uint8_t offset, uint32_t value)
 {
-    uint32_t address = 0;
-
-    /* Create configuration address */
-    address |= (uint32_t)bus << 16;
-    address |= (uint32_t)(slot & 0x1f) << 11;
-    address |= (uint32_t)(func & 0x7) << 8;
-    address |= (uint32_t)(offset & 0xfc);
-    address |= 0x80000000;
+    uint32_t address = __pci_address(bus, slot, func, offset);
     outl(PCI_IO_CFG_ADDRESS, address);
 
     /* Write data */

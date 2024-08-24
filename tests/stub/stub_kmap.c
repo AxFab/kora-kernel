@@ -168,7 +168,7 @@ void *kmap(size_t len, void *obj, xoff_t off, int flags)
             mp = kmap_new(access | type, (void *)off, 0, len, (void*)off); // is off required?
         }
     } else { // if (getter == 3) {
-        assert("No dlib supported" == NULL);
+        assert("No dlib supported");
     }
 
     mp->node.value_ = (size_t)mp->ptr;

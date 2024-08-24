@@ -69,7 +69,7 @@ start:
     mov esp, KSTACK0 + KSTACK_LEN - 16
     ; Check we used a multiboot complient loader (grub)
     cmp eax, MBOOT_MAGIC2
-    jmp .mbootLoader
+    je .mbootLoader
 
 .unknowLoader:
     DEBUG_WRITE 0, msg_unknowLoader

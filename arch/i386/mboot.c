@@ -72,16 +72,17 @@ void mboot_memory()
 
 void mboot_modules()
 {
-    unsigned i;
-    char tmp [12];
     if (mboot_table->flags & GRUB_MODULES) {
         struct mboot_module *mods = (struct mboot_module *)mboot_table->mods_addr;
-        for (i = 0; i < mboot_table->mods_count; ++i) {
+        for (int i = 0; i < (int)mboot_table->mods_count; ++i) {
+            char tmp [12];
             size_t len = (size_t)(((char *)mods->end) - ((char *)mods->start));
             kprintf(-1, "Module preloaded [%s] '%s'\n", sztoa(len), mods->string);
             inode_t *ino = tar_mount(mods->start, len, mods->string);
             snprintf(tmp, 12, "boot%d", i);
             int ret = vfs_early_mount(ino, tmp);
+            if (ret < 0)
+                kprintf(-1, "Error on loading module '%s'\n", mods->string);
             vfs_close_inode(ino);
         }
     }

@@ -311,7 +311,7 @@ static inode_t *ext2_mknod_generic(ext2_volume_t *vol, inode_t *dir, const char 
     ino_dir->ctime = now / _PwMicro_;
     ino_dir->mtime = now / _PwMicro_;
     dir->ctime = ino_dir->ctime * _PwMicro_;
-    dir->ctime = ino_dir->mtime * _PwMicro_;
+    dir->mtime = ino_dir->mtime * _PwMicro_;
     dir->links = ino_dir->links;
 
     // Create a new inode
