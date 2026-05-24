@@ -1,6 +1,6 @@
 #include <kernel/vfs.h>
 #include <errno.h>
-#include <fcntl.h>
+#include <kernel/fcntl.h>
 #include <limits.h>
 
 fnode_t *vfs_fsnode_from(fnode_t *parent, const char *name)
@@ -92,7 +92,7 @@ void vfs_scavenge(int max)
         kfree(node);
 
         splock_unlock(&__vfs_share->fnode_lock);
-    
+
         // Close ino in safe manner
         vfs_close_inode(ino);
 
@@ -722,4 +722,3 @@ int vfs_umount(fs_anchor_t *fsanchor, const char *path, user_t *user, int flags)
     return ret;
 }
 EXPORT_SYMBOL(vfs_umount, 0);
-

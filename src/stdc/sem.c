@@ -17,7 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <threads.h>
+#include <kernel/threads.h>
 #include <sem.h>
 #include <assert.h>
 #include <kernel/mods.h>

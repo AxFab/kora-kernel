@@ -20,7 +20,7 @@
 #include "../cli.h"
 #include <stdlib.h>
 #include <stdint.h>
-#include <threads.h>
+#include <kernel/threads.h>
 #include <kernel/net.h>
 #include <kora/mcrs.h>
 #include <kora/time.h>

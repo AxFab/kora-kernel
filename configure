@@ -99,8 +99,5 @@ prefix:=$PREFIX
 target:=$TARGET
 sysdir:=$SYSDIR
 CROSS:=$CROSS
-CC:=$CROSS$CC
-LD:=$CROSS$LD
-LDC:=$CROSS$CC
 include \${topdir}/Makefile
 EOF

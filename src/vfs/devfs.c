@@ -19,7 +19,7 @@
  */
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
-#include <threads.h>
+#include <kernel/threads.h>
 #include <errno.h>
 #include <assert.h>
 #include <limits.h>

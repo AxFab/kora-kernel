@@ -17,31 +17,15 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _SEM_H
-#define _SEM_H 1
+#ifndef _KERNEL_FCNTL_H
+#define _KERNEL_FCNTL_H 1
 
-#include <bits/cdefs.h>
-#include <kernel/threads.h>
+#define O_RDONLY 1
+#define O_WRONLY 2
+#define O_RDWR 4
 
-typedef struct sem sem_t;
+#define O_CREAT 8
+#define O_EXCL 16
+#define O_TRUNC 32
 
-struct sem {
-    mtx_t mtx;
-    cnd_t cv;
-    int count;
-};
-
-__STDC_GUARD
-
-int sem_init(sem_t *sem, int count);
-void sem_destroy(sem_t *sem);
-void sem_acquire(sem_t *sem);
-int sem_timedacquire(sem_t *sem, const struct timespec *xt);
-void sem_acquire_many(sem_t *sem, int count);
-int sem_tryacquire(sem_t *sem);
-void sem_release(sem_t *sem);
-void sem_release_many(sem_t *sem, int count);
-
-__STDC_END
-
-#endif /* _SEM_H */
+#endif  /* _KERNEL_INPUT_H */

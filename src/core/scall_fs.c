@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <kernel/syscalls.h>
 
-#include <bits/mman.h>
+#include <kernel/mman.h>
 #include <bits/io.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */

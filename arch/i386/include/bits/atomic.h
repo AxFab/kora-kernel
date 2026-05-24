@@ -123,4 +123,13 @@ static inline void atomic_crash()
     __asm__ volatile("hlt" : : : "memory");
 }
 
+
+static inline void invalidate_page(unsigned long vaddr)
+{
+    __asm__ volatile(
+        "movl %0,%%eax\n"
+        "invlpg (%%eax)\n"
+        :: "r"(vaddr) : "%eax");
+}
+
 #endif  /* __BITS_ATOMIC_H */

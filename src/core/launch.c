@@ -138,9 +138,12 @@ _Noreturn void kloader()
     for (int i = 0; ; ++i) {
         snprintf(buffer, 256, "/mnt/boot%d", i);
         inode_t *ino = vfs_search_ino(__current->fsa, buffer, __current->user, true);
-        if (ino == NULL)
+        if (ino == NULL) {
+            kprintf(KL_MSG, "No volume at %s\n", buffer);
             break;
+        }
 
+        kprintf(KL_MSG, "Read dir %s\n", buffer);
         // Read directory
         void *ctx = vfs_opendir(__current->fsa, buffer, __current->user);
         for (;;) {
@@ -148,6 +151,7 @@ _Noreturn void kloader()
             if (ino == NULL)
                 break;
             int len = strlen(name);
+            kprintf(KL_MSG, "- %s\n", name);
 
             if (len > 3 && memcmp(&name[len - 3], ".ko", 3) == 0)
                 kloader_open_module(name, ino);

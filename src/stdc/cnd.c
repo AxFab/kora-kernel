@@ -17,7 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <threads.h>
+#include <kernel/threads.h>
 #include <limits.h>
 #include <stdint.h>
 #include <errno.h>

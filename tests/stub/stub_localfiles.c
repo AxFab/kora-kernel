@@ -79,7 +79,7 @@ size_t vfs_fetch_page(inode_t *ino, xoff_t off, bool blocking)
         memset(&file->rcus[file->pages], 0, (len - file->pages) * sizeof(int));
         file->pages = len;
     }
-    
+
     if (file->pcache[idx] == 0) {
         if (!blocking)
             return 0;

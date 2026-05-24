@@ -90,7 +90,7 @@ kora-kernel/
 │   ├── *.sh           # Shell test scripts run by the CLI programs
 │   ├── cli.c/h        # CLI test framework
 │   ├── threads.c      # pthreads shim for hosted tests (excluded when ADD_C11=y)
-│   └── c11/threads.h  # C11 <threads.h> polyfill for platforms without it (e.g. macOS)
+│   └── c11/threads.h  # C11 <kernel/threads.h> polyfill for platforms without it (e.g. macOS)
 ├── docs/              # Sparse documentation (see state below)
 ├── Makefile           # Root build entry
 ├── configure          # Out-of-tree build helper
@@ -163,7 +163,7 @@ make clean && make cli-mem
 ../bin/cli-mem mm_start.sh
 ```
 
-On **macOS (arm64)** the system does not provide `<threads.h>`.  Use the
+On **macOS (arm64)** the system does not provide `<kernel/threads.h>`.  Use the
 `ADD_C11=y` flag, which activates a header-only polyfill (`tests/c11/threads.h`)
 that maps the full C11 threads API to pthreads, and excludes the now-redundant
 `tests/threads.c` from the build:

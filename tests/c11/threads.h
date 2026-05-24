@@ -17,10 +17,10 @@
  *
  *   - - - - - - - - - - - - - - -
  *
- *  C11 <threads.h> polyfill built on top of pthreads.
+ *  C11 <kernel/threads.h> polyfill built on top of pthreads.
  *
  *  Activated by building with ADD_C11=y, which adds -I$(topdir)/tests/c11
- *  to CFLAGS_cli so that #include <threads.h> resolves here instead of a
+ *  to CFLAGS_cli so that #include <kernel/threads.h> resolves here instead of a
  *  missing system header.  Requires linking with -lpthread (already set in
  *  LFLAGS_cli).  Replaces tests/threads.c — that file is excluded from the
  *  build when ADD_C11=y.

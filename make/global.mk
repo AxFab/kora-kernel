@@ -40,13 +40,13 @@ V := $(shell [ -z $(VERBOSE) ] && echo @)
 Q := $(shell [ -z $(QUIET) ] && echo @ || echo @true)
 
 # C O M M A N D S -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-AS ?= $(CROSS)as
-AR ?= $(CROSS)ar
-CC ?= $(CROSS)gcc
-CXX ?= $(CROSS)g++
-LD ?= $(CROSS)ld
-LDC ?= $(CC)
-LDCX ?= $(CXX)
+AS := $(CROSS)as
+AR := $(CROSS)ar
+CC := $(CROSS)gcc
+CXX := $(CROSS)g++
+LD := $(CROSS)ld
+LDC := $(CC)
+LDCX := $(CXX)
 NM ?= nm
 INSTALL ?= install
 PKC ?= pkg-config

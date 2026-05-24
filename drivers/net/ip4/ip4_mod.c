@@ -17,7 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <threads.h>
+#include <kernel/threads.h>
 #include "ip4.h"
 #include <kernel/core.h>
 

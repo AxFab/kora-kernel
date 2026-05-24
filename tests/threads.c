@@ -20,7 +20,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <errno.h>
-#include <threads.h>
+#include <kernel/threads.h>
 #include <pthread.h>
 #include <stdlib.h>
 

@@ -162,7 +162,6 @@ static int mmu_flags(size_t vaddr, int flags)
     return pgf;
 }
 
-
 size_t mmu_protect(size_t vaddr, int flags)
 {
     size_t *dir = MMU_DIR(vaddr);
@@ -171,10 +170,7 @@ size_t mmu_protect(size_t vaddr, int flags)
         return 0;
     size_t pg = *tbl & ~(PAGE_SIZE - 1);
     *tbl = pg | mmu_flags(vaddr, flags);
-    asm volatile(
-        "movl %0,%%eax\n"
-        "invlpg (%%eax)\n"
-        :: "r"(vaddr) : "%eax");
+    invalidate_page(vaddr);
     return pg;
 }
 
@@ -202,10 +198,7 @@ size_t mmu_drop(size_t vaddr)
     // if (vaddr < 0x500000)
     //     kprintf(-1, "[MMU] Drop page at %p using %p {%p.%p}\n", vaddr, pg, cr3, tbl);
     *tbl = 0;
-    asm volatile(
-        "movl %0,%%eax\n"
-        "invlpg (%%eax)\n"
-        :: "r"(vaddr) : "%eax");
+    invalidate_page(vaddr);
     return pg;
 }
 

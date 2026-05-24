@@ -30,7 +30,7 @@
 #include <kora/hmap.h>
 #include <kora/mcrs.h>
 #include <bits/atomic.h>
-#include <threads.h>
+#include <kernel/threads.h>
 
 #ifdef __LP64
 #define XOFF_F "%ld"

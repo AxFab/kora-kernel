@@ -22,7 +22,7 @@
 
 #include <kernel/stdc.h>
 #include <kernel/arch.h>
-#include <threads.h>
+#include <kernel/threads.h>
 
 struct PCI_device {
     uint8_t bus;

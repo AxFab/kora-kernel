@@ -21,7 +21,7 @@
 #include <kernel/mods.h>
 #include <ctype.h>
 
-void *kalloc(size_t);
+void *kalloc(size_t size);
 // #include <stdlib.h>
 
 /* Scans s1 for the first token not contained in s2. */

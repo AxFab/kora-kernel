@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "ip4.h"
-#include <threads.h>
+#include <kernel/threads.h>
 #include <kernel/core.h>
 
 typedef struct icmp_header icmp_header_t;

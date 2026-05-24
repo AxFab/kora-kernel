@@ -21,7 +21,7 @@
 #include <string.h>
 #include <assert.h>
 #include <bits/cdefs.h>
-#include <threads.h>
+#include <kernel/threads.h>
 #if defined(_WIN32)
 #  include <Windows.h>
 #endif
