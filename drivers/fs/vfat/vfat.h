@@ -202,7 +202,7 @@ xtime_t fatfs_gettime(unsigned short *date, unsigned short *time);
 void fatfs_read_shortname(struct FAT_ShortEntry *entry, char *shortname);
 void fatfs_write_shortname(struct FAT_ShortEntry *entry, const char *shortname);
 inode_t *fatfs_inode(int no, struct FAT_ShortEntry *entry, device_t *volume, FAT_volume_t *info);
-void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t type);
+// void fatfs_short_entry(struct FAT_ShortEntry *entry, unsigned cluster, ftype_t type);
 int fatfs_mkdir(struct FAT_volume *info, inode_t *dir);
 
 FAT_volume_t *fatfs_init(void *ptr);

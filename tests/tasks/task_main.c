@@ -29,7 +29,7 @@
 #include <kernel/memory.h>
 #include <kernel/tasks.h>
 #include <setjmp.h>
-#include <sys/signum.h>
+#include <kernel/signum.h>
 
 struct
 {

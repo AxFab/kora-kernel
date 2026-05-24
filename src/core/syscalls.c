@@ -23,7 +23,7 @@
 #include <kernel/syscalls.h>
 #include <kernel/core.h>
 #include <kora/llist.h>
-#include <sys/signum.h>
+#include <kernel/signum.h>
 
 extern sys_info_t sysinfo;
 

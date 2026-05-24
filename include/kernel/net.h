@@ -27,7 +27,7 @@
 #include <kora/time.h>
 #include <stdint.h>
 #include <string.h>
-#include <sys/sem.h>
+#include <sem.h>
 #include <bits/cdefs.h>
 
 #define IOVLEN_MAX 64

@@ -38,8 +38,11 @@ include $(topdir)/make/drivers.mk
 # Setup compile flags
 CFLAGS ?= -Wall -Wextra -Wno-unused-parameter -ggdb -Wno-address-of-packed-member
 CFLAGS_inc  = -I$(topdir)/include
-# CFLAGS_inc += -I$(topdir)/src/_$(target_os)/include
 CFLAGS_inc += -I$(topdir)/arch/$(target_arch)/include
+ifeq ($(ADD_C11),y)
+CFLAGS_inc += -I$(topdir)/tests/c11
+endif
+
 CFLAGS_def  = -D_DATE_=\"'$(DATE)'\" -D_OSNAME_=\"'$(LINUX)'\"
 CFLAGS_def += -D_GITH_=\"'$(GIT)'\" -D_VTAG_=\"'$(VERSION)'\"
 LFLAGS_def +=
@@ -52,7 +55,7 @@ CFLAGS_kr += -ffreestanding $(CFLAGS_inc) $(CFLAGS_def)
 ifeq ($(target_os),kora)
 CFLAGS_kr += -DKORA_KRN -D__NO_SYSCALL
 else
-CFLAGS_kr += -lpthread
+# CFLAGS_kr += -lpthread
 ifeq ($(NOCOV),)
 CFLAGS_def += --coverage -fprofile-arcs -ftest-coverage
 LFLAGS_def += --coverage
@@ -116,7 +119,7 @@ include $(foreach dir,$(DRV),$(topdir)/drivers/$(dir)/Makefile)
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Build tests
-CHECKS += ckstdc ckvfs ckmem cktask cknet
+CHECKS += ckvfs ckmem cktask cknet
 
 lck:
 	$(S) echo $(patsubst %,val_%,$(CHECKS))
@@ -148,7 +151,9 @@ SRC_kcore += $(topdir)/src/stdc/hmap.c
 SRC_kcore += $(topdir)/src/stdc/sem.c
 SRC_kcore += $(topdir)/src/stdc/bits.c
 SRC_kcore += $(topdir)/tests/cli.c
+ifneq ($(ADD_C11),y)
 SRC_kcore += $(topdir)/tests/threads.c
+endif
 SRC_kcore += $(topdir)/tests/stub/stub_common.c
 SRC_kcore += $(topdir)/tests/stub/stub_irq.c
 

@@ -215,3 +215,19 @@ uint32_t rand32()
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+
+/* Searches backwards for c in the last len bytes of str. */
+void *memrchr(const void *str, int c, size_t len)
+{
+    register const char *ptr0 = (const char *)str + len;
+
+    while (len > 0) {
+        --ptr0;
+        --len;
+        if (*ptr0 == (char)c)
+            return (void *)ptr0;
+    }
+
+    return NULL;
+}

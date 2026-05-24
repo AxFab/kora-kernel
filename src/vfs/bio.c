@@ -77,11 +77,11 @@ bio_req_t *bio_deadline_pop(bio_deadline_t* sched)
         xt.tv_nsec = 0;
         while (sched->rio == 0 && xt.tv_sec > 0)
             cnd_timedwait(&sched->cnd, &sched->mtx, &xt);
-        
+
     }
 
     xtime_t now = xtime_read(XTIME_CLOCK);
-    if (sched->rlist && sched->rlist->exp <= now) { 
+    if (sched->rlist && sched->rlist->exp <= now) {
         res = sched->rlist;
         sched->rlist = sched->rlist->next;
         sched->rio--;
@@ -140,7 +140,7 @@ void bio_task(inode_t *ino, bio_req_t *req)
             break;
     }
 #endif
-    return ret;
+    // return ret;
 }
 
 

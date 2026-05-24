@@ -19,6 +19,7 @@
  */
 #include <kora/hmap.h>
 #include <kora/splock.h>
+#include <kernel/stdc.h>
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>

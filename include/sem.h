@@ -17,26 +17,31 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#define _Noreturn __attribute__((noreturn))
-#define PACK(decl) decl __attribute__((packed))
-#ifndef thread_local
-# define thread_local __thread
-#endif
-#define unlikely(c)  c
-#define likely(c)  c
+#ifndef _SEM_H
+#define _SEM_H 1
 
-#if WORDSIZE == 32
-#    define __ILP32
-#    define __ILPx
-#else
-#    define __LP64
-#    define __LPx
-#endif
+#include <bits/cdefs.h>
+#include <threads.h>
 
-#define __asm_irq_on_  asm("sti")
-#define __asm_irq_off_  asm("cli")
+typedef struct sem sem_t;
 
-// Memory barriers
-#define __asm_rmb       asm("")
-#define __asm_wmb       asm("")
-#define __asm_mb       asm("")
+struct sem {
+    mtx_t mtx;
+    cnd_t cv;
+    int count;
+};
+
+__STDC_GUARD
+
+int sem_init(sem_t *sem, int count);
+void sem_destroy(sem_t *sem);
+void sem_acquire(sem_t *sem);
+int sem_timedacquire(sem_t *sem, const struct timespec *xt);
+void sem_acquire_many(sem_t *sem, int count);
+int sem_tryacquire(sem_t *sem);
+void sem_release(sem_t *sem);
+void sem_release_many(sem_t *sem, int count);
+
+__STDC_END
+
+#endif /* _SEM_H */

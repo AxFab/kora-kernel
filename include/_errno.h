@@ -20,7 +20,7 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H 1
 
-#include <sys/errno.h>
+#include <kernel/errno.h>
 
 int *__errno_location();
 #undef errno

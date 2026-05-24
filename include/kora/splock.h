@@ -50,7 +50,7 @@ static inline void splock_lock(splock_t *lock)
         if (atomic_xchg(lock, 1) == 0)
             return;
         while (*lock != 0)
-            __asm_pause_;
+            atomic_break();
     }
 }
 

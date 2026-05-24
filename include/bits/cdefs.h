@@ -117,9 +117,6 @@ _Static_assert(sizeof(long long) == 8, "Unsupported, long long must be 64 bits")
 # define __asm_irq_on_  ((void)0)
 # define __asm_irq_off_  ((void)0)
 #endif
-#ifndef __asm_pause_
-# define  __asm_pause_  ((void)0)
-#endif
 
 
 

@@ -36,7 +36,7 @@ kora-kernel/
 │   │   ├── apic.c  cpuid.c  mboot.c  pci.c  pic.c  rtc.c  serial.c  tss.c
 │   │   └── ...
 │   ├── x86_64/        # STUB — headers only, no implementation
-│   └── arm64/         # STUB — make.mk only
+│   └── arm64/         # STUB — make.mk + include/bits/atomic.h (macOS/arm64 host builds)
 ├── drivers/
 │   ├── fs/
 │   │   ├── ext2/      # ext2 read/write (mostly complete, known issues)
@@ -89,7 +89,8 @@ kora-kernel/
 │   ├── tasks/         # Task CLI test harness sources
 │   ├── *.sh           # Shell test scripts run by the CLI programs
 │   ├── cli.c/h        # CLI test framework
-│   └── threads.c      # pthreads shim for hosted tests
+│   ├── threads.c      # pthreads shim for hosted tests (excluded when ADD_C11=y)
+│   └── c11/threads.h  # C11 <threads.h> polyfill for platforms without it (e.g. macOS)
 ├── docs/              # Sparse documentation (see state below)
 ├── Makefile           # Root build entry
 ├── configure          # Out-of-tree build helper
@@ -161,6 +162,21 @@ make clean && make cli-net
 make clean && make cli-mem
 ../bin/cli-mem mm_start.sh
 ```
+
+On **macOS (arm64)** the system does not provide `<threads.h>`.  Use the
+`ADD_C11=y` flag, which activates a header-only polyfill (`tests/c11/threads.h`)
+that maps the full C11 threads API to pthreads, and excludes the now-redundant
+`tests/threads.c` from the build:
+
+```bash
+ADD_C11=y make cli-vfs
+ADD_C11=y make cli-net
+ADD_C11=y make cli-mem
+ADD_C11=y make cli-tsk
+```
+
+`-lpthread` is already always linked for `cli-*` targets so no extra flag is
+needed.
 
 ### CI
 

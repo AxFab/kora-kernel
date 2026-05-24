@@ -17,31 +17,29 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef SYS_SEM_H
-#define SYS_SEM_H 1
+#ifndef __KERNEL_ARCH_H
+#define __KERNEL_ARCH_H 1
 
-#include <bits/cdefs.h>
-#include <threads.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <kora/mcrs.h>
 
-typedef struct sem sem_t;
+typedef size_t cpu_state_t[8];
 
-struct sem {
-    mtx_t mtx;
-    cnd_t cv;
-    int count;
+typedef struct arm64_info arm64_info_t;
+typedef struct arm64_cpu arm64_cpu_t;
+
+typedef struct arm64_info asys_info_t;
+typedef struct arm64_cpu acpu_info_t;
+
+struct arm64_info {
+    int reserved;
 };
 
-__STDC_GUARD
+struct arm64_cpu {
+    int reserved;
+};
 
-int sem_init(sem_t *sem, int count);
-void sem_destroy(sem_t *sem);
-void sem_acquire(sem_t *sem);
-int sem_timedacquire(sem_t *sem, const struct timespec *xt);
-void sem_acquire_many(sem_t *sem, int count);
-int sem_tryacquire(sem_t *sem);
-void sem_release(sem_t *sem);
-void sem_release_many(sem_t *sem, int count);
 
-__STDC_END
 
-#endif /* SYS_SEM_H */
+#endif  /* __KERNEL_ARCH_H */

@@ -22,7 +22,7 @@
 #include <bits/cdefs.h>
 #include <kernel/tasks.h>
 #include <kernel/irq.h>
-#include <sys/signum.h>
+#include <kernel/signum.h>
 #include <errno.h>
 
 typedef struct regs regs_t;

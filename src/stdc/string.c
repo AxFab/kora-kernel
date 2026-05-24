@@ -100,6 +100,21 @@ void *memchr(const void *str, int c, size_t len)
     return (void *)(len ? ptr0 : 0);
 }
 
+/* Searches backwards for c in the last len bytes of str. */
+void *memrchr(const void *str, int c, size_t len)
+{
+    register const char *ptr0 = (const char *)str + len;
+
+    while (len > 0) {
+        --ptr0;
+        --len;
+        if (*ptr0 == (char)c)
+            return (void *)ptr0;
+    }
+
+    return NULL;
+}
+
 /* Compares two blocks of signed chars. */
 int memcmp(const void *s1, const void *s2, size_t len)
 {
@@ -401,6 +416,7 @@ size_t strxfrm(char *dest, const char *src, size_t n);
 
 
 EXPORT_SYMBOL(memchr, 0);
+EXPORT_SYMBOL(memrchr, 0);
 EXPORT_SYMBOL(memcmp, 0);
 EXPORT_SYMBOL(memcpy, 0);
 EXPORT_SYMBOL(memmove, 0);

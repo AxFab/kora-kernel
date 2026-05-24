@@ -88,8 +88,14 @@ void kunmap(void *ptr, size_t len);
 char *sztoa(int64_t lg);
 char *sztoa_r(int64_t number, char *sz_format);
 
+#ifndef snprintf
+/* In freestanding (kernel) builds these are provided by src/stdc/.
+ * On macOS, <secure/_stdio.h> redefines snprintf as a macro that expands
+ * to __builtin___snprintf_chk; the guard avoids the conflicting declaration
+ * in hosted test builds where system headers are already included. */
 int snprintf(char *buf, size_t lg, const char *msg, ...);
 int vsnprintf(char *buf, size_t lg, const char *msg, va_list ap);
+#endif
 #if defined(_WIN32)
 int sprintf_s(char *const buf, size_t lg, const char *const msg, ...);
 # define snprintf(s,i,f,...) sprintf_s(s,i,f,__VA_ARGS__)

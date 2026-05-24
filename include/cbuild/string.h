@@ -20,6 +20,8 @@
 
 /* Searches the first len bytes of array str for character c. */
 _TVOID *_SFM(chr)(const _TVOID *str, int c, size_t len);
+/* Searches backwards through the last len bytes of array str for character c. */
+_TVOID *_SFM(rchr)(const _TVOID *str, int c, size_t len);
 /* Compares two blocks of signed chars. */
 int _SFM(cmp)(const _TVOID *s1, const _TVOID *s2, size_t len);
 /* Copies a block of len bytes from src to dest. */

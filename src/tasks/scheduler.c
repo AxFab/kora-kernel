@@ -21,7 +21,7 @@
 #include <kernel/tasks.h>
 #include <kora/llist.h>
 #include <kora/splock.h>
-#include <sys/signum.h>
+#include <kernel/signum.h>
 
 scheduler_t __scheduler;
 task_t *__current = NULL;
