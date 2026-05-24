@@ -41,6 +41,9 @@ void serial_setup();
 void pic_setup();
 
 void clock_handler(void *);
+int  irq_gsi(int isa_irq);
+void pic_mask_off(void);
+extern volatile uint32_t *apic_ptr;
 
 
 void clwrite(int p, const char *str);
@@ -69,6 +72,11 @@ void cpu_setup(sys_info_t *sysinfo)
     cpuid_setup(sysinfo);
     apic_setup(sysinfo);
     pic_setup();
+    /* If the I/O APIC is active, mask the legacy 8259 PIC now that
+     * pic_setup() has finished its ICW sequence (pic_setup ends by
+     * unmasking all IRQs, so we must mask after it, not inside apic_setup). */
+    if (apic_ptr)
+        pic_mask_off();
     if (1) {
         // If SMP setup HPET
     } else {
@@ -76,7 +84,10 @@ void cpu_setup(sys_info_t *sysinfo)
     }
 
     tss_setup(sysinfo);
-    irq_register(0, (irq_handler_t)clock_handler, NULL);
+    /* Use irq_gsi(0) rather than 0 directly: QEMU's MADT maps ISA IRQ 0
+     * (PIT) to GSI 2 via an interrupt source override, so the I/O APIC
+     * delivers the clock on pin 2.  irq_gsi() returns the correct slot. */
+    irq_register(irq_gsi(0), (irq_handler_t)clock_handler, NULL);
     sysinfo->uptime = rtc_time();
 }
 

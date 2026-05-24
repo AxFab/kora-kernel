@@ -199,6 +199,13 @@ PACK(struct acpi_hpet {
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+/* ISA IRQ → GSI mapping table (identity by default; updated by MADT overrides) */
+static uint8_t isa_gsi[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+/* Saved I/O APIC pointer and ID for reprogramming after override entries */
+static uint8_t *ioapic_base = NULL;
+static int      ioapic_apic_id = 0;
+
 size_t *cpu_kstacks;
 
 static void lapic_register(sys_info_t *sysinfo, madt_lapic_t *info)
@@ -260,10 +267,16 @@ static void ioapic_register(sys_info_t *sysinfo, madt_ioapic_t *info)
     kprintf(-1, " - ioapic: apic:%d, base:%x, GSIs:%d, IRQs %d\n",
             info->apic_id, info->base, info->gsi, irq_count);
 
+    /* Save for later reprogramming by override entries */
+    ioapic_base    = ioapic;
+    ioapic_apic_id = info->apic_id;
+
     int i;
     uint64_t flags;
     for (i = 0; i < irq_count; ++i) {
-        flags = (i == 0 || i == 23) ? (0xFFULL << 56) | 0x800 : 0x8000;
+        /* Edge-triggered, active-high, unmasked, physical destination CPU 0.
+         * Pins 0 and 23 use broadcast logical delivery (legacy special-case). */
+        flags = (i == 0 || i == 23) ? (0xFFULL << 56) | 0x800 : 0;
         ioapic_write_irq(info->apic_id, ioapic, i, flags);
     }
 
@@ -279,6 +292,25 @@ static void apic_override_register(sys_info_t *sysinfo, madt_override_t *info)
             (info->flags & 8) ? "level" : "edge",
             (info->flags & 2) ? "low" : "high");
 
+    /* Store the ISA → GSI remapping so irq_gsi() can translate at runtime. */
+    if (info->irq < 16)
+        isa_gsi[info->irq] = (uint8_t)info->gsi;
+
+    if (ioapic_base == NULL || info->gsi == info->irq)
+        return;
+
+    /* Reprogram the GSI pin with the polarity/trigger declared in the MADT.
+     *   MADT flags bits 1:0  — polarity  (0/1 = active-high, 3 = active-low)
+     *   MADT flags bits 3:2  — trigger   (0/1 = edge,        3 = level)
+     */
+    uint64_t redir = 0;
+    if (info->flags & 2)           redir |= (1ULL << 13); /* active-low */
+    if ((info->flags >> 2) & 2)    redir |= (1ULL << 15); /* level-triggered */
+    /* Physical destination CPU 0, fixed delivery, not masked */
+    ioapic_write_irq(ioapic_apic_id, ioapic_base, (int)info->gsi, redir);
+
+    /* Mask the original ISA pin to suppress stale/spurious interrupts there. */
+    ioapic_write_irq(ioapic_apic_id, ioapic_base, (int)info->irq, 0x10000ULL);
 }
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -425,6 +457,16 @@ void acpi_setup(sys_info_t *sysinfo)
 
 volatile uint32_t *apic_ptr = NULL;
 void ap_start(void);
+void pic_mask_off(void);
+
+/* Translate an ISA IRQ number to the GSI it was remapped to by the MADT.
+ * Returns the ISA IRQ unchanged when no APIC / no override is present. */
+int irq_gsi(int isa_irq)
+{
+    if (apic_ptr != NULL && (unsigned)isa_irq < 16)
+        return (int)isa_gsi[isa_irq];
+    return isa_irq;
+}
 
 void apic_setup(sys_info_t *sysinfo)
 {
@@ -434,6 +476,14 @@ void apic_setup(sys_info_t *sysinfo)
     // Should always be 0xFEE00000
     kprintf(-1, "Local APIC at %x\n", sysinfo->arch->apic);
     apic_ptr = kmap(PAGE_SIZE, NULL, sysinfo->arch->apic, VM_RW | VMA_PHYS | VM_UNCACHABLE);
+
+    /* Enable the local APIC: set software-enable bit (8) in the Spurious
+     * Interrupt Vector Register, and use 0xFF as the spurious vector. */
+    apic_ptr[APIC_SVR] = (apic_ptr[APIC_SVR] & ~0xFFU) | 0x100 | 0xFF;
+
+    /* Note: pic_mask_off() is NOT called here because pic_setup() runs
+     * after apic_setup() and would re-unmask the 8259.  The caller
+     * (cpu_setup) calls pic_mask_off() after pic_setup() when APIC is on. */
 
     kprintf(-1, "Send INIT IPI to all APs\n");
     apic_ptr[APIC_ICR_LOW] = 0x0C4500;

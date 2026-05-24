@@ -617,7 +617,7 @@ int vfs_mount_at(fnode_t *node, inode_t *ino)
     ll_append(&__vfs_share->mnt_list, &node->nlru);
     splock_unlock(&__vfs_share->lock);
     mtx_unlock(&node->mtx);
-    kprintf(KL_MSG, "Mount drive as \033[35m%s\033[0m (%s)\n", ino->dev->devname, ino->dev->devclass);
+    kprintf(KL_MSG, "Mount drive \033[35m%s\033[0m (%s) at %s\n", ino->dev->devname, ino->dev->devclass, node->name);
     return 0;
 }
 

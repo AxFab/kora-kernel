@@ -163,12 +163,23 @@ void x86_pgflt(size_t vaddr, int code, regs_t *regs)
 
 #define PIC_EOI 0x20
 
+/* Local APIC EOI register (write-only, write 0 to acknowledge) */
+#define APIC_EOI (0xB0 / 4)
+
 void pic_ack(int);
+
+/* Defined in apic.c — non-NULL when the local APIC is active */
+extern volatile uint32_t *apic_ptr;
 
 void x86_irq(int no, regs_t *regs)
 {
     irq_enter(no);
-    pic_ack(no);
+    /* When the I/O APIC + local APIC are in use EOI must go to the local APIC,
+     * not to the legacy 8259 PIC (which has been masked off). */
+    if (apic_ptr)
+        apic_ptr[APIC_EOI] = 0;
+    else
+        pic_ack(no);
     // kprintf(-1, "cpu%d - x86-IRQ %d\n", cpu_no(), no);
 }
 

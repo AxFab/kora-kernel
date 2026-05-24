@@ -75,8 +75,12 @@ void tar_close(inode_t *ino);
 
 static char *tar_strrchr(const char *str)
 {
+    /* Strip a leading "./" that BSD/GNU tar emits when archiving with "." */
+    if (str[0] == '.' && str[1] == '/')
+        str += 2;
+
     int lg = strlen(str) - 1;
-    if (str[lg] == '/')
+    if (lg >= 0 && str[lg] == '/')
         --lg;
     for (; lg >= 0; --lg) {
         if (str[lg] == '/')
@@ -107,7 +111,9 @@ static tar_entry_t *tar_do_iterate(inode_t *dir, char *name, tar_iterator_t *ctx
         if (ctx->idx * TAR_BLOCK_SIZE > info->length)
             return NULL;
         entry = ADDR_OFF(info->base, ctx->idx * TAR_BLOCK_SIZE);
-        if (memcmp("ustar ", entry->magik, 6) != 0)
+        /* Accept both GNU ustar ("ustar  ") and POSIX ustar ("ustar\0").
+         * The first 5 bytes are "ustar" in all valid ustar variants. */
+        if (memcmp("ustar", entry->magik, 5) != 0)
             return NULL;
         int length = tar_read_octal(entry->file_size);
         ctx->idx += ALIGN_UP(length + TAR_BLOCK_SIZE, TAR_BLOCK_SIZE) / TAR_BLOCK_SIZE;
@@ -223,7 +229,9 @@ static inode_t *tar_inode(inode_t *dir, tar_entry_t *entry)
     lba = lba / TAR_BLOCK_SIZE + 2;
 
     inode_t *ino = NULL;
-    if (entry->type_flag[0] == '0')
+    /* type_flag '\0' is the old V7 tar convention for regular files;
+     * '0' is the POSIX/ustar convention — accept both. */
+    if (entry->type_flag[0] == '0' || entry->type_flag[0] == '\0')
         ino = vfs_inode(lba, FL_REG, dir->dev, &tar_reg_ops);
     else if (entry->type_flag[0] == '2')
         ino = vfs_inode(lba, FL_LNK, dir->dev, &tar_lnk_ops);
