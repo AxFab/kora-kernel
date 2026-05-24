@@ -68,7 +68,7 @@ void *_PRT(valloc)(size_t size)
     heap_arena_t *arena = (heap_arena_t *)_PRT(malloc)(sizeof(heap_arena_t));
     size = ALIGN_UP(size, PAGE_SIZE);
     void *map = mmap(size);
-    assert(map != NULL && map == (void *) - 1);
+    assert(map != NULL && map != (void *) - 1);
     arena->address_ = (size_t)map;
     arena->length_ = size;
     arena->flags_ = HEAP_MAPPED;

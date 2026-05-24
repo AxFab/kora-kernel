@@ -464,8 +464,6 @@ The `.ksymbols` ELF section holds pointers to all `kapi_t` records;
 - **`sys_mprotect`**: Declared in syscall table but not wired.
 - **`sys_opendir` as syscall**: Declared but the `SYS_OPENDIR` slot in
   the enum is not wired in `__syscalls_info[]`.
-- **`valloc`** in `heap.c`: Has a logic bug (`assert(map == (void*)-1)`
-  should be `!= (void*)-1`).
 - **`modules.c`**: Nearly entirely commented out; kept as reference only.
 - **`config.yml`**: Driver selection config is not yet consumed by the
   build system.

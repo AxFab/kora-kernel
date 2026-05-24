@@ -40,7 +40,7 @@ Files: `src/tasks/scheduler.c`, `src/tasks/threads.c`.
 
 ---
 
-### MEM-1 — `valloc()` has a logic bug
+### ~~MEM-1 — `valloc()` has a logic bug~~
 
 In `src/stdc/heap.c`, the function `valloc()` contains:
 ```c
@@ -425,7 +425,7 @@ File: `docs/Home.md`.
 - [ ] Signal delivery (TASKS-1)
 - [ ] Zombie reaping (TASKS-2)
 - [ ] `waitpid` (TASKS-6)
-- [ ] Fix `valloc` bug (MEM-1)
+- [x] Fix `valloc` bug (MEM-1)
 - [ ] `sys_opendir` wired (VFS-10)
 - [ ] ext2 large file (VFS-3)
 - [ ] VFAT LFN support (VFS-4, VFS-5)

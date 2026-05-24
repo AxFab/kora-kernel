@@ -1,6 +1,6 @@
 # Stdc — Kernel Standard Library
 
-**Source:** `src/stdc/`  
+**Source:** `src/stdc/`
 **Headers:** `include/kernel/stdc.h`, `include/kora/`, `include/string.h`,
 `include/ctype.h`
 
@@ -206,5 +206,4 @@ for UUID generation in device registration and ephemeral port allocation.
 - Floating-point formatting not implemented.
 - Hash map (`hmap_t`) is endian-sensitive.
 - Heap free-list is single per arena; multi-bucket sizing is a TODO.
-- `valloc()` in `heap.c` contains a logic bug (assert condition inverted).
 - Timezone handling in `time.c` is marked `FIXME`.
