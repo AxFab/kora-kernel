@@ -1,5 +1,10 @@
 # Virtual File System
 
+> **Note** — The conceptual sections below are accurate.  The lower half
+> of this document (from "# Virtual File System" heading onward) is a
+> draft / repeat that has not been cleaned up.  For the current API see
+> `include/kernel/vfs.h` and `docs/mods/Vfs.md`.
+
 The virtual file system is an abstraction layer that provide access to _devices and files_ in a common way, regardless of the way datas are stored.
 The VFS enables various file systems to coexist but also to interoperate with each others.
 

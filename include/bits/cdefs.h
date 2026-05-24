@@ -60,6 +60,13 @@ _Static_assert(sizeof(long long) == 8, "Unsupported, long long must be 64 bits")
 # define LONG_BIT 64
 # include <bits/cdefs/gcc.h>
 
+#elif defined __clang__ && defined __arm64__
+# define __ARCH  "arm64"
+# define __ENDIANESS __LITTLE_ENDIAN
+# define WORDSIZE 64
+# define LONG_BIT 64
+# include <bits/cdefs/gcc.h> // clang.h>
+
 #elif defined _M_ARM
 # define __ARCH  "aarch64"
 # define WORDSIZE 64

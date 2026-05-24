@@ -1,4 +1,9 @@
 
+> **⚠ INCOMPLETE** — This document is an unfinished design sketch.
+> Most sections are empty.  See `CLAUDE.md` and `docs/mods/` for
+> current, accurate descriptions.  The x86 memory map at the bottom is
+> still a useful reference.
+
 ## Kernel startup
 
  At start up an architecture dependant code is run to setup the environment. At first this code save important information but give the hand to main function `kernel_start` as soon as possible.

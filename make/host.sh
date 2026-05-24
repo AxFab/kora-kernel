@@ -43,6 +43,9 @@ case "$arch" in
         arch=arm
         vendor=phone
         ;;
+    arm64)
+        arch=arm64
+	;;
     aarch64)
         arch=aarch64
         vendor=phone
@@ -68,6 +71,7 @@ fi
 case "$os" in
     Android)
         os=linux-android
+	vendor=phone
         ;;
     GNU/Linux|*Linux*)
         os=linux-gnu
@@ -77,6 +81,11 @@ case "$os" in
         ;;
     [Mm]sys|win32)
         os='win32'
+        vendor=pc
+        ;;
+    [Dd]arwin)
+	os=darwin
+        vendor=apple
         ;;
     *)
         echo "Unsupported platform '${os}'" >&2

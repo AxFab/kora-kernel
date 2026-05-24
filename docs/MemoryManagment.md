@@ -1,4 +1,11 @@
 
+> **⚠ STALE DOCUMENT** — This page was written against an older version of
+> the kernel.  The main type is now `vmsp_t` (not `mspace_t`) and the
+> public API is `vmsp_map()` / `vmsp_unmap()` / `vmsp_protect()` (not
+> `memory_map()` / `mspace_*`).  The conceptual description in the first
+> few sections is still accurate.  For the current API see
+> `include/kernel/memory.h` and `docs/mods/Mem.md`.
+
 ## Memory management
 
   The memory management is definitely one of the most important subsystem of
