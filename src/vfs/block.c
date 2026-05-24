@@ -118,6 +118,12 @@ static int block_fill(inode_t *ino, block_page_t *page)
         kprintf(KL_BIO, "Alloc page %p for inode %s, read at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
         ret = ino->ops->read(ino, ptr, PAGE_SIZE, off, 0);
         kunmap(ptr, PAGE_SIZE);
+        if (ret != 0) {
+            /* kunmap released the virtual mapping; reset phys so retries
+             * and the final error path do not see a stale non-zero value
+             * and so the physical page (freed by kunmap) is not double-released. */
+            page->phys = 0;
+        }
     }
     if (ret != 0) {
         kprintf(-1, "\033[35mError while reading page: %s, pg:%d\033[0m\n", vfs_inokey(ino, tmp), page->node.value_);

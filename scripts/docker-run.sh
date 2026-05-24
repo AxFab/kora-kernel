@@ -239,7 +239,10 @@ simple_run() {
         EXTRA_FLAGS="--enable-kvm"
     fi
 
-    cd lib && tar cf ../initrd.tar *
+    cd lib
+    # COPYFILE_DISABLE=1 suppresses macOS AppleDouble "._filename" resource-fork
+    # entries that macOS tar otherwise injects silently into the archive.
+    COPYFILE_DISABLE=1 tar cf ../initrd.tar *
     cd ..
     run "$QEMU_BIN" \
         --kernel bin/kora-i386.krn --initrd initrd.tar \

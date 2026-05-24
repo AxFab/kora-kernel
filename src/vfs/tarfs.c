@@ -119,6 +119,13 @@ static tar_entry_t *tar_do_iterate(inode_t *dir, char *name, tar_iterator_t *ctx
         ctx->idx += ALIGN_UP(length + TAR_BLOCK_SIZE, TAR_BLOCK_SIZE) / TAR_BLOCK_SIZE;
 
         pfx = tar_strrchr(entry->name);
+
+        /* Skip macOS AppleDouble resource-fork entries ("._filename").
+         * These are metadata-only files with no useful content for the kernel. */
+        const char *bname = (pfx != NULL) ? pfx : entry->name;
+        if (bname[0] == '.' && bname[1] == '_')
+            continue;
+
         if (pfx == NULL && ctx->prefix[0] == '\0')
             break;
         if (pfx == NULL || ctx->prefix[0] == '\0')
