@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -176,7 +176,7 @@ char *__clock_time_str(xtime_t time, char *buf)
 
 char *__clock_duration_str(xtime_t time, char *buf)
 {
-    // Max is 106 751 991 days (292 471 years)
+    // Max is 106ï¿½751ï¿½991 days (292 471 years)
     int days = time / (24LL * 3600 * 1000000LL);
     time -= days * (24LL * 3600 * 1000000LL);
     int hours = time / (3600 * 1000000LL);

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -159,4 +159,3 @@ struct elf_string_helper
 #define ELF_DYN_NEEDED  1
 
 int elf_parse(dlib_t *lib, blkmap_t *bkm);
-

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -211,7 +211,7 @@ struct ino_ops {
 
     int (*rename)(inode_t* dir_src, const char* name_src, inode_t* dir_dst, const char* name_dst);
 };
-  
+
 struct fl_ops {
     int (*read)(inode_t *ino, char *buf, size_t len, xoff_t, int flags);
     int (*write)(inode_t *dir, const char *buf, size_t len, xoff_t, int flags);

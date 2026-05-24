@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -148,7 +148,7 @@ void elf_symbol(dlsym_t *symbol, elf_sym32_t *sym, dlib_t *lib, elf_dynamic_t *d
         symbol->type = 2;
     else if (sym->info < 0x20)
         symbol->type = 1;
-    else 
+    else
         symbol->type = 3;
 
     if (sym->info >= 32 || sym->shndx > 0x7fff)
@@ -171,7 +171,7 @@ void elf_symbol(dlsym_t *symbol, elf_sym32_t *sym, dlib_t *lib, elf_dynamic_t *d
         type = "l     F .    ";
     else if (sym->info == 0x04)
         type = "l    df *ABS*";
-    else 
+    else
         type = "             ";
     if (elf_trace)
         kprintf(-1, "%08x %s %08x %s \n", sym->value, type, sym->size, symbol->name);
@@ -295,7 +295,7 @@ int elf_parse(dlib_t *lib, blkmap_t *bkm)
     dynamic.rel -= lib->base;
     lib->length -= lib->base;
     lib->entry -= lib->base;
-    
+
     uint32_t *hash = ADDR_OFF(head, dynamic.hash);
     // if (dynamic.hash > 0 && dynamic.hash < 4080) {
     // kprintf(-1, "ELF DYN HASH [%08x, %08x, %08x, %08x]\n", hash[0], hash[1], hash[2], hash[3]);

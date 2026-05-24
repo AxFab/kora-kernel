@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -147,7 +147,7 @@ void *kmap(size_t len, void *obj, xoff_t off, int flags)
         mp = kmap_search(obj, off, len, access & 7);
         if (mp != NULL)
             return mp->ptr;
-        
+
         mp = kmap_new(access | type, obj, off, len, NULL);
         inode_t *ino = obj;
         assert(len == PAGE_SIZE);

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -39,8 +39,8 @@ struct dns_header {
 #define DNS_TYPE_MF 0x0004 // (Deprecated MX)
 #define DNS_TYPE_CNAME 0x0005 // Canonical name
 #define DNS_TYPE_SOA 0x0006 // Autority zone
-#define DNS_TYPE_WKS 0x000B // Internet service 
-#define DNS_TYPE_HINFO 0x000D // Machine information 
+#define DNS_TYPE_WKS 0x000B // Internet service
+#define DNS_TYPE_HINFO 0x000D // Machine information
 #define DNS_TYPE_MX 0x000F // Mail exchange
 #define DNS_TYPE_TXT 0x0010 // Text
 
@@ -66,14 +66,14 @@ static skb_t *dns_packet(ifnet_t* net, ip4_route_t* route, int length, uint16_t 
 /* Send a basic DNS request */
 int dns_query_ip4(ifnet_t *net, const char *domain, uint16_t lport, uint16_t transac)
 {
-    int len = strlen(domain); 
+    int len = strlen(domain);
     len += 2; // Count of '.' + 1
     int length = len + 4;
     dns_header_t* head;
     skb_t* skb = dns_packet(net, NULL, length, lport, &head);
     if (skb == NULL)
         return -1;
-    
+
     head->transaction = transac;
     head->flags = DNS_OPT_STANDARD_QRY;
     head->qdcount = 1;
@@ -94,4 +94,3 @@ int dns_query_ip4(ifnet_t *net, const char *domain, uint16_t lport, uint16_t tra
     net_skb_write(skb, &tmp, 2);
     return net_skb_send(skb);
 }
-

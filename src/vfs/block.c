@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -87,7 +87,7 @@ static int block_fill(inode_t *ino, block_page_t *page)
         mtx_unlock(&page->mtx);
         return 0;
     }
-    
+
     while (page->in_ops) {
         // Wait for end of operaton
         cnd_wait(&page->cnd, &page->mtx);
@@ -238,7 +238,7 @@ size_t block_fetch(inode_t *ino, xoff_t off, bool blocking)
     int ret = -1;
     for (int i = 0; ret != 0 && i < 3; ++i)
         ret = block_fill(ino, page);
-    
+
     if (ret != 0) {
         block_rel(ino, page);
         return -1; // Unable to get the page

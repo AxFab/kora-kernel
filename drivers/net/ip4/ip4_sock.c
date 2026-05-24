@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -183,9 +183,8 @@ int ip4_socket_accept(ip4_master_t *master, bbtree_t *tree, socket_t *sock, sock
 
     assert(iport->sock == model);
     iport->listen = true;
-    
+
     hmp_put(&iport->clients, (char *)sock->raddr, 6, sock);
     splock_unlock(&master->plock);
     return 0;
 }
-

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -38,14 +38,14 @@ static inline void *itemof_(void *ptr, int off)
 
 
 /* BBTree (self-balancing binary tree) head */
-struct bbtree 
+struct bbtree
 {
     bbnode_t *root_;
     int count_;
 };
 
 /* BBTree (self-balancing binary tree) node */
-struct bbnode 
+struct bbnode
 {
     bbnode_t *parent_;
     bbnode_t *left_;

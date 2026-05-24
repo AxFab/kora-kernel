@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -32,7 +32,7 @@ int ext2_read(inode_t *ino, char *buffer, size_t length, xoff_t offset, int flag
         size_t cap = MIN(vol->blocksize, length);
         uint32_t blk = ext2_get_block(vol, en, offset / vol->blocksize, false);
         int off = offset % vol->blocksize;
-         
+
         if (blk && offset < ino->length) {
             struct bkmap bm;
             char *data = bkmap(&bm, blk, vol->blocksize, 0, ino->dev->underlying, VM_RD);
@@ -84,7 +84,7 @@ int ext2_write(inode_t *ino, const char *buffer, size_t length, xoff_t offset, i
         cap = MIN(cap, vol->blocksize - off);
         memcpy(&data[off], buffer, cap);
         bkunmap(&bm);
-        
+
         length -= cap;
         offset += cap;
         buffer = buffer + cap;

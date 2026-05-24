@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -374,4 +374,3 @@ EXPORT_SYMBOL(atoi, 0);
 EXPORT_SYMBOL(atol, 0);
 EXPORT_SYMBOL(strtoul, 0);
 EXPORT_SYMBOL(strtol, 0);
-

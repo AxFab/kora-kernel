@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -73,7 +73,7 @@ int ext2_format(inode_t* dev, const char* options)
 {
     if (dev->length <= 0) // TODO -- Or can't seek!
         return -1;
-    
+
     uint32_t bytes_per_inode = 16384;
     if (dev->length < 3 * _Mib_)
         bytes_per_inode = 8 * _Kib_;
@@ -122,7 +122,7 @@ int ext2_format(inode_t* dev, const char* options)
         group_sz = ((group_sz + block_size - 1) / block_size) * block_size;
         inodes_per_group = (group_sz / inode_size) & ~7;
         inode_table_blocks = (inodes_per_group * inode_size + block_size - 1) / block_size;
-                    
+
         lost_and_found_block = MIN(EXT2_NDIR_BLOCKS, 16 >> (block_log_size - 10));
 
         uint32_t overhead = (ext2_has_super(ngroup - 1) ? (1 + grp_desc_blocks) : 0) + 2 + inode_table_blocks; // TODO -- explain !
@@ -131,7 +131,7 @@ int ext2_format(inode_t* dev, const char* options)
             nbr_blocks -= remainder;
             continue;
         }
-        
+
         break;
     }
 
@@ -189,7 +189,7 @@ int ext2_format(inode_t* dev, const char* options)
     sb->feature_compat = 8; // TODO -- Default
     sb->feature_incompat = 2;
     sb->feature_ro_compat = 1;
-    sb->max_mnt_count = 20 + rand8() % 20; // jitter hack    
+    sb->max_mnt_count = 20 + rand8() % 20; // jitter hack
     for (i = 0; i < 16; ++i)
         sb->uuid[i] = rand8();
 

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@
 #include <errno.h>
 #include <string.h>
 
-#if 0 
+#if 0
 typedef struct elf_header elf_header_t;
 typedef struct elf_phead elf_phead_t;
 typedef struct elf_shead elf_shead_t;

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -68,7 +68,7 @@ netstack_t *lan_init(const char *name, int cards);
 int lan_connect(subnet_t *subnet, ifnet_t *ifnet);
 int lan_disconnect(subnet_t *subnet, ifnet_t *ifnet);
 
-struct subnet 
+struct subnet
 {
     size_t len;
     ifnet_t *slots[0];

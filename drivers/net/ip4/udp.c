@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -154,7 +154,7 @@ int udp_socket_accept(socket_t *sock, socket_t *model, skb_t *skb)
 long udp_socket_send(socket_t* sock, const uint8_t* addr, const char* buf, size_t len, int flags)
 {
     assert(sock && addr && buf);
-    
+
     // Look for a route
     uint16_t rport = ntohs(*((uint16_t *)&addr[4]));
     if (rport == 0)
@@ -213,7 +213,7 @@ long udp_socket_recv(socket_t* sock, uint8_t* addr, char* buf, size_t len, int f
         skb_t *skb = net_socket_pull(sock, addr, 6, -1);
         if (skb == NULL)
             continue;
-    
+
         unsigned lg = skb->length - skb->pen;
         void *ptr = net_skb_reserve(skb, lg);
         if (len < lg) {
@@ -238,8 +238,8 @@ int udp_socket_close(socket_t *sock)
         if (ip4_socket_close(master, &master->udp_ports, sock) != 0)
             return -1;
     }
-    
-    // Trash all unprocessed rx packet 
+
+    // Trash all unprocessed rx packet
     while (sock->lskb.count_ > 0) {
         skb_t *skb = ll_dequeue(&sock->lskb, skb_t, node);
         kfree(skb);
@@ -262,4 +262,3 @@ void udp_proto(nproto_t* proto)
     proto->recv = udp_socket_recv;
     proto->close = udp_socket_close;
 }
-

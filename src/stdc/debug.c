@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -306,5 +306,3 @@ uint32_t crc32(const void *buf, size_t len)
     return crc32_r(0xFFFFFFFF, buf, len);
 }
 EXPORT_SYMBOL(crc32, 0);
-
-

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -140,7 +140,7 @@ static int __do_stat(vfs_ctx_t *ctx, size_t *param, bool follow)
         vfs_close_fnode(node);
         return cli_error("Bad mode\n");
     }
-    // TODO -- Check uid/gid 
+    // TODO -- Check uid/gid
 
     vfs_close_fnode(node);
     return 0;

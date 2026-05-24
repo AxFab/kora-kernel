@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -43,7 +43,7 @@ struct
     size_t ksp_size;
     size_t usp_size;
     size_t pages_count;
-    
+
     size_t usp_lower;
     size_t usp_upper;
 
@@ -52,7 +52,7 @@ struct
     //size_t *pages;
 
     //// Page bitmap
-    //char *pg_map; 
+    //char *pg_map;
     //size_t pg_len;
     //size_t pg_base;
 
@@ -76,7 +76,7 @@ void __create_mmu_dir(vmsp_t *vmsp)
     vmsp->directory = (size_t)dir;
 }
 
-void mmu_enable() 
+void mmu_enable()
 {
     __mmu.kspace->lower_bound = 16 * _Mib_;
     __mmu.kspace->upper_bound = 16 * _Mib_ + _.ksp_size;
@@ -85,7 +85,7 @@ void mmu_enable()
     _.usp_upper = 32 * _Mib_ + _.ksp_size + _.usp_size;
     printf("Setup kernel space at [%p-%p] and user space at [%p-%p]\n",
         (void *)__mmu.kspace->lower_bound, (void *)__mmu.kspace->upper_bound, (void *)_.usp_lower, (void *)_.usp_upper);
-    
+
     size_t base = 4 * _Mib_ + 16 * _Kib_;
     size_t lg = 64;
     for (unsigned p = 0; p < _.pages_count; ) {
@@ -141,7 +141,7 @@ void mmu_destroy_uspace(vmsp_t *vmsp)
         if (dir->pages[i] != 0)
             leak++;
     }
-     
+
     if (leak > 0)
         cli_warn("Leaking %d page(s) on closing memory space", leak);
     page_release(dir->dir);
@@ -303,7 +303,7 @@ static int __parse_flags(const char *arg)
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 size_t read_address(char *address)
-{ 
+{
     size_t vaddr = 0;
     if (address[0] == '@') {
         char name[16];
@@ -521,7 +521,7 @@ int do_start(void *ctx, size_t *params)
     dlproc_t *proc = dlib_proc();
     dlib_t *lib = dlib_create("kernel", NULL);
     ll_append(&proc->libs, &lib->node);
-    lib->base = 0; 
+    lib->base = 0;
     lib->length = 4 * _Mib_;
     __mmu.kspace->proc = proc;
     size_t no = 0x1000 / 0x40;
@@ -545,7 +545,7 @@ int do_start(void *ctx, size_t *params)
 int do_quit()
 {
     memory_sweep();
-    
+
     // mspace_sweep(__mmu.kspace);
 
     memory_info();
@@ -655,7 +655,7 @@ int __sym(vmsp_t *vmsp, size_t *params)
     void *ptr = dlib_sym(vmsp->proc, symbol);
     if (ptr)
         kprintf(-1, "Find symbol '%s' at %p\n", symbol, ptr);
-    else 
+    else
         kprintf(-1, "Unable to find symbol '%s'\n", symbol);
     if (name)
         cli_store(name, ptr, ST_ADDRESS);
@@ -866,7 +866,7 @@ cli_cmd_t __commands[] = {
     { "USPACE_SELECT", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_uspace_select, 1 },
     { "USPACE_CLONE", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_uspace_clone, 1 },
     { "USPACE_CLOSE", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_uspace_close, 1 },
-    
+
     { "SHOW", "", { ARG_STR, 0, 0, 0, 0, 0 }, (void *)do_show, 0 },
     { "TOUCH", "", { ARG_STR, ARG_STR, 0, 0, 0, 0 }, (void *)do_touch, 2 },
 

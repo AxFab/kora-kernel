@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -120,7 +120,7 @@ void ext2_free_inode(ext2_volume_t *vol, uint32_t ino)
     unsigned k = (ino - 1 - i * vol->sb->inodes_per_group) % 8;
     //uint32_t no = i * vol->sb->inodes_per_group + j * 8 + k + 1;
     if (i >= vol->groupCount || j >= vol->blocksize)
-        return; // TODO -- ERROR 
+        return; // TODO -- ERROR
 
     struct bkmap bm;
     uint8_t *bitmap = bkmap(&bm, vol->grp[i].inode_bitmap, vol->blocksize, 0, vol->blkdev, VM_WR);
@@ -196,7 +196,7 @@ int ext2_search_inode(inode_t* dir, const char* name)
     ext2_iterator_close(vol, &iter);
     bkunmap(&bk);
     return ino;
- 
+
 }
 
 
@@ -459,7 +459,7 @@ int ext2_rmdir(inode_t *dir, const char *name)
         return -1;
     }
 
-    
+
     // Update parent
     xtime_t now = xtime_read(XTIME_CLOCK);
     ino_dir->links--;
@@ -579,7 +579,7 @@ int ext2_rename(inode_t* dir_src, const char* name_src, inode_t* dir_dst, const 
 
     struct bkmap bk_dir_dst;
     ext2_ino_t* ino_dir_dst = ext2_entry(&bk_dir_dst, vol, dir_dst->no, VM_WR);
-    
+
     struct bkmap bk_dir_src;
     ext2_ino_t* ino_dir_src = ext2_entry(&bk_dir_src, vol, dir_src->no, VM_WR);
 

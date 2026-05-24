@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -32,7 +32,7 @@ FAT_volume_t *fatfs_init(void *ptr)
     info->RootDirSectors = ((bpb->BPB_RootEntCnt * 32) + (bpb->BPB_BytsPerSec - 1)) / bpb->BPB_BytsPerSec;
     info->FATSz = (bpb->BPB_FATSz16 != 0 ? bpb->BPB_FATSz16 : bpb32->BPB_FATSz32);
     info->FirstDataSector = bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * info->FATSz) + info->RootDirSectors;
-    // FirstSectorofCluster = ((N – 2) * BPB_SecPerClus) + FirstDataSector;
+    // FirstSectorofCluster = ((N ï¿½ 2) * BPB_SecPerClus) + FirstDataSector;
     info->TotSec = (bpb->BPB_TotSec16 != 0 ? bpb->BPB_TotSec16 : bpb->BPB_TotSec32);
     info->DataSec = info->TotSec - (bpb->BPB_ResvdSecCnt + (bpb->BPB_NumFATs * info->FATSz) + info->RootDirSectors);
     if (info->FATSz == 0 || bpb->BPB_SecPerClus == 0 || info->TotSec <= info->DataSec) {

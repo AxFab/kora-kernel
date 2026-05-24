@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -115,7 +115,7 @@ void ip4_checkup(ifnet_t *net, int event, int param)
 {
     if (!(net->flags & NET_CONNECTED))
         return;
-    
+
     if (event != NET_EV_LINK)
         return;
 
@@ -286,4 +286,3 @@ void ip4_teardown()
 }
 
 EXPORT_MODULE(ip4, ip4_setup, ip4_teardown);
-

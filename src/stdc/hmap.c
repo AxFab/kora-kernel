@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -184,4 +184,3 @@ EXPORT_SYMBOL(hmp_destroy, 0);
 EXPORT_SYMBOL(hmp_put, 0);
 EXPORT_SYMBOL(hmp_get, 0);
 EXPORT_SYMBOL(hmp_remove, 0);
-

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -27,7 +27,7 @@ void eth_setup(netstack_t *);
 static void net_handle_event(skb_t *skb)
 {
     int len = 2 * sizeof(int);
-    assert(skb && skb->ifnet && skb->ifnet->stack); 
+    assert(skb && skb->ifnet && skb->ifnet->stack);
     netstack_t *stack = skb->ifnet->stack;
     int *ptr = net_skb_reserve(skb, len);
     assert(skb->err == 0);
@@ -84,7 +84,7 @@ void net_handler(netstack_t *stack, void(*handler)(ifnet_t *, int, int))
 
     ifnet_t *net = ll_first(&stack->list, ifnet_t, node);
     splock_unlock(&stack->lock);
-    
+
     while (net) {
         if (net->flags & NET_CONNECTED)
             handler(net, NET_EV_LINK, 1);
@@ -255,7 +255,7 @@ int net_destroy_stack(netstack_t *stack)
 
     // Check deamon is stopped
     while (stack->running != -1) {
-        // TODO -- sleep 
+        // TODO -- sleep
         kprintf(-1, "Waiting...\n");
     }
 
@@ -339,7 +339,7 @@ void net_deamon(netstack_t *stack)
         kprintf(-1, "Rx %s:%s%d\n", skb->ifnet->stack->hostname, proto->name, skb->ifnet->idx);
         if (proto->receive(skb) != 0) {
             skb->ifnet->rx_dropped++;
-            kprintf(-1, "Rx dropped %s:%s%d %s\n", 
+            kprintf(-1, "Rx dropped %s:%s%d %s\n",
                 skb->ifnet->stack->hostname, skb->ifnet->proto->name, skb->ifnet->idx, skb->log);
             kfree(skb);
         }

@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -179,7 +179,7 @@ int ip4_find_route(netstack_t *stack, ip4_route_t *route, const uint8_t *ip)
     subnet = ip4_find_gateway(stack);
     if (subnet == NULL)
         return -1;
-    
+
     route->net = subnet->ifnet;
     memcpy(route->addr, subnet->gateway_addr, subnet->ifnet->proto->addrlen);
     return 0;

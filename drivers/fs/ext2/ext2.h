@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -265,7 +265,7 @@ struct ext2_dir_hack {
 #define EXT2_S_IXOTH    0x0001  /* execute */
 
 
-#define EXT2_FT_DIR  2   
+#define EXT2_FT_DIR  2
 
 int ext2_format(inode_t* dev, const char* options);
 

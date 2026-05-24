@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -54,4 +54,3 @@ void x86_gdt()
     x86_write_gdesc(5, 0, 0xfffff, 0xf3, 0x0D); // User data
     x86_write_gdesc(6, 0, 0x00000, 0xf7, 0x0D); // User stack
 }
-

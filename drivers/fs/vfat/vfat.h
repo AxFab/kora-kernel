@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -139,7 +139,7 @@ PACK(struct FAT_LongNameEntry {
 });
 
 
-// FirstSectorofCluster = ((N – 2) * BPB_SecPerClus) + FirstDataSector;
+// FirstSectorofCluster = ((N ï¿½ 2) * BPB_SecPerClus) + FirstDataSector;
 #define FAT_LBA_TO_CLUSTER(i,n) ((((n) - (i)->FirstDataSector) / (i)->SecPerClus) + 2)
 #define FAT_CLUSTER_TO_LBA(i,n) ((((n) - 2) * (i)->SecPerClus) + (i)->FirstDataSector)
 

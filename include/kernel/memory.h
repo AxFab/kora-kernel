@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -236,7 +236,7 @@ struct vma
     vma_ops_t *ops;
 };
 
-struct vma_ops 
+struct vma_ops
 {
     size_t(*fetch)(vmsp_t *vmsp, vma_t *vma, xoff_t offset, bool blocking);
     void (*release)(vmsp_t *vmsp, vma_t *vma, xoff_t offset, size_t page);

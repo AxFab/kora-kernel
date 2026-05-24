@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -112,7 +112,7 @@ int ip4_receive(skb_t *skb)
         return -1;
     }
 
-    // TODO -- Check I'm the target 
+    // TODO -- Check I'm the target
     // TODO -- If router is configure, reroute the package (TTL-1)
     // TODO -- Save remote address ?
     memcpy(&skb->addr[skb->addrlen], header->source, IP4_ALEN);
@@ -190,5 +190,3 @@ void ip4_proto(nproto_t *proto)
     proto->clear = ip4_clear;
     // proto->close = ip4_tcp_close;
 }
-
-

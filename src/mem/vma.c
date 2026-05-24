@@ -1,6 +1,6 @@
 ///*
 // *      This file is part of the KoraOS project.
-// *  Copyright (C) 2015-2021  <Fabien Bavent>
+// *  Copyright (C) 2015  <Fabien Bavent>
 // *
 // *  This program is free software: you can redistribute it and/or modify
 // *  it under the terms of the GNU Affero General Public License as
@@ -43,7 +43,7 @@
 //        errno = EPERM;
 //        return -1;
 //    }
-//    int opts = vma->flags & (VM_SHARED | VM_UNCACHABLE); 
+//    int opts = vma->flags & (VM_SHARED | VM_UNCACHABLE);
 //    vma->flags = type | opts | (flags & cap) | (cap << 3) | VM_RD;
 //    return 0;
 //}
@@ -397,7 +397,7 @@
 //void vma_file_split(vma_t *vma, vma_t *area, size_t length)
 //{
 //    vma->ino = vfs_open_inode(area->ino);
-//    vma->offset = area->offset + length; 
+//    vma->offset = area->offset + length;
 //}
 //
 //
@@ -605,7 +605,7 @@
 //{
 //    char tmp[32];
 //    // assert(splock_locked(&mspace->lock));
-//    
+//
 //    vma_t *vma = (vma_t *)kalloc(sizeof(vma_t));
 //    vma->mspace = mspace;
 //    vma->node.value_ = model->node.value_;
@@ -772,7 +772,7 @@
 //    //// FILECPY | FILE
 //    //va1->ino = vfs_open_inode(va2->ino);
 //    //va1->offset = va2->offset;
-//    
+//
 //    //// ANON...
 //
 //    if (va1->flags & VMA_COW) {
@@ -808,7 +808,3 @@
 //    }
 //}
 //
-
-
-
-

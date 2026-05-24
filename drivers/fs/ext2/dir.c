@@ -1,6 +1,6 @@
 /*
  *      This file is part of the KoraOS project.
- *  Copyright (C) 2015-2021  <Fabien Bavent>
+ *  Copyright (C) 2015  <Fabien Bavent>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -43,7 +43,7 @@ inode_t *ext2_readdir(inode_t *dir, char *name, ext2_dir_iter_t *iter)
         if (ret != 0) {
             return NULL; // TODO -- EIO and not ENOEMPTY
         }
-        
+
         if (iter->it.entry == NULL) {
             errno = ENOENT;
             return NULL;
@@ -198,4 +198,3 @@ ext2_dir_en_t *ext_iterator_find(ext2_volume_t *vol, ext2_diterator_t *iter, con
         return entry;
     }
 }
-
