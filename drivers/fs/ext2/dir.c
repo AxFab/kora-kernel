@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "ext2.h"
-#include <errno.h>
+#include <kernel/errno.h>
 
 /* Open a directory context for browsing files */
 ext2_dir_iter_t *ext2_opendir(inode_t *dir)

@@ -171,7 +171,7 @@ void *kmap(size_t len, void *obj, xoff_t off, int flags)
         assert("No dlib supported");
     }
 
-    mp->node.value_ = (size_t)mp->ptr;
+    mp->node.value = (size_t)mp->ptr;
     bbtree_insert(&map_tree, &mp->node);
     return mp->ptr;
 }
@@ -221,6 +221,11 @@ void kunmap(void *addr, size_t len)
     // might_sleep();
 }
 
+page_t page_new_kmap_stub()
+{
+    void *ptr = _valloc(PAGE_SIZE);
+    return (page_t)ptr;
+}
 void page_release_kmap_stub(page_t page)
 {
     _vfree((void *)page);
@@ -233,7 +238,7 @@ page_t mmu_read_kmap_stub(size_t address)
         map_init = true;
     }
     map_page_t *mp = bbtree_search_le(&map_tree, address, map_page_t, node);
-    if (mp == NULL || mp->node.value_ + mp->len < address)
+    if (mp == NULL || mp->node.value + mp->len < address)
         return 0;
     return (page_t)address;
 }

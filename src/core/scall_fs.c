@@ -20,7 +20,7 @@
 #include <kernel/tasks.h>
 #include <kernel/memory.h>
 #include <kernel/vfs.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <kernel/syscalls.h>
 
 #include <kernel/mman.h>

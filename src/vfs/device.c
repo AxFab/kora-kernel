@@ -18,13 +18,13 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kora/hmap.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <assert.h>
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <stdbool.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <limits.h>
 
 vfs_share_t *__vfs_share = NULL;

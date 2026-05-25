@@ -53,7 +53,7 @@ CFLAGS_kr += $(CFLAGS)
 CFLAGS_kr += -ffreestanding $(CFLAGS_inc) $(CFLAGS_def)
 
 ifeq ($(target_os),kora)
-CFLAGS_kr += -DKORA_KRN -D__NO_SYSCALL
+CFLAGS_kr += -DKORA_KRN -D__NO_SYSCALL -nostdinc -Iinclude/cc
 else
 # CFLAGS_kr += -lpthread
 ifeq ($(NOCOV),)
@@ -104,12 +104,11 @@ $(bindir)/bootstrap: $(call fn_objs,SRCS_bs,kr)
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Build drivers
 
-CFLAGS_dr += $(CFLAGS)
+CFLAGS_dr += $(CFLAGS) -DKORA_KMOD -nostdinc -Iinclude/cc
 CFLAGS_dr += -ffreestanding -fPIC $(CFLAGS_inc) $(CFLAGS_def)
 
 LFLAGS_dr += -nostdlib $(LFLAGS_def)
 
-# DRV = vfat ext2 isofs
 DRV  = fs/vfat fs/isofs fs/ext2
 DRV += pc/ata pc/e1000 pc/ps2 pc/vga
 DRV += misc/vbox net/ip4
@@ -151,9 +150,9 @@ SRC_kcore += $(topdir)/src/stdc/hmap.c
 SRC_kcore += $(topdir)/src/stdc/sem.c
 SRC_kcore += $(topdir)/src/stdc/bits.c
 SRC_kcore += $(topdir)/tests/cli.c
-ifneq ($(ADD_C11),y)
-SRC_kcore += $(topdir)/tests/threads.c
-endif
+# ifneq ($(ADD_C11),y)
+# SRC_kcore += $(topdir)/tests/threads.c
+# endif
 SRC_kcore += $(topdir)/tests/stub/stub_common.c
 SRC_kcore += $(topdir)/tests/stub/stub_irq.c
 

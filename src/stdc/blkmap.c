@@ -17,7 +17,7 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#include <stdio.h>
+// #include <stdio.h>
 #include <kernel/blkmap.h>
 
 static void *blk_map_(blkmap_t *map, size_t no, int rights)

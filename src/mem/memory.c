@@ -22,7 +22,7 @@
 // #include <kernel/vfs.h>
 #include <kora/mcrs.h>
 #include <assert.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <string.h>
 #include <kernel/dlib.h>
 

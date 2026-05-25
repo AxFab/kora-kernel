@@ -22,7 +22,7 @@
 #include <kernel/mods.h>
 #include <kernel/bus/pci.h>
 #include <string.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 
 ata_drive_t drives[] = {

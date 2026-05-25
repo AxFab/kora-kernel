@@ -4,7 +4,7 @@
 #include <kernel/memory.h>
 #include <kernel/dlib.h>
 #include <bits/atomic.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <assert.h>
 
 
@@ -32,7 +32,7 @@ void vma_resolve_dlib(vmsp_t *vmsp, vma_t *vma, size_t vaddr, size_t page)
 
 int vma_shared_dlib(vmsp_t *vmsp, vma_t *vma, size_t address, size_t page)
 {
-    xoff_t offset = vma->offset + (xoff_t)(address - vma->node.value_);
+    xoff_t offset = vma->offset + (xoff_t)(address - vma->node.value);
     size_t old = dlib_fetch_page(vma->lib, offset, false);
     if (old != 0)
         dlib_release_page(vma->lib, offset, old);
@@ -56,7 +56,7 @@ void vma_unmap_dlib(vmsp_t *vmsp, vma_t *vma, size_t address)
             if (page_shared(vmsp->share, pg, -1))
                 page_release(pg);
         } else {
-            xoff_t offset = vma->offset + (xoff_t)(address - vma->node.value_);
+            xoff_t offset = vma->offset + (xoff_t)(address - vma->node.value);
             vmsp->s_size--;
             dlib_release_page(vma->lib, offset, pg);
         }

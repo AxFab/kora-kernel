@@ -50,7 +50,7 @@ struct bbnode
     bbnode_t *parent_;
     bbnode_t *left_;
     bbnode_t *right_;
-    size_t value_;
+    size_t value;
     int level_;
 };
 

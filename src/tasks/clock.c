@@ -121,7 +121,7 @@ static ftx_t *futex_open(masterclock_t *clock, int *addr, int flags)
             // futex->pointer = ADDR_OFF(kmap(PAGE_SIZE, NULL, ALIGN_DOWN(phys), VMA_PHYSIQ), phys & (PAGE_SIZE-1));
         } else
             futex->pointer = addr;
-        futex->bnode.value_ = phys;
+        futex->bnode.value = phys;
         bbtree_insert(&clock->tree, &futex->bnode);
         splock_init(&futex->lock);
         llist_init(&futex->queue);
@@ -142,7 +142,7 @@ static void futex_close(masterclock_t *clock, ftx_t *futex)
     }
 
     assert(futex->queue.count_ == 0);
-    bbtree_remove(&clock->tree, futex->bnode.value_);
+    bbtree_remove(&clock->tree, futex->bnode.value);
     if (futex->flags & FUTEX_SHARED) {
         // kunmap(PAGE_SIZE, ALIGN_DOWN(futex->pointer, PAGE_SIZE));
     }

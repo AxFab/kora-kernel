@@ -23,6 +23,7 @@
 
 #include <bits/cdefs.h>
 
+#ifndef __INTMAX_TYPE__
 
 #define __CHAR16_TYPE__ signed short
 #define __CHAR32_TYPE__ signed int
@@ -60,6 +61,7 @@
 #define __INTMAX_TYPE__ signed long long
 #define __UINTMAX_TYPE__ unsigned long long
 
+#endif  /* __INTMAX_TYPE__ */
 
 /* 7.8.1.1 Exact-width integer types */
 typedef __INT8_TYPE__ int8_t;
@@ -271,5 +273,6 @@ typedef __UINTMAX_TYPE__ uintmax_t;
 
 #endif /* (!defined __cplusplus || __cplusplus >= 201103L
        || defined __STDC_CONSTANT_MACROS) */
+
 
 #endif /* __STDINT_H */

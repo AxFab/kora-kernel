@@ -90,7 +90,7 @@ struct block_page {
     bool       ready;    // data has been read from driver
     bool       dirty;    // data has been written and not synced
     bool       in_ops;   // async I/O in progress
-    bbnode_t   node;     // BB-tree node; value_ = page index (off / PAGE_SIZE)
+    bbnode_t   node;     // BB-tree node; value = page index (off / PAGE_SIZE)
     atomic_int rcu;      // reference count
     size_t     phys;     // physical address of the backing page
     mtx_t      mtx;      // serialises fill / writeback

@@ -1,6 +1,6 @@
 #include "ata.h"
 #include <kernel/arch.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 splock_t patapi_lock = INIT_SPLOCK;
 
@@ -41,7 +41,7 @@ static int ata_scsi_packet(ata_drive_t *drive, int command, char* buf, int size)
         return -1;
     }
 
-    insw(drive->base + ATA_REG_DATA, buf, size / 2);
+    insw(drive->base + ATA_REG_DATA, (uint16_t *)buf, size / 2);
     return 0;
 }
 
@@ -85,7 +85,7 @@ static int ata_prepare_patapi_pio(ata_drive_t *drive, size_t lba, int count, int
     return 0;
 }
 
-void patapi_read_capacity(ata_drive_t *drive)
+int patapi_read_capacity(ata_drive_t *drive)
 {
     uint32_t response[2];
     if (ata_scsi_packet(drive, ATAPI_CMD_READ_CAPACITY, (void *)response, 8) != 0)
@@ -94,6 +94,7 @@ void patapi_read_capacity(ata_drive_t *drive)
     drive->max_lba = __swap32(response[0]);
     if (response[1] != 0)
         drive->block = __swap32(response[1]);
+    return 0;
 }
 
 int ata_read_patapi_pio(inode_t *ino, char *buf, size_t length, xoff_t offset, int flags)

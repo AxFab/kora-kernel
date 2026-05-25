@@ -112,7 +112,7 @@ static void vga_change_offset(uint16_t offset)
     outw(VGA_PORT_DATA, offset);
 }
 
-page_t vga_fetch(inode_t *ino, xoff_t off)
+page_t vga_fetch(inode_t *ino, xoff_t off, bool blocking)
 {
     vga_info_t *info = ino->drv_data;
     size_t base = info->pci->bar[0].base & ~(PAGE_SIZE - 1);
@@ -133,11 +133,11 @@ void vga_flip(inode_t *ino, size_t newoffset)
         memcpy32(info->pixels0, info->pixels1, info->pitch * info->height);
 }
 
-int vga_ioctl(inode_t *ino, int cmd, size_t *params)
+int vga_ioctl(inode_t *ino, int cmd, void **params)
 {
     vga_info_t *info = ino->drv_data;
     if (cmd == FB_FLIP) {
-        vga_flip(ino, params[0]);
+        vga_flip(ino, (size_t)params[0]);
         return 0;
     }
     if (cmd == FB_SIZE)

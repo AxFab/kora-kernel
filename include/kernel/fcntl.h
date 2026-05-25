@@ -17,15 +17,18 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#ifndef _KERNEL_FCNTL_H
-#define _KERNEL_FCNTL_H 1
+#ifndef _FCNTL_H
+#define _FCNTL_H 1
 
-#define O_RDONLY 1
-#define O_WRONLY 2
-#define O_RDWR 4
 
-#define O_CREAT 8
-#define O_EXCL 16
-#define O_TRUNC 32
+#if !defined KORA_KRN && !defined KORA_KMOD
 
-#endif  /* _KERNEL_INPUT_H */
+#include <fcntl.h>
+
+#else
+
+#include <bits/io.h>
+
+#endif
+
+#endif /* _FCNTL_H */

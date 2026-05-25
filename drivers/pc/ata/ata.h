@@ -179,5 +179,6 @@ int ata_poll(ata_drive_t *drive, bool check);
 void ata_soft_reset(ata_drive_t *drive);
 void ata_probe();
 
+int patapi_read_capacity(ata_drive_t *drive);
 
 #endif  /* _ATA_H */

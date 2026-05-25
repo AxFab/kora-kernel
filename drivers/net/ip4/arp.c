@@ -43,7 +43,7 @@ static void arp_forget_with(ip4_info_t *info, net_qry_t *qry)
 {
     splock_lock(&info->qry_lock);
     if (!qry->received)
-        bbtree_remove(&info->qry_arps, qry->bnode.value_);
+        bbtree_remove(&info->qry_arps, qry->bnode.value);
     splock_unlock(&info->qry_lock);
 }
 
@@ -128,7 +128,7 @@ int arp_receive(skb_t *skb)
         splock_lock(&info->qry_lock);
         net_qry_t *qry = bbtree_search_eq(&info->qry_arps, *((uint32_t *)&source_ip), net_qry_t, bnode);
         if (qry != NULL)
-            bbtree_remove(&info->qry_arps, qry->bnode.value_);
+            bbtree_remove(&info->qry_arps, qry->bnode.value);
         splock_unlock(&info->qry_lock);
 
         if (qry != NULL) {
@@ -163,7 +163,7 @@ int arp_whois(ifnet_t *net, const uint8_t *ip, net_qry_t *qry)
         mtx_lock(&qry->mtx);
 
         splock_lock(&info->qry_lock);
-        qry->bnode.value_ = *((uint32_t *)ip);
+        qry->bnode.value = *((uint32_t *)ip);
         bbtree_insert(&info->qry_arps, &qry->bnode);
         splock_unlock(&info->qry_lock);
     }

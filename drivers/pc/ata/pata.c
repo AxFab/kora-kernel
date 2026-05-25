@@ -1,6 +1,6 @@
 #include "ata.h"
 #include <kernel/arch.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 static void ata_prepare_pata_pio(ata_drive_t *drive, size_t lba, int count, bool wait)
 {

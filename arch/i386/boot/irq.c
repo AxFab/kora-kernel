@@ -23,7 +23,7 @@
 #include <kernel/tasks.h>
 #include <kernel/irq.h>
 #include <kernel/signum.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 typedef struct regs regs_t;
 struct regs {

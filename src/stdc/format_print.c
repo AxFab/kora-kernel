@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <string.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <stdarg.h>
 #include <kora/mcrs.h>
 #include <bits/libio.h>

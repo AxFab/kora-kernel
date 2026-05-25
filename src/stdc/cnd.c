@@ -20,7 +20,7 @@
 #include <kernel/threads.h>
 #include <limits.h>
 #include <stdint.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <kernel/stdc.h>
 #include <kora/mcrs.h>
 #include <bits/atomic.h>

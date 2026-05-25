@@ -17,9 +17,18 @@
  *
  *   - - - - - - - - - - - - - - -
  */
-#if !defined _ERRNO_H
-# error "Never use <kernel/errno.h> directly; include <errno.h> instead."
-#endif
+#ifndef _KERNEL_ERRNO_H
+#define _KERNEL_ERRNO_H 1
+
+#if !defined KORA_KRN && !defined KORA_KMOD
+
+#include <errno.h>
+
+#else
+
+int *__errno_location();
+#undef errno
+#define errno  (*__errno_location())
 
 
 #define EPERM           1  /* Operation not permitted */
@@ -154,3 +163,7 @@
 
 #define EOWNERDEAD      130 /* Owner died */
 #define ENOTRECOVERABLE 131 /* State not recoverable */
+
+#endif /* KORA_KRN */
+
+#endif /* _KERNEL_ERRNO_H */

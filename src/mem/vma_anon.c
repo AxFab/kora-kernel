@@ -4,7 +4,7 @@
 #include <kernel/memory.h>
 #include <kernel/dlib.h>
 #include <bits/atomic.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <assert.h>
 
 
@@ -58,7 +58,7 @@ void vma_unmap_blank(vmsp_t *vmsp, vma_t *vma, size_t address)
 int vma_protect_anon(vmsp_t *vmsp, vma_t *vma, int flags)
 {
     size_t length = vma->length;
-    size_t address = vma->node.value_;
+    size_t address = vma->node.value;
     vma->flags = (vma->flags & ~VM_RWX) | (flags & VM_RWX);
     while (length) {
         size_t pg = mmu_read(address);
@@ -130,4 +130,3 @@ vma_ops_t vma_ops_heap = {
     .unmap = vma_unmap_blank,
     .print = vma_print_heap,
 };
-

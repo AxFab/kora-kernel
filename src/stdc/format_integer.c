@@ -20,7 +20,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <ctype.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <kora/mcrs.h>
 #include <kernel/mods.h>
 

@@ -20,7 +20,7 @@
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
 #include <kernel/memory.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 
 typedef struct pipe pipe_t;

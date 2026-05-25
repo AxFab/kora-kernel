@@ -20,7 +20,7 @@
 #include <assert.h>
 #include <string.h>
 #include "allocator.h"
-#include <errno.h>
+#include <kernel/errno.h>
 
 #define POISON_PTR 0xAAAAAAAA
 

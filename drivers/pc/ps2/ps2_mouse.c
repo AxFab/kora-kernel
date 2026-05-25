@@ -115,28 +115,28 @@ void PS2_mouse_handler()
 
                 msg.param1 = mseX | (mseY << 16); //mouse_x;
                 msg.message = GFX_EV_MOUSEMOVE;
-                vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
+                vfs_write(kdb_ino, (char *)&msg, sizeof(msg), 0, IO_ATOMIC);
 
             }
             if (mouse_btn != (mouse_byte[0] & 7)) {
-                int diff = mouse_btn ^ mouse_byte[0] & 7;
+                int diff = mouse_btn ^ (mouse_byte[0] & 7);
                 mouse_btn = mouse_byte[0] & 7;
 
                 msg.param2 = mouse_btn;
                 if (diff & 1) {
                     msg.param1 = 1;
                     msg.message = mouse_btn & 1 ? GFX_EV_BTNDOWN : GFX_EV_BTNUP;
-                    vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
+                    vfs_write(kdb_ino, (char *)&msg, sizeof(msg), 0, IO_ATOMIC);
                 }
                 if (diff & 2) {
                     msg.param1 = 2;
                     msg.message = mouse_btn & 2 ? GFX_EV_BTNDOWN : GFX_EV_BTNUP;
-                    vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
+                    vfs_write(kdb_ino, (char *)&msg, sizeof(msg), 0, IO_ATOMIC);
                 }
                 if (diff & 4) {
                     msg.param1 = 4;
                     msg.message = mouse_btn & 4 ? GFX_EV_BTNDOWN : GFX_EV_BTNUP;
-                    vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
+                    vfs_write(kdb_ino, (char *)&msg, sizeof(msg), 0, IO_ATOMIC);
                 }
             }
 

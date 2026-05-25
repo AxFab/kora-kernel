@@ -20,12 +20,8 @@
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
 #include <kernel/core.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <assert.h>
-
-typedef struct bio bio_t;
-typedef struct bio_req bio_req_t;
-typedef struct bio_algo bio_algo_t;
 
 typedef struct block_file block_file_t;
 typedef struct block_page block_page_t;
@@ -53,10 +49,6 @@ struct block_page {
 
 size_t mmu_read(size_t address);
 
-bio_t *bio_create(inode_t *ino);
-void bio_request(bio_t *bio, block_page_t *page, size_t lba, size_t cnt, int flags);
-void bio_push(bio_t *bio);
-int bio_wait(bio_t *bio);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -67,7 +59,7 @@ void block_scavenge(block_file_t *block, int max)
         block_page_t *page = ll_dequeue(&block->llru, block_page_t, nlru);
         if (page == NULL)
             break;
-        int lba = page->node.value_;
+        int lba = page->node.value;
         // TODO -- Race condition, is page_mutex released !?
         bbtree_remove(&block->tree, lba);
         page_release(page->phys);
@@ -99,34 +91,32 @@ static int block_fill(inode_t *ino, block_page_t *page)
     }
 
     block_file_t *block = ino->fl_data;
+
+    // assert(page->phys == 0);
+    if (page->phys == 0)
+        page->phys = page_new();
     if (block->async) {
         // Asynchronous read
         int bpp = PAGE_SIZE / ino->dev->block;
-        size_t lba = page->node.value_ * bpp;
-        bio_t *bio = bio_create(ino);
-        bio_request(bio, page, lba, bpp, VM_RD);
-        bio_push(bio);
+        size_t lba = page->node.value * bpp;
+        bio_t *bio = bio_alloc(ino, BIO_READ, page->phys, lba, bpp);
+        bio_submit(bio);
         ret = bio_wait(bio);
+        bio_free(bio);
     } else {
         // Synchronous read
-        // page->phys = page_new(); // TODO -- ISSUE ON CLI_VFS OR FOR DMA DRIVERS...
-        assert(page->phys == 0);
         void *ptr = kmap(PAGE_SIZE, NULL, page->phys, VM_RW | VMA_PHYS);
         assert(ptr != NULL);
         page->phys = mmu_read((size_t)ptr);
-        xoff_t off = page->node.value_ * PAGE_SIZE;
+        xoff_t off = page->node.value * PAGE_SIZE;
         kprintf(KL_BIO, "Alloc page %p for inode %s, read at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
         ret = ino->ops->read(ino, ptr, PAGE_SIZE, off, 0);
         kunmap(ptr, PAGE_SIZE);
-        if (ret != 0) {
-            /* kunmap released the virtual mapping; reset phys so retries
-             * and the final error path do not see a stale non-zero value
-             * and so the physical page (freed by kunmap) is not double-released. */
-            page->phys = 0;
-        }
     }
     if (ret != 0) {
-        kprintf(-1, "\033[35mError while reading page: %s, pg:%d\033[0m\n", vfs_inokey(ino, tmp), page->node.value_);
+        // page_release(page->phys); // kunmap with VMA_PHYS do not release the page
+        page->phys = 0;
+        kprintf(-1, "\033[35mError while reading page: %s, pg:%d\033[0m\n", vfs_inokey(ino, tmp), page->node.value);
         mtx_unlock(&page->mtx);
         return -1;
     }
@@ -138,21 +128,24 @@ static int block_fill(inode_t *ino, block_page_t *page)
 
 static int block_writeback(inode_t *ino, block_page_t *page)
 {
+    int ret;
     char tmp[20];
     block_file_t *block = ino->fl_data;
+    // assert(page->phys == 0);
     if (block->async) {
         // Asynchronous write
         int bpp = PAGE_SIZE / ino->dev->block;
-        size_t lba = page->node.value_ * bpp;
+        size_t lba = page->node.value * bpp;
         page->in_ops = true;
-        bio_t *bio = bio_create(ino);
-        bio_request(bio, page, lba, bpp, VM_WR);
-        bio_push(bio);
+        bio_t *bio = bio_alloc(ino, BIO_WRITE, page->phys, lba, bpp);
+        bio_submit(bio);
+        ret = bio_wait(bio);
+        bio_free(bio);
     } else {
         // Synchronous write
         void *ptr = kmap(PAGE_SIZE, NULL, (xoff_t)page->phys, VM_RW | VMA_PHYS);
         assert(ptr != NULL);
-        xoff_t off = page->node.value_ * PAGE_SIZE;
+        xoff_t off = page->node.value * PAGE_SIZE;
         kprintf(KL_BIO, "Write back page %p for inode %s at %llx\n", page->phys, vfs_inokey(ino, tmp), off);
 
         int len = PAGE_SIZE;
@@ -160,16 +153,16 @@ static int block_writeback(inode_t *ino, block_page_t *page)
         if (off + len > ino->length)
             len = ino->length - off;
 
-        int ret = ino->ops->write(ino, ptr, len, off, 0);
+        ret = ino->ops->write(ino, ptr, len, off, 0);
         kunmap(ptr, PAGE_SIZE);
-        if (ret != 0) {
-            kprintf(-1, "\033[35mError while syncing page: %s, pg:%d\033[0m\n", vfs_inokey(ino, tmp), off / PAGE_SIZE);
-            return -1;
-        }
-
-        page->dirty = false;
     }
 
+    if (ret != 0) {
+        kprintf(-1, "\033[35mError while syncing page: %s, pg:%d\033[0m\n", vfs_inokey(ino, tmp), page->node.value);
+        return -1;
+    }
+
+    page->dirty = false;
     return 0;
 }
 
@@ -190,7 +183,7 @@ static block_page_t *block_get(inode_t *ino, xoff_t off, bool create)
         mtx_init(&page->mtx, mtx_plain);
         cnd_init(&page->cnd);
         page->rcu = 0;
-        page->node.value_ = lba;
+        page->node.value = lba;
         bbtree_insert(&block->tree, &page->node);
     } else if (ll_contains(&block->llru, &page->nlru))
         ll_remove(&block->llru, &page->nlru);
@@ -351,9 +344,9 @@ void block_destroy(inode_t *ino)
             kprintf(-1, "Error: dirty page haven't been sync %s\n", vfs_inokey(ino, tmp));
         if (page->rcu != 0)
             kprintf(-1, "Error: page is still mapped\n", vfs_inokey(ino, tmp));
-        kprintf(KL_BIO, "Release page %p for inode %s at %llx\n", page->phys, vfs_inokey(ino, tmp), (xoff_t)page->node.value_ * PAGE_SIZE);
+        kprintf(KL_BIO, "Release page %p for inode %s at %llx\n", page->phys, vfs_inokey(ino, tmp), (xoff_t)page->node.value * PAGE_SIZE);
         page_release(page->phys);
-        bbtree_remove(&block->tree, page->node.value_);
+        bbtree_remove(&block->tree, page->node.value);
         kfree(page);
         page = bbtree_first(&block->tree, block_page_t, node);
     }

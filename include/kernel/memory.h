@@ -283,9 +283,8 @@ struct page_sharing
 /* Close all VMAs */
 //void mspace_sweep(vmsp_t *mspace);
 
-
-int mspace_check(vmsp_t *mspace, const void *ptr, size_t len, int flags);
-int mspace_check_str(vmsp_t *mspace, const char *str, size_t max);
-int mspace_check_strarray(vmsp_t *mspace, const char **str);
+int vmsp_check(vmsp_t *vmsp, const void *ptr, size_t len, int flags);
+int vmsp_check_str(vmsp_t *vmsp, const char *str, size_t max);
+int vmsp_check_strarray(vmsp_t *vmsp, const char **str);
 
 #endif /* _KERNEL_MEMORY_H */

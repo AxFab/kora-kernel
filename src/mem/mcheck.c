@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <kernel/memory.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 /* - */
 int vmsp_check(vmsp_t *vmsp, const void *ptr, size_t len, int flags)
@@ -31,7 +31,7 @@ int vmsp_check(vmsp_t *vmsp, const void *ptr, size_t len, int flags)
         return -1;
     }
 
-    size_t max = vma->node.value_ + vma->length - (size_t)ptr;
+    size_t max = vma->node.value + vma->length - (size_t)ptr;
     if (max < len) {
         splock_unlock(&vmsp->lock);
         errno = EINVAL;
@@ -59,7 +59,7 @@ int vmsp_check_str(vmsp_t *vmsp, const char *str, size_t max)
         return -1;
     }
 
-    max = MIN(max, vma->node.value_ + vma->length - (size_t)str);
+    max = MIN(max, vma->node.value + vma->length - (size_t)str);
     splock_unlock(&vmsp->lock);
 
     if (strnlen(str, max) >= max) {
@@ -81,7 +81,7 @@ int vmsp_check_strarray(vmsp_t *vmsp, const char **str)
         return -1;
     }
 
-    size_t max = vma->node.value_ + vma->length - (size_t)str;
+    size_t max = vma->node.value + vma->length - (size_t)str;
     splock_unlock(&vmsp->lock);
 
     size_t len = sizeof(char *);

@@ -203,12 +203,14 @@ size_t mmu_read(size_t vaddr)
     if (pg != 0)
         return pg;
     mmu_dir_t *dir = __mmu_dir(vaddr);
+    size_t idx = (vaddr / PAGE_SIZE) % 1024;
     return dir->pages[idx] & ~(PAGE_SIZE-1);
 }
 
 int mmu_read_flags(size_t vaddr)
 {
     mmu_dir_t *dir = __mmu_dir(vaddr);
+    size_t idx = (vaddr / PAGE_SIZE) % 1024;
     return dir->pages[idx] & (VM_RWX | VM_UNCACHABLE);
 }
 
@@ -216,6 +218,7 @@ int mmu_read_flags(size_t vaddr)
 size_t mmu_drop(size_t vaddr)
 {
     mmu_dir_t *dir = __mmu_dir(vaddr);
+    size_t idx = (vaddr / PAGE_SIZE) % 1024;
     size_t phys = dir->pages[idx] & ~(PAGE_SIZE - 1);
     dir->pages[idx] = 0;
     return phys;
@@ -225,6 +228,7 @@ size_t mmu_drop(size_t vaddr)
 size_t mmu_protect(size_t vaddr, int flags)
 {
     mmu_dir_t *dir = __mmu_dir(vaddr);
+    size_t idx = (vaddr / PAGE_SIZE) % 1024;
     size_t phys = 0;
     if (dir->pages[idx] != 0) {
         phys = dir->pages[idx] & ~(PAGE_SIZE - 1);
@@ -237,6 +241,7 @@ size_t mmu_protect(size_t vaddr, int flags)
 bool mmu_dirty(size_t vaddr)
 {
     mmu_dir_t *dir = __mmu_dir(vaddr);
+    size_t idx = (vaddr / PAGE_SIZE) % 1024;
     return dir->pages[idx] & 0x200;
 }
 

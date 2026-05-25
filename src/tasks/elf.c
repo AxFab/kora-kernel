@@ -19,7 +19,7 @@
  */
 #include <kernel/dlib.h>
 #include <kernel/vfs.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <string.h>
 
 #if 0

@@ -19,7 +19,7 @@
  */
 #include <time.h>
 #include <assert.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <kernel/mods.h>
 
 int snprintf(char *, size_t, const char *, ...);
@@ -251,7 +251,6 @@ char *asctime_r(const struct tm *date, char *str)
              1900 + date->tm_year);
     return str;
 }
-
 
 char *asctime(const struct tm *date)
 {

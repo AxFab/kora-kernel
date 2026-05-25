@@ -99,10 +99,10 @@ static bbnode_t *bbtree_insert_(bbnode_t *root, bbnode_t *node, int *ok)
         return node;
     }
 
-    if (node->value_ < root->value_) {
+    if (node->value < root->value) {
         root->left_ = bbtree_insert_(root->left_, node, ok);
         root->left_->parent_ = root;
-    } else if (node->value_ > root->value_) {
+    } else if (node->value > root->value) {
         root->right_ = bbtree_insert_(root->right_, node, ok);
         root->right_->parent_ = root;
     } else {
@@ -140,7 +140,7 @@ static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, bbrm_t *del,
 
     // Search down the tree and set pointers last and deleted
     del->last = root;
-    if (value < root->value_) {
+    if (value < root->value) {
         root->left_ = bbtree_remove_(root->left_, value, del, ok);
         root->left_->parent_ = root;
     } else {
@@ -151,7 +151,7 @@ static bbnode_t *bbtree_remove_(bbnode_t *root, size_t value, bbrm_t *del,
 
     // At the bottom of the tree we remove the element (if present)
     if (del->last == root && del->deleted != __NIL &&
-        del->deleted->value_ == value) {
+        del->deleted->value == value) {
         *ok = 1;
         root->right_->parent_ = root->parent_;
         return root->right_;
@@ -271,17 +271,17 @@ bbnode_t *bbtree_search_(bbnode_t *root, size_t value, int accept)
     if (root == __NIL)
         return NULL;
 
-    else if (root->value_ == value)
+    else if (root->value == value)
         return root;
 
-    if (root->value_ > value) {
+    if (root->value > value) {
         best = bbtree_search_(root->left_, value, accept);
-        if (accept <= 0 || (best != NULL && root->value_ > best->value_))
+        if (accept <= 0 || (best != NULL && root->value > best->value))
             return best;
         return root;
     } else {
         best = bbtree_search_(root->right_, value, accept);
-        if (accept >= 0 || (best != NULL && root->value_ < best->value_))
+        if (accept >= 0 || (best != NULL && root->value < best->value))
             return best;
         return root;
     }

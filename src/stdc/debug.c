@@ -69,6 +69,8 @@ void stackdump(size_t frame)
     }
 }
 
+
+
 void kdump(const void *buf, int len)
 {
     int i, j;
@@ -119,7 +121,6 @@ void kdump(const void *buf, int len)
         kprintf(KL_DBG, "\n");
     }
 }
-
 
 void kdump2(const void *buf, int len)
 {

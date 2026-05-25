@@ -20,7 +20,7 @@
 #include <kernel/arch.h>
 #include <kernel/vfs.h>
 #include <kernel/irq.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 #define PORT_COM1 0x3f8   /* COM1 */
 #define PORT_COM2 0x2f8   /* COM2 */

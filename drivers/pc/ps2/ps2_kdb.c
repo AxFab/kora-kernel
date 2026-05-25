@@ -117,5 +117,5 @@ void PS2_kbd_handler()
     }
 
     msg.window = 0;
-    vfs_write(kdb_ino, &msg, sizeof(msg), 0, IO_ATOMIC);
+    vfs_write(kdb_ino, (char *)&msg, sizeof(msg), 0, IO_ATOMIC);
 }

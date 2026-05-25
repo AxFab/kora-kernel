@@ -20,7 +20,7 @@
 //#include <kernel/memory.h>
 //#include <kora/mcrs.h>
 //#include <assert.h>
-//#include <errno.h>
+//#include <kernel/errno.h>
 //#include <kernel/dlib.h>
 //
 //mspace_t *mspace_from(size_t vaddr)
@@ -42,13 +42,13 @@
 //	vma_t *vma = bbtree_search_le(&mspace->tree, address, vma_t, node);
 //	if (vma == NULL) {
 //		vma = bbtree_first(&mspace->tree, vma_t, node);
-//		if (vma != NULL && address + length > vma->node.value_)
+//		if (vma != NULL && address + length > vma->node.value)
 //			return false;
 //	} else {
-//		if (vma->node.value_ + vma->length > address)
+//		if (vma->node.value + vma->length > address)
 //			return false;
 //		vma = bbtree_next(&vma->node, vma_t, node);
-//		if (vma != NULL && address + length > vma->node.value_)
+//		if (vma != NULL && address + length > vma->node.value)
 //			return false;
 //	}
 //	return true;
@@ -60,20 +60,20 @@
 //	assert(splock_locked(&mspace->lock));
 //	vma_t *next;
 //	vma_t *vma = bbtree_first(&mspace->tree, vma_t, node);
-//	if (vma == NULL || mspace->lower_bound + length <= vma->node.value_)
+//	if (vma == NULL || mspace->lower_bound + length <= vma->node.value)
 //		return mspace->lower_bound;
 //
 //	for (;;) {
 //		next = bbtree_next(&vma->node, vma_t, node);
 //		if (next == NULL
-//			|| vma->node.value_ + vma->length + length <= next->node.value_)
+//			|| vma->node.value + vma->length + length <= next->node.value)
 //			break;
 //		vma = next;
 //	}
 //	if (next == NULL
-//		&& vma->node.value_ + vma->length + length > mspace->upper_bound)
+//		&& vma->node.value + vma->length + length > mspace->upper_bound)
 //		return 0;
-//	return vma->node.value_ + vma->length;
+//	return vma->node.value + vma->length;
 //}
 //
 ///* Utility method used to apply a change on a address interval.
@@ -96,15 +96,15 @@
 //	splock_lock(&mspace->lock);
 //	while (length != 0) {
 //		vma = bbtree_search_le(&mspace->tree, address, vma_t, node);
-//		if (vma == NULL || vma->node.value_ + vma->length <= address) {
+//		if (vma == NULL || vma->node.value + vma->length <= address) {
 //			errno = ENOENT;
 //			splock_unlock(&mspace->lock);
 //			return -1;
 //		}
 //
-//		if (vma->node.value_ != address) {
-//			assert(vma->node.value_ < address);
-//			vma = vma_split(mspace, vma, address - vma->node.value_);
+//		if (vma->node.value != address) {
+//			assert(vma->node.value < address);
+//			vma = vma_split(mspace, vma, address - vma->node.value);
 //			if (vma == NULL) {
 //				errno = EINVAL;
 //				splock_unlock(&mspace->lock);
@@ -112,7 +112,7 @@
 //			}
 //		}
 //
-//		assert(vma->node.value_ == address);
+//		assert(vma->node.value == address);
 //		if (vma->length > length)
 //			vma_split(mspace, vma, length);
 //
@@ -267,7 +267,7 @@
 //
 //	splock_lock(&mspace->lock);
 //	vma = bbtree_search_le(&mspace->tree, address, vma_t, node);
-//	if (vma == NULL || vma->node.value_ + vma->length <= address) {
+//	if (vma == NULL || vma->node.value + vma->length <= address) {
 //		splock_unlock(&mspace->lock);
 //		return NULL;
 //	}

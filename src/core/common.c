@@ -77,6 +77,7 @@ void *kalloc_(size_t size, const char *expr)
     return kalloc(size);
 }
 
+#undef kalloc
 void *kalloc(size_t size)
 {
     if (size > PAGE_SIZE) {
@@ -143,10 +144,10 @@ void kprintf(klog_t log, const char *msg, ...)
     splock_lock(&kplock);
     va_list ap;
     va_start(ap, msg);
-    int lg = vsnprintf(kpbuf, 1024, msg, ap);
+    vsnprintf(kpbuf, 1024, msg, ap);
     va_end(ap);
     if (pk != NULL) {
-        lg = snprintf(kpbuf2, 1024, pk, kpbuf);
+        snprintf(kpbuf2, 1024, pk, kpbuf);
         kwrite(kpbuf2);
     } else {
         kwrite(kpbuf);

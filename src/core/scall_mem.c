@@ -20,7 +20,7 @@
 #include <kernel/tasks.h>
 #include <kernel/memory.h>
 #include <kernel/vfs.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <kernel/syscalls.h>
 
 #include <kernel/mman.h>
@@ -55,7 +55,7 @@ void *sys_mmap(void *addr, size_t length, unsigned flags, int fd, size_t off)
         vma |= VM_RESOLVE;
 
     // TODO - Transform flags !
-    void *ptr = vmsp_map(__current->vmsp, (size_t)addr, length, ino, off, vma);
+    void *ptr = (void *)vmsp_map(__current->vmsp, (size_t)addr, length, ino, off, vma);
 
     if (ino != NULL)
         vfs_close_inode(ino);

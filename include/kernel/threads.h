@@ -20,9 +20,16 @@
 #ifndef __THREADS_H
 #define __THREADS_H 1
 
+#if !defined KORA_KRN && !defined KORA_KMOD
+
+#include <threads.h>
+
+#else /* KORA_KRN */
+
 #include <bits/cdefs.h>
 #include <bits/atomic.h>
 #include <time.h>
+
 
 __STDC_GUARD
 
@@ -130,5 +137,7 @@ void cnd_destroy(cnd_t *cond);
 void call_once(once_flag *, void (*call)(void));
 
 __STDC_END
+
+#endif /* KORA_KRN */
 
 #endif  /* __THREADS_H */

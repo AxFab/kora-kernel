@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "ext2.h"
-#include <errno.h>
+#include <kernel/errno.h>
 
 
 /* Copy into the buffer data from mapped area of the underlying block device */

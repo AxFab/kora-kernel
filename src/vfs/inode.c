@@ -1,5 +1,5 @@
 #include <kernel/vfs.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 void vfs_createfile(inode_t *ino);
 
@@ -40,7 +40,7 @@ inode_t *vfs_inode(unsigned no, ftype_t type, device_t *device, const ino_ops_t 
     vfs_createfile(inode);
     atomic_inc(&device->rcu);
 
-    inode->bnode.value_ = no;
+    inode->bnode.value = no;
     bbtree_insert(&device->btree, &inode->bnode);
     splock_unlock(&device->lock);
     return inode;
@@ -75,7 +75,7 @@ void vfs_close_inode(inode_t *ino)
     }
 
     kprintf(KL_FSA, "Release inode `%s`\n", vfs_inokey(ino, tmp));
-    bbtree_remove(&device->btree, ino->bnode.value_);
+    bbtree_remove(&device->btree, ino->bnode.value);
     splock_unlock(&device->lock);
 
     if (ino->fops && ino->fops->destroy)

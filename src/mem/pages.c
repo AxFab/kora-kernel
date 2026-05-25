@@ -23,7 +23,7 @@
 #include <kora/llist.h>
 #include <kora/splock.h>
 #include <assert.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <string.h>
 
 void bitsset(uint8_t *ptr, int start, int count);

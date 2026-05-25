@@ -21,7 +21,7 @@
 #include <kora/hmap.h>
 #include <kernel/stdc.h>
 
- // Ethernet
+// Ethernet
 #define ETH_ALEN 6
 #define ETH_IP4 htons(0x0800)
 #define ETH_IP6 htons(0x86DD)
@@ -38,7 +38,7 @@ int eth_header(skb_t *skb, const uint8_t *addr, uint16_t protocol);
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-static_assert(ETH_ALEN <= NET_MAX_HWADRLEN, "Ethernet addresses are bigger than allowed");
+_Static_assert(ETH_ALEN <= NET_MAX_HWADRLEN, "Ethernet addresses are bigger than allowed");
 
 typedef struct eth_info eth_info_t;
 typedef struct eth_header eth_header_t;

@@ -111,7 +111,7 @@ Used throughout for VMAs (address key), tasks (PID key), inodes
 ```c
 bbtree_t tree;
 bbtree_init(&tree);
-bbtree_insert(&tree, &node);                  // node.value_ = key
+bbtree_insert(&tree, &node);                  // node.value = key
 bbtree_search_eq(&tree, key, struct T, node); // exact lookup
 bbtree_search_le / search_ge                  // floor / ceiling
 bbtree_remove(&tree, key);

@@ -4,7 +4,7 @@
 #include <kernel/memory.h>
 #include <kernel/dlib.h>
 #include <bits/atomic.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <assert.h>
 
 
@@ -26,7 +26,7 @@ static vma_t *vma_create(vmsp_t *vmsp, size_t address, size_t length, void *ptr,
 {
     assert(splock_locked(&vmsp->lock));
     vma_t *vma = kalloc(sizeof(vma_t));
-    vma->node.value_ = address;
+    vma->node.value = address;
     vma->length = length;
     vma->usage = 1;
     int type = flags & VMA_TYPE;
@@ -115,7 +115,7 @@ int vma_resolve(vmsp_t *vmsp, vma_t *vma, size_t vaddr, bool missing, bool write
 {
     // We should check vmsp is locked, but irq_semaphore == 1 !
 
-    xoff_t offset = vma->offset + (xoff_t)(vaddr - vma->node.value_);
+    xoff_t offset = vma->offset + (xoff_t)(vaddr - vma->node.value);
     if (missing) {
         // Look for page
         size_t page = vma->ops->fetch(vmsp, vma, offset, false);
@@ -185,12 +185,12 @@ void vma_unmap(vmsp_t *vmsp, vma_t *vma)
     // char tmp[32];
     assert(splock_locked(&vmsp->lock));
     if ((vma->flags & VM_UNMAPED) == 0) {
-        bbtree_remove(&vmsp->tree, vma->node.value_);
+        bbtree_remove(&vmsp->tree, vma->node.value);
         // kprintf(KL_VMA, "On %s%p, close vma %s\n", VMS_NAME(vmsp), vmsp, vma->ops->print(vma, tmp, 32));
         // Unmap pages
         vmsp->v_size -= vma->length / PAGE_SIZE;
         size_t length = vma->length;
-        size_t address = vma->node.value_;
+        size_t address = vma->node.value;
         while (length > 0) {
 #if _KORA_KRN
             if (vma->flags & VMA_CLEAN && mmu_read(address) != 0)
@@ -200,7 +200,7 @@ void vma_unmap(vmsp_t *vmsp, vma_t *vma)
             length -= PAGE_SIZE;
             address += PAGE_SIZE;
         }
-        
+
         vma->flags |= VM_UNMAPED;
     }
     if (atomic_xadd(&vma->usage, -1) != 1)
@@ -215,17 +215,17 @@ vma_t *vma_clone(vmsp_t *vmsp1, vmsp_t *vmsp2, vma_t *vma)
 {
     // char tmp[32];
     vma_t *cpy = kalloc(sizeof(vma_t));
-    cpy->node.value_ = vma->node.value_;
+    cpy->node.value = vma->node.value;
     cpy->length = vma->length;
     cpy->usage = 1;
     cpy->flags = vma->flags;
     cpy->ops = vma->ops;
     if (vma->ops->clone)
         vma->ops->clone(vmsp1, vmsp2, cpy, vma);
-   
+
     if (vma->flags & VMA_COW) {
         size_t length = vma->length;
-        size_t address = vma->node.value_;
+        size_t address = vma->node.value;
         while (length > 0) {
             size_t page = mmu_read(address);
             if (page != 0) {
@@ -267,20 +267,20 @@ static size_t vmsp_find_slot(vmsp_t *vmsp, size_t length)
 {
     assert(splock_locked(&vmsp->lock));
     vma_t *vma = bbtree_first(&vmsp->tree, vma_t, node);
-    if (vma == NULL || vmsp->lower_bound + length <= vma->node.value_)
+    if (vma == NULL || vmsp->lower_bound + length <= vma->node.value)
         return vmsp->lower_bound;
 
     for (;;) {
-        if (vma->node.value_ + vma->length + length > vmsp->upper_bound) {
+        if (vma->node.value + vma->length + length > vmsp->upper_bound) {
             errno = ENOMEM;
             return 0;
         }
 
         vma_t *next = bbtree_next(&vma->node, vma_t, node);
-        if (next == NULL || vma->node.value_ + vma->length + length <= next->node.value_) {
-            return vma->node.value_ + vma->length;
+        if (next == NULL || vma->node.value + vma->length + length <= next->node.value) {
+            return vma->node.value + vma->length;
         }
-        vma = next;   
+        vma = next;
     }
 }
 
@@ -291,13 +291,13 @@ static size_t vmsp_slot_address(vmsp_t *vmsp, size_t address, size_t length)
     vma_t *vma = bbtree_search_le(&vmsp->tree, address, vma_t, node);
     if (vma == NULL) {
         vma = bbtree_first(&vmsp->tree, vma_t, node);
-        if (vma != NULL && address + length > vma->node.value_)
+        if (vma != NULL && address + length > vma->node.value)
         	return 0;
     } else {
-        if (vma->node.value_ + vma->length > address)
+        if (vma->node.value + vma->length > address)
         	return false;
         vma = bbtree_next(&vma->node, vma_t, node);
-        if (vma != NULL && address + length > vma->node.value_)
+        if (vma != NULL && address + length > vma->node.value)
         	return 0;
     }
     return address;
@@ -309,7 +309,7 @@ vma_t *vmsp_find_area(vmsp_t *vmsp, size_t address)
     if (address < vmsp->lower_bound || address >= vmsp->upper_bound)
         return NULL;
     vma_t *vma = bbtree_search_le(&vmsp->tree, address, vma_t, node);
-    if (vma == NULL || vma->node.value_ + vma->length <= address)
+    if (vma == NULL || vma->node.value + vma->length <= address)
         return NULL;
     return vma;
 }
@@ -365,24 +365,24 @@ static vma_t *vma_check_range(vmsp_t *vmsp, vma_t *vma, size_t base, size_t leng
 {
     // char tmp1[32], tmp2[32];
     assert(splock_locked(&vmsp->lock));
-    if (vma->node.value_ > base || vma->ops->split == NULL)
+    if (vma->node.value > base || vma->ops->split == NULL)
         return NULL;
 
-    size_t limit = vma->node.value_ + vma->length;
+    size_t limit = vma->node.value + vma->length;
     vma_t *nx = vma;
     while (base + length > limit) {
         nx = bbtree_next(&nx->node, vma_t, node);
-        if (nx == NULL || nx->node.value_ != limit || nx->ops != vma->ops || nx->lib != vma->lib)
+        if (nx == NULL || nx->node.value != limit || nx->ops != vma->ops || nx->lib != vma->lib)
             return NULL;
-        limit = nx->node.value_ + nx->length;
+        limit = nx->node.value + nx->length;
     }
 
-    if (vma->node.value_ != base) {
-        assert(base > vma->node.value_);
-        size_t nlen = base - vma->node.value_;
+    if (vma->node.value != base) {
+        assert(base > vma->node.value);
+        size_t nlen = base - vma->node.value;
         vma_t *sec = kalloc(sizeof(vma_t));
         sec->usage = 1;
-        sec->node.value_ = base;
+        sec->node.value = base;
         sec->length = vma->length - nlen;
         vma->length = nlen;
         sec->ops = vma->ops;
@@ -393,7 +393,7 @@ static vma_t *vma_check_range(vmsp_t *vmsp, vma_t *vma, size_t base, size_t leng
         vma = sec;
     }
 
-    assert(vma->node.value_ == base);
+    assert(vma->node.value == base);
     return vma;
 }
 
@@ -401,8 +401,8 @@ static vma_t *vma_check_limit(vmsp_t *vmsp, vma_t *vma, size_t base, size_t leng
 {
     // char tmp1[32], tmp2[32];
     size_t limit = base + length;
-    assert(limit >= vma->node.value_);
-    length = limit - vma->node.value_;
+    assert(limit >= vma->node.value);
+    length = limit - vma->node.value;
 
     if (length == 0)
         return NULL;
@@ -410,7 +410,7 @@ static vma_t *vma_check_limit(vmsp_t *vmsp, vma_t *vma, size_t base, size_t leng
     if (length < vma->length) {
         vma_t *sec = kalloc(sizeof(vma_t));
         sec->usage = 1;
-        sec->node.value_ = base + length;
+        sec->node.value = base + length;
         sec->length = vma->length - length;
         vma->length = length;
         sec->ops = vma->ops;
@@ -433,7 +433,7 @@ int vmsp_unmap(vmsp_t *vmsp, size_t base, size_t length)
         return -1;
     }
 
-    if (vma->node.value_ == base && vma->length == length) {
+    if (vma->node.value == base && vma->length == length) {
         vma_unmap(vmsp, vma);
         splock_unlock(&vmsp->lock);
         return 0;
@@ -472,7 +472,7 @@ int vmsp_protect(vmsp_t *vmsp, size_t base, size_t length, int flags)
         return -1;
     }
 
-    if (vma->node.value_ == base && vma->length == length) {
+    if (vma->node.value == base && vma->length == length) {
         int ret = vma->ops->protect(vmsp, vma, flags);
         splock_unlock(&vmsp->lock);
         return ret;
@@ -586,7 +586,7 @@ int vmsp_fault(const char *message, size_t address)
     stackdump(15);
     size_t sp = (size_t)&message - 8;
     size_t len = PAGE_SIZE - (sp & (PAGE_SIZE-1));
-    kdump(sp, len);
+    kdump((void*)sp, (int)len);
     return -1;
 }
 
@@ -621,7 +621,7 @@ char *vma_print(vma_t *vma, char *buf, int len)
         : (vma->flags & VM_SHARED ? 'S' : 'p');
     // TODO -- Issue with xoff_t on print !
     int i = snprintf(buf, len, "%p-%p %s%c %012"XOFF_FX" {%04x} <%s>  ",
-        (void *)vma->node.value_, (void *)(vma->node.value_ + vma->length),
+        (void *)vma->node.value, (void *)(vma->node.value + vma->length),
         rights[vma->flags & 7], sh, vma->offset, vma->flags, sztoa(vma->length));
     vma->ops->print(vma, &buf[i], len - i);
     return buf;
@@ -631,7 +631,7 @@ void vma_debug(vma_t *vma)
 {
     char rgs[4];
     int sz = vma->length / PAGE_SIZE;
-    size_t address = vma->node.value_;
+    size_t address = vma->node.value;
     rgs[3] = '\0';
     for (int i = 0; i < sz; ++i) {
         if ((i % 8) == 0)
@@ -673,4 +673,3 @@ void vmsp_display(vmsp_t *vmsp)
     kfree(buf);
     splock_unlock(&vmsp->lock);
 }
-

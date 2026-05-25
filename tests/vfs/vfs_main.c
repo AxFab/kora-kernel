@@ -26,6 +26,11 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Memory stub
 
+page_t page_new_kmap_stub();
+page_t page_new()
+{
+	return page_new_kmap_stub();
+}
 void page_release_kmap_stub(page_t page);
 void page_release(page_t page)
 {

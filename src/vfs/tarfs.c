@@ -19,7 +19,7 @@
  */
 #include <kernel/stdc.h>
 #include <kernel/vfs.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 #define TAR_BLOCK_SIZE  512
 typedef struct tar_entry tar_entry_t;

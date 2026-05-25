@@ -19,7 +19,7 @@
  */
 #include <kernel/dlib.h>
 #include <kernel/blkmap.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <string.h>
 
 typedef struct elf_header elf_header_t;

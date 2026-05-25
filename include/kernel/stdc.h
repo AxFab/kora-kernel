@@ -134,4 +134,7 @@ void *memset32(void *dest, uint32_t val, size_t lg);
 void stackdump(size_t frame);
 void might_sleep(void);
 
+void kdump(const void *, int);
+void kdump2(const void *buf, int len);
+
 #endif /* _KERNEL_STDC_H */

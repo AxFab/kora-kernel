@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include <stddef.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 int mbtowc(wchar_t *wc, const char *str, size_t len)
 {

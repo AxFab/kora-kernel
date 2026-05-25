@@ -18,7 +18,7 @@
  *   - - - - - - - - - - - - - - -
  */
 #include "ext2.h"
-#include <errno.h>
+#include <kernel/errno.h>
 
 static inline int math_power(int val, int exp)
 {

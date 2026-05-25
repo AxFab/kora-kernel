@@ -19,7 +19,7 @@
  */
 #include <kernel/vfs.h>
 #include <string.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include <assert.h>
 
 void *block_create();

@@ -54,6 +54,12 @@ typedef enum fnode_status fnode_status_t;
 typedef struct fsreg fsreg_t;
 typedef struct user user_t;
 
+typedef struct bio bio_t;
+typedef struct bio_queue bio_queue_t;
+
+typedef void (*bio_submit_fn)(inode_t *dev, bio_t *bio);
+typedef int (*pio_rw_fn)(inode_t *dev, char *buf, size_t len, xoff_t off);
+
 
 typedef inode_t *(*fsmount_t)(inode_t *dev, const char *options);
 typedef int (*fsformat_t)(inode_t *dev, const char *options);
@@ -202,6 +208,7 @@ struct ino_ops {
 
     page_t (*fetch)(inode_t *ino, xoff_t off, bool blocking);
     int (*release)(inode_t *ino, xoff_t off, page_t pg, bool dirty);
+    void (*submit)(inode_t *dev, bio_t *bio);
 
     int (*ioctl)(inode_t *ino, int cmd, void **params);
 
@@ -383,6 +390,34 @@ int block_release(inode_t *ino, xoff_t off, page_t pg, bool dirty);
 #define FB_RESIZE 0x8001
 #define FB_FLIP 0x8002
 #define FB_SIZE 0x8003
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#define BIO_READ 1
+#define BIO_WRITE 2
+
+struct bio {
+    inode_t *dev;
+    mtx_t lock;
+    cnd_t done;
+    int err;
+    int op;
+    page_t phys;
+    xoff_t lba;
+    size_t nsectors; // ALWAYS EQUALS TO PAGE_SIZE FOR NOW
+    // xtime_t exp;
+    bbnode_t bnode;
+    llnode_t lnode;
+};
+
+void bio_deamon(inode_t *dev);
+bio_t *bio_alloc(inode_t *dev, int op, page_t phys, xoff_t lba, size_t size);
+void bio_free(bio_t *bio);
+void bio_submit(bio_t *bio);
+int bio_wait(bio_t *bio);
+void bio_complete(bio_t *bio, int err);
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

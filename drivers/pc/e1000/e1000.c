@@ -82,6 +82,18 @@ typedef struct e1000_device {
 
 void e1000_init_hw(e1000_device_t *ifnet);
 
+/* Allocate buffer for receive descriptors. */
+void e1000_rx_init(e1000_device_t *ifnet);
+
+/* Allocate buffer for transfert descriptors. */
+void e1000_tx_init(e1000_device_t *ifnet);
+
+
+void e1000_init(ifnet_t *ifnet)
+{
+    e1000_init_hw(ifnet->drv_data);
+}
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 //void e1000_link(ifnet_t *net)
@@ -424,8 +436,9 @@ void e1000_init_hw_task(e1000_device_t *ifnet)
 
 net_ops_t e1000_ops = {
     .send = e1000_send,
-    .link = e1000_init_hw,
+    .link = e1000_init,
 };
+
 
 
 /* Allocate buffer for receive descriptors. */
@@ -468,7 +481,6 @@ void e1000_tx_init(e1000_device_t *ifnet)
 
 void e1000_startup(struct PCI_device *pci, const char *name)
 {
-    int i;
     e1000_device_t *ifnet = (e1000_device_t *)kalloc(sizeof(e1000_device_t));
 
     ifnet->pci = pci;
@@ -477,7 +489,7 @@ void e1000_startup(struct PCI_device *pci, const char *name)
     mtx_lock(&pci->mtx);
 
     pci->bar[0].mmio = (uint32_t)kmap(pci->bar[0].size, NULL, pci->bar[0].base & ~7, VM_RW | VMA_PHYS | VM_UNCACHABLE);
-    // kprintf(KL_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
+    kprintf(KL_DBG, "%s MMIO mapped at %x\n", name, pci->bar[0].mmio);
 
     /* PCI Init command */
     uint16_t cmd = PCI_cfg_rd16(pci, PCI_COMMAND);
@@ -503,6 +515,7 @@ void e1000_startup(struct PCI_device *pci, const char *name)
         return;
     }
 
+    net->drv_data = ifnet;
     ifnet->dev = net;
     net->mtu = 1500; // Wild guess! TODO - Support for jumbo frames
     char tmp[32];
@@ -579,21 +592,22 @@ void e1000_setup()
     char name[48];
 
     int i;
-    for (;;) {
-        pci = pci_search(e1000_match_pci_device, &i);
-        if (pci == NULL)
-            break;
+    // for (;;) {
+    pci = pci_search(e1000_match_pci_device, &i);
+    if (pci == NULL)
+        return;
 
-        struct e1000_id *info = &__e1000_ids[i];
-        strcpy(name, "Intel PRO/1000");
-        if (info) {
-            strcat(name, " ");
-            strcat(name, info->name);
-        }
-        // name = "Intel PRO/1000 ";
-        // kprintf(0, "Found %s (PCI.%02d.%02d)\n", name, pci->bus, pci->slot);
-        e1000_startup(pci, name);
+    struct e1000_id *info = &__e1000_ids[i];
+    strcpy(name, "Intel PRO/1000");
+    if (info) {
+        strcat(name, " ");
+        strcat(name, info->name);
     }
+    // name = "Intel PRO/1000 ";
+    kprintf(0, "Found %s (PCI.%02d.%02d)\n", name, pci->bus, pci->slot);
+    e1000_startup(pci, name);
+    kprintf(0, "DONE %s (PCI.%02d.%02d)\n", name, pci->bus, pci->slot);
+    // }
 }
 
 void e1000_teardown()

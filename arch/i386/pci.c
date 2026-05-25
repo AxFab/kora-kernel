@@ -48,8 +48,7 @@
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
-static uint32_t __pci_address(uint8_t bus, uint8_t slot, uint8_t func,
-                         uint8_t offset)
+static uint32_t __pci_address(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset)
 {
     uint32_t address = 0;
 
@@ -59,6 +58,7 @@ static uint32_t __pci_address(uint8_t bus, uint8_t slot, uint8_t func,
     address |= (uint32_t)(func & 0x7) << 8;
     address |= (uint32_t)(offset & 0xfc);
     address |= 0x80000000;
+    return address;
 }
 
 /* Read 8 bits from the PCI configuration */

@@ -1,5 +1,5 @@
 #include <kernel/vfs.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 typedef struct pelmt pelmt_t;
 

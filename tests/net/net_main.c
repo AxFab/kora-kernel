@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <kernel/threads.h>
 #include <kernel/net.h>
+#include <kernel/stdc.h>
 #include <kora/mcrs.h>
 #include <kora/time.h>
 #include <math.h>
@@ -404,14 +405,12 @@ int do_expect(void *cfg, size_t * params)
     return cli_error("Unknown operator %s", cmd);
 }
 
-void kdump(void *, size_t);
-
 int do_print(void *cfg, size_t *params)
 {
     char *name = (char *)params[0];
     buffer_t *buffer = cli_fetch(name, OBJ_BUFFER);
     printf("Value %s:\n", name);
-    kdump(buffer->ptr, buffer->len);
+    kdump(buffer->ptr, (int)buffer->len);
     return 0;
 }
 

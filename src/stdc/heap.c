@@ -20,7 +20,7 @@
 #include <kernel/stdc.h>
 #include <kernel/memory.h>
 #include <string.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include "allocator.h"
 
 // void *kmap(size_t, inode_t *, int, int);

@@ -113,7 +113,7 @@ void cls_write(const char *buf)
 {
     while (*buf) {
         if (buf[0] == '\033' && buf[1] == '[') {
-            const char *rt;
+            char *rt;
             int val = strtol(&buf[2], &rt, 10);
             buf = rt;
             if (*rt == 'm') {

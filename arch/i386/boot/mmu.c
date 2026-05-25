@@ -88,7 +88,6 @@ void mmu_leave()
 
 void mmu_context(vmsp_t *vmsp)
 {
-    int i;
     page_t dir_pg = vmsp->directory;
     __mmu.uspace = vmsp;
     x86_set_cr3(dir_pg);

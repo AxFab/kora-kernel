@@ -22,7 +22,7 @@
 #include <kora/splock.h>
 #include <kora/bbtree.h>
 #include <kernel/tasks.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 struct streamset {
     splock_t lock;
@@ -47,14 +47,14 @@ int resx_put(streamset_t *strms, int type, void *data, void(*close)(void *))
     resx_t *resx = kalloc(sizeof(resx_t));
     splock_lock(&strms->lock);
     resx_t *p = bbtree_last(&strms->tree, resx_t, node);
-    size_t handle = p == NULL ? 0 : p->node.value_ + 1;
-    resx->node.value_ = handle;
+    size_t handle = p == NULL ? 0 : p->node.value + 1;
+    resx->node.value = handle;
     resx->type = type;
     resx->data = data;
     resx->close = close;
     bbtree_insert(&strms->tree, &resx->node);
     splock_unlock(&strms->lock);
-    return resx->node.value_;
+    return resx->node.value;
 }
 
 void *resx_get(streamset_t *strms, int type, int handle)
@@ -70,7 +70,7 @@ void resx_remove(streamset_t *strms, int handle)
     splock_lock(&strms->lock);
     resx_t *resx = bbtree_search_eq(&strms->tree, handle, resx_t, node);
     if (resx != NULL) {
-        bbtree_remove(&strms->tree, resx->node.value_);
+        bbtree_remove(&strms->tree, resx->node.value);
         if (resx->close) {
             splock_unlock(&strms->lock);
             resx->close(resx->data);

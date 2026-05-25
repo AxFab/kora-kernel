@@ -132,7 +132,7 @@ void net_set_protocol(netstack_t *stack, int protocol, nproto_t *proto)
     if (proto == NULL)
         return;
     splock_lock(&stack->lock);
-    proto->bnode.value_ = protocol;
+    proto->bnode.value = protocol;
     bbtree_insert(&stack->protocols, &proto->bnode);
     splock_unlock(&stack->lock);
     kprintf(-1, "New protocol for %s: %d (%s)\n", stack->hostname, protocol, proto->name);

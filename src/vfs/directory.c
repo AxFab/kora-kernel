@@ -19,7 +19,7 @@
  */
 #include <kernel/vfs.h>
 #include <assert.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 struct diterator {
     int mode;

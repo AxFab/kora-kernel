@@ -53,7 +53,7 @@ int ip4_socket_bind(ip4_master_t *master, bbtree_t *tree, socket_t *sock, const 
     }
 
     nport->sock = sock;
-    nport->bnode.value_ = nport->port = port;
+    nport->bnode.value = nport->port = port;
     nport->listen = false;
     nport->binded = true;
     hmp_init(&nport->clients, 8);
@@ -97,7 +97,7 @@ uint16_t ip4_ephemeral_port(ip4_master_t *master, bbtree_t *tree, socket_t *sock
 
     // Block the port
     nport->sock = sock;
-    nport->bnode.value_ = nport->port = port;
+    nport->bnode.value = nport->port = port;
     nport->listen = false;
     nport->binded = false;
     hmp_init(&nport->clients, 8);

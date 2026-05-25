@@ -22,7 +22,7 @@
 
 #include <kernel/vfs.h>
 #include <string.h>
-#include <errno.h>
+#include <kernel/errno.h>
 
 #define FILENAME_MAX 255
 #define ISOFS_SECTOR_SIZE  2048

@@ -22,7 +22,7 @@
 
 #include <bits/cdefs.h>
 
-#if 0
+#ifdef NDEBUG
 #define assert(n) ((void)(n))
 #else
 _Noreturn void __assert_fail(const char *expr, const char *file, int line);

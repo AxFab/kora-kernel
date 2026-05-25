@@ -72,7 +72,7 @@ static task_t *task_create(scheduler_t *sch, task_t *parent, const char *name, i
     splock_lock(&sch->lock);
     task_t *last = bbtree_last(&sch->task_tree, task_t, node);
     task->pid = last != NULL ? last->pid + 1 : 1;
-    task->node.value_ = task->pid;
+    task->node.value = task->pid;
     bbtree_insert(&sch->task_tree, &task->node);
     splock_unlock(&sch->lock);
 
@@ -145,7 +145,7 @@ size_t task_spawn(const char *program, const char **args, inode_t **nodes)
     // Save args
     task_params_t *info = kalloc(sizeof(task_params_t));
     info->start = true;
-    info->func = task->vmsp->proc->exec->entry; // TODO -- Create accessor
+    info->func = (void *)task->vmsp->proc->exec->entry; // TODO -- Create accessor
     int i, count = 1;
     int len = ALIGN_UP(strlen(program) + 1, 4);
     if (args) {

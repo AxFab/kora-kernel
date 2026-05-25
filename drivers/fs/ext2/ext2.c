@@ -21,7 +21,7 @@
 #include <kernel/vfs.h>
 #include <kernel/mods.h>
 #include <string.h>
-#include <errno.h>
+#include <kernel/errno.h>
 #include "ext2.h"
 
 

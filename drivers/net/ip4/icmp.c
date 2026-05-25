@@ -49,7 +49,7 @@ struct icmp_ping {
 static void icmp_forget_with(ip4_info_t *info, net_qry_t *qry)
 {
     splock_lock(&info->qry_lock);
-    bbtree_remove(&info->qry_pings, qry->bnode.value_);
+    bbtree_remove(&info->qry_pings, qry->bnode.value);
     splock_unlock(&info->qry_lock);
 }
 
@@ -113,7 +113,7 @@ int icmp_receive(skb_t *skb, unsigned length)
         splock_lock(&info->qry_lock);
         net_qry_t *qry = bbtree_search_eq(&info->qry_pings, header->data, net_qry_t, bnode);
         if (qry != NULL)
-            bbtree_remove(&info->qry_pings, qry->bnode.value_);
+            bbtree_remove(&info->qry_pings, qry->bnode.value);
         splock_unlock(&info->qry_lock);
 
         if (qry != NULL) {
@@ -164,7 +164,7 @@ int icmp_ping(ip4_route_t *route, const char *buf, unsigned len, net_qry_t *qry)
         }
 
         splock_lock(&info->qry_lock);
-        qry->bnode.value_ = data;
+        qry->bnode.value = data;
         bbtree_insert(&info->qry_pings, &qry->bnode);
         splock_unlock(&info->qry_lock);
         mtx_lock(&qry->mtx);
