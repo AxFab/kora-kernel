@@ -1,0 +1,5 @@
+# lldb -s init.lldb bin/kora-i386.krn
+settings set target.source-map /src .
+gdb-remote localhost:1234
+b kloader
+c

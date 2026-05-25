@@ -57,13 +57,13 @@ struct tar_iterator {
     char prefix[100];
 };
 
-static int tar_read_octal(char *count)
+static int tar_read_octal(char *count, int len)
 {
-    int i;
     int val = 0;
-    for (i = 0; count[i] != '\0'; ++i) {
-        val *= 8;
-        val += count[i] - '0';
+    for (int i = 0; i < len; ++i) {
+        if (count[i] < '0' || count[i] > '7')
+            break;
+        val = val * 8 + (count[i] - '0');
     }
     return val;
 }
@@ -115,7 +115,9 @@ static tar_entry_t *tar_do_iterate(inode_t *dir, char *name, tar_iterator_t *ctx
          * The first 5 bytes are "ustar" in all valid ustar variants. */
         if (memcmp("ustar", entry->magik, 5) != 0)
             return NULL;
-        int length = tar_read_octal(entry->file_size);
+        int length = tar_read_octal(entry->file_size, 12);
+        if (length < 0 || length > (int)info->length)
+            return NULL; // TODO -- EIO
         ctx->idx += ALIGN_UP(length + TAR_BLOCK_SIZE, TAR_BLOCK_SIZE) / TAR_BLOCK_SIZE;
 
         pfx = tar_strrchr(entry->name);
@@ -251,10 +253,10 @@ static inode_t *tar_inode(inode_t *dir, tar_entry_t *entry)
     if (ino->rcu == 1)
         atomic_inc(&info->rcu);
 
-    ino->length = tar_read_octal(entry->file_size);
-    ino->mode = tar_read_octal(entry->filemode);
+    ino->length = tar_read_octal(entry->file_size, 12);
+    ino->mode = tar_read_octal(entry->filemode, 8);
     ino->drv_data = dir->drv_data;
-    int mtime = tar_read_octal(entry->last_mode_time);
+    int mtime = tar_read_octal(entry->last_mode_time, 12);
     ino->atime = SEC_TO_USEC(mtime);
     ino->mtime = SEC_TO_USEC(mtime);
     ino->ctime = SEC_TO_USEC(mtime);
